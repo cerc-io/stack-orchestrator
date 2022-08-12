@@ -4,7 +4,6 @@ vulcanize/go-ethereum
 vulcanize/go-ethereum-foundry
 vulcanize/lighthouse
 vulcanize/ipld-eth-db
-vulcanize/eth-statediff-fill-service
 vulcanize/ipld-eth-beacon_db
 vulcanize/ipld-eth-beacon-indexer
 vulcanize/ipld-eth-server

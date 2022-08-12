@@ -1,6 +1,7 @@
 vulcanize/test-contract
 vulcanize/eth-statediff-fill-service
 vulcanize/go-ethereum
+vulcanize/go-ethereum-foundry
 vulcanize/lighthouse
 vulcanize/ipld-eth-db
 vulcanize/eth-statediff-fill-service

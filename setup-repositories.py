@@ -1,5 +1,5 @@
 # env vars:
-# DEV_ROOT defaults to ~/vulcanize
+# VULCANIZE_REPO_BASE_DIR defaults to ~/vulcanize
 
 import os
 import sys
@@ -28,7 +28,7 @@ def is_git_repo(path):
 
 parser = argparse.ArgumentParser(
     description="git clone the set of repositories required to build the complete system from source",
-    epilog="Config provided either in .env or settings.ini or env vars: DEV_ROOT (defaults to ~/vulcanize)"
+    epilog="Config provided either in .env or settings.ini or env vars: VULCANIZE_REPO_BASE_DIR (defaults to ~/vulcanize)"
     )
 parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
 parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")

@@ -1,0 +1,34 @@
+version: "3.2"
+
+services:
+  go-ethereum:
+    restart: unless-stopped
+    depends_on:
+      ipld-eth-db:
+        condition: service_healthy
+    build:
+      context: ../../
+      dockerfile: ./docker/local/go-ethereum.Dockerfile
+      args:
+        GENESIS_FILE_PATH: ${genesis_file_path}
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "8545"]
+      interval: 30s
+      timeout: 3s
+      retries: 10
+    environment:
+      DB_USER: vdbm
+      DB_NAME: vulcanize_testing
+      DB_HOST: ipld-eth-db
+      DB_PORT: 5432
+      DB_PASSWORD: password
+      DB_WRITE: ${db_write}
+      DB_TYPE: postgres
+      DB_DRIVER: sqlx
+      DB_WAIT_FOR_SYNC: "true"
+      CHAIN_ID: "99"
+      USE_GENESIS: "true"
+      EXTRA_START_ARGS: ${extra_args}
+    ports:
+      - "127.0.0.1:8545:8545"
+      - "127.0.0.1:8546:8546"

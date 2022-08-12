@@ -50,15 +50,13 @@ if not os.path.isdir(dev_root_path):
         print(f'Dev root directory doesn\'t exist, creating')
     os.makedirs(dev_root_path)
 
-with open("repository-list.txt") as repositoryListFile:
-    repos = repositoryListFile.read().splitlines()
+with open("repository-list.txt") as repository_list_file:
+    repos = repository_list_file.read().splitlines()
 
 if verbose:
     print (f'Repos: {repos}')
 
-# Ok, now we can go ahead and look to see which if any of the repos are already cloned
-
-def processRepo(repo):
+def process_repo(repo):
     full_github_repo_path = f'git@github.com:{repo}'
     repoName = repo.split("/")[-1]
     full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
@@ -83,4 +81,4 @@ def processRepo(repo):
 
 
 for repo in repos:
-    processRepo(repo)
+    process_repo(repo)

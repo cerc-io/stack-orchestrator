@@ -4,7 +4,6 @@
 import os
 import sys
 import argparse
-from pydoc import ispackage
 from decouple import config
 import git
 from tqdm import tqdm

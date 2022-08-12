@@ -52,6 +52,7 @@ def process_container(container):
     if not args.dry_run:
         # We need to export VULCANIZE_REPO_BASE_DIR
         build_result = subprocess.run(build_script_filename, shell=True, env={'VULCANIZE_REPO_BASE_DIR':dev_root_path})
+        # TODO: check result in build_result.returncode
         print(f"Result is: {build_result}")
 
 for container in containers:

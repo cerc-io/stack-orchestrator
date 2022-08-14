@@ -5,9 +5,7 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    build:
-      context: ${vulcanize_eth_statediff_fill_service}
-      dockerfile: ./Dockerfile
+    image: vulcanize/eth-statediff-fill-service:local
     environment:
       ETH_SERVER_HTTPPATH: 0.0.0.0:8085
       VDB_COMMAND: "serve"

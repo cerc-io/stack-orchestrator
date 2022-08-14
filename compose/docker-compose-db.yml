@@ -1,0 +1,17 @@
+version: "3.2"
+services:
+  ipld-eth-db:
+    restart: always
+    image: vulcanize/ipld-eth-db:local
+    environment:
+      POSTGRES_USER: "vdbm"
+      POSTGRES_DB: "vulcanize_testing"
+      POSTGRES_PASSWORD: "password"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "127.0.0.1:8077:5432"
+    command: ["postgres", "-c", "log_statement=all"]

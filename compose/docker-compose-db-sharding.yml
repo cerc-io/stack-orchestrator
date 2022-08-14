@@ -6,7 +6,7 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    image: vulcanize/ipld-eth-db:v4.1.4-alpha
+    image: vulcanize/ipld-eth-db:local
     environment:
       DATABASE_USER: "vdbm"
       DATABASE_NAME: "vulcanize_testing"

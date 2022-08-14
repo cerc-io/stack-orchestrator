@@ -18,6 +18,7 @@ def include_exclude_check(s, args):
 parser = argparse.ArgumentParser(
     description="deploy the complete stack"
     )
+parser.add_argument("command", type=str, nargs=1, choices=['up', 'down', 'ps'], help="command: up|down|ps")
 parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
 parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")
 parser.add_argument("--check-only", action="store_true", help="looks at what\'s already there and checks if it looks good")
@@ -56,6 +57,9 @@ if verbose:
 # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
 docker = DockerClient(compose_files=compose_files)
 
+command = args.command
 if not args.dry_run:
-    docker.compose.up()
-
+    if command == "up":
+        docker.compose.up()
+    elif command == "down":
+        docker.compose.down()

@@ -6,7 +6,7 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    image: vulcanize/go-ethereum-foundry
+    image: vulcanize/go-ethereum-foundry:local
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
       interval: 30s

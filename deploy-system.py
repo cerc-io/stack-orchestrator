@@ -57,9 +57,13 @@ if verbose:
 # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
 docker = DockerClient(compose_files=compose_files)
 
-command = args.command
+command = args.command[0]
 if not args.dry_run:
     if command == "up":
+        if verbose:
+            print("Running compose up")
         docker.compose.up()
     elif command == "down":
+        if verbose:
+            print("Running compose down")
         docker.compose.down()

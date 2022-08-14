@@ -5,7 +5,7 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    image: vulcanize/ipld-eth-server:v4.0.5-alpha
+    image: vulcanize/ipld-eth-server:local
     environment:
       IPLD_SERVER_GRAPHQL: "true"
       IPLD_POSTGRAPHILEPATH: http://graphql:5000
@@ -46,4 +46,3 @@ services:
       SCHEMA: public,eth
     ports:
       - "127.0.0.1:5000:5000"
-      

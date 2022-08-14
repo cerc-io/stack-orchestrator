@@ -2,7 +2,7 @@ version: "3.2"
 services:
   ipld-eth-beacon-db:
     restart: always
-    image: vulcanize/ipld-eth-beacon-db:v0.2.0
+    image: vulcanize/ipld-eth-beacon-db:local
     environment:
       POSTGRES_USER: vdbm
       POSTGRES_DB: vulcanize_testing

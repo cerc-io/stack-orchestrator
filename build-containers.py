@@ -21,7 +21,6 @@ parser.add_argument("--check-only", action="store_true", help="looks at what\'s 
 parser.add_argument("--dry-run", action="store_true", help="don\'t do anything, just print the commands that would be executed")
 
 args = parser.parse_args()
-print(args)
 
 verbose = args.verbose
 quiet = args.quiet

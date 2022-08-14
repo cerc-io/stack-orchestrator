@@ -12,12 +12,15 @@ parser.add_argument("--verbose", action="store_true", help="increase output verb
 parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")
 parser.add_argument("--check-only", action="store_true", help="looks at what\'s already there and checks if it looks good")
 parser.add_argument("--dry-run", action="store_true", help="don\'t do anything, just print the commands that would be executed")
+parser.add_argument("--exclude", type=str, help="don\'t start these components")
+parser.add_argument("--include", type=str, help="only start these components")
 
 args = parser.parse_args()
-print(args)
 
 verbose = args.verbose
 quiet = args.quiet
+
+print(args)
 
 with open("cluster-list.txt") as cluster_list_file:
     clusters = cluster_list_file.read().splitlines()
@@ -37,5 +40,6 @@ print(f"files: {compose_files}")
 # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
 docker = DockerClient(compose_files=compose_files)
 
-docker.compose.up()
+if not args.dry_run:
+    docker.compose.up()
 

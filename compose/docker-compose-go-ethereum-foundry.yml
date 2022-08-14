@@ -6,11 +6,7 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    build:
-      context: ../../
-      dockerfile: ./docker/local/go-ethereum.Dockerfile
-      args:
-        GENESIS_FILE_PATH: ${genesis_file_path}
+    image: vulcanize/go-ethereum-foundry
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
       interval: 30s

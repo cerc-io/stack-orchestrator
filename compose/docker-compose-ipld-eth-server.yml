@@ -1,4 +1,4 @@
-ersion: "3.2"
+version: "3.2"
 services:
   ipld-eth-server:
     restart: unless-stopped

@@ -62,7 +62,7 @@ if not args.dry_run:
     if command == "up":
         if verbose:
             print("Running compose up")
-        docker.compose.up()
+        docker.compose.up(detach=True)
     elif command == "down":
         if verbose:
             print("Running compose down")

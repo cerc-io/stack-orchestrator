@@ -1,3 +1,6 @@
+# TODO: figure out if this is needed -- it doesn't seem to make sense in the context of the
+# current version of vulcanize/ipld-eth-db/Dockerfile, which is only the migrations code, not the DB itself
+# The sibling component docker-compose-db-sharding.yml looks more plausible
 version: "3.2"
 services:
   ipld-eth-db:

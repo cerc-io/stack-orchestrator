@@ -25,7 +25,7 @@ services:
       ETH_HTTP_PATH: $eth_http_path
     volumes:
       - type: bind
-        source: ../../start-up-files/ipld-eth-server/chain.json
+        source: ../config/ipld-eth-server/chain.json
         target: /tmp/chain.json
     ports:
       - "127.0.0.1:8081:8081"

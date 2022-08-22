@@ -8,7 +8,7 @@ from decouple import config
 import git
 from tqdm import tqdm
 
-class CloneProgress(git.RemoteProgress):
+class GitProgress(git.RemoteProgress):
     def __init__(self):
         super().__init__()
         self.pbar = tqdm(unit = 'B', ascii = True, unit_scale = True)
@@ -33,6 +33,7 @@ parser.add_argument("--verbose", action="store_true", help="increase output verb
 parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")
 parser.add_argument("--check-only", action="store_true", help="looks at what\'s already there and checks if it looks good")
 parser.add_argument("--dry-run", action="store_true", help="don\'t do anything, just print the commands that would be executed")
+parser.add_argument("--pull", action="store_true", help="pull from remote in already existing repositories")
 
 args = parser.parse_args()
 
@@ -67,14 +68,24 @@ def process_repo(repo):
     if is_present:
         if not is_git_repo(full_filesystem_repo_path):
             print(f'Error: {full_filesystem_repo_path} does not contain a valid git repository')
-            sys.exit(1) 
+            sys.exit(1)
+        else:
+            if args.pull:
+                if verbose:
+                  print(f'Running git pull for {full_filesystem_repo_path}')
+                if not args.check_only:
+                  repo = git.Repo(full_filesystem_repo_path)
+                  origin = repo.remotes.origin
+                  origin.pull(progress = None if quiet else GitProgress())
+                else:
+                    print("(git pull skipped)")
     if not is_present:
         # Clone
         if verbose:
             print(f'Running git clone for {full_github_repo_path} into {full_filesystem_repo_path}')
         if not args.check_only:
             git.Repo.clone_from(full_github_repo_path, full_filesystem_repo_path, 
-            progress = None if quiet else CloneProgress())
+            progress = None if quiet else GitProgress())
         else:
             print("(git clone skipped)")
 

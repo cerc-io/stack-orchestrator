@@ -18,13 +18,13 @@ services:
       DB_HOST: ipld-eth-db
       DB_PORT: 5432
       DB_PASSWORD: password
-      DB_WRITE: ${db_write}
+      DB_WRITE: true
       DB_TYPE: postgres
       DB_DRIVER: sqlx
       DB_WAIT_FOR_SYNC: "true"
       CHAIN_ID: "99"
       USE_GENESIS: "true"
-      EXTRA_START_ARGS: ${extra_args}
+      EXTRA_START_ARGS: "--metrics --metrics.expensive --metrics.addr 0.0.0.0 --metrics.port 6060"
     ports:
       - "127.0.0.1:8545:8545"
       - "127.0.0.1:8546:8546"

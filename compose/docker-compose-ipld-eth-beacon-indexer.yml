@@ -5,7 +5,7 @@ services:
     depends_on:
       - ipld-eth-beacon-db
       - lighthouse
-    image: vulcanize/ipld-eth-beacon-indexer:local
+    image: cerc/ipld-eth-beacon-indexer:local
     volumes:
       - type: bind
         source: ${eth_beacon_config_file}

@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 # env vars:
-# VULCANIZE_REPO_BASE_DIR defaults to ~/vulcanize
+# CERC_REPO_BASE_DIR defaults to ~/cerc
 
 import os
 import sys
@@ -42,7 +42,7 @@ def is_git_repo(path):
 
 parser = argparse.ArgumentParser(
     description="git clone the set of repositories required to build the complete system from source",
-    epilog="Config provided either in .env or settings.ini or env vars: VULCANIZE_REPO_BASE_DIR (defaults to ~/vulcanize)"
+    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
     )
 parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
 parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")
@@ -55,7 +55,7 @@ args = parser.parse_args()
 verbose = args.verbose
 quiet = args.quiet
 
-dev_root_path = os.path.expanduser(config("DEV_ROOT", default="~/vulcanize"))
+dev_root_path = os.path.expanduser(config("DEV_ROOT", default="~/cerc"))
 
 if not args.quiet:
     print(f'Dev Root is: {dev_root_path}')

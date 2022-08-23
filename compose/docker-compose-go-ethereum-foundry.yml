@@ -6,7 +6,7 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    image: vulcanize/go-ethereum-foundry:local
+    image: cerc/go-ethereum-foundry:local
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
       interval: 30s
@@ -14,7 +14,7 @@ services:
       retries: 10
     environment:
       DB_USER: vdbm
-      DB_NAME: vulcanize_testing
+      DB_NAME: cerc_testing
       DB_HOST: ipld-eth-db
       DB_PORT: 5432
       DB_PASSWORD: password

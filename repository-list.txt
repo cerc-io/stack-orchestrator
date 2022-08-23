@@ -1,8 +1,8 @@
-vulcanize/ops
-vulcanize/ipld-eth-db
-vulcanize/go-ethereum
-vulcanize/ipld-eth-server
-vulcanize/eth-statediff-fill-service
-vulcanize/ipld-eth-db-validator
-vulcanize/ipld-eth-beacon-indexer
-vulcanize/ipld-eth-beacon-db
+cerc/ops
+cerc/ipld-eth-db
+cerc/go-ethereum
+cerc/ipld-eth-server
+cerc/eth-statediff-fill-service
+cerc/ipld-eth-db-validator
+cerc/ipld-eth-beacon-indexer
+cerc/ipld-eth-beacon-db

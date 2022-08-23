@@ -16,7 +16,7 @@
 # Builds or pulls containers for the system components
 
 # env vars:
-# VULCANIZE_REPO_BASE_DIR defaults to ~/vulcanize
+# CERC_REPO_BASE_DIR defaults to ~/cerc
 
 # TODO: display the available list of containers; allow re-build of either all or specific containers
 
@@ -28,7 +28,7 @@ import subprocess
 
 parser = argparse.ArgumentParser(
     description="build the set of containers required for a complete stack",
-    epilog="Config provided either in .env or settings.ini or env vars: VULCANIZE_REPO_BASE_DIR (defaults to ~/vulcanize)"
+    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
     )
 parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
 parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")
@@ -40,7 +40,7 @@ args = parser.parse_args()
 verbose = args.verbose
 quiet = args.quiet
 
-dev_root_path = os.path.expanduser(config("VULCANIZE_REPO_BASE_DIR", default="~/vulcanize"))
+dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
 if not args.quiet:
     print(f'Dev Root is: {dev_root_path}')
@@ -64,8 +64,8 @@ def process_container(container):
         print(f"Error, script: {build_script_filename} doesn't exist")
         sys.exit(1)
     if not args.dry_run:
-        # We need to export VULCANIZE_REPO_BASE_DIR
-        build_result = subprocess.run(build_script_filename, shell=True, env={'VULCANIZE_REPO_BASE_DIR':dev_root_path})
+        # We need to export CERC_REPO_BASE_DIR
+        build_result = subprocess.run(build_script_filename, shell=True, env={'CERC_REPO_BASE_DIR':dev_root_path})
         # TODO: check result in build_result.returncode
         print(f"Result is: {build_result}")
 

@@ -2,7 +2,7 @@ version: "3.2"
 services:
   lighthouse:
     restart: always
-    image: vulcanize/lighthouse:local
+    image: cerc/lighthouse:local
     environment:
       - NETWORK=mainnet
     volumes:

@@ -2,10 +2,10 @@ version: "3.2"
 services:
   ipld-eth-beacon-db:
     restart: always
-    image: vulcanize/ipld-eth-beacon-db:local
+    image: cerc/ipld-eth-beacon-db:local
     environment:
       POSTGRES_USER: vdbm
-      POSTGRES_DB: vulcanize_testing
+      POSTGRES_DB: cerc_testing
       POSTGRES_PASSWORD: password
     volumes:
       - vdb_db_eth-beacon_db:/var/lib/postgresql/data

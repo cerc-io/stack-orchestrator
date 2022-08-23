@@ -7,7 +7,7 @@ services:
     user: "987"
     image: prom/prometheus
     volumes:
-      - ${vulcanize_ops}/metrics/etc:/etc/prometheus
+      - ${cerc_ops}/metrics/etc:/etc/prometheus
       - ./prometheus-data:/prometheus
     ports:
       - "127.0.0.1:9090:9090"

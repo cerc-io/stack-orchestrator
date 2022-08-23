@@ -5,7 +5,7 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    image: vulcanize/ipld-eth-server:local
+    image: cerc/ipld-eth-server:local
     environment:
       IPLD_SERVER_GRAPHQL: "true"
       IPLD_POSTGRAPHILEPATH: http://graphql:5000
@@ -14,7 +14,7 @@ services:
       ETH_SERVER_GRAPHQLPATH: 0.0.0.0:8082
       VDB_COMMAND: "serve"
       ETH_CHAIN_CONFIG: "/tmp/chain.json"
-      DATABASE_NAME: vulcanize_testing
+      DATABASE_NAME: cerc_testing
       DATABASE_HOSTNAME: ipld-eth-db
       DATABASE_PORT: 5432
       DATABASE_USER: "vdbm"
@@ -36,11 +36,11 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    image: vulcanize/postgraphile:v1.0.1
+    image: cerc/postgraphile:v1.0.1
     environment:
       PG_HOST: ipld-eth-db
       PG_PORT: 5432
-      PG_DATABASE: vulcanize_testing
+      PG_DATABASE: cerc_testing
       PG_USER: vdbm
       PG_PASSWORD: password
       SCHEMA: public,eth

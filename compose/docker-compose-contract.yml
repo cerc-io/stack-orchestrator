@@ -4,7 +4,7 @@ services:
     depends_on:
       go-ethereum:
         condition: service_healthy
-    image: vulcanize/test-contract:local
+    image: cerc/test-contract:local
     environment:
       ETH_ADDR: "http://go-ethereum:8545"
     ports:

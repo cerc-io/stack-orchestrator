@@ -6,10 +6,10 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    image: vulcanize/ipld-eth-db:local
+    image: cerc/ipld-eth-db:local
     environment:
       DATABASE_USER: "vdbm"
-      DATABASE_NAME: "vulcanize_testing"
+      DATABASE_NAME: "cerc_testing"
       DATABASE_PASSWORD: "password"
       DATABASE_HOSTNAME: "ipld-eth-db"
       DATABASE_PORT: 5432
@@ -20,7 +20,7 @@ services:
     command: ["postgres", "-c", "log_statement=all"]
     environment:
       POSTGRES_USER: "vdbm"
-      POSTGRES_DB: "vulcanize_testing"
+      POSTGRES_DB: "cerc_testing"
       POSTGRES_PASSWORD: "password"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "5432"]

@@ -31,7 +31,7 @@ eval "$(
 
 DB_USER=vdbm
 DB_PASSWORD=password
-DB_NAME=vulcanize_public
+DB_NAME=cerc_public
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_TYPE=postgres

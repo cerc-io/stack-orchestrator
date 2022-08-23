@@ -1,2 +1,2 @@
-# Build vulcanize/ipld-eth-server
-docker build -t vulcanize/ipld-eth-server:local ${VULCANIZE_REPO_BASE_DIR}/ipld-eth-server
+# Build cerc/ipld-eth-server
+docker build -t cerc/ipld-eth-server:local ${CERC_REPO_BASE_DIR}/ipld-eth-server

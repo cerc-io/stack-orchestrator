@@ -47,19 +47,19 @@ def is_git_repo(path):
 #   )
 
 @click.command()
-@click.option('--check-only', default=False)
-@click.option('--pull', default=False)
+@click.option('--check-only', is_flag=True, default=False)
+@click.option('--pull', is_flag=True, default=False)
 @click.pass_context
 def command(ctx, check_only, pull):
     '''git clone the set of repositories required to build the complete system from source'''
 
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
-    dry_run = ctx.obj.verbose
+    dry_run = ctx.obj.dry_run
 
     dev_root_path = os.path.expanduser(config("DEV_ROOT", default="~/cerc"))
 
-    if not args.quiet:
+    if not quiet:
         print(f'Dev Root is: {dev_root_path}')
 
     if not os.path.isdir(dev_root_path):

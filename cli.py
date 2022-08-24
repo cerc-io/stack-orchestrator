@@ -28,9 +28,9 @@ class Options(object):
         self.dry_run = dry_run
 
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.option('--quiet', default=False)
-@click.option('--verbose', default=False)
-@click.option('--dry-run', default=False)
+@click.option('--quiet', is_flag=True, default=False)
+@click.option('--verbose', is_flag=True, default=False)
+@click.option('--dry-run', is_flag=True, default=False)
 # See: https://click.palletsprojects.com/en/8.1.x/complex/#building-a-git-clone
 @click.pass_context
 def cli(ctx, quiet, verbose, dry_run):

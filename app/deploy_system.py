@@ -34,7 +34,7 @@ def include_exclude_check(s, include, exclude):
 @click.command()
 @click.option('--include', help="only start these components")
 @click.option('--exclude', help="don\'t start these components")
-@click.argument('command' help="command: up|down|ps")
+@click.argument('command') # help: command: up|down|ps
 @click.pass_context
 def command(ctx, include, exclude, command):
     '''deploy a stack'''

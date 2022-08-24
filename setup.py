@@ -23,6 +23,6 @@ setup(
         "Operating System :: OS Independent",
     ],
     entry_points = {
-        'console_scripts': ['laconic-stack-orchestrator=cli:cli'],
+        'console_scripts': ['laconic-so=cli:cli'],
     }
 )

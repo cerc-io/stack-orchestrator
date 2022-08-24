@@ -37,7 +37,7 @@ def command(ctx):
 
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
-    dry_run = ctx.obj.verbose
+    dry_run = ctx.obj.dry_run
 
     dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
@@ -67,6 +67,8 @@ def command(ctx):
             build_result = subprocess.run(build_script_filename, shell=True, env={'CERC_REPO_BASE_DIR':dev_root_path})
             # TODO: check result in build_result.returncode
             print(f"Result is: {build_result}")
+        else:
+            print("Skipped")
 
     for container in containers:
         process_container(container)

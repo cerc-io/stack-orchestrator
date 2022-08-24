@@ -43,7 +43,7 @@ def command(ctx, include, exclude, command):
 
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
-    dry_run = ctx.obj.verbose
+    dry_run = ctx.obj.dry_run
 
     with open("cluster-list.txt") as cluster_list_file:
         clusters = cluster_list_file.read().splitlines()
@@ -77,3 +77,11 @@ def command(ctx, include, exclude, command):
             if verbose:
                 print("Running compose down")
             docker.compose.down()
+        elif command == "ps":
+            if verbose:
+                print("Running compose ps")
+            docker.compose.ps()
+        elif command == "logs":
+            if verbose:
+                print("Running compose logs")
+            docker.compose.logs()

@@ -2,3 +2,4 @@ python-decouple>=3.6
 GitPython>=3.1.27
 tqdm>=4.64.0
 python-on-whales>=0.52.0
+click>=8.1.3

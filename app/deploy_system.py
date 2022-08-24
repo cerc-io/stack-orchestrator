@@ -51,7 +51,12 @@ def include_exclude_check(s, args):
 #print("Yo2!")
 
 @click.command()
-def command():
+@click.pass_context
+def command(ctx):
+
+    quiet = ctx.obj.quiet
+    verbose = ctx.obj.verbose
+    dry_run = ctx.obj.verbose
 
     with open("cluster-list.txt") as cluster_list_file:
         clusters = cluster_list_file.read().splitlines()
@@ -76,8 +81,8 @@ def command():
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
     docker = DockerClient(compose_files=compose_files)
 
-    command = args.command[0]
-    if not args.dry_run:
+    command = "hack"
+    if not dry_run:
         if command == "up":
             if verbose:
                 print("Running compose up")

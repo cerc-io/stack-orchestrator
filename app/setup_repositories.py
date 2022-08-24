@@ -41,23 +41,21 @@ def is_git_repo(path):
     except git.exc.InvalidGitRepositoryError:
         return False
 
-parser = argparse.ArgumentParser(
-    description="git clone the set of repositories required to build the complete system from source",
-    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
-    )
-parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
-parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")
-parser.add_argument("--check-only", action="store_true", help="looks at what\'s already there and checks if it looks good")
-parser.add_argument("--dry-run", action="store_true", help="don\'t do anything, just print the commands that would be executed")
-parser.add_argument("--pull", action="store_true", help="pull from remote in already existing repositories")
-
-args = parser.parse_args()
+# TODO: find a place for this in the context of click
+#parser = argparse.ArgumentParser(
+#    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
+#   )
 
 @click.command()
-def command():
+@click.option('--check-only', default=False)
+@click.option('--pull', default=False)
+@click.pass_context
+def command(ctx, check_only, pull):
+    '''git clone the set of repositories required to build the complete system from source'''
 
-    verbose = args.verbose
-    quiet = args.quiet
+    quiet = ctx.obj.quiet
+    verbose = ctx.obj.verbose
+    dry_run = ctx.obj.verbose
 
     dev_root_path = os.path.expanduser(config("DEV_ROOT", default="~/cerc"))
 
@@ -89,10 +87,10 @@ def command():
                 print(f'Error: {full_filesystem_repo_path} does not contain a valid git repository')
                 sys.exit(1)
             else:
-                if args.pull:
+                if pull:
                     if verbose:
                         print(f'Running git pull for {full_filesystem_repo_path}')
-                    if not args.check_only:
+                    if not check_only:
                         repo = git.Repo(full_filesystem_repo_path)
                         origin = repo.remotes.origin
                         origin.pull(progress = None if quiet else GitProgress())
@@ -102,7 +100,7 @@ def command():
             # Clone
             if verbose:
                 print(f'Running git clone for {full_github_repo_path} into {full_filesystem_repo_path}')
-            if not args.check_only:
+            if not dry_run:
                 git.Repo.clone_from(full_github_repo_path, full_filesystem_repo_path, 
                 progress = None if quiet else GitProgress())
             else:

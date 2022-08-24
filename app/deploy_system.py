@@ -31,22 +31,24 @@ def include_exclude_check(s, args):
         exclude_list = args.exclude.split(",")
         return s not in exclude_list
 
-parser = argparse.ArgumentParser(
-    description="deploy the complete stack"
-    )
-parser.add_argument("command", type=str, nargs=1, choices=['up', 'down', 'ps'], help="command: up|down|ps")
-parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
-parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")
-parser.add_argument("--check-only", action="store_true", help="looks at what\'s already there and checks if it looks good")
-parser.add_argument("--dry-run", action="store_true", help="don\'t do anything, just print the commands that would be executed")
-group = parser.add_mutually_exclusive_group()
-group.add_argument("--exclude", type=str, help="don\'t start these components")
-group.add_argument("--include", type=str, help="only start these components")
+#parser = argparse.ArgumentParser(
+#    description="deploy the complete stack"
+#    )
+#parser.add_argument("command", type=str, nargs=1, choices=['up', 'down', 'ps'], help="command: up|down|ps")
+#parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
+#parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")
+#parser.add_argument("--check-only", action="store_true", help="looks at what\'s already there and checks if it looks good")
+#parser.add_argument("--dry-run", action="store_true", help="don\'t do anything, just print the commands that would be executed")
+#group = parser.add_mutually_exclusive_group()
+#group.add_argument("--exclude", type=str, help="don\'t start these components")
+#group.add_argument("--include", type=str, help="only start these components")
 
-args = parser.parse_args()
+#args = parser.parse_args()
 
-verbose = args.verbose
-quiet = args.quiet
+#verbose = args.verbose
+#quiet = args.quiet
+
+#print("Yo2!")
 
 @click.command()
 def command():

@@ -6,7 +6,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = fh.read()
 setup(
     name = 'laconic-stack-orchestrator',
-    version = '0.0.1',
+    version = '0.0.3',
     author = 'Cerc',
     author_email = 'info@cerc.io',
     license = 'GNU Affero General Public License',
@@ -22,8 +22,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Operating System :: OS Independent",
     ],
-    entry_points = '''
-        [console_scripts]
-        laconic-stack-orchestrator=orchestrator:cli
-    '''
+    entry_points = {
+        'console_scripts': ['laconic-stack-orchestrator=cli:cli'],
+    }
 )

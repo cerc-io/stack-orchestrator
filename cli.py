@@ -15,14 +15,21 @@
 
 import click
 
-from .app import setup_repositories
-from .app import build_containers
-from .app import deploy_system
+from app import setup_repositories
+from app import build_containers
+from app import deploy_system
 
-@click.group()
-def main_command_group():
-    pass
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
-main_command_group.add_command(setup_repositories.command)
-main_command_group.add_command(build_containers.command)
-main_command_group.add_command(deploy_system.command)
+@click.group(context_settings=CONTEXT_SETTINGS)
+@click.option('--quiet', default=False)
+@click.option('--verbose', default=False)
+@click.option('--dry-run', default=False)
+def cli():
+    """Example script."""
+    print("Yo!")
+    click.echo('Hello World!')
+
+cli.add_command(setup_repositories.command,"setup-repositories")
+cli.add_command(build_containers.command,"build-containers")
+cli.add_command(deploy_system.command,"deploy-system")

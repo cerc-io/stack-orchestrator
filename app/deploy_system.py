@@ -19,6 +19,7 @@ import os
 import argparse
 from decouple import config
 from python_on_whales import DockerClient
+import click
 
 def include_exclude_check(s, args):
     if args.include == None and args.exclude == None:
@@ -47,38 +48,39 @@ args = parser.parse_args()
 verbose = args.verbose
 quiet = args.quiet
 
-print(args)
+@click.command()
+def command():
 
-with open("cluster-list.txt") as cluster_list_file:
-    clusters = cluster_list_file.read().splitlines()
+    with open("cluster-list.txt") as cluster_list_file:
+        clusters = cluster_list_file.read().splitlines()
 
-if verbose:
-    print(f'Cluster components: {clusters}')
+    if verbose:
+        print(f'Cluster components: {clusters}')
 
-# Construct a docker compose command suitable for our purpose
+    # Construct a docker compose command suitable for our purpose
 
-compose_files = []
-for cluster in clusters:
-    if include_exclude_check(cluster, args):
-        compose_file_name = os.path.join("compose", f"docker-compose-{cluster}.yml")
-        compose_files.append(compose_file_name)
-    else:
-        if not quiet:
-            print(f"Excluding: {cluster}")
+    compose_files = []
+    for cluster in clusters:
+        if include_exclude_check(cluster, args):
+            compose_file_name = os.path.join("compose", f"docker-compose-{cluster}.yml")
+            compose_files.append(compose_file_name)
+        else:
+            if not quiet:
+                print(f"Excluding: {cluster}")
 
-if verbose:
-    print(f"files: {compose_files}")
+    if verbose:
+        print(f"files: {compose_files}")
 
-# See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-docker = DockerClient(compose_files=compose_files)
+    # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
+    docker = DockerClient(compose_files=compose_files)
 
-command = args.command[0]
-if not args.dry_run:
-    if command == "up":
-        if verbose:
-            print("Running compose up")
-        docker.compose.up(detach=True)
-    elif command == "down":
-        if verbose:
-            print("Running compose down")
-        docker.compose.down()
+    command = args.command[0]
+    if not args.dry_run:
+        if command == "up":
+            if verbose:
+                print("Running compose up")
+            docker.compose.up(detach=True)
+        elif command == "down":
+            if verbose:
+                print("Running compose down")
+            docker.compose.down()

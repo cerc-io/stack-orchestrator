@@ -25,6 +25,7 @@ import sys
 import argparse
 from decouple import config
 import subprocess
+import click
 
 parser = argparse.ArgumentParser(
     description="build the set of containers required for a complete stack",
@@ -37,40 +38,42 @@ parser.add_argument("--dry-run", action="store_true", help="don\'t do anything, 
 
 args = parser.parse_args()
 
-verbose = args.verbose
-quiet = args.quiet
+@click.command()
+def command():
+    verbose = args.verbose
+    quiet = args.quiet
 
-dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
+    dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
-if not args.quiet:
-    print(f'Dev Root is: {dev_root_path}')
+    if not args.quiet:
+        print(f'Dev Root is: {dev_root_path}')
 
-if not os.path.isdir(dev_root_path):
-    print(f'Dev root directory doesn\'t exist, creating')
+    if not os.path.isdir(dev_root_path):
+        print(f'Dev root directory doesn\'t exist, creating')
 
-with open("container-image-list.txt") as container_list_file:
-    containers = container_list_file.read().splitlines()
+    with open("container-image-list.txt") as container_list_file:
+        containers = container_list_file.read().splitlines()
 
-if verbose:
-    print(f'Containers: {containers}')
-
-def process_container(container):
-    if not quiet:
-        print(f"Building: {container}")
-    build_script_filename = os.path.join("container-build",container.replace("/","-"),"build.sh")
     if verbose:
-        print(f"Script: {build_script_filename}")
-    if not os.path.exists(build_script_filename):
-        print(f"Error, script: {build_script_filename} doesn't exist")
-        sys.exit(1)
-    if not args.dry_run:
-        # We need to export CERC_REPO_BASE_DIR
-        build_result = subprocess.run(build_script_filename, shell=True, env={'CERC_REPO_BASE_DIR':dev_root_path})
-        # TODO: check result in build_result.returncode
-        print(f"Result is: {build_result}")
+        print(f'Containers: {containers}')
 
-for container in containers:
-    process_container(container)
+    def process_container(container):
+        if not quiet:
+            print(f"Building: {container}")
+        build_script_filename = os.path.join("container-build",container.replace("/","-"),"build.sh")
+        if verbose:
+            print(f"Script: {build_script_filename}")
+        if not os.path.exists(build_script_filename):
+            print(f"Error, script: {build_script_filename} doesn't exist")
+            sys.exit(1)
+        if not args.dry_run:
+            # We need to export CERC_REPO_BASE_DIR
+            build_result = subprocess.run(build_script_filename, shell=True, env={'CERC_REPO_BASE_DIR':dev_root_path})
+            # TODO: check result in build_result.returncode
+            print(f"Result is: {build_result}")
+
+    for container in containers:
+        process_container(container)
 
 
 

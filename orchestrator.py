@@ -13,3 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import click
+
+from .app import setup_repositories
+from .app import build_containers
+from .app import deploy_system
+
+@click.group()
+def main_command_group():
+    pass
+
+main_command_group.add_command(setup_repositories.command)
+main_command_group.add_command(build_containers.command)
+main_command_group.add_command(deploy_system.command)

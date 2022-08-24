@@ -22,6 +22,7 @@ import argparse
 from decouple import config
 import git
 from tqdm import tqdm
+import click
 
 class GitProgress(git.RemoteProgress):
     def __init__(self):
@@ -52,58 +53,61 @@ parser.add_argument("--pull", action="store_true", help="pull from remote in alr
 
 args = parser.parse_args()
 
-verbose = args.verbose
-quiet = args.quiet
+@click.command()
+def command():
 
-dev_root_path = os.path.expanduser(config("DEV_ROOT", default="~/cerc"))
+    verbose = args.verbose
+    quiet = args.quiet
 
-if not args.quiet:
-    print(f'Dev Root is: {dev_root_path}')
+    dev_root_path = os.path.expanduser(config("DEV_ROOT", default="~/cerc"))
 
-if not os.path.isdir(dev_root_path):
-    if not quiet:
-        print(f'Dev root directory doesn\'t exist, creating')
-    os.makedirs(dev_root_path)
+    if not args.quiet:
+        print(f'Dev Root is: {dev_root_path}')
 
-with open("repository-list.txt") as repository_list_file:
-    repos = repository_list_file.read().splitlines()
+    if not os.path.isdir(dev_root_path):
+        if not quiet:
+            print(f'Dev root directory doesn\'t exist, creating')
+        os.makedirs(dev_root_path)
 
-if verbose:
-    print (f'Repos: {repos}')
+    with open("repository-list.txt") as repository_list_file:
+        repos = repository_list_file.read().splitlines()
 
-def process_repo(repo):
-    full_github_repo_path = f'git@github.com:{repo}'
-    repoName = repo.split("/")[-1]
-    full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
-    is_present = os.path.isdir(full_filesystem_repo_path)
-    if not quiet:
-        present_text = f'already exists active branch: {git.Repo(full_filesystem_repo_path).active_branch}' if is_present else 'Needs to be fetched'
-        print(f'Checking: {full_filesystem_repo_path}: {present_text}')
-    # Quick check that it's actually a repo
-    if is_present:
-        if not is_git_repo(full_filesystem_repo_path):
-            print(f'Error: {full_filesystem_repo_path} does not contain a valid git repository')
-            sys.exit(1)
-        else:
-            if args.pull:
-                if verbose:
-                  print(f'Running git pull for {full_filesystem_repo_path}')
-                if not args.check_only:
-                  repo = git.Repo(full_filesystem_repo_path)
-                  origin = repo.remotes.origin
-                  origin.pull(progress = None if quiet else GitProgress())
-                else:
-                    print("(git pull skipped)")
-    if not is_present:
-        # Clone
-        if verbose:
-            print(f'Running git clone for {full_github_repo_path} into {full_filesystem_repo_path}')
-        if not args.check_only:
-            git.Repo.clone_from(full_github_repo_path, full_filesystem_repo_path, 
-            progress = None if quiet else GitProgress())
-        else:
-            print("(git clone skipped)")
+    if verbose:
+        print (f'Repos: {repos}')
+
+    def process_repo(repo):
+        full_github_repo_path = f'git@github.com:{repo}'
+        repoName = repo.split("/")[-1]
+        full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
+        is_present = os.path.isdir(full_filesystem_repo_path)
+        if not quiet:
+            present_text = f'already exists active branch: {git.Repo(full_filesystem_repo_path).active_branch}' if is_present else 'Needs to be fetched'
+            print(f'Checking: {full_filesystem_repo_path}: {present_text}')
+        # Quick check that it's actually a repo
+        if is_present:
+            if not is_git_repo(full_filesystem_repo_path):
+                print(f'Error: {full_filesystem_repo_path} does not contain a valid git repository')
+                sys.exit(1)
+            else:
+                if args.pull:
+                    if verbose:
+                        print(f'Running git pull for {full_filesystem_repo_path}')
+                    if not args.check_only:
+                        repo = git.Repo(full_filesystem_repo_path)
+                        origin = repo.remotes.origin
+                        origin.pull(progress = None if quiet else GitProgress())
+                    else:
+                        print("(git pull skipped)")
+        if not is_present:
+            # Clone
+            if verbose:
+                print(f'Running git clone for {full_github_repo_path} into {full_filesystem_repo_path}')
+            if not args.check_only:
+                git.Repo.clone_from(full_github_repo_path, full_filesystem_repo_path, 
+                progress = None if quiet else GitProgress())
+            else:
+                print("(git clone skipped)")
 
 
-for repo in repos:
-    process_repo(repo)
+    for repo in repos:
+        process_repo(repo)

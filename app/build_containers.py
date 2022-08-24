@@ -27,20 +27,13 @@ from decouple import config
 import subprocess
 import click
 
-#parser = argparse.ArgumentParser(
-#    description="build the set of containers required for a complete stack",
+# TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
-#    )
-#parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
-#parser.add_argument("--quiet", action="store_true", help="don\'t print informational output")
-#parser.add_argument("--check-only", action="store_true", help="looks at what\'s already there and checks if it looks good")
-#parser.add_argument("--dry-run", action="store_true", help="don\'t do anything, just print the commands that would be executed")
-
-#args = parser.parse_args()
 
 @click.command()
 @click.pass_context
 def command(ctx):
+    '''build the set of containers required for a complete stack'''
 
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
@@ -77,6 +70,3 @@ def command(ctx):
 
     for container in containers:
         process_container(container)
-
-
-

@@ -36,7 +36,7 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-    image: cerc/postgraphile:v1.0.1
+    image: vulcanize/postgraphile:v1.0.1
     environment:
       PG_HOST: ipld-eth-db
       PG_PORT: 5432

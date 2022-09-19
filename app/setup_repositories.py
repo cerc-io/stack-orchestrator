@@ -49,13 +49,22 @@ def is_git_repo(path):
 @click.command()
 @click.option('--check-only', is_flag=True, default=False)
 @click.option('--pull', is_flag=True, default=False)
+@click.option('--branches-file', help="checkout branches specified in this file")
 @click.pass_context
-def command(ctx, check_only, pull):
+def command(ctx, check_only, pull, branches_file):
     '''git clone the set of repositories required to build the complete system from source'''
 
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
+
+    if branches_file:
+        if verbose:
+            print(f"loading branches from: {branches_file}")
+        with open(branches_file) as branches_file_open:
+            branches = branches_file_open.read().splitlines()
+        if verbose:
+            print(f"Branches are: {branches}")
 
     dev_root_path = os.path.expanduser(config("DEV_ROOT", default="~/cerc"))
 
@@ -91,8 +100,8 @@ def command(ctx, check_only, pull):
                     if verbose:
                         print(f'Running git pull for {full_filesystem_repo_path}')
                     if not check_only:
-                        repo = git.Repo(full_filesystem_repo_path)
-                        origin = repo.remotes.origin
+                        git_repo = git.Repo(full_filesystem_repo_path)
+                        origin = git_repo.remotes.origin
                         origin.pull(progress = None if quiet else GitProgress())
                     else:
                         print("(git pull skipped)")
@@ -105,6 +114,19 @@ def command(ctx, check_only, pull):
                 progress = None if quiet else GitProgress())
             else:
                 print("(git clone skipped)")
+        # Checkout the requested branch, if one was specified
+        if branches:
+            # Find the current repo in the branches list
+            for repo_branch in branches:
+                repo_branch_tuple = repo_branch.split(" ")
+                if repo_branch_tuple[0] == repo:
+                    # checkout specified branch
+                    branch_to_checkout = repo_branch_tuple[1]
+                    if verbose:
+                        print(f"checking out branch {branch_to_checkout} in repo {repo}")
+                        git_repo = git.Repo(full_filesystem_repo_path)
+                        git_repo.git.checkout(branch_to_checkout)
+                    
 
 
     for repo in repos:

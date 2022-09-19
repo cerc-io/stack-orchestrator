@@ -7,3 +7,4 @@ ipld-eth-beacon-indexer
 ipld-eth-server
 lighthouse
 prometheus-grafana
+laconicd

@@ -1,0 +1,6 @@
+version: "3.2"
+services:
+  laconicd:
+    restart: unless-stopped
+    image: cerc/laconicd:local
+

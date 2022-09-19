@@ -6,3 +6,4 @@ vulcanize/eth-statediff-fill-service
 vulcanize/ipld-eth-db-validator
 vulcanize/ipld-eth-beacon-indexer
 vulcanize/ipld-eth-beacon-db
+cerc-io/laconicd

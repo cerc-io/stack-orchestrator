@@ -7,3 +7,4 @@ cerc/ipld-eth-db
 cerc/ipld-eth-beacon-db
 cerc/ipld-eth-beacon-indexer
 cerc/ipld-eth-server
+cerc/laconicd

@@ -57,6 +57,36 @@ Ensure that the following are already installed:
     deploy-system       deploy a stack
     setup-repositories  git clone the set of repositories required to build...
    ```
+#### Build a zipapp (single file distributable script)
+Use shiv to build a single file Python executable zip archive of laconic-so:
+1. Install [shiv](https://github.com/linkedin/shiv):
+   ```
+   $ (venv) pip install shiv
+   ```
+1. Run shiv to create a zipapp file:
+   ```
+   $ (venv)  shiv -c laconic-so -o laconic-so .
+   ```
+   This creates a file `./laconic-so` that is executable outside of any venv, and on other machines and OSes and architectures, and requiring only the system Python3:
+1. Verify it works:
+   ```
+   $ cp stack-orchetrator/laconic-so ~/bin
+   $ laconic-so
+      Usage: python -m laconic-so [OPTIONS] COMMAND [ARGS]...
+
+      Laconic Stack Orchestrator
+
+   Options:
+      --quiet
+      --verbose
+      --dry-run
+      -h, --help  Show this message and exit.
+
+   Commands:
+      build-containers    build the set of containers required for a complete...
+      deploy-system       deploy a stack
+      setup-repositories  git clone the set of repositories required to build...
+   ```
 ### CI Mode
 _write-me_
 
@@ -84,6 +114,8 @@ $ laconic-so --verbose deploy-system --include db-sharding,contract,ipld-eth-ser
 ```
 $ laconic-so --verbose deploy-system --include db-sharding,contract,ipld-eth-server,go-ethereum-foundry down
 ```
+## Platform Support
+Native aarm64 is _not_ currently supported. x64 emulation on ARM64 macos should work (not yet tested).
 ## Implementation
 The orchestrator's operation is driven by files shown below. `repository-list.txt` container the list of git repositories; `container-image-list.txt` contains
 the list of container image names, while `clister-list.txt` specifies the set of compose components (corresponding to individual docker-compose-xxx.yml files which may in turn specify more than one container).

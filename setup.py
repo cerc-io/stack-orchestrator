@@ -6,7 +6,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = fh.read()
 setup(
     name = 'laconic-stack-orchestrator',
-    version = '0.0.3',
+    version = '0.0.5',
     author = 'Cerc',
     author_email = 'info@cerc.io',
     license = 'GNU Affero General Public License',
@@ -14,7 +14,7 @@ setup(
     long_description = long_description,
     long_description_content_type = "text/markdown",
     url = 'https://github.com/cerc-io/stack-orchestrator',
-    py_modules = ['orchestrator', 'app'],
+    py_modules = ['cli', 'app'],
     packages = find_packages(),
     install_requires = [requirements],
     python_requires='>=3.7',

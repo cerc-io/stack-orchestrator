@@ -20,16 +20,7 @@ import argparse
 from decouple import config
 from python_on_whales import DockerClient
 import click
-
-def include_exclude_check(s, include, exclude):
-    if include == None and exclude == None:
-        return True
-    if include != None:
-        include_list = include.split(",")
-        return s in include_list
-    if exclude != None:
-        exclude_list = exclude.split(",")
-        return s not in exclude_list
+from .util import include_exclude_check
 
 @click.command()
 @click.option('--include', help="only start these components")

@@ -58,6 +58,8 @@ def command(ctx, check_only, pull, branches_file):
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
 
+    branches = []
+
     if branches_file:
         if verbose:
             print(f"loading branches from: {branches_file}")

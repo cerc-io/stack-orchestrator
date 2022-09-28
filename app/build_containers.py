@@ -26,13 +26,16 @@ import argparse
 from decouple import config
 import subprocess
 import click
+from .util import include_exclude_check
 
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
 
 @click.command()
+@click.option('--include', help="only build these containers")
+@click.option('--exclude', help="don\'t build these containers")
 @click.pass_context
-def command(ctx):
+def command(ctx, include, exclude):
     '''build the set of containers required for a complete stack'''
 
     quiet = ctx.obj.quiet
@@ -71,4 +74,8 @@ def command(ctx):
             print("Skipped")
 
     for container in containers:
-        process_container(container)
+        if include_exclude_check(container, include, exclude):
+            process_container(container)
+        else:
+            if verbose:
+                print(f"Excluding: {container}")

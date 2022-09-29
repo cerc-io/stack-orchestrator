@@ -41,8 +41,13 @@ def command(ctx, include, exclude):
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
+    local_stack = ctx.obj.local_stack
 
-    dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
+    if local_stack:
+        dev_root_path = default=os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")])
+        print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
+    else:
+        dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
     if not quiet:
         print(f'Dev Root is: {dev_root_path}')

@@ -15,10 +15,20 @@ Ensure that the following are already installed:
    $ python3 --version
    Python 3.8.10
    ```
-1. Docker (Install a current version from dockerco, don't use the version from any Linux distro)
+2. Docker (Install a current version from dockerco, don't use the version from any Linux distro)
    ```
    $ docker --version
    Docker version 20.10.17, build 100c701
+   ```
+3. If installed from regular package repository, be aware that the compose plugin may need to be installed, as well.
+   ```
+   DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+   mkdir -p $DOCKER_CONFIG/cli-plugins
+   curl -SL https://github.com/docker/compose/releases/download/v2.11.2/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+   chmod +x ~/.docker/cli-plugins/docker-compose
+   
+   # see https://docs.docker.com/compose/install/linux/#install-the-plugin-manually for further details
+   # or to install for all users.
    ```
 #### Install
 1. Clone this repository:

@@ -18,7 +18,7 @@ services:
       DB_HOST: ipld-eth-db
       DB_PORT: 5432
       DB_PASSWORD: password
-      DB_WRITE: true
+      DB_WRITE: "true"
       DB_TYPE: postgres
       DB_DRIVER: sqlx
       DB_WAIT_FOR_SYNC: "true"

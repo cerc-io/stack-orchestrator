@@ -15,31 +15,49 @@ Ensure that the following are already installed:
    $ python3 --version
    Python 3.8.10
    ```
-1. Docker (Install a current version from dockerco, don't use the version from any Linux distro)
+2. Docker (Install a current version from dockerco, don't use the version from any Linux distro)
    ```
    $ docker --version
    Docker version 20.10.17, build 100c701
+   ```
+3. If installed from regular package repository (not Docker Desktop), BE AWARE that the compose plugin may need to be installed, as well.
+   ```
+   DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+   mkdir -p $DOCKER_CONFIG/cli-plugins
+   curl -SL https://github.com/docker/compose/releases/download/v2.11.2/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+   chmod +x ~/.docker/cli-plugins/docker-compose
+   
+   # see https://docs.docker.com/compose/install/linux/#install-the-plugin-manually for further details
+   # or to install for all users.
    ```
 #### Install
 1. Clone this repository:
    ```
    $ git clone (https://github.com/cerc-io/stack-orchestrator.git
    ```
-1. Enter the project directory:
+2. Optional first time setup for empty dev root and fresh SO checkout:
+   ```
+   ./first_time_setup.sh
+   # e.g. /home/USER/workspace1/
+   # only contains the stack-orchestrator repo cloned in step 1.
+   # this will naively attempt to setup and activate the venv, shiv, generate a LOCAL standalone laconic-so
+   # and then setup-repositories in workspace1/
+   ```
+4. Enter the project directory:
    ```
    $ cd stack-orchestrator
    ```
-1. Create and activate a venv:
+5. Create and activate a venv:
    ```
    $ python3 -m venv venv
    $ source ./venv/bin/activate
    (venv) $
    ```
-1. Install the cli in edit mode:
+6. Install the cli in edit mode:
    ```
    $ pip install --editable .
    ```
-1. Verify installation:
+7. Verify installation:
    ```
    (venv) $ laconic-so
    Usage: laconic-so [OPTIONS] COMMAND [ARGS]...
@@ -92,17 +110,23 @@ _write-me_
 
 ## Usage
 There are three sub-commands: `setup-repositories`, `build-containers` and `deploy-system` that are generally run in order:
+
+Note: $ laconic-so will run the version installed to ~/bin, while ./laconic-so can be invoked to run locally built 
+version in a checkout
 ### Setup Repositories
 Clones the set of git repositories necessary to build a system.
 
 Note: the use of `ssh-agent` is recommended in order to avoid entering your ssh key passphrase for each repository.
 ```
-$ laconic-so --verbose setup-repositories
+$ laconic-so --verbose setup-repositories #this will default to ~/cerc or CERC_REPO_BASE_DIR from an env file
+#$ ./laconic-so --verbose --local_stack setup-repositories #this will use cwd ../ as dev_root_path
 ```
 ### Build Containers
 Builds the set of docker container images required to run a system. It takes around 10 minutes to build all the containers from cold.
 ```
-$ laconic-so --verbose build-containers
+$ laconic-so --verbose build-containers #this will default to ~/cerc or CERC_REPO_BASE_DIR from an env file
+#$ ./laconic-so --verbose --local_stack build-containers #this will use cwd ../ as dev_root_path
+
 ```
 ### Deploy System
 Uses `docker compose` to deploy a system.
@@ -114,6 +138,8 @@ $ laconic-so --verbose deploy-system --include db-sharding,contract,ipld-eth-ser
 ```
 $ laconic-so --verbose deploy-system --include db-sharding,contract,ipld-eth-server,go-ethereum-foundry down
 ```
+Note: deploy-system command interacts with most recently built container images.
+
 ## Platform Support
 Native aarm64 is _not_ currently supported. x64 emulation on ARM64 macos should work (not yet tested).
 ## Implementation

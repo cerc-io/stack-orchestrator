@@ -4,3 +4,4 @@ venv
 laconic-so
 laconic_stack_orchestrator.egg-info
 __pycache__
+*~

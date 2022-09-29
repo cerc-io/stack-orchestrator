@@ -44,7 +44,7 @@ def command(ctx, include, exclude):
     local_stack = ctx.obj.local_stack
 
     if local_stack:
-        dev_root_path = default=os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")])
+        dev_root_path = default=os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
         print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
     else:
         dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))

@@ -7,4 +7,4 @@ COPY . .
 
 RUN echo //npm.pkg.github.com/:_authToken=$NPM_AUTH_TOKEN > ~/.npmrc
 
-RUN apk --update --no-cache add git && yarn
+RUN apk --update --no-cache add git && yarn && yarn build

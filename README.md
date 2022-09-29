@@ -20,7 +20,7 @@ Ensure that the following are already installed:
    $ docker --version
    Docker version 20.10.17, build 100c701
    ```
-3. If installed from regular package repository, BE AWARE that the compose plugin may need to be installed, as well.
+3. If installed from regular package repository (not Docker Desktop), BE AWARE that the compose plugin may need to be installed, as well.
    ```
    DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
    mkdir -p $DOCKER_CONFIG/cli-plugins

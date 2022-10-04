@@ -18,21 +18,22 @@
 
 import os
 import sys
-import argparse
 from decouple import config
 import git
 from tqdm import tqdm
 import click
 
+
 class GitProgress(git.RemoteProgress):
     def __init__(self):
         super().__init__()
-        self.pbar = tqdm(unit = 'B', ascii = True, unit_scale = True)
+        self.pbar = tqdm(unit='B', ascii=True, unit_scale=True)
 
     def update(self, op_code, cur_count, max_count=None, message=''):
         self.pbar.total = max_count
         self.pbar.n = cur_count
         self.pbar.refresh()
+
 
 def is_git_repo(path):
     try:
@@ -42,9 +43,10 @@ def is_git_repo(path):
         return False
 
 # TODO: find a place for this in the context of click
-#parser = argparse.ArgumentParser(
+# parser = argparse.ArgumentParser(
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
 #   )
+
 
 @click.command()
 @click.option('--check-only', is_flag=True, default=False)
@@ -71,7 +73,7 @@ def command(ctx, check_only, pull, branches_file):
     local_stack = ctx.obj.local_stack
 
     if local_stack:
-        dev_root_path = default=os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
+        dev_root_path = default = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
         print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
     else:
         dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
@@ -81,14 +83,14 @@ def command(ctx, check_only, pull, branches_file):
 
     if not os.path.isdir(dev_root_path):
         if not quiet:
-            print(f'Dev root directory doesn\'t exist, creating')
+            print('Dev root directory doesn\'t exist, creating')
         os.makedirs(dev_root_path)
 
     with open("repository-list.txt") as repository_list_file:
         repos = repository_list_file.read().splitlines()
 
     if verbose:
-        print (f'Repos: {repos}')
+        print(f'Repos: {repos}')
 
     def process_repo(repo):
         full_github_repo_path = f'git@github.com:{repo}'
@@ -96,7 +98,8 @@ def command(ctx, check_only, pull, branches_file):
         full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
         is_present = os.path.isdir(full_filesystem_repo_path)
         if not quiet:
-            present_text = f'already exists active branch: {git.Repo(full_filesystem_repo_path).active_branch}' if is_present else 'Needs to be fetched'
+            present_text = f'already exists active branch: {git.Repo(full_filesystem_repo_path).active_branch}' if is_present \
+                else 'Needs to be fetched'
             print(f'Checking: {full_filesystem_repo_path}: {present_text}')
         # Quick check that it's actually a repo
         if is_present:
@@ -110,7 +113,7 @@ def command(ctx, check_only, pull, branches_file):
                     if not check_only:
                         git_repo = git.Repo(full_filesystem_repo_path)
                         origin = git_repo.remotes.origin
-                        origin.pull(progress = None if quiet else GitProgress())
+                        origin.pull(progress=None if quiet else GitProgress())
                     else:
                         print("(git pull skipped)")
         if not is_present:
@@ -118,8 +121,9 @@ def command(ctx, check_only, pull, branches_file):
             if verbose:
                 print(f'Running git clone for {full_github_repo_path} into {full_filesystem_repo_path}')
             if not dry_run:
-                git.Repo.clone_from(full_github_repo_path, full_filesystem_repo_path, 
-                progress = None if quiet else GitProgress())
+                git.Repo.clone_from(full_github_repo_path,
+                                    full_filesystem_repo_path,
+                                    progress=None if quiet else GitProgress())
             else:
                 print("(git clone skipped)")
         # Checkout the requested branch, if one was specified
@@ -134,8 +138,6 @@ def command(ctx, check_only, pull, branches_file):
                         print(f"checking out branch {branch_to_checkout} in repo {repo}")
                         git_repo = git.Repo(full_filesystem_repo_path)
                         git_repo.git.checkout(branch_to_checkout)
-                    
-
 
     for repo in repos:
         process_repo(repo)

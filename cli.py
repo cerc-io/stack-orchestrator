@@ -21,6 +21,7 @@ from app import deploy_system
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
+
 class Options(object):
     def __init__(self, quiet, verbose, dry_run, local_stack):
         self.quiet = quiet
@@ -33,13 +34,13 @@ class Options(object):
 @click.option('--verbose', is_flag=True, default=False)
 @click.option('--dry-run', is_flag=True, default=False)
 @click.option('--local_stack', is_flag=True, default=False)
-
 # See: https://click.palletsprojects.com/en/8.1.x/complex/#building-a-git-clone
 @click.pass_context
 def cli(ctx, quiet, verbose, dry_run, local_stack):
     """Laconic Stack Orchestrator"""
     ctx.obj = Options(quiet, verbose, dry_run, local_stack)
 
-cli.add_command(setup_repositories.command,"setup-repositories")
-cli.add_command(build_containers.command,"build-containers")
-cli.add_command(deploy_system.command,"deploy-system")
+
+cli.add_command(setup_repositories.command, "setup-repositories")
+cli.add_command(build_containers.command, "build-containers")
+cli.add_command(deploy_system.command, "deploy-system")

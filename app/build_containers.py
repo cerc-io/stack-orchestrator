@@ -22,7 +22,6 @@
 
 import os
 import sys
-import argparse
 from decouple import config
 import subprocess
 import click
@@ -30,6 +29,7 @@ from .util import include_exclude_check
 
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
+
 
 @click.command()
 @click.option('--include', help="only build these containers")
@@ -44,7 +44,7 @@ def command(ctx, include, exclude):
     local_stack = ctx.obj.local_stack
 
     if local_stack:
-        dev_root_path = default=os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
+        dev_root_path = default = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
         print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
     else:
         dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
@@ -53,7 +53,7 @@ def command(ctx, include, exclude):
         print(f'Dev Root is: {dev_root_path}')
 
     if not os.path.isdir(dev_root_path):
-        print(f'Dev root directory doesn\'t exist, creating')
+        print('Dev root directory doesn\'t exist, creating')
 
     with open("container-image-list.txt") as container_list_file:
         containers = container_list_file.read().splitlines()
@@ -64,7 +64,7 @@ def command(ctx, include, exclude):
     def process_container(container):
         if not quiet:
             print(f"Building: {container}")
-        build_script_filename = os.path.join("container-build",container.replace("/","-"),"build.sh")
+        build_script_filename = os.path.join("container-build", container.replace("/", "-"), "build.sh")
         if verbose:
             print(f"Script: {build_script_filename}")
         if not os.path.exists(build_script_filename):
@@ -72,7 +72,7 @@ def command(ctx, include, exclude):
             sys.exit(1)
         if not dry_run:
             # We need to export CERC_REPO_BASE_DIR
-            build_result = subprocess.run(build_script_filename, shell=True, env={'CERC_REPO_BASE_DIR':dev_root_path})
+            build_result = subprocess.run(build_script_filename, shell=True, env={'CERC_REPO_BASE_DIR': dev_root_path})
             # TODO: check result in build_result.returncode
             print(f"Result is: {build_result}")
         else:

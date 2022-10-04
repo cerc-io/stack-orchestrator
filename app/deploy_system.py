@@ -16,16 +16,15 @@
 # Deploys the system components using docker-compose
 
 import os
-import argparse
-from decouple import config
 from python_on_whales import DockerClient
 import click
 from .util import include_exclude_check
 
+
 @click.command()
-@click.option('--include', help="only start these components")
-@click.option('--exclude', help="don\'t start these components")
-@click.argument('command') # help: command: up|down|ps
+@click.option("--include", help="only start these components")
+@click.option("--exclude", help="don\'t start these components")
+@click.argument('command')  # help: command: up|down|ps
 @click.pass_context
 def command(ctx, include, exclude, command):
     '''deploy a stack'''

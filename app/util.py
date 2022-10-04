@@ -14,11 +14,11 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 def include_exclude_check(s, include, exclude):
-    if include == None and exclude == None:
+    if include is None and exclude is None:
         return True
-    if include != None:
+    if include is not None:
         include_list = include.split(",")
         return s in include_list
-    if exclude != None:
+    if exclude is not None:
         exclude_list = exclude.split(",")
         return s not in exclude_list

@@ -1,5 +1,6 @@
 cerc/test-contract
 cerc/eth-statediff-fill-service
+cerc/eth-statediff-service
 cerc/go-ethereum
 cerc/go-ethereum-foundry
 cerc/lighthouse

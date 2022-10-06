@@ -119,13 +119,13 @@ Clones the set of git repositories necessary to build a system.
 Note: the use of `ssh-agent` is recommended in order to avoid entering your ssh key passphrase for each repository.
 ```
 $ laconic-so --verbose setup-repositories #this will default to ~/cerc or CERC_REPO_BASE_DIR from an env file
-#$ ./laconic-so --verbose --local_stack setup-repositories #this will use cwd ../ as dev_root_path
+#$ ./laconic-so --verbose --local-stack setup-repositories #this will use cwd ../ as dev_root_path
 ```
 ### Build Containers
 Builds the set of docker container images required to run a system. It takes around 10 minutes to build all the containers from cold.
 ```
 $ laconic-so --verbose build-containers #this will default to ~/cerc or CERC_REPO_BASE_DIR from an env file
-#$ ./laconic-so --verbose --local_stack build-containers #this will use cwd ../ as dev_root_path
+#$ ./laconic-so --verbose --local-stack build-containers #this will use cwd ../ as dev_root_path
 
 ```
 ### Deploy System

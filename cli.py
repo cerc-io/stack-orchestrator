@@ -34,7 +34,7 @@ class Options(object):
 @click.option('--quiet', is_flag=True, default=False)
 @click.option('--verbose', is_flag=True, default=False)
 @click.option('--dry-run', is_flag=True, default=False)
-@click.option('--local_stack', is_flag=True, default=False)
+@click.option('--local-stack', is_flag=True, default=False)
 # See: https://click.palletsprojects.com/en/8.1.x/complex/#building-a-git-clone
 @click.pass_context
 def cli(ctx, quiet, verbose, dry_run, local_stack):

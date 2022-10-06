@@ -29,6 +29,7 @@ class Options(object):
         self.dry_run = dry_run
         self.local_stack = local_stack
 
+
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.option('--quiet', is_flag=True, default=False)
 @click.option('--verbose', is_flag=True, default=False)

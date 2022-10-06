@@ -5,4 +5,4 @@ source ./venv/bin/activate
 pip install --editable .
 pip install shiv
 shiv -c laconic-so -o laconic-so .
-./laconic-so --verbose --local_stack setup-repositories
+./laconic-so --verbose --local-stack setup-repositories

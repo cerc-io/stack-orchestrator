@@ -15,7 +15,9 @@
 
 # Deploys the system components using docker-compose
 
+import hashlib
 import os
+import sys
 from python_on_whales import DockerClient
 import click
 from .util import include_exclude_check
@@ -24,9 +26,10 @@ from .util import include_exclude_check
 @click.command()
 @click.option("--include", help="only start these components")
 @click.option("--exclude", help="don\'t start these components")
+@click.option("--cluster", help="specify a non-default cluster name")
 @click.argument('command')  # help: command: up|down|ps
 @click.pass_context
-def command(ctx, include, exclude, command):
+def command(ctx, include, exclude, cluster, command):
     '''deploy a stack'''
 
     # TODO: implement option exclusion and command value constraint lost with the move from argparse to click
@@ -35,28 +38,37 @@ def command(ctx, include, exclude, command):
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
 
-    with open("cluster-list.txt") as cluster_list_file:
-        clusters = cluster_list_file.read().splitlines()
+    if cluster is None:
+        # Create default unique, stable cluster name from confile file path
+        # TODO: change this to the config file path
+        path = os.path.realpath(sys.argv[0])
+        hash = hashlib.md5(path.encode()).hexdigest()
+        cluster = f"laconic-{hash}"
+        if verbose:
+            print(f"Using cluster name: {cluster}")
+
+    with open("pod-list.txt") as pod_list_file:
+        pods = pod_list_file.read().splitlines()
 
     if verbose:
-        print(f'Cluster components: {clusters}')
+        print(f'Pods: {pods}')
 
     # Construct a docker compose command suitable for our purpose
 
     compose_files = []
-    for cluster in clusters:
-        if include_exclude_check(cluster, include, exclude):
-            compose_file_name = os.path.join("compose", f"docker-compose-{cluster}.yml")
+    for pod in pods:
+        if include_exclude_check(pod, include, exclude):
+            compose_file_name = os.path.join("compose", f"docker-compose-{pod}.yml")
             compose_files.append(compose_file_name)
         else:
             if not quiet:
-                print(f"Excluding: {cluster}")
+                print(f"Excluding: {pod}")
 
     if verbose:
         print(f"files: {compose_files}")
 
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    docker = DockerClient(compose_files=compose_files)
+    docker = DockerClient(compose_files=compose_files, compose_project_name=cluster)
 
     if not dry_run:
         if command == "up":

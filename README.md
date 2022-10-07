@@ -148,7 +148,7 @@ the list of container image names, while `clister-list.txt` specifies the set of
 Files required to build each container image are stored under `./container-build/<container-name>`
 Files required at deploy-time are stored under `./config/<component-name>`
 ```
-├── cluster-list.txt
+├── pod-list.txt
 ├── compose
 │   ├── docker-compose-contract.yml
 │   ├── docker-compose-db-sharding.yml

@@ -24,9 +24,10 @@ from .util import include_exclude_check
 @click.command()
 @click.option("--include", help="only start these components")
 @click.option("--exclude", help="don\'t start these components")
+@click.option("--cluster", help="specify a non-default cluster name")
 @click.argument('command')  # help: command: up|down|ps
 @click.pass_context
-def command(ctx, include, exclude, command):
+def command(ctx, include, exclude, cluster, command):
     '''deploy a stack'''
 
     # TODO: implement option exclusion and command value constraint lost with the move from argparse to click
@@ -35,16 +36,16 @@ def command(ctx, include, exclude, command):
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
 
-    with open("cluster-list.txt") as cluster_list_file:
-        clusters = cluster_list_file.read().splitlines()
+    with open("pod-list.txt") as pod_list_file:
+        pods = pod_list_file.read().splitlines()
 
     if verbose:
-        print(f'Cluster components: {clusters}')
+        print(f'Cluster components: {pods}')
 
     # Construct a docker compose command suitable for our purpose
 
     compose_files = []
-    for cluster in clusters:
+    for pod in pods:
         if include_exclude_check(cluster, include, exclude):
             compose_file_name = os.path.join("compose", f"docker-compose-{cluster}.yml")
             compose_files.append(compose_file_name)

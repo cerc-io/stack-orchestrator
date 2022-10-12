@@ -3,4 +3,5 @@ services:
   laconicd:
     restart: unless-stopped
     image: cerc/laconicd:local
-
+    volume:
+      - ./create-testingnet.sh:/laconicd-entrypoint-init.d/create-testingnet.sh

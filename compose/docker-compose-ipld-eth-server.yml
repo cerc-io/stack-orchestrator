@@ -31,18 +31,3 @@ services:
       - "127.0.0.1:8081:8081"
       - "127.0.0.1:8082:8082"
 
-  graphql:
-    restart: unless-stopped
-    depends_on:
-      ipld-eth-db:
-        condition: service_healthy
-    image: vulcanize/postgraphile:v1.0.1
-    environment:
-      PG_HOST: ipld-eth-db
-      PG_PORT: 5432
-      PG_DATABASE: cerc_testing
-      PG_USER: vdbm
-      PG_PASSWORD: password
-      SCHEMA: public,eth
-    ports:
-      - "127.0.0.1:5000:5000"

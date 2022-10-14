@@ -9,6 +9,6 @@ cerc/ipld-eth-beacon-db
 cerc/ipld-eth-beacon-indexer
 cerc/ipld-eth-server
 cerc/laconicd
-cerc/laconic-client
+cerc/laconic-cns-cli
 cerc/fixturenet-eth-geth
 cerc/fixturenet-eth-lighthouse

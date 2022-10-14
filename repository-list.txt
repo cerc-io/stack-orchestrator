@@ -8,4 +8,4 @@ vulcanize/ipld-eth-db-validator
 vulcanize/ipld-eth-beacon-indexer
 vulcanize/ipld-eth-beacon-db
 cerc-io/laconicd
-cerc-io/laconic-sdk
+cerc-io/laconic-cns-cli

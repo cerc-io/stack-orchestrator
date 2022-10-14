@@ -12,9 +12,6 @@ if len(sys.argv) > 1:
 with open(testnet_config_path) as stream:
     data = yaml.safe_load(stream)
 
-out = {}
-
-# Some hardcoded addrs
 for key, value in data['eth1_premine'].items():
     acct = w3.eth.account.from_mnemonic(data['mnemonic'], account_path=key, passphrase='')
     print("%s,%s,%s" % (key, acct.address, acct.key.hex()))

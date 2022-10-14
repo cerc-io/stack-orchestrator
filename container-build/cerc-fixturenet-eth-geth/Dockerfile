@@ -14,8 +14,6 @@ COPY run-el.sh /opt/testnet/run.sh
 
 RUN cd /opt/testnet && make genesis-el
 
-RUN chmod a+x /usr/local/bin/*
-RUN ls -l /usr/local/bin
 RUN geth init /opt/testnet/build/el/geth.json && rm -f ~/.ethereum/geth/nodekey
 
 ENTRYPOINT ["/opt/testnet/run.sh"]

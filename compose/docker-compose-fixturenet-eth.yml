@@ -1,0 +1,86 @@
+version: '3.7'
+
+services:
+  fixturenet-eth-bootnode-geth:
+    hostname: fixturenet-eth-bootnode-geth
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    environment:
+      RUN_BOOTNODE: "true"
+    image: cerc/fixturenet-eth-geth:local
+    networks:
+      fixturenet-eth-net:
+        ipv4_address: 172.16.254.10
+
+  fixturenet-eth-geth-1:
+    hostname: fixturenet-eth-geth-1
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    image: cerc/fixturenet-eth-geth:local
+    depends_on:
+      - fixturenet-eth-bootnode-geth
+    ports:
+      - "8545"
+    networks:
+      fixturenet-eth-net:
+
+  fixturenet-eth-geth-2:
+    hostname: fixturenet-eth-geth-2
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    image: cerc/fixturenet-eth-geth:local
+    depends_on:
+      - fixturenet-eth-bootnode-geth
+    networks:
+      fixturenet-eth-net:
+
+  fixturenet-eth-bootnode-lighthouse:
+    hostname: fixturenet-eth-bootnode-lighthouse
+    environment:
+      RUN_BOOTNODE: "true"
+    image: cerc/fixturenet-eth-lighthouse:local
+    networks:
+      fixturenet-eth-net:
+        ipv4_address: 172.16.254.11
+
+  fixturenet-eth-lighthouse-1:
+    hostname: fixturenet-eth-lighthouse-1
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    environment:
+      NODE_NUMBER: "1"
+      ETH1_ENDPOINT: "http://fixturenet-eth-geth-1:8545"
+      EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-1:8551"
+    image: cerc/fixturenet-eth-lighthouse:local
+    depends_on:
+      - fixturenet-eth-bootnode-lighthouse
+      - fixturenet-eth-geth-1
+    ports:
+      - "8001"
+    networks:
+      fixturenet-eth-net:
+  
+  fixturenet-eth-lighthouse-2:
+    hostname: fixturenet-eth-lighthouse-2
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    environment:
+      NODE_NUMBER: "2"
+      ETH1_ENDPOINT: "http://fixturenet-eth-geth-2:8545"
+      EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-2:8551"
+      LIGHTHOUSE_GENESIS_STATE_URL: "http://fixturenet-eth-lighthouse-1:8001/eth/v2/debug/beacon/states/0"
+    image: cerc/fixturenet-eth-lighthouse:local
+    depends_on:
+      - fixturenet-eth-bootnode-lighthouse
+      - fixturenet-eth-geth-2
+    networks:
+      fixturenet-eth-net:
+
+networks:
+  # When the bootnode ENR is generated during the build, it requires a specific IP.
+  # The easiest way to do that is to use a private network.
+  fixturenet-eth-net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.16.254.0/28

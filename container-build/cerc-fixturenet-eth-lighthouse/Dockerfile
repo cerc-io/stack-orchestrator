@@ -20,7 +20,7 @@ COPY --from=ethgen /usr/local/bin/eth2-testnet-genesis /usr/local/bin/eth2-testn
 COPY --from=ethgen /usr/local/bin/eth2-val-tools /usr/local/bin/eth2-val-tools
 COPY --from=ethgen /apps /apps
 COPY --from=fnetgeth /opt/testnet/el /opt/testnet/el
-COPY --from=fnetgeth /opt/testnet/accounts /opt/testnet/accounts
+COPY --from=fnetgeth /opt/testnet/build/el /opt/testnet/build/el
 
 RUN cd /opt/testnet && make genesis-cl
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ETHERBASE=`cat /opt/testnet/accounts/accounts.csv | head -1 | cut -d',' -f2`
+ETHERBASE=`cat /opt/testnet/build/el/accounts.csv | head -1 | cut -d',' -f2`
 NETWORK_ID=`cat /opt/testnet/el/el-config.yaml | grep 'chain_id' | awk '{ print $2 }'`
 
 if [ "true" == "$RUN_BOOTNODE" ]; then 

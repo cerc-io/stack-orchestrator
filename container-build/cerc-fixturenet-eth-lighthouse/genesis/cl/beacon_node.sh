@@ -19,6 +19,7 @@ http_port=8001
 authrpc_port=8551
 
 ENR=`cat $DATADIR/bootnode/enr.dat`
+ENR_IP=`ip addr | grep 172 | awk '{print $2}' | cut -d '/' -f1`
 
 exec lighthouse \
   --debug-level $DEBUG_LEVEL \
@@ -29,7 +30,7 @@ exec lighthouse \
   --testnet-dir $TESTNET_DIR \
   --enable-private-discovery \
   --staking \
-  --enr-address $BOOTNODE_IP \
+  --enr-address $ENR_IP \
   --enr-udp-port $network_port \
   --enr-tcp-port $network_port \
   --port $network_port \

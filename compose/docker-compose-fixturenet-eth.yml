@@ -77,6 +77,8 @@ services:
       fixturenet-eth-net:
 
 networks:
+  # When the bootnode ENR is generated during the build, it requires a specific IP.
+  # The easiest way to do that is to use a private network.
   fixturenet-eth-net:
     driver: bridge
     ipam:

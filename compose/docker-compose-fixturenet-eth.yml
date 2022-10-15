@@ -34,6 +34,26 @@ services:
     networks:
       fixturenet-eth-net:
 
+  fixturenet-eth-geth-3:
+    hostname: fixturenet-eth-geth-3
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    image: cerc/fixturenet-eth-geth:local
+    depends_on:
+      - fixturenet-eth-bootnode-geth
+    networks:
+      fixturenet-eth-net:
+
+  fixturenet-eth-geth-4:
+    hostname: fixturenet-eth-geth-4
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    image: cerc/fixturenet-eth-geth:local
+    depends_on:
+      - fixturenet-eth-bootnode-geth
+    networks:
+      fixturenet-eth-net:
+
   fixturenet-eth-bootnode-lighthouse:
     hostname: fixturenet-eth-bootnode-lighthouse
     environment:
@@ -73,6 +93,38 @@ services:
     depends_on:
       - fixturenet-eth-bootnode-lighthouse
       - fixturenet-eth-geth-2
+    networks:
+      fixturenet-eth-net:
+
+  fixturenet-eth-lighthouse-3:
+    hostname: fixturenet-eth-lighthouse-3
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    environment:
+      NODE_NUMBER: "3"
+      ETH1_ENDPOINT: "http://fixturenet-eth-geth-3:8545"
+      EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-3:8551"
+      LIGHTHOUSE_GENESIS_STATE_URL: "http://fixturenet-eth-lighthouse-1:8001/eth/v2/debug/beacon/states/0"
+    image: cerc/fixturenet-eth-lighthouse:local
+    depends_on:
+      - fixturenet-eth-bootnode-lighthouse
+      - fixturenet-eth-geth-3
+    networks:
+      fixturenet-eth-net:
+
+  fixturenet-eth-lighthouse-4:
+    hostname: fixturenet-eth-lighthouse-4
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    environment:
+      NODE_NUMBER: "4"
+      ETH1_ENDPOINT: "http://fixturenet-eth-geth-4:8545"
+      EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-4:8551"
+      LIGHTHOUSE_GENESIS_STATE_URL: "http://fixturenet-eth-lighthouse-1:8001/eth/v2/debug/beacon/states/0"
+    image: cerc/fixturenet-eth-lighthouse:local
+    depends_on:
+      - fixturenet-eth-bootnode-lighthouse
+      - fixturenet-eth-geth-4
     networks:
       fixturenet-eth-net:
 

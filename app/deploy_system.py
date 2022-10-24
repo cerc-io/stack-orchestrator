@@ -79,12 +79,16 @@ def command(ctx, include, exclude, cluster, command):
             if verbose:
                 print("Running compose down")
             docker.compose.down()
-        elif command == "ps":
+        elif command == "status":
             if verbose:
                 print("Running compose ps")
             container_list = docker.compose.ps()
-            for container in container_list:
-                print(f"id: {container.id}, name: {container.name}")
+            if len(container_list) > 0:
+                print("Running containers:")
+                for container in container_list:
+                    print(f"id: {container.id}, name: {container.name}")
+            else:
+                print("No containers running")
         elif command == "logs":
             if verbose:
                 print("Running compose logs")

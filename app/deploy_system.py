@@ -82,7 +82,9 @@ def command(ctx, include, exclude, cluster, command):
         elif command == "ps":
             if verbose:
                 print("Running compose ps")
-            docker.compose.ps()
+            container_list = docker.compose.ps()
+            for container in container_list:
+                print(f"id: {container.id}, name: {container.name}")
         elif command == "logs":
             if verbose:
                 print("Running compose logs")

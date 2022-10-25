@@ -1,6 +1,10 @@
 #!/bin/bash
 
 if [ "true" == "$RUN_BOOTNODE" ]; then 
+    cd /opt/testnet/build/cl
+    python3 -m http.server 3000 &
+
+
     cd /opt/testnet/cl
     ./bootnode.sh 2>&1 | tee /var/log/lighthouse_bootnode.log
 else
@@ -29,6 +33,18 @@ else
             result=`wget --no-check-certificate --quiet -O - --timeout=0 $LIGHTHOUSE_GENESIS_STATE_URL | jq -r '.data.genesis_time'`
             if [ ! -z "$result" ]; then
               ./reset_genesis_time.sh $result
+              break;
+            fi
+        done
+    fi
+
+    if [ ! -z "$ENR_URL" ]; then
+        while [ 1 -eq 1 ]; do
+            echo "Waiting on ENR for boot node..."
+            sleep 5
+            result=`wget --no-check-certificate --quiet -O - --timeout=0 $ENR_URL`
+            if [ ! -z "$result" ]; then
+              export ENR="$result"
               break;
             fi
         done

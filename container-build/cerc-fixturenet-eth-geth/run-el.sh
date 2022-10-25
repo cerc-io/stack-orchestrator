@@ -2,6 +2,7 @@
 
 ETHERBASE=`cat /opt/testnet/build/el/accounts.csv | head -1 | cut -d',' -f2`
 NETWORK_ID=`cat /opt/testnet/el/el-config.yaml | grep 'chain_id' | awk '{ print $2 }'`
+NETRESTRICT=`ip addr | grep inet | grep -v '127.0' | awk '{print $2}'`
 
 if [ "true" == "$RUN_BOOTNODE" ]; then 
     geth \

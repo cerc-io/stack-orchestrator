@@ -8,9 +8,6 @@ services:
     environment:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-geth:local
-    networks:
-      fixturenet-eth-net:
-        ipv4_address: 172.16.254.10
 
   fixturenet-eth-geth-1:
     hostname: fixturenet-eth-geth-1
@@ -20,9 +17,7 @@ services:
     depends_on:
       - fixturenet-eth-bootnode-geth
     ports:
-      - "8545"
-    networks:
-      fixturenet-eth-net:
+      - "8545:8545"
 
   fixturenet-eth-geth-2:
     hostname: fixturenet-eth-geth-2
@@ -31,17 +26,12 @@ services:
     image: cerc/fixturenet-eth-geth:local
     depends_on:
       - fixturenet-eth-bootnode-geth
-    networks:
-      fixturenet-eth-net:
 
   fixturenet-eth-bootnode-lighthouse:
     hostname: fixturenet-eth-bootnode-lighthouse
     environment:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-lighthouse:local
-    networks:
-      fixturenet-eth-net:
-        ipv4_address: 172.16.254.11
 
   fixturenet-eth-lighthouse-1:
     hostname: fixturenet-eth-lighthouse-1
@@ -56,9 +46,7 @@ services:
       - fixturenet-eth-bootnode-lighthouse
       - fixturenet-eth-geth-1
     ports:
-      - "8001"
-    networks:
-      fixturenet-eth-net:
+      - "5052:8001"
   
   fixturenet-eth-lighthouse-2:
     hostname: fixturenet-eth-lighthouse-2
@@ -73,14 +61,3 @@ services:
     depends_on:
       - fixturenet-eth-bootnode-lighthouse
       - fixturenet-eth-geth-2
-    networks:
-      fixturenet-eth-net:
-
-networks:
-  # When the bootnode ENR is generated during the build, it requires a specific IP.
-  # The easiest way to do that is to use a private network.
-  fixturenet-eth-net:
-    driver: bridge
-    ipam:
-      config:
-      - subnet: 172.16.254.0/28

@@ -57,18 +57,3 @@ lcli \
   $GENESIS_VALIDATOR_COUNT
 
 echo Created genesis state in $TESTNET_DIR
-
-echo "Generating bootnode enr"
-
-lcli \
-  generate-bootnode-enr \
-  --ip $BOOTNODE_IP \
-  --udp-port $BOOTNODE_PORT \
-  --tcp-port $BOOTNODE_PORT \
-  --genesis-fork-version $GENESIS_FORK_VERSION \
-  --output-dir $DATADIR/bootnode
-
-bootnode_enr=`cat $DATADIR/bootnode/enr.dat`
-echo "- $bootnode_enr" > $TESTNET_DIR/boot_enr.yaml
-
-echo "Generated bootnode enr and written to $TESTNET_DIR/boot_enr.yaml"

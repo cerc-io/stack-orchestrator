@@ -17,7 +17,7 @@ services:
     depends_on:
       - fixturenet-eth-bootnode-geth
     ports:
-      - "8545:8545"
+      - "8545"
 
   fixturenet-eth-geth-2:
     hostname: fixturenet-eth-geth-2
@@ -46,7 +46,7 @@ services:
       - fixturenet-eth-bootnode-lighthouse
       - fixturenet-eth-geth-1
     ports:
-      - "5052:8001"
+      - "8001"
   
   fixturenet-eth-lighthouse-2:
     hostname: fixturenet-eth-lighthouse-2

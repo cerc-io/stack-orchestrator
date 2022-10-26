@@ -61,5 +61,5 @@ while [ $STATUS -lt ${#STATUSES[@]} ]; do
         inc_status
       fi
       ;;
-    esac
-  done
+  esac
+done

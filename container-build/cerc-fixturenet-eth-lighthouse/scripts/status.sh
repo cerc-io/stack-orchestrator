@@ -27,7 +27,7 @@ function inc_status() {
 
 echo -n "Waiting for ${STATUSES[$STATUS]}..."
 while [ $STATUS -lt ${#STATUSES[@]} ]; do
-  sleep 2
+  sleep 1
   echo -n "."
   case $STATUS in
     0)

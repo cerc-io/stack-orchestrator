@@ -9,14 +9,14 @@ if [ "true" == "$RUN_BOOTNODE" ]; then
     ./bootnode.sh 2>&1 | tee /var/log/lighthouse_bootnode.log
 else
     while [ 1 -eq 1 ]; do
-      echo "Waiting on DAG ..."
+      echo "Waiting on geth ..."
       sleep 5
       result=`wget --no-check-certificate --quiet \
         -O - \
         --method POST \
         --timeout=0 \
         --header 'Content-Type: application/json' \
-        --body-data '{ "jsonrpc": "2.0", "id": 1, "method": "eth_getBlockByNumber", "params": ["0x3", false] }' "${ETH1_ENDPOINT:-localhost:8545}" | jq -r '.result'`
+        --body-data '{ "jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": [] }' "${ETH1_ENDPOINT:-localhost:8545}" | jq -r '.result'`
        if [ ! -z "$result" ] && [ "null" != "$result" ]; then
            break
        fi

@@ -1,7 +1,7 @@
 FROM skylenet/ethereum-genesis-generator AS ethgen
 
 FROM cerc/go-ethereum:local
-RUN apk add --no-cache python3 py3-pip curl wget jq build-base gettext libintl openssl bash
+RUN apk add --no-cache python3 python3-dev py3-pip curl wget jq build-base gettext libintl openssl bash
 
 COPY --from=ethgen /usr/local/bin/eth2-testnet-genesis /usr/local/bin/eth2-testnet-genesis
 COPY --from=ethgen /usr/local/bin/eth2-val-tools /usr/local/bin/eth2-val-tools

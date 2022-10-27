@@ -1,6 +1,6 @@
 #!/bin/bash
 
-STATUSES=("geth to begin mining" "beacon phase0" "beacon altair" "beacon bellatrix pre-merge" "beacon bellatrix merge")
+STATUSES=("geth to generate DAG" "beacon phase0" "beacon altair" "beacon bellatrix pre-merge" "beacon bellatrix merge")
 STATUS=0
 
 

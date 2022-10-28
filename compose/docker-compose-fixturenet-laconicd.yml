@@ -3,6 +3,10 @@ services:
   laconicd:
     restart: unless-stopped
     image: cerc/laconicd:local
+    command: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
+    volumes:
+      # TODO: look at folding this script into the container
+      - ../config/fixturenet-laconicd/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
     # TODO: determine which of the ports below is really needed
     ports:
       - "6060"

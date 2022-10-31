@@ -10,16 +10,13 @@ set -Eeuo pipefail
 source ./vars.env
 
 SUBSCRIBE_ALL_SUBNETS=
-DEBUG_LEVEL=${DEBUG_LEVEL:-info}
+DEBUG_LEVEL=${DEBUG_LEVEL:-debug}
 
 # Get positional arguments
 data_dir=$DATADIR/node_${NODE_NUMBER}
 network_port=9001
 http_port=8001
 authrpc_port=8551
-
-ENR=`cat $DATADIR/bootnode/enr.dat`
-ENR_IP=`ip addr | grep 172 | awk '{print $2}' | cut -d '/' -f1`
 
 exec lighthouse \
   --debug-level $DEBUG_LEVEL \

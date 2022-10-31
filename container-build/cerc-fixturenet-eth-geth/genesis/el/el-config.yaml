@@ -1,17 +1,16 @@
 mnemonic: "viable ketchup woman library opinion copy rhythm attend rose knock penalty practice photo bundle budget dentist enter round bind holiday useful arch danger lobster"
-eth1_premine:
+el_premine:
   "m/44'/60'/0'/0/0": 10000000ETH
   "m/44'/60'/0'/0/1": 10000000ETH
   "m/44'/60'/0'/0/2": 10000000ETH
   "m/44'/60'/0'/0/3": 10000000ETH
   "m/44'/60'/0'/0/4": 10000000ETH
   "m/44'/60'/0'/0/5": 10000000ETH
-eth1_premine_addrs: {}
+el_premine_addrs: {}
 chain_id: 1212
 deposit_contract_address: "0x1212121212121212121212121212121212121212"
-eth1_genesis_timestamp: 0
-terminal_total_difficulty: 10000000
-mergeForkBlock: 100
+genesis_timestamp: 0
+terminal_total_difficulty: 1000
 
 clique:
   enabled: false

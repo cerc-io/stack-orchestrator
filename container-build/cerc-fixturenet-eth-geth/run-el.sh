@@ -30,6 +30,9 @@ else
       --authrpc.jwtsecret="/opt/testnet/build/el/jwtsecret" \
       --networkid=${NETWORK_ID} \
       --netrestrict="${NETRESTRICT}" \
+      --gcmode archive \
+      --txlookuplimit=0 \
+      --cache.preimages \
       --syncmode=full \
       --mine \
       --miner.threads=1 \

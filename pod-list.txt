@@ -9,3 +9,4 @@ lighthouse
 prometheus-grafana
 laconicd
 fixturenet-eth
+test

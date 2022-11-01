@@ -22,8 +22,8 @@ services:
   fixturenet-eth-geth-2:
     hostname: fixturenet-eth-geth-2
     environment:
-      RUN_STATEDIFF: "true"
-      STATEDIFF_DB_NODE_ID: 2
+      CERC_RUN_STATEDIFF: "true"
+      CERC_STATEDIFF_DB_NODE_ID: 2
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/fixturenet-eth-geth:local

@@ -18,14 +18,14 @@ else
     echo -n "$JWT" > /opt/testnet/build/el/jwtsecret
 
     STATEDIFF_OPTS=""
-    if [ "$RUN_STATEDIFF" == "true" ]; then
+    if [ "$CERC_RUN_STATEDIFF" == "true" ]; then
       STATEDIFF_OPTS="--statediff=true \
-      --statediff.db.host=$STATEDIFF_DB_HOST \
-      --statediff.db.name=$STATEDIFF_DB_NAME \
-      --statediff.db.nodeid=$STATEDIFF_DB_NODE_ID \
-      --statediff.db.password=$STATEDIFF_DB_PASSWORD \
-      --statediff.db.port=$STATEDIFF_DB_PORT \
-      --statediff.db.user=$STATEDIFF_DB_USER \
+      --statediff.db.host=$CERC_STATEDIFF_DB_HOST \
+      --statediff.db.name=$CERC_STATEDIFF_DB_NAME \
+      --statediff.db.nodeid=$CERC_STATEDIFF_DB_NODE_ID \
+      --statediff.db.password=$CERC_STATEDIFF_DB_PASSWORD \
+      --statediff.db.port=$CERC_STATEDIFF_DB_PORT \
+      --statediff.db.user=$CERC_STATEDIFF_DB_USER \
       --statediff.waitforsync=true \
       --statediff.writing=true"
     fi

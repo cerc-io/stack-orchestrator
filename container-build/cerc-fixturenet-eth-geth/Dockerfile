@@ -1,4 +1,4 @@
-FROM skylenet/ethereum-genesis-generator AS ethgen
+FROM skylenet/ethereum-genesis-generator@sha256:210353ce7c898686bc5092f16c61220a76d357f51eff9c451e9ad1b9ad03d4d3 AS ethgen
 
 FROM cerc/go-ethereum:local
 RUN apk add --no-cache python3 python3-dev py3-pip curl wget jq build-base gettext libintl openssl bash

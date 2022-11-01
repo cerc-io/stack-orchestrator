@@ -1,5 +1,5 @@
 FROM sigp/lcli AS lcli
-FROM skylenet/ethereum-genesis-generator AS ethgen
+FROM 210353ce7c898686bc5092f16c61220a76d357f51eff9c451e9ad1b9ad03d4d3 AS ethgen # skylenet/ethereum-genesis-generator
 FROM cerc/fixturenet-eth-geth:local AS fnetgeth
 
 FROM cerc/lighthouse:local

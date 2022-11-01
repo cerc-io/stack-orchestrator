@@ -1,20 +1,32 @@
-# TODO: figure out if this is needed -- it doesn't seem to make sense in the context of the
-# current version of cerc/ipld-eth-db/Dockerfile, which is only the migrations code, not the DB itself
-# The sibling component docker-compose-db-sharding.yml looks more plausible
 version: "3.2"
+
 services:
-  ipld-eth-db:
-    restart: always
+  migrations:
+    restart: on-failure
+    depends_on:
+      ipld-eth-db:
+        condition: service_healthy
     image: cerc/ipld-eth-db:local
+    environment:
+      DATABASE_USER: "vdbm"
+      DATABASE_NAME: "cerc_testing"
+      DATABASE_PASSWORD: "password"
+      DATABASE_HOSTNAME: "ipld-eth-db"
+      DATABASE_PORT: 5432
+
+  ipld-eth-db:
+    image: timescale/timescaledb:latest-pg14
+    restart: always
+    command: ["postgres", "-c", "log_statement=all"]
     environment:
       POSTGRES_USER: "vdbm"
       POSTGRES_DB: "cerc_testing"
       POSTGRES_PASSWORD: "password"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "5432"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
     ports:
       - "127.0.0.1:8077:5432"
-    command: ["postgres", "-c", "log_statement=all"]

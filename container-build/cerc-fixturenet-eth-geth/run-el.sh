@@ -17,6 +17,19 @@ else
     
     echo -n "$JWT" > /opt/testnet/build/el/jwtsecret
 
+    STATEDIFF_OPTS=""
+    if [ "$RUN_STATEDIFF" == "true" ]; then
+      STATEDIFF_OPTS="--statediff=true \
+      --statediff.db.host=$STATEDIFF_DB_HOST \
+      --statediff.db.name=$STATEDIFF_DB_NAME \
+      --statediff.db.nodeid=$STATEDIFF_DB_NODE_ID \
+      --statediff.db.password=$STATEDIFF_DB_PASSWORD \
+      --statediff.db.port=$STATEDIFF_DB_PORT \
+      --statediff.db.user=$STATEDIFF_DB_USER \
+      --statediff.waitforsync=true \
+      --statediff.writing=true"
+    fi
+
     geth \
       --bootnodes="${ENODE}" \
       --allow-insecure-unlock \
@@ -28,7 +41,7 @@ else
       --authrpc.addr="0.0.0.0" \
       --authrpc.vhosts="*" \
       --authrpc.jwtsecret="/opt/testnet/build/el/jwtsecret" \
-      --networkid=${NETWORK_ID} \
+      --networkid="${NETWORK_ID}" \
       --netrestrict="${NETRESTRICT}" \
       --gcmode archive \
       --txlookuplimit=0 \
@@ -36,5 +49,5 @@ else
       --syncmode=full \
       --mine \
       --miner.threads=1 \
-      --miner.etherbase=${ETHERBASE} 2>&1 | tee /var/log/geth.log
+      --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS} 2>&1 | tee /var/log/geth.log
 fi

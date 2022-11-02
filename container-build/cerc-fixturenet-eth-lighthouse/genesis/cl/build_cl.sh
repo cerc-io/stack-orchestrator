@@ -20,6 +20,7 @@ NOW=`date +%s`
 GENESIS_TIME=`expr $NOW + $GENESIS_DELAY`
 
 echo "Creating testnet ..."
+echo "(Note: errors of the form 'WARN: Scrypt parameters are too weak...' below can be safely ignored)"
 lcli \
   new-testnet \
   --spec $SPEC_PRESET \

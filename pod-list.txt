@@ -8,5 +8,6 @@ ipld-eth-server
 lighthouse
 prometheus-grafana
 laconicd
+fixturenet-laconicd
 fixturenet-eth
 test

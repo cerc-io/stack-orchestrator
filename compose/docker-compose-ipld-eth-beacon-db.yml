@@ -7,11 +7,11 @@ services:
       POSTGRES_USER: vdbm
       POSTGRES_DB: cerc_testing
       POSTGRES_PASSWORD: password
-    volumes:
-      - vdb_db_eth-beacon_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
     ports:
       - "127.0.0.1:8076:5432"
-    command: ["postgres", "-c", "log_statement=all"]
-
-volumes:
-  vdb_db_eth-beacon_db:

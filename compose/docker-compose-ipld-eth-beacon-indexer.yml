@@ -3,12 +3,10 @@ services:
   ipld-eth-beacon-indexer:
     restart: unless-stopped
     depends_on:
-      - ipld-eth-beacon-db
-      - lighthouse
+      ipld-eth-beacon-db:
+        condition: service_healthy
+      fixturenet-eth-lighthouse-1:
+        condition: service_healthy
     image: cerc/ipld-eth-beacon-indexer:local
-    volumes:
-      - type: bind
-        source: ${eth_beacon_config_file}
-        target: /root/ipld-eth-beacon-config.json
-    environment:
-      CAPTURE_MODE: ${eth_beacon_capture_mode}
+    env_file:
+      - ../config/ipld-eth-beacon-indexer/indexer.env

@@ -32,8 +32,8 @@ else
             sleep 5
             result=`wget --no-check-certificate --quiet -O - --timeout=0 $LIGHTHOUSE_GENESIS_STATE_URL | jq -r '.data.genesis_time'`
             if [ ! -z "$result" ]; then
-              ./reset_genesis_time.sh $result
-              break;
+                ./reset_genesis_time.sh $result
+                break;
             fi
         done
     fi
@@ -44,8 +44,8 @@ else
             sleep 5
             result=`wget --no-check-certificate --quiet -O - --timeout=0 $ENR_URL`
             if [ ! -z "$result" ]; then
-              export ENR="$result"
-              break;
+                export ENR="$result"
+                break;
             fi
         done
     fi

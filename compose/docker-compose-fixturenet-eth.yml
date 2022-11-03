@@ -14,6 +14,12 @@ services:
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/fixturenet-eth-geth:local
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
     depends_on:
       - fixturenet-eth-bootnode-geth
     ports:
@@ -24,6 +30,12 @@ services:
     environment:
       CERC_RUN_STATEDIFF: "true"
       CERC_STATEDIFF_DB_NODE_ID: 2
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/fixturenet-eth-geth:local
@@ -39,6 +51,12 @@ services:
 
   fixturenet-eth-lighthouse-1:
     hostname: fixturenet-eth-lighthouse-1
+    healthcheck:
+      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8001/eth/v2/beacon/blocks/head"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     environment:
@@ -47,13 +65,21 @@ services:
       EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-1:8551"
     image: cerc/fixturenet-eth-lighthouse:local
     depends_on:
-      - fixturenet-eth-bootnode-lighthouse
-      - fixturenet-eth-geth-1
+      fixturenet-eth-bootnode-lighthouse:
+        condition: service_started
+      fixturenet-eth-geth-1:
+        condition: service_healthy
     ports:
       - "8001"
   
   fixturenet-eth-lighthouse-2:
     hostname: fixturenet-eth-lighthouse-2
+    healthcheck:
+      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8001/eth/v2/beacon/blocks/head"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     environment:
@@ -63,5 +89,7 @@ services:
       LIGHTHOUSE_GENESIS_STATE_URL: "http://fixturenet-eth-lighthouse-1:8001/eth/v2/debug/beacon/states/0"
     image: cerc/fixturenet-eth-lighthouse:local
     depends_on:
-      - fixturenet-eth-bootnode-lighthouse
-      - fixturenet-eth-geth-2
+      fixturenet-eth-bootnode-lighthouse:
+        condition: service_started
+      fixturenet-eth-geth-2:
+        condition: service_healthy

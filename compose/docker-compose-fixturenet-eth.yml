@@ -52,11 +52,11 @@ services:
   fixturenet-eth-lighthouse-1:
     hostname: fixturenet-eth-lighthouse-1
     healthcheck:
-      test: ["CMD", "/opt/testnet/cl/ready.sh"]
+      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8001/eth/v2/beacon/blocks/head"]
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 300s
+      start_period: 30s
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     environment:
@@ -75,11 +75,11 @@ services:
   fixturenet-eth-lighthouse-2:
     hostname: fixturenet-eth-lighthouse-2
     healthcheck:
-      test: ["CMD", "/opt/testnet/cl/ready.sh"]
+      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8001/eth/v2/beacon/blocks/head"]
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 300s
+      start_period: 30s
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     environment:

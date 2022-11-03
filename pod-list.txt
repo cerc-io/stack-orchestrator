@@ -2,7 +2,8 @@ contract
 db
 eth-statediff-fill-service
 go-ethereum-foundry
-ipld-eth-beacon
+ipld-eth-beacon-db
+ipld-eth-beacon-indexer
 ipld-eth-server
 lighthouse
 prometheus-grafana

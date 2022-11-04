@@ -12,6 +12,8 @@
 # restEndpoint: process.env.LACONICD_REST_ENDPOINT || 'http://localhost:1317',
 #     gqlEndpoint: process.env.LACONICD_GQL_ENDPOINT || 'http://localhost:9473/api'
 # Configure env vars for ports
+# export LACONICD_REST_ENDPOINT=http://localhost:64651
+# export LACONICD_GQL_ENDPOINT=http://localhost:64650/api
 # Start laconicd-test container in separate cluster?
 # Tell it to run tests
 # Grab results from log

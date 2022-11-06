@@ -9,3 +9,4 @@ vulcanize/ipld-eth-beacon-indexer
 vulcanize/ipld-eth-beacon-db
 cerc-io/laconicd
 cerc-io/laconic-cns-cli
+cerc-io/mobymask-watcher

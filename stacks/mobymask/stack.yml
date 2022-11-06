@@ -1,0 +1,7 @@
+name: mobymask-watcher
+repos:
+  - cerc-io/mobymask-watcher
+containers:
+  - cerc/watcher-mobymask
+pods:
+  - watcher-mobymask

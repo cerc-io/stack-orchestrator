@@ -27,8 +27,7 @@ services:
     depends_on:
       watcher-db:
         condition: service_healthy
-    build:
-      context: ../common/watcher-ts
+    image: cerc/watcher-mobymask:local
     command: ["sh", "-c", "yarn server"]
     volumes:
       - ../common/watcher-ts/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
@@ -49,8 +48,7 @@ services:
         condition: service_healthy
       watcher-db:
         condition: service_healthy
-    build:
-      context: ../common/watcher-ts
+    image: cerc/watcher-mobymask:local
     command: ["sh", "-c", "yarn job-runner"]
     volumes:
       - ../common/watcher-ts/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml

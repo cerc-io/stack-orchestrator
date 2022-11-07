@@ -1,6 +1,7 @@
 name: mobymask-watcher
 repos:
-  - cerc-io/mobymask-watcher
+  - cerc-io/watcher-ts/v0.2.13
+  - vulcanize/assemblyscript/ng-integrate-asyncify
 containers:
   - cerc/watcher-mobymask
 pods:

@@ -15,7 +15,7 @@ services:
       DATABASE_PORT: 5432
 
   ipld-eth-db:
-    image: timescale/timescaledb:latest-pg14
+    image: timescale/timescaledb:2.8.1-pg14
     restart: always
     environment:
       POSTGRES_USER: "vdbm"

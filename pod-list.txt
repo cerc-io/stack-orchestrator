@@ -10,4 +10,5 @@ prometheus-grafana
 laconicd
 fixturenet-laconicd
 fixturenet-eth
+watcher-mobymask
 test

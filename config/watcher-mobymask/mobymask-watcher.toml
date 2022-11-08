@@ -1,0 +1,53 @@
+[server]
+  host = "0.0.0.0"
+  port = 3001
+  kind = "active"
+
+  # Checkpointing state.
+  checkpointing = true
+
+  # Checkpoint interval in number of blocks.
+  checkpointInterval = 2000
+
+  # IPFS API address (can be taken from the output on running the IPFS daemon).
+  # ipfsApiAddr = "/ip4/127.0.0.1/tcp/5001"
+
+  # Boolean to filter logs by contract.
+  filterLogs = true
+
+  # Max block range for which to return events in eventsInRange GQL query.
+  # Use -1 for skipping check on block range.
+  maxEventsBlockRange = -1
+
+[metrics]
+  host = "0.0.0.0"
+  port = 9000
+  [metrics.gql]
+    port = 9001
+
+[database]
+  type = "postgres"
+  host = "watcher-db"
+  port = 5432
+  database = "mobymask-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+
+[upstream]
+  [upstream.ethServer]
+    gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
+    rpcProviderEndpoint = "http://ipld-eth-server:8082"
+    blockDelayInMilliSecs = 60000
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@watcher-db/mobymask-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 100
+  eventsInBatch = 50

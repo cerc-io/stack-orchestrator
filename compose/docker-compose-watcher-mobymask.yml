@@ -1,5 +1,7 @@
 version: '3.2'
 
+# TODO: remove hard-wired host ports
+
 services:
 
   watcher-db:
@@ -11,7 +13,7 @@ services:
       - POSTGRES_EXTENSION=mobymask-watcher-job-queue:pgcrypto
       - POSTGRES_PASSWORD=password
     volumes:
-      - ../common/initdb.d/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
+      - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
       - watcher_db_data:/var/lib/postgresql/data
     ports:
       - "0.0.0.0:15432:5432"
@@ -30,7 +32,7 @@ services:
     image: cerc/watcher-mobymask:local
     command: ["sh", "-c", "yarn server"]
     volumes:
-      - ../common/watcher-ts/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"
@@ -51,7 +53,7 @@ services:
     image: cerc/watcher-mobymask:local
     command: ["sh", "-c", "yarn job-runner"]
     volumes:
-      - ../common/watcher-ts/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
     ports:
       - "0.0.0.0:9000:9000"
 

@@ -36,6 +36,8 @@ services:
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"
+    extra_hosts:
+      - "ipld-eth-server:host-gateway"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "3001"]
       interval: 20s
@@ -56,6 +58,8 @@ services:
       - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
     ports:
       - "0.0.0.0:9000:9000"
+    extra_hosts:
+      - "ipld-eth-server:host-gateway"
 
 volumes:
   indexer_db_data:

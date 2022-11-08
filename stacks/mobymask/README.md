@@ -1,12 +1,14 @@
 # Mobymask
 
-## Set up a Mobymask Watcher
+## Deploy the Mobymask Watcher
+The instructions below show how to deploy a mobymask watcher using laconic-stack-orchestrator (the installation of which is covered [here](https://github.com/cerc-io/stack-orchestrator#install)).
 
+This deployment expects that ipld-eth-server's endpoints are available on the local machine at http://ipld-eth-server.example.com:8083/graphql and http://ipld-eth-server.example.com:8082. More advanced configurations are supported by modifying the watcher's [config file](../../config/watcher-mobymask/mobymask-watcher.toml).
 ## Clone required repositories
 ```
 $ laconic-so setup-repositories
 ```
-Checkout required branches:
+Checkout required branches for the current release:
 ```
 $ cd ~/cerc/assemblyscript
 $ git checkout ng-integrate-asyncify
@@ -17,9 +19,18 @@ $ git checkout v0.2.13
 ```
 $ laconic-sh build-containers --include cerc/watcher-mobymask
 ```
+This should create a container with tag `cerc/watcher-mobymask` in the local image registry.
 ## Deploy the stack
+First the watcher database has to be initialized. Start only the watcher-db service:
 ```
 $ laconic-so deploy-system --include watcher-mobymask up watcher-db
+```
+Next find the container's id using `docker ps` then run the following command to initialize the database:
+```
 $ docker exec -i <watcher-db-container> psql -U vdbm mobymask-watcher < config/watcher-mobymask/mobymask-watcher-db.sql
+```
+Finally start the remaining containers:
+```
 $ laconic-sh deploy-system --include watcher-mobymask
 ```
+Correct operation should be verified by following the instructions [here](https://github.com/cerc-io/mobymask-watcher/tree/main/mainnet-watcher-only#run), checking GraphQL queries return valid results in the watcher's [playground](http://127.0.0.1:3001/graphql).

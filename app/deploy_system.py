@@ -27,9 +27,10 @@ from .util import include_exclude_check
 @click.option("--include", help="only start these components")
 @click.option("--exclude", help="don\'t start these components")
 @click.option("--cluster", help="specify a non-default cluster name")
-@click.argument('command')  # help: command: up|down|ps
+@click.argument('command', required=True)  # help: command: up|down|ps
+@click.argument('services', nargs=-1)  # help: command: up|down|ps <service1> <service2>
 @click.pass_context
-def command(ctx, include, exclude, cluster, command):
+def command(ctx, include, exclude, cluster, command, services):
     '''deploy a stack'''
 
     # TODO: implement option exclusion and command value constraint lost with the move from argparse to click
@@ -70,11 +71,13 @@ def command(ctx, include, exclude, cluster, command):
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
     docker = DockerClient(compose_files=compose_files, compose_project_name=cluster)
 
+    services_list = list(services) or None 
+ 
     if not dry_run:
         if command == "up":
             if verbose:
-                print("Running compose up")
-            docker.compose.up(detach=True)
+                print(f"Running compose up for services: {services_list}")
+            docker.compose.up(detach=True, services=services_list)
         elif command == "down":
             if verbose:
                 print("Running compose down")

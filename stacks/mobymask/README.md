@@ -31,6 +31,6 @@ $ docker exec -i <watcher-db-container> psql -U vdbm mobymask-watcher < config/w
 ```
 Finally start the remaining containers:
 ```
-$ laconic-sh deploy-system --include watcher-mobymask
+$ laconic-so deploy-system --include watcher-mobymask
 ```
 Correct operation should be verified by following the instructions [here](https://github.com/cerc-io/mobymask-watcher/tree/main/mainnet-watcher-only#run), checking GraphQL queries return valid results in the watcher's [playground](http://127.0.0.1:3001/graphql).

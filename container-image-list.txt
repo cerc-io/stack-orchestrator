@@ -12,4 +12,5 @@ cerc/laconicd
 cerc/laconic-cns-cli
 cerc/fixturenet-eth-geth
 cerc/fixturenet-eth-lighthouse
+cerc/watcher-mobymask
 cerc/test-container

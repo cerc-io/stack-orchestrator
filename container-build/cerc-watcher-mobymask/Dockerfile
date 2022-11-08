@@ -9,15 +9,19 @@ COPY assemblyscript assemblyscript
 COPY watcher-ts watcher-ts
 
 # TODO: needs branch ng-integrate-asyncify
-# TODO: why are we mixing npm and yarn below?
+# We use a mixture of npm and yarn below because the upstream
+# project checked in an npm package-log.json file
 RUN echo "Building assemblyscript" && \
     cd assemblyscript && \
     npm install && npm run build && yarn link
 
 # TODO: needs branch v0.2.13
-RUN echo "Building watcher-ts" && \
+# The shenanigans below is due to yarn and lerna being a dumpster-fire
+RUN echo "Linking watcher-ts to local assemblyscript" && \
     cd watcher-ts/packages/graph-node && yarn remove @vulcanize/assemblyscript && \
-    yarn add https://github.com/vulcanize/assemblyscript.git#ng-integrate-asyncify && \
-    cd ../../../watcher-ts && yarn && yarn link "@vulcanize/assemblyscript" && yarn build
+    yarn add https://github.com/vulcanize/assemblyscript.git#ng-integrate-asyncify
+
+RUN echo "Building watcher-tst" && \
+    cd watcher-ts && yarn && yarn link "@vulcanize/assemblyscript" && yarn build
 
 WORKDIR /app/watcher-ts/packages/mobymask-watcher

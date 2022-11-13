@@ -92,6 +92,15 @@ def command(ctx, include, exclude, cluster, command, services):
                     print(f"id: {container.id}, name: {container.name}")
             else:
                 print("No containers running")
+        elif command == "exec":
+            # Check only one service was supplied
+            if services_list is None or len(services_list) > 1:
+                print("Usage: exec <service>")
+                sys.exit(1)
+            service = services_list[0]
+            if verbose:
+                print(f"Running compose exec for {service}")
+            docker.compose.execute(service, ["ls", "-l"])
         elif command == "logs":
             if verbose:
                 print("Running compose logs")

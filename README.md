@@ -4,7 +4,7 @@ Stack Orchestrator allows building and deployment of a Laconic stack on a single
 
 ## Setup
 ### User Mode
-Developer mode runs the orchestrator from a "binary" single-file release.
+User mode runs the orchestrator from a "binary" single-file release and does not require special Python environment setup. Use this mode unless you plan to make changes to the orchestrator source code.
 #### Prerequisites
 Stack Orchestrator is a Python3 CLI tool that runs on any OS with Python3 and Docker. Tested on: Ubuntu 20/22.
 

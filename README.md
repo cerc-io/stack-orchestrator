@@ -83,6 +83,7 @@ Use shiv to build a single file Python executable zip archive of laconic-so:
 1. Install [shiv](https://github.com/linkedin/shiv):
    ```
    $ (venv) pip install shiv
+   $ (venv) pip install wheel
    ```
 1. Run shiv to create a zipapp file:
    ```

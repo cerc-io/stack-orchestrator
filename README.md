@@ -3,28 +3,17 @@
 Stack Orchestrator allows building and deployment of a Laconic stack on a single machine with minimial prerequisites.
 
 ## Setup
-### Developer Mode
-Developer mode runs the orchestrator from a cloned git repository.
+### User Mode
+Developer mode runs the orchestrator from a "binary" single-file release.
 #### Prerequisites
 Stack Orchestrator is a Python3 CLI tool that runs on any OS with Python3 and Docker. Tested on: Ubuntu 20/22.
 
 Ensure that the following are already installed:
 
-1. Python3 (the version 3.8 available in Ubuntu 20/22 works)
+1. Python3 (the stock Python3 version available in Ubuntu 20 and 22 is suitable)
    ```
    $ python3 --version
    Python 3.8.10
-   ```
-1. Python venv package
-   This may or may not be already installed depending on the host OS and version. Check by running:
-   ```
-   $ python3 -m venv
-   usage: venv [-h] [--system-site-packages] [--symlinks | --copies] [--clear] [--upgrade] [--without-pip] [--prompt PROMPT] ENV_DIR [ENV_DIR ...]
-   venv: error: the following arguments are required: ENV_DIR
-   ```
-   If the venv package is missing you should see a message indicating how to install it, for example with:
-   ```
-   $ apt install python3.8-venv
    ```
 2. Docker (Install a current version from dockerco, don't use the version from any Linux distro)
    ```
@@ -40,6 +29,47 @@ Ensure that the following are already installed:
    
    # see https://docs.docker.com/compose/install/linux/#install-the-plugin-manually for further details
    # or to install for all users.
+   ```
+#### Install
+1. Download the latest release from this page, into a suitable directory (e.g. `~/bin`):
+   ```
+   $ cd ~/bin
+   $ curl https://github.com/cerc-io/stack-orchestrator/releases/download/v1.0.0-alpha/laconic-so
+   ```
+1. Ensure `laconic-so` is on the `PATH`
+1. Verify operation:
+   ```
+   $ ~/bin/laconic-so --help
+   Usage: python -m laconic-so [OPTIONS] COMMAND [ARGS]...
+
+     Laconic Stack Orchestrator
+
+   Options:
+     --quiet
+     --verbose
+     --dry-run
+     --local-stack
+     -h, --help     Show this message and exit.
+
+   Commands:
+     build-containers    build the set of containers required for a complete...
+     deploy-system       deploy a stack
+     setup-repositories  git clone the set of repositories required to build...
+   ```
+### Developer mode
+Suitable for developers either modifying or debugging the orchestrator Python code:
+#### Prerequisites
+In addition to the binary install prerequisites listed above, the following are required:
+1. Python venv package
+   This may or may not be already installed depending on the host OS and version. Check by running:
+   ```
+   $ python3 -m venv
+   usage: venv [-h] [--system-site-packages] [--symlinks | --copies] [--clear] [--upgrade] [--without-pip] [--prompt PROMPT] ENV_DIR [ENV_DIR ...]
+   venv: error: the following arguments are required: ENV_DIR
+   ```
+   If the venv package is missing you should see a message indicating how to install it, for example with:
+   ```
+   $ apt install python3.8-venv
    ```
 #### Install
 1. Clone this repository:
@@ -78,6 +108,7 @@ Ensure that the following are already installed:
     deploy-system       deploy a stack
     setup-repositories  git clone the set of repositories required to build...
    ```
+
 #### Build a zipapp (single file distributable script)
 Use shiv to build a single file Python executable zip archive of laconic-so:
 1. Install [shiv](https://github.com/linkedin/shiv):

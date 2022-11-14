@@ -15,6 +15,17 @@ Ensure that the following are already installed:
    $ python3 --version
    Python 3.8.10
    ```
+1. Python venv package
+   This may or may not be already installed depending on the host OS and version. Check by running:
+   ```
+   $ python3 -m venv
+   usage: venv [-h] [--system-site-packages] [--symlinks | --copies] [--clear] [--upgrade] [--without-pip] [--prompt PROMPT] ENV_DIR [ENV_DIR ...]
+   venv: error: the following arguments are required: ENV_DIR
+   ```
+   If the venv package is missing you should see a message indicating how to install it, for example with:
+   ```
+   $ apt install python3.8-venv
+   ```
 2. Docker (Install a current version from dockerco, don't use the version from any Linux distro)
    ```
    $ docker --version
@@ -34,14 +45,6 @@ Ensure that the following are already installed:
 1. Clone this repository:
    ```
    $ git clone (https://github.com/cerc-io/stack-orchestrator.git
-   ```
-2. Optional first time setup for empty dev root and fresh SO checkout:
-   ```
-   ./first_time_setup.sh
-   # e.g. /home/USER/workspace1/
-   # only contains the stack-orchestrator repo cloned in step 1.
-   # this will naively attempt to setup and activate the venv, shiv, generate a LOCAL standalone laconic-so
-   # and then setup-repositories in workspace1/
    ```
 4. Enter the project directory:
    ```

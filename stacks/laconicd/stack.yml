@@ -1,0 +1,11 @@
+version: "1.0"
+name: laconicd-fixturenet
+repos:
+  - cerc-io/laconicd
+  - cerc-io/laconic-sdk
+  - cerc-io/laconic-cns-cli
+containers:
+  - cerc/laconicd
+  - cerc/laconic-cns-cli
+pods:
+  - fixturenet-laconicd

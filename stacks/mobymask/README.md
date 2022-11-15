@@ -8,7 +8,7 @@ The instructions below show how to deploy a MobyMask watcher using laconic-stack
 This deployment expects that ipld-eth-server's endpoints are available on the local machine at http://ipld-eth-server.example.com:8083/graphql and http://ipld-eth-server.example.com:8082. More advanced configurations are supported by modifying the watcher's [config file](../../config/watcher-mobymask/mobymask-watcher.toml).
 ## Clone required repositories
 ```
-$ laconic-so setup-repositories
+$ laconic-so setup-repositories --include vulcanize/assemblyscript,cerc-io/watcher-ts
 ```
 Checkout required branches for the current release:
 ```

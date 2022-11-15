@@ -22,6 +22,7 @@ from decouple import config
 import git
 from tqdm import tqdm
 import click
+from .util import include_exclude_check
 
 
 class GitProgress(git.RemoteProgress):
@@ -49,11 +50,13 @@ def is_git_repo(path):
 
 
 @click.command()
+@click.option("--include", help="only clone these repositories")
+@click.option("--exclude", help="don\'t clone these repositories")
 @click.option('--check-only', is_flag=True, default=False)
 @click.option('--pull', is_flag=True, default=False)
 @click.option('--branches-file', help="checkout branches specified in this file")
 @click.pass_context
-def command(ctx, check_only, pull, branches_file):
+def command(ctx, include, exclude, check_only, pull, branches_file):
     '''git clone the set of repositories required to build the complete system from source'''
 
     quiet = ctx.obj.quiet
@@ -87,10 +90,18 @@ def command(ctx, check_only, pull, branches_file):
         os.makedirs(dev_root_path)
 
     with open("repository-list.txt") as repository_list_file:
-        repos = repository_list_file.read().splitlines()
+        all_repos = repository_list_file.read().splitlines()
 
     if verbose:
-        print(f'Repos: {repos}')
+        print(f'Repos: {all_repos}')
+
+    repos = []
+    for repo in all_repos:
+        if include_exclude_check(repo, include, exclude):
+            repos.append(repo)
+        else:
+            if not quiet:
+                print(f"Excluding: {repo}")
 
     def process_repo(repo):
         full_github_repo_path = f'git@github.com:{repo}'

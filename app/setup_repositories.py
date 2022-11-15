@@ -89,7 +89,7 @@ def command(ctx, include, exclude, check_only, pull, branches_file):
             print('Dev root directory doesn\'t exist, creating')
         os.makedirs(dev_root_path)
 
-    with open("repository-list.txt") as repository_list_file:
+    with open("data/repository-list.txt") as repository_list_file:
         all_repos = repository_list_file.read().splitlines()
 
     if verbose:

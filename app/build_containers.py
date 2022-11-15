@@ -55,7 +55,7 @@ def command(ctx, include, exclude):
     if not os.path.isdir(dev_root_path):
         print('Dev root directory doesn\'t exist, creating')
 
-    with open("container-image-list.txt") as container_list_file:
+    with open("data/container-image-list.txt") as container_list_file:
         containers = container_list_file.read().splitlines()
 
     if verbose:

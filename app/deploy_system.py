@@ -48,7 +48,7 @@ def command(ctx, include, exclude, cluster, command, services):
         if verbose:
             print(f"Using cluster name: {cluster}")
 
-    with open("pod-list.txt") as pod_list_file:
+    with open("data/pod-list.txt") as pod_list_file:
         pods = pod_list_file.read().splitlines()
 
     if verbose:

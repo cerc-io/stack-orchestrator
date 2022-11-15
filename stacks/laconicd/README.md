@@ -1,6 +1,6 @@
 # Laconicd Fixturenet
 
-Instructions for deploying a local Laconic blockchain "fixturenet" for development and testing purposes using laconic-stack-orchestrator (the installation of which is covered [here](https://github.com/cerc-io/stack-orchestrator#install)):
+Instructions for deploying a local Laconic blockchain "fixturenet" for development and testing purposes using laconic-stack-orchestrator (the installation of which is covered [here](https://github.com/cerc-io/stack-orchestrator#user-mode)):
 
 ## Clone required repositories
 ```

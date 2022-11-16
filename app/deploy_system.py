@@ -20,6 +20,7 @@ import os
 import sys
 from python_on_whales import DockerClient
 import click
+import pkg_resources
 from .util import include_exclude_check
 
 
@@ -48,11 +49,11 @@ def command(ctx, include, exclude, cluster, command, services):
         if verbose:
             print(f"Using cluster name: {cluster}")
 
-    with open("pod-list.txt") as pod_list_file:
-        pods = pod_list_file.read().splitlines()
+    with pkg_resources.resource_stream(__name__, "data/pod-list.txt") as pod_list_file:
+        pods = pod_list_file.read().decode().splitlines()
 
     if verbose:
-        print(f'Pods: {pods}')
+        print(f"Pods: {pods}")
 
     # Construct a docker compose command suitable for our purpose
 

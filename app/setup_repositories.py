@@ -22,6 +22,7 @@ from decouple import config
 import git
 from tqdm import tqdm
 import click
+import pkg_resources
 from .util import include_exclude_check
 
 
@@ -77,23 +78,23 @@ def command(ctx, include, exclude, check_only, pull, branches_file):
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
-        print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
+        print(f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}")
     else:
         dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
     if not quiet:
-        print(f'Dev Root is: {dev_root_path}')
+        print(f"Dev Root is: {dev_root_path}")
 
     if not os.path.isdir(dev_root_path):
         if not quiet:
             print('Dev root directory doesn\'t exist, creating')
         os.makedirs(dev_root_path)
 
-    with open("repository-list.txt") as repository_list_file:
-        all_repos = repository_list_file.read().splitlines()
+    with pkg_resources.resource_stream(__name__, "data/repository-list.txt") as repository_list_file: 
+        all_repos = repository_list_file.read().decode().splitlines()
 
     if verbose:
-        print(f'Repos: {all_repos}')
+        print(f"Repos: {all_repos}")
 
     repos = []
     for repo in all_repos:
@@ -104,23 +105,23 @@ def command(ctx, include, exclude, check_only, pull, branches_file):
                 print(f"Excluding: {repo}")
 
     def process_repo(repo):
-        full_github_repo_path = f'git@github.com:{repo}'
+        full_github_repo_path = f"git@github.com:{repo}"
         repoName = repo.split("/")[-1]
         full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
         is_present = os.path.isdir(full_filesystem_repo_path)
         if not quiet:
-            present_text = f'already exists active branch: {git.Repo(full_filesystem_repo_path).active_branch}' if is_present \
+            present_text = f"already exists active branch: {git.Repo(full_filesystem_repo_path).active_branch}" if is_present \
                 else 'Needs to be fetched'
-            print(f'Checking: {full_filesystem_repo_path}: {present_text}')
+            print(f"Checking: {full_filesystem_repo_path}: {present_text}")
         # Quick check that it's actually a repo
         if is_present:
             if not is_git_repo(full_filesystem_repo_path):
-                print(f'Error: {full_filesystem_repo_path} does not contain a valid git repository')
+                print(f"Error: {full_filesystem_repo_path} does not contain a valid git repository")
                 sys.exit(1)
             else:
                 if pull:
                     if verbose:
-                        print(f'Running git pull for {full_filesystem_repo_path}')
+                        print(f"Running git pull for {full_filesystem_repo_path}")
                     if not check_only:
                         git_repo = git.Repo(full_filesystem_repo_path)
                         origin = git_repo.remotes.origin

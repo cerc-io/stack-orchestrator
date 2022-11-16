@@ -25,6 +25,7 @@ import sys
 from decouple import config
 import subprocess
 import click
+import pkg_resources
 from .util import include_exclude_check
 
 # TODO: find a place for this
@@ -55,8 +56,8 @@ def command(ctx, include, exclude):
     if not os.path.isdir(dev_root_path):
         print('Dev root directory doesn\'t exist, creating')
 
-    with open("container-image-list.txt") as container_list_file:
-        containers = container_list_file.read().splitlines()
+    with pkg_resources.resource_stream(__name__, "data/container-image-list.txt") as container_list_file:
+        containers = container_list_file.read().decode().splitlines()
 
     if verbose:
         print(f'Containers: {containers}')

@@ -53,11 +53,12 @@ def is_git_repo(path):
 @click.command()
 @click.option("--include", help="only clone these repositories")
 @click.option("--exclude", help="don\'t clone these repositories")
+@click.option('--git-ssh', is_flag=True, default=False)
 @click.option('--check-only', is_flag=True, default=False)
 @click.option('--pull', is_flag=True, default=False)
 @click.option('--branches-file', help="checkout branches specified in this file")
 @click.pass_context
-def command(ctx, include, exclude, check_only, pull, branches_file):
+def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
     '''git clone the set of repositories required to build the complete system from source'''
 
     quiet = ctx.obj.quiet
@@ -105,7 +106,9 @@ def command(ctx, include, exclude, check_only, pull, branches_file):
                 print(f"Excluding: {repo}")
 
     def process_repo(repo):
-        full_github_repo_path = f"git@github.com:{repo}"
+        git_ssh_prefix = "git@github.com:"
+        git_http_prefix = "https://github.com/"
+        full_github_repo_path = f"{git_ssh_prefix if git_ssh else git_http_prefix}{repo}"
         repoName = repo.split("/")[-1]
         full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
         is_present = os.path.isdir(full_filesystem_repo_path)

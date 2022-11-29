@@ -14,6 +14,6 @@ This should create a container with tag `cerc/watcher-mobymask` in the local ima
 ## Deploy the stack
 First the watcher database has to be initialized. Start only the watcher-db service:
 ```
-$ laconic-so deploy-system --include fixturenet-laconicd
+$ laconic-so deploy-system --include fixturenet-laconicd up
 ```
 Correct operation should be verified by checking the laconicd container's log.

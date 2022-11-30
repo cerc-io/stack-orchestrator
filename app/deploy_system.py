@@ -63,7 +63,7 @@ def command(ctx, include, exclude, cluster, command, services):
             compose_file_name = os.path.join("compose", f"docker-compose-{pod}.yml")
             compose_files.append(compose_file_name)
         else:
-            if not quiet:
+            if verbose:
                 print(f"Excluding: {pod}")
 
     if verbose:

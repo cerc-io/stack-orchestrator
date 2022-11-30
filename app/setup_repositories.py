@@ -102,7 +102,7 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
         if include_exclude_check(repo, include, exclude):
             repos.append(repo)
         else:
-            if not quiet:
+            if verbose:
                 print(f"Excluding: {repo}")
 
     def process_repo(repo):

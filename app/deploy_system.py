@@ -72,7 +72,7 @@ def command(ctx, include, exclude, cluster, command, services):
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
     docker = DockerClient(compose_files=compose_files, compose_project_name=cluster)
 
-    services_list = list(services) or None 
+    services_list = list(services) or None
  
     if not dry_run:
         if command == "up":
@@ -83,14 +83,19 @@ def command(ctx, include, exclude, cluster, command, services):
             if verbose:
                 print("Running compose down")
             docker.compose.down()
-        elif command == "status":
+        elif command == "ps":
             if verbose:
                 print("Running compose ps")
             container_list = docker.compose.ps()
             if len(container_list) > 0:
                 print("Running containers:")
                 for container in container_list:
-                    print(f"id: {container.id}, name: {container.name}")
+                    print(f"id: {container.id}, name: {container.name}, ports: ", end="")
+                    ports = container.network_settings.ports
+                    for port_mapping in ports.keys():
+                        print(f"{ports[port_mapping][0]['HostIp']}:{ports[port_mapping][0]['HostPort']}->{port_mapping}", end=",")
+                    # TODO: fix the extra comma
+                    print()
             else:
                 print("No containers running")
         elif command == "logs":

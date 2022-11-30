@@ -10,9 +10,8 @@ $ laconic-so setup-repositories --include cerc-io/laconicd,cerc-io/laconic-sdk,c
 ```
 $ laconic-so build-containers --include cerc/laconicd
 ```
-This should create a container with tag `cerc/watcher-mobymask` in the local image registry.
+This should create a container with tag `cerc/laconicd` in the local image registry.
 ## Deploy the stack
-First the watcher database has to be initialized. Start only the watcher-db service:
 ```
 $ laconic-so deploy-system --include fixturenet-laconicd up
 ```

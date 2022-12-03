@@ -1,0 +1,58 @@
+version: '3.2'
+
+services:
+  eth-probe-db:
+    restart: always
+    image: timescale/timescaledb:latest-pg14
+    environment:
+      POSTGRES_USER: "probe"
+      POSTGRES_DB: "probe"
+      POSTGRES_PASSWORD: "probe"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    volumes:
+      - ../../eth_probe/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432
+  eth-probe-mq:
+    restart: always
+    image: cerc/eth_probe:local
+    environment:
+      MODE: "mq"
+      PROBE_DEV: "false"
+      PGPORT: 5432
+      PGPASSWORD: "probe"
+      DB_USER: "probe"
+      PROBE_DB_NAME: "probe"
+      PROBE_DB_LOCATION: "eth-probe-db"
+      MQ_HOST: "0.0.0.0"
+      MQ_PORT: 33333
+      DEBUG: "vulcanize:*,cerc:*"
+    healthcheck:
+      test: [ "CMD", "nc", "-v", "localhost", "33333" ]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    depends_on:
+      eth-probe-db:
+        condition: service_healthy
+  eth-probe-probe:
+    restart: always
+    image: cerc/eth_probe:local
+    environment:
+      MODE: "probe"
+      PROBE_DEV: "false"
+      MQ_HOST: "eth-probe-mq"
+      MQ_PORT: 33333
+      PROBE_ID: 0
+      GETHJSON_URL: "http://fixturenet-eth-bootnode-geth:9898/geth.json"
+      ENODE: "enode://foo@fixturenet-eth-geth-1:30303"
+      DEBUG: "vulcanize:*,cerc:*,-vulcanize:sniffer:dpt:error"
+    depends_on:
+      eth-probe-mq:
+        condition: service_healthy

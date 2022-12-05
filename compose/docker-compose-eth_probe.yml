@@ -20,7 +20,7 @@ services:
       - 5432
   eth-probe-mq:
     restart: always
-    image: cerc/eth_probe:local
+    image: cerc/eth-probe:local
     environment:
       MODE: "mq"
       PROBE_DEV: "false"
@@ -43,7 +43,7 @@ services:
         condition: service_healthy
   eth-probe-probe:
     restart: always
-    image: cerc/eth_probe:local
+    image: cerc/eth-probe:local
     environment:
       MODE: "probe"
       PROBE_DEV: "false"

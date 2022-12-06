@@ -15,7 +15,7 @@ services:
       retries: 15
       start_period: 10s
     volumes:
-      - ../../eth_probe/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../../eth-probe/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - 5432
   eth-probe-mq:

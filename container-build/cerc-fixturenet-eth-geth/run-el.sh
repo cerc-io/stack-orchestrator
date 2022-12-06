@@ -22,7 +22,7 @@ else
     
     echo -n "$JWT" > /opt/testnet/build/el/jwtsecret
 
-    if [ "$CERC_RUN_STATEDIFF" == "detect" ]; then
+    if [ "$CERC_RUN_STATEDIFF" == "detect" ] && [ -n "$CERC_STATEDIFF_DB_HOST" ]; then
       if [ -n "$(dig $CERC_STATEDIFF_DB_HOST +short)" ]; then
         echo "Statediff DB at $CERC_STATEDIFF_DB_HOST"
         CERC_RUN_STATEDIFF="true"

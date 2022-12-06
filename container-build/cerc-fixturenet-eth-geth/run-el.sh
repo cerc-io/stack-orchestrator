@@ -22,8 +22,33 @@ else
     
     echo -n "$JWT" > /opt/testnet/build/el/jwtsecret
 
+    if [ "$CERC_RUN_STATEDIFF" == "detect" ] && [ -n "$CERC_STATEDIFF_DB_HOST" ]; then
+      if [ -n "$(dig $CERC_STATEDIFF_DB_HOST +short)" ]; then
+        echo "Statediff DB at $CERC_STATEDIFF_DB_HOST"
+        CERC_RUN_STATEDIFF="true"
+      else
+        echo "No statediff DB available."
+        CERC_RUN_STATEDIFF="false"
+      fi
+    fi
+
     STATEDIFF_OPTS=""
     if [ "$CERC_RUN_STATEDIFF" == "true" ]; then
+      ready=0
+      while [ $ready -eq 0 ]; do
+        echo "Waiting for statediff DB..."
+        sleep 1
+        export PGPASSWORD="$CERC_STATEDIFF_DB_PASSWORD"
+        result=$(psql -h "$CERC_STATEDIFF_DB_HOST" \
+          -p "$CERC_STATEDIFF_DB_PORT" \
+          -U "$CERC_STATEDIFF_DB_USER" \
+          -d "$CERC_STATEDIFF_DB_NAME" \
+          -t -c 'select max(version_id) from goose_db_version;' 2>/dev/null | awk '{ print $1 }')
+        if [ -n "$result" ] && [ $result -ge $CERC_STATEDIFF_DB_GOOSE_MIN_VER ]; then
+          echo "DB ready..."
+          ready=1
+        fi
+      done
       STATEDIFF_OPTS="--statediff=true \
       --statediff.db.host=$CERC_STATEDIFF_DB_HOST \
       --statediff.db.name=$CERC_STATEDIFF_DB_NAME \

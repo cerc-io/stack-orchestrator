@@ -31,7 +31,7 @@ services:
   fixturenet-eth-geth-2:
     hostname: fixturenet-eth-geth-2
     environment:
-      CERC_RUN_STATEDIFF: "true"
+      CERC_RUN_STATEDIFF: "detect"
       CERC_STATEDIFF_DB_NODE_ID: 2
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
@@ -43,7 +43,6 @@ services:
       - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/fixturenet-eth-geth:local
     depends_on:
-      - migrations
       - fixturenet-eth-bootnode-geth
 
   fixturenet-eth-bootnode-lighthouse:

@@ -4,9 +4,14 @@ ETHERBASE=`cat /opt/testnet/build/el/accounts.csv | head -1 | cut -d',' -f2`
 NETWORK_ID=`cat /opt/testnet/el/el-config.yaml | grep 'chain_id' | awk '{ print $2 }'`
 NETRESTRICT=`ip addr | grep inet | grep -v '127.0' | awk '{print $2}'`
 
+HOME_DIR=`pwd`
+cd /opt/testnet/build/el
+python3 -m http.server 9898 &
+cd $HOME_DIR
+
 if [ "true" == "$RUN_BOOTNODE" ]; then 
     geth \
-      --nodekeyhex="b0ac22adcad37213c7c565810a50f1772291e7b0ce53fb73e7ec2a3c75bc13b5" \
+      --nodekeyhex="${BOOTNODE_KEY}" \
       --nodiscover \
       --ipcdisable \
       --networkid=${NETWORK_ID} \
@@ -49,5 +54,6 @@ else
       --syncmode=full \
       --mine \
       --miner.threads=1 \
+      --verbosity=5 \
       --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS} 2>&1 | tee /var/log/geth.log
 fi

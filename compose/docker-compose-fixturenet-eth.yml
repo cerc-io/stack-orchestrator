@@ -8,6 +8,9 @@ services:
     environment:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-geth:local
+    ports:
+      - "9898"
+      - "30303"
 
   fixturenet-eth-geth-1:
     hostname: fixturenet-eth-geth-1

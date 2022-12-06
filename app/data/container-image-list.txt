@@ -14,3 +14,4 @@ cerc/fixturenet-eth-geth
 cerc/fixturenet-eth-lighthouse
 cerc/watcher-mobymask
 cerc/test-container
+cerc/eth-probe

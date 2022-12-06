@@ -12,3 +12,4 @@ fixturenet-laconicd
 fixturenet-eth
 watcher-mobymask
 test
+eth-probe

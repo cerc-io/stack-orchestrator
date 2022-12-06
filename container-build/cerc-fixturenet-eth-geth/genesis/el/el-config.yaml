@@ -11,6 +11,17 @@ chain_id: 1212
 deposit_contract_address: "0x1212121212121212121212121212121212121212"
 genesis_timestamp: 0
 terminal_total_difficulty: 1000
+homestead_block: 1
+eip150_block: 1
+eip155_block: 1
+eip158_block: 1
+byzantium_block: 1
+constantinople_block: 1
+petersburg_block: 1
+istanbul_block: 1
+berlin_block: 1
+london_block: 1
+merge_fork_block: 1
 
 clique:
   enabled: false

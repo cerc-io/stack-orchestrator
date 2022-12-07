@@ -21,7 +21,6 @@
 # TODO: display the available list of containers; allow re-build of either all or specific containers
 
 import os
-import sys
 from decouple import config
 import subprocess
 import click
@@ -44,6 +43,9 @@ def command(ctx, include, exclude):
     dry_run = ctx.obj.dry_run
     local_stack = ctx.obj.local_stack
 
+    # TODO: check this still works in the shiv package scenario
+    container_build_dir = os.path.join(os.getcwd(), "container-build")
+
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
         print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
@@ -65,15 +67,25 @@ def command(ctx, include, exclude):
     def process_container(container):
         if not quiet:
             print(f"Building: {container}")
-        build_script_filename = os.path.join("container-build", container.replace("/", "-"), "build.sh")
+        build_dir = os.path.join(container_build_dir, container.replace("/", "-"))
+        build_script_filename = os.path.join(build_dir, "build.sh")
         if verbose:
-            print(f"Script: {build_script_filename}")
-        if not os.path.exists(build_script_filename):
-            print(f"Error, script: {build_script_filename} doesn't exist")
-            sys.exit(1)
+            print(f"Build script filename: {build_script_filename}")
+        if os.path.exists(build_script_filename):
+            build_command = build_script_filename
+        else:
+            if verbose:
+                print(f"No script file found: {build_script_filename}, using default build script")
+            repo_dir = container.split('/')[1]
+            # TODO: make this less of a hack -- should be specified in some metadata somewhere
+            # Check if we have a repo for this container. If not, set the context dir to the container-build subdir
+            repo_full_path = os.path.join(dev_root_path, repo_dir)
+            repo_dir_or_build_dir = repo_dir if os.path.exists(repo_full_path) else build_dir
+            build_command = os.path.join("container-build", "default-build.sh") + f" {container} {repo_dir_or_build_dir}"
         if not dry_run:
-            # We need to export CERC_REPO_BASE_DIR
-            build_result = subprocess.run(build_script_filename, shell=True, env={'CERC_REPO_BASE_DIR': dev_root_path})
+            if verbose:
+                print(f"Executing: {build_command}")
+            build_result = subprocess.run(build_command, shell=True, env={'CERC_REPO_BASE_DIR': dev_root_path})
             # TODO: check result in build_result.returncode
             print(f"Result is: {build_result}")
         else:

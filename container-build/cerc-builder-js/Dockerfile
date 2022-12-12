@@ -35,6 +35,10 @@ RUN \
 # [Optional] Uncomment if you want to install more global node modules
 # RUN su node -c "npm install -g <your-package-list-here>"
 
-COPY entrypoint.sh entrypoint.sh
+COPY build-npm-package.sh .
+
+COPY entrypoint.sh .
 ENTRYPOINT ["./entrypoint.sh"]
+# Placeholder CMD : generally this will be overridden at run time like :
+# docker run -it -v /home/builder/cerc/laconic-sdk:/workspace cerc/builder-js sh -c 'cd /workspace && yarn && yarn build'
 CMD node --version

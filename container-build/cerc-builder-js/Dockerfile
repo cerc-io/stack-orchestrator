@@ -36,4 +36,5 @@ RUN \
 # RUN su node -c "npm install -g <your-package-list-here>"
 
 COPY entrypoint.sh entrypoint.sh
-ENTRYPOINT ./entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]
+CMD node --version

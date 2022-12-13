@@ -6,5 +6,5 @@ RUN cd keycloak-api-key-demo && \
       git checkout 81d0a443c363cb55df2c90e3b13fc5a4710197ba && \
       mvn -f api-key-module package
 
-FROM quay.io/keycloak/keycloak:19.0.2
+FROM quay.io/keycloak/keycloak:20.0
 COPY --from=builder /build/keycloak-api-key-demo//api-key-module/target/deploy/*  /opt/keycloak/providers/

@@ -14,7 +14,7 @@ services:
     ports:
       - 5432
   keycloak:
-    image: cerc/keycloak:latest
+    image: cerc/keycloak:local
     env_file:
       - ../config/keycloak/keycloak.env
     environment:

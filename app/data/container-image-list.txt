@@ -16,3 +16,4 @@ cerc/watcher-mobymask
 cerc/test-container
 cerc/eth-probe
 cerc/builder-js
+cerc/keycloak

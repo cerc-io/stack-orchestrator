@@ -36,6 +36,7 @@ RUN \
 # RUN su node -c "npm install -g <your-package-list-here>"
 
 COPY build-npm-package.sh .
+COPY yarn-local-registry-fixup.sh .
 
 COPY entrypoint.sh .
 ENTRYPOINT ["./entrypoint.sh"]

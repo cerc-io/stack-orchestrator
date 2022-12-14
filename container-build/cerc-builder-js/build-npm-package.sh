@@ -1,7 +1,7 @@
 #!/bin/bash
 # Usage: build-npm-package.sh <registry-url> <publish-with-this-version>
 # Note: supply the registry auth token in NPM_AUTH_TOKEN
-if [ -n "$CERC_ENABLE_SCRIPT_DEBUG" ]; then
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
 if [[ $# -ne 2 ]]; then

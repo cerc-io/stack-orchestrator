@@ -13,3 +13,4 @@ fixturenet-eth
 watcher-mobymask
 test
 eth-probe
+keycloak

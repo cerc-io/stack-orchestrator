@@ -3,7 +3,7 @@ RUN apk add --update --no-cache git
 WORKDIR /build
 RUN git clone https://github.com/cerc-io/keycloak-api-key-demo.git && \
       cd keycloak-api-key-demo && \
-      git checkout 'd29c0894a8b79d8f9df2f030a2537807177cc283' && \
+      git checkout '69c1903a6f1bdecb654e9982708239c698e3d648' && \
       mvn -f api-key-module package
 
 FROM quay.io/keycloak/keycloak:20.0

@@ -13,4 +13,4 @@ cerc-io/laconic-registry-cli
 cerc-io/mobymask-watcher
 cerc-io/watcher-ts
 vulcanize/assemblyscript
-vulcanize/eth-probe
+cerc-io/eth-probe

@@ -3,7 +3,7 @@
 # Assumes package.json and yarn.lock are in the cwd
 # The purpose of this script is to take a project cloned from git
 # and "fixup" its yarn.lock file such that specified dependency
-# will be fetched from a repository other than the one used when
+# will be fetched from a registry other than the one used when
 # yarn.lock was generated. It updates all checksums using data
 # from the "new" registry (because due to embedded timestamps etc
 # the same source code re-built later will not have the same checksum).

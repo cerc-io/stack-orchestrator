@@ -43,18 +43,19 @@ Several other containers can used with the basic `fixturenet-eth`:
 * `ipld-eth-beacon-db` and `ipld-eth-beacon-indexer` (for indexing Beacon chain blocks)
 * `eth-probe` (captures eth1 tx gossip)
 * `keycloak` (nginx proxy with keycloak auth for API authentication)
+* `tx-spammer` (generates and sends automated transactions to the fixturenet)
 	
 It is not necessary to use them all at once, but a complete example follows:
 
 ```
 # Setup
-$ laconic-so setup-repositories --include cerc-io/go-ethereum,cerc-io/ipld-eth-db,cerc-io/ipld-eth-server,cerc-io/ipld-eth-beacon-db,cerc-io/ipld-eth-beacon-indexer,cerc-io/eth-probe
+$ laconic-so setup-repositories --include cerc-io/go-ethereum,cerc-io/ipld-eth-db,cerc-io/ipld-eth-server,cerc-io/ipld-eth-beacon-db,cerc-io/ipld-eth-beacon-indexer,cerc-io/eth-probe,cerc-io/tx-spammer
 
 # Build
-$ laconic-so build-containers --include cerc/go-ethereum,cerc/lighthouse,cerc/fixturenet-eth-geth,cerc/fixturenet-eth-lighthouse,cerc/ipld-eth-db,cerc/ipld-eth-server,cerc/ipld-eth-beacon-db,cerc/ipld-eth-beacon-indexer,cerc/eth-probe,cerc/keycloak
+$ laconic-so build-containers --include cerc/go-ethereum,cerc/lighthouse,cerc/fixturenet-eth-geth,cerc/fixturenet-eth-lighthouse,cerc/ipld-eth-db,cerc/ipld-eth-server,cerc/ipld-eth-beacon-db,cerc/ipld-eth-beacon-indexer,cerc/eth-probe,cerc/keycloak,cerc/tx-spammer
 
 # Deploy
-$ laconic-so deploy-system --include db,fixturenet-eth,ipld-eth-server,ipld-eth-beacon-db,ipld-eth-beacon-indexer,eth-probe,keycloak up
+$ laconic-so deploy-system --include db,fixturenet-eth,ipld-eth-server,ipld-eth-beacon-db,ipld-eth-beacon-indexer,eth-probe,keycloak,tx-spammer up
 
 # Status
 

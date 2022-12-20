@@ -14,3 +14,4 @@ cerc-io/mobymask-watcher
 cerc-io/watcher-ts
 vulcanize/assemblyscript
 cerc-io/eth-probe
+cerc-io/tx-spammer

@@ -13,10 +13,10 @@ $ laconic-so build-containers --include cerc/go-ethereum,cerc/lighthouse,cerc/fi
 ```
 This should create several container in the local image registry: 
 
-  * cerc/go-ethereum
-	* cerc/lighthouse
-	* cerc/fixturenet-eth-geth
-	* cerc/fixturenet-eth-lighthouse
+* cerc/go-ethereum
+* cerc/lighthouse
+* cerc/fixturenet-eth-geth
+* cerc/fixturenet-eth-lighthouse
 
 ## Deploy the stack
 ```
@@ -27,7 +27,7 @@ $ laconic-so deploy-system --include fixturenet-eth up
 
 ```
 $ container-build/cerc-fixturenet-eth-lighthouse/scripts/status.sh
-Waiting for geth to generate DAG ....................................................................................................................................................................................................... DONE!
+Waiting for geth to generate DAG ..................................................... DONE!
 Waiting for beacon phase0 .... DONE!
 Waiting for beacon altair .... DONE!
 Waiting for beacon bellatrix pre-merge .... DONE!
@@ -38,11 +38,11 @@ Waiting for beacon bellatrix merge .... DONE!
 
 Several other containers can used with the basic `fixturenet-eth`:
 
-  * `ipld-eth-db` (enables statediffing)
-	* `ipld-eth-server` (GQL and Ethereum API server, requires `ipld-eth-db`)
-	* `ipld-eth-beacon-db` and `ipld-eth-beacon-indexer` (for indexing Beacon chain blocks)
-	* `eth-probe` (captures eth1 tx gossip)
-	* `keycloak` (nginx proxy with keycloak auth for API authentication)
+* `ipld-eth-db` (enables statediffing)
+* `ipld-eth-server` (GQL and Ethereum API server, requires `ipld-eth-db`)
+* `ipld-eth-beacon-db` and `ipld-eth-beacon-indexer` (for indexing Beacon chain blocks)
+* `eth-probe` (captures eth1 tx gossip)
+* `keycloak` (nginx proxy with keycloak auth for API authentication)
 	
 It is not necessary to use them all, but a complete example follows:
 

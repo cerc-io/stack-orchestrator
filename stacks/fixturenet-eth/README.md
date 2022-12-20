@@ -34,7 +34,7 @@ Waiting for beacon bellatrix pre-merge .... DONE!
 Waiting for beacon bellatrix merge .... DONE!
 ```
 
-## Additonal pieces
+## Additional pieces
 
 Several other containers can used with the basic `fixturenet-eth`:
 

@@ -5,8 +5,8 @@ cerc-io/ipld-eth-server
 cerc-io/eth-statediff-service
 vulcanize/eth-statediff-fill-service
 vulcanize/ipld-eth-db-validator
-vulcanize/ipld-eth-beacon-indexer
-vulcanize/ipld-eth-beacon-db
+cerc-io/ipld-eth-beacon-indexer
+cerc-io/ipld-eth-beacon-db
 cerc-io/laconicd
 cerc-io/laconic-sdk
 cerc-io/laconic-registry-cli

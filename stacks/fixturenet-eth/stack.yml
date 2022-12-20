@@ -1,0 +1,12 @@
+version: "1.0"
+name: fixturenet-eth
+repos:
+  - cerc-io/go-ethereum
+  - cerc-io/lighthouse
+containers:
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+pods:
+  - fixturenet-eth

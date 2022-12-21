@@ -13,6 +13,7 @@ cerc/laconic-cns-cli
 cerc/fixturenet-eth-geth
 cerc/fixturenet-eth-lighthouse
 cerc/watcher-mobymask
+cerc/watcher-erc20
 cerc/test-container
 cerc/eth-probe
 cerc/builder-js

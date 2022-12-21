@@ -32,6 +32,15 @@ Waiting for beacon phase0 .... DONE!
 Waiting for beacon altair .... DONE!
 Waiting for beacon bellatrix pre-merge .... DONE!
 Waiting for beacon bellatrix merge .... DONE!
+
+$ docker ps -f 'name=laconic' --format 'table {{.Names}}\t{{.Ports}}'  | cut -d'-' -f3- | sort
+NAMES                                                                           PORTS
+fixturenet-eth-bootnode-geth-1         8545-8546/tcp, 30303/udp, 0.0.0.0:55847->9898/tcp, 0.0.0.0:55848->30303/tcp
+fixturenet-eth-bootnode-lighthouse-1
+fixturenet-eth-geth-1-1                8546/tcp, 30303/tcp, 30303/udp, 0.0.0.0:55851->8545/tcp
+fixturenet-eth-geth-2-1                8545-8546/tcp, 30303/tcp, 30303/udp
+fixturenet-eth-lighthouse-1-1          0.0.0.0:55858->8001/tcp
+fixturenet-eth-lighthouse-2-1
 ```
 
 ## Additional pieces
@@ -66,23 +75,24 @@ Waiting for beacon altair.... DONE!
 Waiting for beacon bellatrix pre-merge.... DONE!
 Waiting for beacon bellatrix merge.... DONE!
 
-$ docker ps -f 'name=laconic' --format '{{.Names}}' | cut -d'-' -f3- | sort
-eth-probe-db-1
+$ docker ps -f 'name=laconic' --format 'table {{.Names}}\t{{.Ports}}'  | cut -d'-' -f3- | sort
+NAMES                                                                           PORTS
+eth-probe-db-1                         0.0.0.0:55849->5432/tcp
 eth-probe-mq-1
 eth-probe-probe-1
-fixturenet-eth-bootnode-geth-1
+fixturenet-eth-bootnode-geth-1         8545-8546/tcp, 30303/udp, 0.0.0.0:55847->9898/tcp, 0.0.0.0:55848->30303/tcp
 fixturenet-eth-bootnode-lighthouse-1
-fixturenet-eth-geth-1-1
-fixturenet-eth-geth-2-1
-fixturenet-eth-lighthouse-1-1
+fixturenet-eth-geth-1-1                8546/tcp, 30303/tcp, 30303/udp, 0.0.0.0:55851->8545/tcp
+fixturenet-eth-geth-2-1                8545-8546/tcp, 30303/tcp, 30303/udp
+fixturenet-eth-lighthouse-1-1          0.0.0.0:55858->8001/tcp
 fixturenet-eth-lighthouse-2-1
-ipld-eth-beacon-db-1
+ipld-eth-beacon-db-1                   127.0.0.1:8076->5432/tcp
 ipld-eth-beacon-indexer-1
-ipld-eth-db-1
-ipld-eth-server-1
-keycloak-1
-keycloak-db-1
-keycloak-nginx-1
+ipld-eth-db-1                          127.0.0.1:8077->5432/tcp
+ipld-eth-server-1                      127.0.0.1:8081-8082->8081-8082/tcp
+keycloak-1                             8443/tcp, 0.0.0.0:55857->8080/tcp
+keycloak-db-1                          0.0.0.0:55850->5432/tcp
+keycloak-nginx-1                       0.0.0.0:55859->80/tcp
 migrations-1
 tx-spammer-1
 ```

@@ -17,3 +17,4 @@ cerc/test-container
 cerc/eth-probe
 cerc/builder-js
 cerc/keycloak
+cerc/tx-spammer

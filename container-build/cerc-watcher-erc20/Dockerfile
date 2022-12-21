@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 RUN echo "Building watcher-ts" && \
-    git checkout v0.2.18 && \
+    git checkout v0.2.19 && \
     yarn && yarn build
 
 WORKDIR /app/packages/erc20-watcher

@@ -11,7 +11,7 @@ $ laconic-so setup-repositories --include cerc-io/go-ethereum
 ```
 $ laconic-so build-containers --include cerc/go-ethereum,cerc/lighthouse,cerc/fixturenet-eth-geth,cerc/fixturenet-eth-lighthouse
 ```
-This should create several container in the local image registry: 
+This should create several container images in the local image registry: 
 
 * cerc/go-ethereum
 * cerc/lighthouse

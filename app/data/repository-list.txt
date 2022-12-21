@@ -1,4 +1,3 @@
-vulcanize/ops
 cerc-io/ipld-eth-db
 cerc-io/go-ethereum
 cerc-io/ipld-eth-server

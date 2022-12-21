@@ -1,24 +1,28 @@
 # ERC20 Watcher
 
+Instructions to deploy a local ERC20 watcher stack (core + watcher) for demonstration and testing purposes using [laconic-stack-orchestrator](../../README.md#setup)
+
 ## Setup
 
-### Clone required repositories
+* Clone required repositories:
 
-```bash
-$ laconic-so setup-repositories --include cerc-io/go-ethereum,cerc-io/ipld-eth-db,cerc-io/ipld-eth-server,cerc-io/watcher-ts
-```
+  ```bash
+  $ laconic-so setup-repositories --include cerc-io/go-ethereum,cerc-io/ipld-eth-db,cerc-io/ipld-eth-server,cerc-io/watcher-ts
+  ```
 
-### Build the core and watcher containers
+* Build the core and watcher container images:
 
-```bash
-$ laconic-so build-containers --include cerc/go-ethereum,cerc/go-ethereum-foundry,cerc/ipld-eth-db,cerc/ipld-eth-server,cerc/watcher-erc20
-```
+  ```bash
+  $ laconic-so build-containers --include cerc/go-ethereum,cerc/go-ethereum-foundry,cerc/ipld-eth-db,cerc/ipld-eth-server,cerc/watcher-erc20
+  ```
 
-### Deploy the stack
+  This should create the required docker images in the local image registry.
 
-```bash
-$ laconic-so deploy-system --include db,go-ethereum-foundry,ipld-eth-server,watcher-erc20 up
-```
+* Deploy the stack:
+
+  ```bash
+  $ laconic-so deploy-system --include db,go-ethereum-foundry,ipld-eth-server,watcher-erc20 up
+  ```
 
 ## Demo
 
@@ -31,7 +35,7 @@ $ laconic-so deploy-system --include db,go-ethereum-foundry,ipld-eth-server,watc
 * Deploy an ERC20 token:
 
   ```bash
-  $ docker exec -it $CONTAINER_ID yarn token:deploy:docker
+  $ docker exec $CONTAINER_ID yarn token:deploy:docker
   ```
 
   Export the address of the deployed token to a shell variable for later use:
@@ -55,13 +59,13 @@ $ laconic-so deploy-system --include db,go-ethereum-foundry,ipld-eth-server,watc
 * To get the primary account's address, run:
 
   ```bash
-  $ docker exec -it $CONTAINER_ID yarn account:docker
+  $ docker exec $CONTAINER_ID yarn account:docker
   ```
 
 * To get the current block hash at any time, run:
 
   ```bash
-  $ docker exec -it $CONTAINER_ID yarn block:latest:docker
+  $ docker exec $CONTAINER_ID yarn block:latest:docker
   ```
 
 * Fire a GQL query in the playground to get the name, symbol and total supply of the deployed token:
@@ -134,7 +138,7 @@ $ laconic-so deploy-system --include db,go-ethereum-foundry,ipld-eth-server,watc
 * Transfer tokens to the recipient account:
 
   ```bash
-  $ docker exec -it $CONTAINER_ID yarn token:transfer:docker --token $TOKEN_ADDRESS --to $RECIPIENT_ADDRESS --amount 100
+  $ docker exec $CONTAINER_ID yarn token:transfer:docker --token $TOKEN_ADDRESS --to $RECIPIENT_ADDRESS --amount 100
   ```
 
 * Fire the above GQL query again with the latest block hash to get updated balances for the primary (`from`) and the recipient (`to`) account:

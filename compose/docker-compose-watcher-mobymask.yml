@@ -32,7 +32,7 @@ services:
     image: cerc/watcher-mobymask:local
     command: ["sh", "-c", "yarn server"]
     volumes:
-      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/watcher-ts/packages/mobymask-watcher/environments/local.toml
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"
@@ -55,13 +55,11 @@ services:
     image: cerc/watcher-mobymask:local
     command: ["sh", "-c", "yarn job-runner"]
     volumes:
-      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/watcher-ts/packages/mobymask-watcher/environments/local.toml
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
     ports:
       - "0.0.0.0:9000:9000"
     extra_hosts:
       - "ipld-eth-server:host-gateway"
 
 volumes:
-  indexer_db_data:
   watcher_db_data:
-  

@@ -37,7 +37,7 @@ services:
       - ../config/watcher-erc721/erc721-watcher.toml:/app/packages/erc721-watcher/environments/local.toml
     ports:
       - "0.0.0.0:3009:3009"
-      - "0.0.0.0:9001:9001"
+      - "0.0.0.0:9003:9001"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "3009"]
       interval: 20s

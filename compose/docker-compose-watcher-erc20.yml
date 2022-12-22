@@ -36,10 +36,10 @@ services:
     volumes:
       - ../config/watcher-erc20/erc20-watcher.toml:/app/packages/erc20-watcher/environments/local.toml
     ports:
-      - "0.0.0.0:3001:3001"
-      - "0.0.0.0:9001:9001"
+      - "0.0.0.0:3002:3001"
+      - "0.0.0.0:9002:9001"
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "3001"]
+      test: ["CMD", "nc", "-v", "localhost", "3002"]
       interval: 20s
       timeout: 5s
       retries: 15

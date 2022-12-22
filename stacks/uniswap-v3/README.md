@@ -53,10 +53,10 @@ Instructions to deploy Uniswap v3 watcher stack (watcher + uniswap-v3-info front
 
     ```bash
     # uni-watcher database
-    $ docker exec $CONTAINER_ID psql -U vdbm uni-watcher < UNI_WATCHER_DB_DUMP_FILE_PATH.sql
+    $ docker exec -i $CONTAINER_ID psql -U vdbm uni-watcher < UNI_WATCHER_DB_DUMP_FILE_PATH.sql
 
     # uni-info-watcher database
-    $ docker exec $CONTAINER_ID psql -U vdbm uni-info-watcher < UNI_INFO_WATCHER_DB_DUMP_FILE_PATH.sql
+    $ docker exec -i $CONTAINER_ID psql -U vdbm uni-info-watcher < UNI_INFO_WATCHER_DB_DUMP_FILE_PATH.sql
     ```
 
 * Start all the watcher and info app services:

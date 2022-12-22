@@ -16,13 +16,13 @@ $ laconic-so build-containers --include cerc/watcher-mobymask
 ```
 This should create a container with tag `cerc/watcher-mobymask` in the local image registry.
 ## Deploy the stack
-First the watcher database has to be initialized. Start only the watcher-db service:
+First the watcher database has to be initialized. Start only the mobymask-watcher-db service:
 ```
-$ laconic-so deploy-system --include watcher-mobymask up watcher-db
+$ laconic-so deploy-system --include watcher-mobymask up mobymask-watcher-db
 ```
 Next find the container's id using `docker ps` then run the following command to initialize the database:
 ```
-$ docker exec -i <watcher-db-container> psql -U vdbm mobymask-watcher < config/watcher-mobymask/mobymask-watcher-db.sql
+$ docker exec -i <mobymask-watcher-db-container> psql -U vdbm mobymask-watcher < config/watcher-mobymask/mobymask-watcher-db.sql
 ```
 Finally start the remaining containers:
 ```

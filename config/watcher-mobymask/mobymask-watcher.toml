@@ -27,7 +27,7 @@
 
 [database]
   type = "postgres"
-  host = "watcher-db"
+  host = "mobymask-watcher-db"
   port = 5432
   database = "mobymask-watcher"
   username = "vdbm"
@@ -37,8 +37,8 @@
 
 [upstream]
   [upstream.ethServer]
-    gqlApiEndpoint = "http://ipld-eth-server:8082/graphql"
-    rpcProviderEndpoint = "http://ipld-eth-server:8081"
+    gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
+    rpcProviderEndpoint = "http://ipld-eth-server:8082"
     blockDelayInMilliSecs = 60000
 
   [upstream.cache]
@@ -47,7 +47,7 @@
     deleteOnStart = false
 
 [jobQueue]
-  dbConnectionString = "postgres://vdbm:password@watcher-db/mobymask-watcher-job-queue"
+  dbConnectionString = "postgres://vdbm:password@mobymask-watcher-db/mobymask-watcher-job-queue"
   maxCompletionLagInSecs = 300
   jobDelayInMilliSecs = 100
   eventsInBatch = 50

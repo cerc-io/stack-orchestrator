@@ -15,6 +15,8 @@ cerc/fixturenet-eth-lighthouse
 cerc/watcher-mobymask
 cerc/watcher-erc20
 cerc/watcher-erc721
+cerc/watcher-uniswap-v3
+cerc/uniswap-v3-info
 cerc/test-container
 cerc/eth-probe
 cerc/builder-js

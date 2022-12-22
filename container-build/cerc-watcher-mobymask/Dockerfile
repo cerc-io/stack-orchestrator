@@ -5,23 +5,10 @@ RUN apk --update --no-cache add git python3 alpine-sdk
 
 WORKDIR /app
 
-COPY assemblyscript assemblyscript
-COPY watcher-ts watcher-ts
+COPY . .
 
-# TODO: needs branch ng-integrate-asyncify
-# We use a mixture of npm and yarn below because the upstream
-# project checked in an npm package-log.json file
-RUN echo "Building assemblyscript" && \
-    cd assemblyscript && \
-    npm install && npm run build && yarn link
+RUN echo "Building watcher-ts" && \
+    git checkout v0.2.19 && \
+    yarn && yarn build
 
-# TODO: needs branch v0.2.13
-# The shenanigans below is due to yarn and lerna being a dumpster-fire
-RUN echo "Linking watcher-ts to local assemblyscript" && \
-    cd watcher-ts/packages/graph-node && yarn remove @vulcanize/assemblyscript && \
-    yarn add https://github.com/vulcanize/assemblyscript.git#ng-integrate-asyncify
-
-RUN echo "Building watcher-tst" && \
-    cd watcher-ts && yarn && yarn link "@vulcanize/assemblyscript" && yarn build
-
-WORKDIR /app/watcher-ts/packages/mobymask-watcher
+WORKDIR /app/packages/mobymask-watcher

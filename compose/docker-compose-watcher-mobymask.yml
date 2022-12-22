@@ -4,7 +4,7 @@ version: '3.2'
 
 services:
 
-  watcher-db:
+  mobymask-watcher-db:
     restart: unless-stopped
     image: postgres:14-alpine
     environment:
@@ -14,7 +14,7 @@ services:
       - POSTGRES_PASSWORD=password
     volumes:
       - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
-      - watcher_db_data:/var/lib/postgresql/data
+      - mobymask_watcher_db_data:/var/lib/postgresql/data
     ports:
       - "0.0.0.0:15432:5432"
     healthcheck:
@@ -27,12 +27,12 @@ services:
   mobymask-watcher-server:
     restart: unless-stopped
     depends_on:
-      watcher-db:
+      mobymask-watcher-db:
         condition: service_healthy
     image: cerc/watcher-mobymask:local
     command: ["sh", "-c", "yarn server"]
     volumes:
-      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/watcher-ts/packages/mobymask-watcher/environments/local.toml
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"
@@ -50,18 +50,16 @@ services:
     depends_on:
       mobymask-watcher-server:
         condition: service_healthy
-      watcher-db:
+      mobymask-watcher-db:
         condition: service_healthy
     image: cerc/watcher-mobymask:local
     command: ["sh", "-c", "yarn job-runner"]
     volumes:
-      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/watcher-ts/packages/mobymask-watcher/environments/local.toml
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
     ports:
       - "0.0.0.0:9000:9000"
     extra_hosts:
       - "ipld-eth-server:host-gateway"
 
 volumes:
-  indexer_db_data:
-  watcher_db_data:
-  
+  mobymask_watcher_db_data:

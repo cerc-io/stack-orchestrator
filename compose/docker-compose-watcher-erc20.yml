@@ -2,7 +2,7 @@ version: '3.2'
 
 services:
 
-  watcher-db:
+  erc20-watcher-db:
     restart: unless-stopped
     image: postgres:14-alpine
     environment:
@@ -12,7 +12,7 @@ services:
       - POSTGRES_PASSWORD=password
     volumes:
       - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
-      - watcher_db_data:/var/lib/postgresql/data
+      - erc20_watcher_db_data:/var/lib/postgresql/data
     ports:
       - "0.0.0.0:15432:5432"
     healthcheck:
@@ -27,7 +27,7 @@ services:
     depends_on:
       ipld-eth-server:
         condition: service_healthy
-      watcher-db:
+      erc20-watcher-db:
         condition: service_healthy
     image: cerc/watcher-erc20:local
     environment:
@@ -46,4 +46,4 @@ services:
       start_period: 5s
 
 volumes:
-  watcher_db_data:
+  erc20_watcher_db_data:

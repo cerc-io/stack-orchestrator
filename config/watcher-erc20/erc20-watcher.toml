@@ -12,7 +12,7 @@
 
 [database]
   type = "postgres"
-  host = "watcher-db"
+  host = "erc20-watcher-db"
   port = 5432
   database = "erc20-watcher"
   username = "vdbm"
@@ -32,7 +32,7 @@
     deleteOnStart = false
 
 [jobQueue]
-  dbConnectionString = "postgres://vdbm:password@watcher-db:5432/erc20-watcher-job-queue"
+  dbConnectionString = "postgres://vdbm:password@erc20-watcher-db:5432/erc20-watcher-job-queue"
   maxCompletionLagInSecs = 300
   jobDelayInMilliSecs = 100
   eventsInBatch = 50

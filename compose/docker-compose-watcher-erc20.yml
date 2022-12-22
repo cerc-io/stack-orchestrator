@@ -14,7 +14,7 @@ services:
       - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
       - erc20_watcher_db_data:/var/lib/postgresql/data
     ports:
-      - "0.0.0.0:15432:5432"
+      - "0.0.0.0:15433:5432"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "5432"]
       interval: 20s

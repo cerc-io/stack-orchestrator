@@ -44,7 +44,7 @@ Instructions to deploy a local ERC20 watcher stack (core + watcher) for demonstr
   $ export TOKEN_ADDRESS=<TOKEN_ADDRESS>
   ```
 
-* Open `http://localhost:3001/graphql` (GraphQL Playground) in a browser window
+* Open `http://localhost:3002/graphql` (GraphQL Playground) in a browser window
 
 * Connect MetaMask to `http://localhost:8545` (with chain ID `99`)
 

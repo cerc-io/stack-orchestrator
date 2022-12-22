@@ -38,7 +38,7 @@ User mode runs the orchestrator from a "binary" single-file release and does not
 1. Download the latest release from [this page](https://github.com/cerc-io/stack-orchestrator/tags), into a suitable directory (e.g. `~/bin`):
    ```
    $ cd ~/bin
-   $ curl https://github.com/cerc-io/stack-orchestrator/releases/download/v1.0.3-alpha/laconic-so
+   $ curl -L https://github.com/cerc-io/stack-orchestrator/releases/download/v1.0.3-alpha/laconic-so
    ```
 1. Ensure `laconic-so` is on the `PATH`
 1. Verify operation:

@@ -33,15 +33,14 @@ Ensure that the following are already installed:
 
 User mode runs the orchestrator from a "binary" single-file release and does not require special Python environment setup. Use this mode unless you plan to make changes to the orchestrator source code.
 
-*NOTE: User Mode is currently broken, use "Developer mode" described below for now.*
-
 1. Download the latest release from [this page](https://github.com/cerc-io/stack-orchestrator/tags), into a suitable directory (e.g. `~/bin`):
    ```
    $ cd ~/bin
-   $ curl -L https://github.com/cerc-io/stack-orchestrator/releases/download/v1.0.3-alpha/laconic-so
+   $ curl -L -o laconic-so https://github.com/cerc-io/stack-orchestrator/releases/download/v1.0.3-alpha/laconic-so
+   $ chmod +x laconic-so
    ```
-1. Ensure `laconic-so` is on the `PATH`
-1. Verify operation:
+2. Ensure `laconic-so` is on the `PATH`
+3. Verify operation:
    ```
    $ ~/bin/laconic-so --help
    Usage: python -m laconic-so [OPTIONS] COMMAND [ARGS]...

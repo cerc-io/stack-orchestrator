@@ -3,9 +3,7 @@
 Stack Orchestrator allows building and deployment of a Laconic stack on a single machine with minimial prerequisites.
 
 ## Setup
-### User Mode
-User mode runs the orchestrator from a "binary" single-file release and does not require special Python environment setup. Use this mode unless you plan to make changes to the orchestrator source code.
-#### Prerequisites
+### Prerequisites
 Stack Orchestrator is a Python3 CLI tool that runs on any OS with Python3 and Docker. Tested on: Ubuntu 20/22.
 
 Ensure that the following are already installed:
@@ -30,11 +28,17 @@ Ensure that the following are already installed:
    # see https://docs.docker.com/compose/install/linux/#install-the-plugin-manually for further details
    # or to install for all users.
    ```
-#### Install
+
+### User Mode Install
+
+User mode runs the orchestrator from a "binary" single-file release and does not require special Python environment setup. Use this mode unless you plan to make changes to the orchestrator source code.
+
+*NOTE: User Mode is currently broken, use "Developer mode" described below for now.*
+
 1. Download the latest release from [this page](https://github.com/cerc-io/stack-orchestrator/tags), into a suitable directory (e.g. `~/bin`):
    ```
    $ cd ~/bin
-   $ curl https://github.com/cerc-io/stack-orchestrator/releases/download/v1.0.3-alpha/laconic-so
+   $ curl -L https://github.com/cerc-io/stack-orchestrator/releases/download/v1.0.3-alpha/laconic-so
    ```
 1. Ensure `laconic-so` is on the `PATH`
 1. Verify operation:
@@ -56,7 +60,7 @@ Ensure that the following are already installed:
      deploy-system       deploy a stack
      setup-repositories  git clone the set of repositories required to build...
    ```
-### Developer mode
+### Developer mode Install
 Suitable for developers either modifying or debugging the orchestrator Python code:
 #### Prerequisites
 In addition to the binary install prerequisites listed above, the following are required:

@@ -30,4 +30,9 @@ services:
     ports:
       - "127.0.0.1:8081:8081"
       - "127.0.0.1:8082:8082"
-
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "8081"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s

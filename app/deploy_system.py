@@ -73,7 +73,7 @@ def command(ctx, include, exclude, cluster, command, services):
     docker = DockerClient(compose_files=compose_files, compose_project_name=cluster)
 
     services_list = list(services) or None
- 
+
     if not dry_run:
         if command == "up":
             if verbose:

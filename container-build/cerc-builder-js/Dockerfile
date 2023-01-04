@@ -25,8 +25,8 @@ RUN \
     && npm cache clean --force > /dev/null 2>&1
 
 # [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends jq
 
 # [Optional] Uncomment if you want to install an additional version of node using nvm
 # ARG EXTRA_NODE_VERSION=10
@@ -35,7 +35,11 @@ RUN \
 # [Optional] Uncomment if you want to install more global node modules
 # RUN su node -c "npm install -g <your-package-list-here>"
 
-COPY build-npm-package.sh .
+RUN mkdir /scripts
+COPY build-npm-package.sh /scripts
+COPY yarn-local-registry-fixup.sh /scripts
+COPY build-npm-package-local-dependencies.sh /scripts
+ENV PATH="${PATH}:/scripts"
 
 COPY entrypoint.sh .
 ENTRYPOINT ["./entrypoint.sh"]

@@ -26,7 +26,7 @@ echo "Fixing up dependencies"
 for package in "${dependencies_from_scope[@]}"
 do
     echo "Fixing up package ${package}"
-    yarn-local-registry-fixup.sh $package
+    yarn-local-registry-fixup.sh $package ${local_npm_registry_url}
 done
 echo "Running build"
 build-npm-package.sh ${local_npm_registry_url} ${package_publish_version}

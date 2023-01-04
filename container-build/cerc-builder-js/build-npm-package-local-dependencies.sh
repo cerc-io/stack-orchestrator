@@ -1,5 +1,7 @@
 #!/bin/bash
 # Usage: build-npm-package-local-dependencies.sh <registry-url> <publish-with-this-version>
+# Runs build-npm-package.sh after first fixing up yarn.lock to use a local
+# npm registry for all packages in a spcific scope (currently @cerc-io)
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi

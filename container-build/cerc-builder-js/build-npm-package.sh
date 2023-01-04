@@ -14,6 +14,7 @@ if [[ -z "${NPM_AUTH_TOKEN}" ]]; then
 fi
 local_npm_registry_url=$1
 package_publish_version=$2
+npm config set @lirewine:registry ${local_npm_registry_url}
 npm config set @cerc-io:registry ${local_npm_registry_url}
 npm config set -- ${local_npm_registry_url}:_authToken ${NPM_AUTH_TOKEN}
 echo "Build and publish version ${package_publish_version}"

@@ -23,6 +23,7 @@ mapfile -t dependencies_from_scope < <(cat package.json | jq -r '.dependencies |
 echo "Fixing up dependencies"
 for package in "${dependencies_from_scope[@]}"
 do
+    echo "Fixing up package ${package}"
     yarn-local-registry-fixup.sh $package
 done
 echo "Running build"

@@ -92,9 +92,15 @@ def command(ctx, include, exclude, cluster, command, services):
                 for container in container_list:
                     print(f"id: {container.id}, name: {container.name}, ports: ", end="")
                     ports = container.network_settings.ports
+                    comma = ""
                     for port_mapping in ports.keys():
-                        print(f"{ports[port_mapping][0]['HostIp']}:{ports[port_mapping][0]['HostPort']}->{port_mapping}", end=",")
-                    # TODO: fix the extra comma
+                        mapping = ports[port_mapping]
+                        print(comma, end="")
+                        if mapping is None:
+                            print(f"{port_mapping}", end="")
+                        else:
+                            print(f"{mapping[0]['HostIp']}:{mapping[0]['HostPort']}->{port_mapping}", end="")
+                        comma = ", "
                     print()
             else:
                 print("No containers running")

@@ -70,7 +70,7 @@ def command(ctx, include, exclude):
                                       interactive=True,
                                       tty=True,
                                       user=f"{os.getuid()}:{os.getgid()}",
-                                      envs={"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"], "CERC_SCRIPT_DEBUG": "true"},
+                                      envs={"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]},
                                       add_hosts=[("host.docker.internal", "host-gateway")],
                                       volumes=[(repo_full_path, "/workspace")],
                                       command=build_command

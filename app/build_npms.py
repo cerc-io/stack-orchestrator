@@ -61,7 +61,7 @@ def command(ctx, include, exclude):
         repo_dir = package
         repo_full_path = os.path.join(dev_root_path, repo_dir)
         # TODO: make the npm registry url configurable.
-        build_command = ["sh", "-c", "cd /workspace && build-npm-package-local-dependencies.sh http://host.docker.internal:3000/api/packages/cerc-io/npm/ 1.0.16"]
+        build_command = ["sh", "-c", "cd /workspace && build-npm-package-local-dependencies.sh http://host.docker.internal:3000/api/packages/cerc-io/npm/"]
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")
@@ -70,7 +70,7 @@ def command(ctx, include, exclude):
                                       interactive=True,
                                       tty=True,
                                       user=f"{os.getuid()}:{os.getgid()}",
-                                      envs={"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]},
+                                      envs={"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"], "CERC_SCRIPT_DEBUG": "true"},
                                       add_hosts=[("host.docker.internal", "host-gateway")],
                                       volumes=[(repo_full_path, "/workspace")],
                                       command=build_command

@@ -5,7 +5,7 @@
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
-if [[ $# -ne 2 ]]; then
+if ! [[ $# -eq 1 || $# -eq 2 ]]; then
     echo "Illegal number of parameters" >&2
     exit 1
 fi

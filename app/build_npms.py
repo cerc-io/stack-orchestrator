@@ -20,7 +20,6 @@
 
 import os
 from decouple import config
-import subprocess
 import click
 import pkg_resources
 from python_on_whales import docker
@@ -56,20 +55,12 @@ def command(ctx, include, exclude):
     if verbose:
         print(f'Packages: {packages}')
 
-    # To build a package we need to run the cerc/build-js container with a bind mount from the project directory
-    # and use docker run to execute the build script inside that container
-    # docker.run("cerc/builder-js", ["ls", "/host"], volumes=[("<project-dir-here>", "/workspace")])
-    # sh -c 'cd /workspace && NPM_AUTH_TOKEN=6613572a28ebebaee20ccd90064251fa8c2b94f6 \
-    # build-npm-package.sh http://host.docker.internal:3000/api/packages/cerc-io/npm/ 1.0.0-beta.1'
-    # NPM_AUTH_TOKEN=6613572a28ebebaee20ccd90064251fa8c2b94f6
-    # Set uid/gid
-
     def build_package(package):
         if not quiet:
             print(f"Building: {package}")
         repo_dir = package
         repo_full_path = os.path.join(dev_root_path, repo_dir)
-        build_command = ["sh", "-c", "'cd /workspace && build-npm-package.sh http://host.docker.internal:3000/api/packages/cerc-io/npm/ 1.0.0-beta.1'"]
+        build_command = ["sh", "-c", "cd /workspace && build-npm-package.sh http://host.docker.internal:3000/api/packages/cerc-io/npm/ 1.0.15"]
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")
@@ -77,9 +68,12 @@ def command(ctx, include, exclude):
                                       remove=True,
                                       interactive=True,
                                       tty=True,
-                                      envs={"NPM_AUTH_TOKEN": "6613572a28ebebaee20ccd90064251fa8c2b94f6"},
+                                      user=f"{os.getuid()}:{os.getgid()}",
+                                      envs={"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]},
                                       add_hosts=[("host.docker.internal", "host-gateway")],
-                                      volumes=[(repo_full_path, "/workspace")])
+                                      volumes=[(repo_full_path, "/workspace")],
+                                      command=build_command
+                                      )
             # TODO: check result in build_result.returncode
             print(f"Result is: {build_result}")
         else:

@@ -60,7 +60,8 @@ def command(ctx, include, exclude):
             print(f"Building: {package}")
         repo_dir = package
         repo_full_path = os.path.join(dev_root_path, repo_dir)
-        build_command = ["sh", "-c", "cd /workspace && build-npm-package.sh http://host.docker.internal:3000/api/packages/cerc-io/npm/ 1.0.15"]
+        # TODO: make the npm registry url configurable.
+        build_command = ["sh", "-c", "cd /workspace && build-npm-package-local-dependencies.sh http://host.docker.internal:3000/api/packages/cerc-io/npm/ 1.0.16"]
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")

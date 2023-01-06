@@ -7,8 +7,8 @@ ARG USERNAME=node
 ARG NPM_GLOBAL=/usr/local/share/npm-global
 
 # This container pulls npm packages from a local registry configured via these env vars
-ARG CERC_LOCAL_NPM_URL
-ARG CERC_LOCAL_NPM_TOKEN
+ARG CERC_NPM_URL
+ARG CERC_NPM_AUTH_TOKEN
 
 # Add NPM global to PATH.
 ENV PATH=${NPM_GLOBAL}/bin:${PATH}
@@ -40,10 +40,10 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # RUN su node -c "npm install -g <your-package-list-here>"
 
 # Configure the local npm registry
-RUN npm config set @lirewine:registry ${CERC_LOCAL_NPM_URL} \
-    && npm config set @cerc-io:registry ${CERC_LOCAL_NPM_URL} \
-    && npm config set @lirewine:registry ${CERC_LOCAL_NPM_URL} \
-    && npm config set -- ${CERC_LOCAL_NPM_URL}:_authToken ${CERC_LOCAL_NPM_TOKEN}
+RUN npm config set @lirewine:registry ${CERC_NPM_URL} \
+    && npm config set @cerc-io:registry ${CERC_NPM_URL} \
+    && npm config set @lirewine:registry ${CERC_NPM_URL} \
+    && npm config set -- ${CERC_NPM_URL}:_authToken ${CERC_NPM_AUTH_TOKEN}
 
 # TODO: the image at this point could be made a base image for several different CLI images
 # that install different Node-based CLI commands

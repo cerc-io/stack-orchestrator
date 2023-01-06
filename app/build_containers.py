@@ -64,6 +64,12 @@ def command(ctx, include, exclude):
     if verbose:
         print(f'Containers: {containers}')
 
+    # TODO: make this configurable
+    container_build_env = {
+        "CERC_NPM_URL": "http://host.docker.internal:3000/api/packages/cerc-io/npm/",
+        "CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]
+    }
+
     def process_container(container):
         if not quiet:
             print(f"Building: {container}")

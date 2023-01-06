@@ -6,4 +6,4 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 docker build -t cerc/laconic-registry-cli:local -f ${SCRIPT_DIR}/Dockerfile \
   --add-host host.docker.internal:host-gateway \
-  --build-arg CERC_LOCAL_NPM_TOKEN --build-arg CERC_LOCAL_NPM_URL ${SCRIPT_DIR}
+  --build-arg CERC_NPM_AUTH_TOKEN --build-arg CERC_NPM_URL ${SCRIPT_DIR}

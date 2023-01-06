@@ -36,6 +36,7 @@ def command(ctx, include, exclude):
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
     local_stack = ctx.obj.local_stack
+    debug = ctx.obj.debug
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -57,7 +58,7 @@ def command(ctx, include, exclude):
 
     def build_package(package):
         if not quiet:
-            print(f"Building: {package}")
+            print(f"Building npm package: {package}")
         repo_dir = package
         repo_full_path = os.path.join(dev_root_path, repo_dir)
         # TODO: make the npm registry url configurable.
@@ -65,12 +66,13 @@ def command(ctx, include, exclude):
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")
+            envs = {"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
             build_result = docker.run("cerc/builder-js",
                                       remove=True,
                                       interactive=True,
                                       tty=True,
                                       user=f"{os.getuid()}:{os.getgid()}",
-                                      envs={"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]},
+                                      envs=envs,
                                       add_hosts=[("host.docker.internal", "host-gateway")],
                                       volumes=[(repo_full_path, "/workspace")],
                                       command=build_command

@@ -26,7 +26,8 @@ package_tarball=$(echo $yarn_info_output | jq -r .data.dist.tarball)
 # so we need to check if that has happened and fix the URL if so.
 if ! [[ "${package_tarball}" =~ ^${local_npm_registry_url}.* ]]; then
     # HACK: I've hard-wired the host names below. Replace with proper implementation
-    package_tarball=$( echo ${package_tarball} | sed -e 's/localhost/host.docker.internal/g' )
+    # TODO: remove the hack when proven no longer necessary
+    package_tarball=$( echo ${package_tarball} | sed -e 's/localhost/gitea.local/g' )
 fi
 package_integrity=$(echo $yarn_info_output | jq -r .data.dist.integrity)
 package_shasum=$(echo $yarn_info_output | jq -r .data.dist.shasum)

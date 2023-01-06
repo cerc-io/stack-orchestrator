@@ -66,8 +66,9 @@ def command(ctx, include, exclude):
 
     # TODO: make this configurable
     container_build_env = {
-        "CERC_NPM_URL": "http://host.docker.internal:3000/api/packages/cerc-io/npm/",
-        "CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]
+        "CERC_NPM_URL": "http://gitea.local:3000/api/packages/cerc-io/npm/",
+        "CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"],
+        "CERC_REPO_BASE_DIR": dev_root_path
     }
 
     def process_container(container):
@@ -91,7 +92,7 @@ def command(ctx, include, exclude):
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")
-            build_result = subprocess.run(build_command, shell=True, env={'CERC_REPO_BASE_DIR': dev_root_path})
+            build_result = subprocess.run(build_command, shell=True, env=container_build_env)
             # TODO: check result in build_result.returncode
             print(f"Result is: {build_result}")
         else:

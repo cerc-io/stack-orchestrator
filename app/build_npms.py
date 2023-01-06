@@ -62,7 +62,7 @@ def command(ctx, include, exclude):
         repo_dir = package
         repo_full_path = os.path.join(dev_root_path, repo_dir)
         # TODO: make the npm registry url configurable.
-        build_command = ["sh", "-c", "cd /workspace && build-npm-package-local-dependencies.sh http://host.docker.internal:3000/api/packages/cerc-io/npm/"]
+        build_command = ["sh", "-c", "cd /workspace && build-npm-package-local-dependencies.sh http://gitea.local:3000/api/packages/cerc-io/npm/"]
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")
@@ -73,7 +73,7 @@ def command(ctx, include, exclude):
                                       tty=True,
                                       user=f"{os.getuid()}:{os.getgid()}",
                                       envs=envs,
-                                      add_hosts=[("host.docker.internal", "host-gateway")],
+                                      add_hosts=[("gitea.local", "host-gateway")],
                                       volumes=[(repo_full_path, "/workspace")],
                                       command=build_command
                                       )

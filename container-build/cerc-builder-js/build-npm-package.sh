@@ -25,7 +25,7 @@ npm config set @cerc-io:registry ${local_npm_registry_url}
 npm config set -- ${local_npm_registry_url}:_authToken ${CERC_NPM_AUTH_TOKEN}
 # First check if the version of this package we're trying to build already exists in the registry
 package_exists=$( yarn info --json ${package_name}@${package_publish_version} | jq -r .data.dist.tarball )
-if [[ -n "$package_exists" ]]; then
+if [[ ! -z "$package_exists" && "$package_exists" != "null" ]]; then
     echo "${package_publish_version} of ${package_name} already exists in the registry, skipping build"
     exit 0
 fi

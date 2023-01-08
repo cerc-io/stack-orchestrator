@@ -21,7 +21,7 @@
 import os
 from decouple import config
 import click
-import pkg_resources
+import importlib
 from python_on_whales import docker
 from .util import include_exclude_check
 
@@ -50,8 +50,10 @@ def command(ctx, include, exclude):
     if not os.path.isdir(dev_root_path):
         print('Dev root directory doesn\'t exist, creating')
 
-    with pkg_resources.resource_stream(__name__, "data/npm-package-list.txt") as package_list_file:
-        packages = package_list_file.read().decode().splitlines()
+    # See: https://stackoverflow.com/a/20885799/1701505
+    from . import data
+    with importlib.resources.open_text(data, "npm-package-list.txt") as package_list_file:
+        packages = package_list_file.read().splitlines()
 
     if verbose:
         print(f'Packages: {packages}')

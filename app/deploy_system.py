@@ -20,7 +20,7 @@ import os
 import sys
 from python_on_whales import DockerClient
 import click
-import pkg_resources
+import importlib
 from .util import include_exclude_check
 
 
@@ -49,8 +49,10 @@ def command(ctx, include, exclude, cluster, command, services):
         if verbose:
             print(f"Using cluster name: {cluster}")
 
-    with pkg_resources.resource_stream(__name__, "data/pod-list.txt") as pod_list_file:
-        pods = pod_list_file.read().decode().splitlines()
+    # See: https://stackoverflow.com/a/20885799/1701505
+    from . import data
+    with importlib.resources.open_text(data, "pod-list.txt") as pod_list_file:
+        pods = pod_list_file.read().splitlines()
 
     if verbose:
         print(f"Pods: {pods}")

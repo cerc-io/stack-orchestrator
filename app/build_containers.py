@@ -43,8 +43,9 @@ def command(ctx, include, exclude):
     dry_run = ctx.obj.dry_run
     local_stack = ctx.obj.local_stack
 
-    # TODO: check this still works in the shiv package scenario
-    container_build_dir = os.path.join(os.getcwd(), "container-build")
+    # See: https://stackoverflow.com/a/20885799/1701505
+    from . import data
+    container_build_dir = importlib.resources.path(data, "container-build")
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -58,8 +59,6 @@ def command(ctx, include, exclude):
     if not os.path.isdir(dev_root_path):
         print('Dev root directory doesn\'t exist, creating')
 
-    # See: https://stackoverflow.com/a/20885799/1701505
-    from . import data
     with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
         containers = container_list_file.read().splitlines()
 
@@ -90,7 +89,7 @@ def command(ctx, include, exclude):
             # Check if we have a repo for this container. If not, set the context dir to the container-build subdir
             repo_full_path = os.path.join(dev_root_path, repo_dir)
             repo_dir_or_build_dir = repo_dir if os.path.exists(repo_full_path) else build_dir
-            build_command = os.path.join("container-build", "default-build.sh") + f" {container} {repo_dir_or_build_dir}"
+            build_command = os.path.join(container_build_dir, "default-build.sh") + f" {container} {repo_dir_or_build_dir}"
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")

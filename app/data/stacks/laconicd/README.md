@@ -4,7 +4,7 @@ Instructions for deploying a local Laconic blockchain "fixturenet" for developme
 
 ## Clone required repositories
 ```
-$ laconic-so setup-repositories --include cerc-io/laconicd,cerc-io/laconic-sdk,cerc-io/laconic-cns-cli
+$ laconic-so setup-repositories --include cerc-io/laconicd,cerc-io/laconic-sdk,cerc-io/laconic-registry-cli
 ```
 ## Build the laconicd container
 ```

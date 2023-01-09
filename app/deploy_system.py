@@ -40,9 +40,8 @@ def command(ctx, include, exclude, cluster, command, services):
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
 
-    # See: https://stackoverflow.com/a/20885799/1701505
-    from . import data
-    compose_dir = importlib.resources.path(data, "compose")
+    # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+    compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
 
     if cluster is None:
         # Create default unique, stable cluster name from confile file path
@@ -53,6 +52,7 @@ def command(ctx, include, exclude, cluster, command, services):
         if verbose:
             print(f"Using cluster name: {cluster}")
 
+    # See: https://stackoverflow.com/a/20885799/1701505
     from . import data
     with importlib.resources.open_text(data, "pod-list.txt") as pod_list_file:
         pods = pod_list_file.read().splitlines()

@@ -45,9 +45,7 @@ def command(ctx, include, exclude):
     local_stack = ctx.obj.local_stack
 
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-    from . import data
     container_build_dir = Path(__file__).absolute().parent.joinpath("data", "container-build")
-    print(f"dir is: {container_build_dir}")
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -62,6 +60,7 @@ def command(ctx, include, exclude):
         print('Dev root directory doesn\'t exist, creating')
 
     # See: https://stackoverflow.com/a/20885799/1701505
+    from . import data
     with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
         containers = container_list_file.read().splitlines()
 

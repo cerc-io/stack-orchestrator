@@ -3,9 +3,9 @@ name: laconicd-fixturenet
 repos:
   - cerc-io/laconicd
   - cerc-io/laconic-sdk
-  - cerc-io/laconic-cns-cli
+  - cerc-io/laconic-registry-cli
 containers:
   - cerc/laconicd
-  - cerc/laconic-cns-cli
+  - cerc/laconic-registry-cli
 pods:
   - fixturenet-laconicd

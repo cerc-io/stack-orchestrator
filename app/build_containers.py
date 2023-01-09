@@ -24,7 +24,8 @@ import os
 from decouple import config
 import subprocess
 import click
-import pkg_resources
+import importlib
+from pathlib import Path
 from .util import include_exclude_check
 
 # TODO: find a place for this
@@ -43,8 +44,8 @@ def command(ctx, include, exclude):
     dry_run = ctx.obj.dry_run
     local_stack = ctx.obj.local_stack
 
-    # TODO: check this still works in the shiv package scenario
-    container_build_dir = os.path.join(os.getcwd(), "container-build")
+    # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+    container_build_dir = Path(__file__).absolute().parent.joinpath("data", "container-build")
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -58,8 +59,10 @@ def command(ctx, include, exclude):
     if not os.path.isdir(dev_root_path):
         print('Dev root directory doesn\'t exist, creating')
 
-    with pkg_resources.resource_stream(__name__, "data/container-image-list.txt") as container_list_file:
-        containers = container_list_file.read().decode().splitlines()
+    # See: https://stackoverflow.com/a/20885799/1701505
+    from . import data
+    with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
+        containers = container_list_file.read().splitlines()
 
     if verbose:
         print(f'Containers: {containers}')
@@ -88,7 +91,7 @@ def command(ctx, include, exclude):
             # Check if we have a repo for this container. If not, set the context dir to the container-build subdir
             repo_full_path = os.path.join(dev_root_path, repo_dir)
             repo_dir_or_build_dir = repo_dir if os.path.exists(repo_full_path) else build_dir
-            build_command = os.path.join("container-build", "default-build.sh") + f" {container} {repo_dir_or_build_dir}"
+            build_command = os.path.join(container_build_dir, "default-build.sh") + f" {container} {repo_dir_or_build_dir}"
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")

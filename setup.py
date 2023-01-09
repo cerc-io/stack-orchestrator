@@ -19,7 +19,8 @@ setup(
     install_requires=[requirements],
     python_requires='>=3.7',
     include_package_data=True,
-    package_data={'': ['data/*.txt']},
+    # See: https://github.com/pypa/setuptools/issues/1806
+    package_data={'': ['data/*', 'data/*/*', 'data/*/*/*']},
     classifiers=[
         "Programming Language :: Python :: 3.8",
         "Operating System :: OS Independent",

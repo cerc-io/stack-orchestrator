@@ -22,7 +22,7 @@ from decouple import config
 import git
 from tqdm import tqdm
 import click
-import pkg_resources
+import importlib
 from .util import include_exclude_check
 
 
@@ -91,8 +91,10 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
             print('Dev root directory doesn\'t exist, creating')
         os.makedirs(dev_root_path)
 
-    with pkg_resources.resource_stream(__name__, "data/repository-list.txt") as repository_list_file: 
-        all_repos = repository_list_file.read().decode().splitlines()
+    # See: https://stackoverflow.com/a/20885799/1701505
+    from . import data
+    with importlib.resources.open_text(data, "repository-list.txt") as repository_list_file:
+        all_repos = repository_list_file.read().splitlines()
 
     if verbose:
         print(f"Repos: {all_repos}")

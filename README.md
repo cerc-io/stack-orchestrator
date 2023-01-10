@@ -1,218 +1,105 @@
 # Stack Orchestrator
 
-Stack Orchestrator allows building and deployment of a Laconic stack on a single machine with minimial prerequisites.
+Stack Orchestrator allows building and deployment of a Laconic Stack on a single machine with minimial prerequisites. It is a Python3 CLI tool that runs on any OS with Python3 and Docker. The following diagram summarizes the relevant repositories in the Laconic Stack - and the relationship to Stack Orchestrator.
 
-## Setup
-### Prerequisites
-Stack Orchestrator is a Python3 CLI tool that runs on any OS with Python3 and Docker. Tested on: Ubuntu 20/22.
+![The Stack](/docs/images/laconic-stack.png)
+
+## Install
 
 Ensure that the following are already installed:
 
-1. Python3 (the stock Python3 version available in Ubuntu 20 and 22 is suitable)
-   ```
-   $ python3 --version
-   Python 3.8.10
-   ```
-2. Docker (Install a current version from dockerco, don't use the version from any Linux distro)
-   ```
-   $ docker --version
-   Docker version 20.10.17, build 100c701
-   ```
-3. If installed from regular package repository (not Docker Desktop), BE AWARE that the compose plugin may need to be installed, as well.
-   ```
-   DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-   mkdir -p $DOCKER_CONFIG/cli-plugins
-   curl -SL https://github.com/docker/compose/releases/download/v2.11.2/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
-   chmod +x ~/.docker/cli-plugins/docker-compose
-   
-   # see https://docs.docker.com/compose/install/linux/#install-the-plugin-manually for further details
-   # or to install for all users.
-   ```
+- [Python3](https://wiki.python.org/moin/BeginnersGuide/Download)
+- [Docker](https://docs.docker.com/get-docker/) 
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
-### User Mode Install
+Note: if installing docker-compose via package manager (as opposed to Docker Desktop), you must [install the plugin](https://docs.docker.com/compose/install/linux/#install-the-plugin-manually), e.g., on Linux:
 
-User mode runs the orchestrator from a "binary" single-file release and does not require special Python environment setup. Use this mode unless you plan to make changes to the orchestrator source code.
+```bash
+mkdir -p ~/.docker/cli-plugins
+curl -SL https://github.com/docker/compose/releases/download/v2.11.2/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
+chmod +x ~/.docker/cli-plugins/docker-compose
+```
 
-*NOTE: User Mode is currently broken, use "Developer mode" described below for now.*
+Next, download the latest release from [this page](https://github.com/cerc-io/stack-orchestrator/tags), into a suitable directory (e.g. `~/bin`):
 
-1. Download the latest release from [this page](https://github.com/cerc-io/stack-orchestrator/tags), into a suitable directory (e.g. `~/bin`):
-   ```
-   $ cd ~/bin
-   $ curl -L https://github.com/cerc-io/stack-orchestrator/releases/download/v1.0.3-alpha/laconic-so
-   ```
-1. Ensure `laconic-so` is on the `PATH`
-1. Verify operation:
-   ```
-   $ ~/bin/laconic-so --help
-   Usage: python -m laconic-so [OPTIONS] COMMAND [ARGS]...
+```bash
+curl -L -o ~/bin/laconic-so https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so
+```
 
-     Laconic Stack Orchestrator
+Give it permissions:
+```bash
+chmod +x ~/bin/laconic-so
+```
 
-   Options:
-     --quiet
-     --verbose
-     --dry-run
-     --local-stack
-     -h, --help     Show this message and exit.
+Ensure `laconic-so` is on the [`PATH`](https://unix.stackexchange.com/a/26059)
 
-   Commands:
-     build-containers    build the set of containers required for a complete...
-     deploy-system       deploy a stack
-     setup-repositories  git clone the set of repositories required to build...
-   ```
-### Developer mode Install
-Suitable for developers either modifying or debugging the orchestrator Python code:
-#### Prerequisites
-In addition to the binary install prerequisites listed above, the following are required:
-1. Python venv package
-   This may or may not be already installed depending on the host OS and version. Check by running:
-   ```
-   $ python3 -m venv
-   usage: venv [-h] [--system-site-packages] [--symlinks | --copies] [--clear] [--upgrade] [--without-pip] [--prompt PROMPT] ENV_DIR [ENV_DIR ...]
-   venv: error: the following arguments are required: ENV_DIR
-   ```
-   If the venv package is missing you should see a message indicating how to install it, for example with:
-   ```
-   $ apt install python3.8-venv
-   ```
-#### Install
-1. Clone this repository:
-   ```
-   $ git clone (https://github.com/cerc-io/stack-orchestrator.git
-   ```
-4. Enter the project directory:
-   ```
-   $ cd stack-orchestrator
-   ```
-5. Create and activate a venv:
-   ```
-   $ python3 -m venv venv
-   $ source ./venv/bin/activate
-   (venv) $
-   ```
-6. Install the cli in edit mode:
-   ```
-   $ pip install --editable .
-   ```
-7. Verify installation:
-   ```
-   (venv) $ laconic-so
-   Usage: laconic-so [OPTIONS] COMMAND [ARGS]...
+Verify operation:
 
-    Laconic Stack Orchestrator
+```
+laconic-so --help
+Usage: python -m laconic-so [OPTIONS] COMMAND [ARGS]...
 
-   Options:
-    --quiet
-    --verbose
-    --dry-run
-    -h, --help  Show this message and exit.
+  Laconic Stack Orchestrator
 
-   Commands:
-    build-containers    build the set of containers required for a complete...
-    deploy-system       deploy a stack
-    setup-repositories  git clone the set of repositories required to build...
-   ```
+Options:
+  --quiet
+  --verbose
+  --dry-run
+  --local-stack
+  -h, --help     Show this message and exit.
 
-#### Build a zipapp (single file distributable script)
-Use shiv to build a single file Python executable zip archive of laconic-so:
-1. Install [shiv](https://github.com/linkedin/shiv):
-   ```
-   $ (venv) pip install shiv
-   $ (venv) pip install wheel
-   ```
-1. Run shiv to create a zipapp file:
-   ```
-   $ (venv)  shiv -c laconic-so -o laconic-so .
-   ```
-   This creates a file `./laconic-so` that is executable outside of any venv, and on other machines and OSes and architectures, and requiring only the system Python3:
-1. Verify it works:
-   ```
-   $ cp stack-orchetrator/laconic-so ~/bin
-   $ laconic-so
-      Usage: python -m laconic-so [OPTIONS] COMMAND [ARGS]...
-
-      Laconic Stack Orchestrator
-
-   Options:
-      --quiet
-      --verbose
-      --dry-run
-      -h, --help  Show this message and exit.
-
-   Commands:
-      build-containers    build the set of containers required for a complete...
-      deploy-system       deploy a stack
-      setup-repositories  git clone the set of repositories required to build...
-   ```
-### CI Mode
-_write-me_
+Commands:
+  build-containers    build the set of containers required for a complete...
+  build-npms          build the set of npm packages required for a...  
+  deploy-system       deploy a stack
+  setup-repositories  git clone the set of repositories required to build...
+```
 
 ## Usage
-There are three sub-commands: `setup-repositories`, `build-containers` and `deploy-system` that are generally run in order:
 
-Note: $ laconic-so will run the version installed to ~/bin, while ./laconic-so can be invoked to run locally built 
-version in a checkout
+Three sub-commands: `setup-repositories`, `build-containers` and `deploy-system` are generally run in order. The following is a slim example for standing up the `erc20-watcher`. Go further with the [erc20 watcher demo](/app/data/stacks/erc20) and other pieces of the stack, within the [`stacks` directory](/app/data/stacks).
+
 ### Setup Repositories
-Clones the set of git repositories necessary to build a system.
 
-Note: the use of `ssh-agent` is recommended in order to avoid entering your ssh key passphrase for each repository.
+Clone the set of git repositories necessary to build a system:
+
+```bash
+laconic-so --verbose setup-repositories --include cerc-io/go-ethereum,cerc-io/ipld-eth-db,cerc-io/ipld-eth-server,cerc-io/watcher-ts
 ```
-$ laconic-so --verbose setup-repositories #this will default to ~/cerc or CERC_REPO_BASE_DIR from an env file
-#$ ./laconic-so --verbose --local-stack setup-repositories #this will use cwd ../ as dev_root_path
-```
+
+This will default to `~/cerc` or - if set - the environment variable `CERC_REPO_BASE_DIR`
+
 ### Build Containers
-Builds the set of docker container images required to run a system. It takes around 10 minutes to build all the containers from cold.
-```
-$ laconic-so --verbose build-containers #this will default to ~/cerc or CERC_REPO_BASE_DIR from an env file
-#$ ./laconic-so --verbose --local-stack build-containers #this will use cwd ../ as dev_root_path
 
+Build the set of docker container images required to run a system. It takes around 10 minutes to build all the containers from scratch.
+
+```bash
+laconic-so --verbose build-containers --include cerc/go-ethereum,cerc/go-ethereum-foundry,cerc/ipld-eth-db,cerc/ipld-eth-server,cerc/watcher-erc20
 ```
+
 ### Deploy System
-Uses `docker compose` to deploy a system.
 
-Use `---include <list of components>` to deploy a subset of all containers:
+Uses `docker-compose` to deploy a system (with most recently built container images).
+
+```bash
+laconic-so --verbose deploy-system --include ipld-eth-db,go-ethereum-foundry,ipld-eth-server,watcher-erc20 up
 ```
-$ laconic-so --verbose deploy-system --include db-sharding,contract,ipld-eth-server,go-ethereum-foundry up
+
+Check out he GraphQL playground here: [http://localhost:3002/graphql](http://localhost:3002/graphql)
+
+See the [erc20 watcher demo](/app/data/stacks/erc20) to continue further.
+
+### Cleanup
+
+```bash
+laconic-so --verbose deploy-system --include ipld-eth-db,go-ethereum-foundry,ipld-eth-server,watcher-erc20 down
 ```
-```
-$ laconic-so --verbose deploy-system --include db-sharding,contract,ipld-eth-server,go-ethereum-foundry down
-```
-Note: deploy-system command interacts with most recently built container images.
+
+## Contributing
+
+See the [CONTRIBUTING.md](.github/CONTRIBUTING.md) for developer mode install.
 
 ## Platform Support
-Native aarm64 is _not_ currently supported. x64 emulation on ARM64 macos should work (not yet tested).
-## Implementation
-The orchestrator's operation is driven by files shown below. `repository-list.txt` container the list of git repositories; `container-image-list.txt` contains
-the list of container image names, while `clister-list.txt` specifies the set of compose components (corresponding to individual docker-compose-xxx.yml files which may in turn specify more than one container).
-Files required to build each container image are stored under `./container-build/<container-name>`
-Files required at deploy-time are stored under `./config/<component-name>`
-```
-├── pod-list.txt
-├── compose
-│   ├── docker-compose-contract.yml
-│   ├── docker-compose-db-sharding.yml
-│   ├── docker-compose-db.yml
-│   ├── docker-compose-eth-statediff-fill-service.yml
-│   ├── docker-compose-go-ethereum-foundry.yml
-│   ├── docker-compose-ipld-eth-beacon-db.yml
-│   ├── docker-compose-ipld-eth-beacon-indexer.yml
-│   ├── docker-compose-ipld-eth-server.yml
-│   ├── docker-compose-lighthouse.yml
-│   └── docker-compose-prometheus-grafana.yml
-├── config
-│   └── ipld-eth-server
-├── container-build
-│   ├── cerc-eth-statediff-fill-service
-│   ├── cerc-go-ethereum
-│   ├── cerc-go-ethereum-foundry
-│   ├── cerc-ipld-eth-beacon-db
-│   ├── cerc-ipld-eth-beacon-indexer
-│   ├── cerc-ipld-eth-db
-│   ├── cerc-ipld-eth-server
-│   ├── cerc-lighthouse
-│   └── cerc-test-contract
-├── container-image-list.txt
-├── repository-list.txt
-```
 
-_write-more-of-me_
+Native aarm64 is _not_ currently supported. x64 emulation on ARM64 macos should work (not yet tested).
+

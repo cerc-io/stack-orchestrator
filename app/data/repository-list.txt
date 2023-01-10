@@ -2,8 +2,8 @@ cerc-io/ipld-eth-db
 cerc-io/go-ethereum
 cerc-io/ipld-eth-server
 cerc-io/eth-statediff-service
-vulcanize/eth-statediff-fill-service
-vulcanize/ipld-eth-db-validator
+cerc-io/eth-statediff-fill-service
+cerc-io/ipld-eth-db-validator
 cerc-io/ipld-eth-beacon-indexer
 cerc-io/ipld-eth-beacon-db
 cerc-io/laconicd

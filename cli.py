@@ -19,6 +19,7 @@ from app import setup_repositories
 from app import build_containers
 from app import build_npms
 from app import deploy_system
+from app import version
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -49,3 +50,4 @@ cli.add_command(setup_repositories.command, "setup-repositories")
 cli.add_command(build_containers.command, "build-containers")
 cli.add_command(build_npms.command, "build-npms")
 cli.add_command(deploy_system.command, "deploy-system")
+cli.add_command(version.command, "version")

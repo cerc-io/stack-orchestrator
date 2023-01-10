@@ -1,5 +1,5 @@
 contract
-db
+ipld-eth-db
 eth-statediff-fill-service
 go-ethereum-foundry
 ipld-eth-beacon-db

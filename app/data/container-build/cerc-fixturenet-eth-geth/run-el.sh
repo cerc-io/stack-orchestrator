@@ -10,7 +10,7 @@ python3 -m http.server 9898 &
 cd $HOME_DIR
 
 START_CMD="geth"
-if [ "true" == "$REMOTE_DEBUG" ] && [ -x "/dlv" ]; then
+if [ "true" == "$CERC_REMOTE_DEBUG" ] && [ -x "/dlv" ]; then
     START_CMD="/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /usr/local/bin/geth --continue --"
 fi
 

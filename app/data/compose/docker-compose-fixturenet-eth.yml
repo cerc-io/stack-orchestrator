@@ -14,6 +14,12 @@ services:
 
   fixturenet-eth-geth-1:
     hostname: fixturenet-eth-geth-1
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      CERC_RUN_STATEDIFF: "detect"
+      CERC_STATEDIFF_DB_NODE_ID: 1
+      REMOTE_DEBUG: "true"
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/fixturenet-eth-geth:local
@@ -27,12 +33,10 @@ services:
       - fixturenet-eth-bootnode-geth
     ports:
       - "8545"
+      - "40000"
 
   fixturenet-eth-geth-2:
     hostname: fixturenet-eth-geth-2
-    environment:
-      CERC_RUN_STATEDIFF: "detect"
-      CERC_STATEDIFF_DB_NODE_ID: 2
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
       interval: 30s

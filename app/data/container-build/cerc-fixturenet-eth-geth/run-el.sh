@@ -9,13 +9,18 @@ cd /opt/testnet/build/el
 python3 -m http.server 9898 &
 cd $HOME_DIR
 
-if [ "true" == "$RUN_BOOTNODE" ]; then 
-    geth \
+START_CMD="geth"
+if [ "true" == "$REMOTE_DEBUG" ] && [ -x "/dlv" ]; then
+    START_CMD="/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /usr/local/bin/geth --continue --"
+fi
+
+if [ "true" == "$RUN_BOOTNODE" ]; then
+    $START_CMD \
       --nodekeyhex="${BOOTNODE_KEY}" \
       --nodiscover \
       --ipcdisable \
       --networkid=${NETWORK_ID} \
-      --netrestrict="${NETRESTRICT}"  2>&1 | tee /var/log/geth_bootnode.log
+      --netrestrict="${NETRESTRICT}"
 else
     cd /opt/testnet/accounts
     ./import_keys.sh
@@ -60,7 +65,7 @@ else
       --statediff.writing=true"
     fi
 
-    geth \
+    $START_CMD \
       --bootnodes="${ENODE}" \
       --allow-insecure-unlock \
       --http \
@@ -80,5 +85,5 @@ else
       --mine \
       --miner.threads=1 \
       --verbosity=5 \
-      --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS} 2>&1 | tee /var/log/geth.log
+      --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS}
 fi

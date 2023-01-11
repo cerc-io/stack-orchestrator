@@ -1,5 +1,6 @@
 FROM skylenet/ethereum-genesis-generator@sha256:210353ce7c898686bc5092f16c61220a76d357f51eff9c451e9ad1b9ad03d4d3 AS ethgen
 
+# Using the same golang image as used to build geth: https://github.com/cerc-io/go-ethereum/blob/HEAD/Dockerfile
 FROM golang:1.18-alpine as delve
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 

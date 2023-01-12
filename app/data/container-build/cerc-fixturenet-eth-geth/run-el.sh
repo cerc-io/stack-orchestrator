@@ -10,8 +10,8 @@ python3 -m http.server 9898 &
 cd $HOME_DIR
 
 START_CMD="geth"
-if [ "true" == "$CERC_REMOTE_DEBUG" ] && [ -x "/dlv" ]; then
-    START_CMD="/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /usr/local/bin/geth --continue --"
+if [ "true" == "$CERC_REMOTE_DEBUG" ] && [ -x "/usr/local/bin/dlv" ]; then
+    START_CMD="/usr/local/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /usr/local/bin/geth --continue --"
 fi
 
 if [ "true" == "$RUN_BOOTNODE" ]; then
@@ -71,7 +71,7 @@ else
       --http \
       --http.addr="0.0.0.0" \
       --http.vhosts="*" \
-      --http.api="eth,web3,net,admin,personal" \
+      --http.api="eth,web3,net,admin,personal,debug,statediff" \
       --http.corsdomain="*" \
       --authrpc.addr="0.0.0.0" \
       --authrpc.vhosts="*" \
@@ -84,6 +84,8 @@ else
       --syncmode=full \
       --mine \
       --miner.threads=1 \
-      --verbosity=5 \
+      --metrics \
+      --verbosity=${CERC_GETH_VERBOSITY:-3} \
+      --vmodule="${CERC_GETH_VMODULE:-statediff/*=6}" \
       --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS}
 fi

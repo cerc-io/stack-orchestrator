@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
-import importlib
+import importlib.resources
 
 @click.command()
 @click.pass_context

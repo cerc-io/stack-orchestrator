@@ -24,7 +24,7 @@ import os
 from decouple import config
 import subprocess
 import click
-import importlib
+import importlib.resources
 from pathlib import Path
 from .util import include_exclude_check
 

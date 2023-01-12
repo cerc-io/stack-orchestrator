@@ -22,7 +22,7 @@ from decouple import config
 import git
 from tqdm import tqdm
 import click
-import importlib
+import importlib.resources
 from .util import include_exclude_check
 
 

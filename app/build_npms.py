@@ -21,7 +21,7 @@
 import os
 from decouple import config
 import click
-import importlib
+import importlib.resources
 from python_on_whales import docker
 from .util import include_exclude_check
 

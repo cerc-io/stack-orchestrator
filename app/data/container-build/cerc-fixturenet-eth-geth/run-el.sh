@@ -61,6 +61,7 @@ else
       --statediff.db.password=$CERC_STATEDIFF_DB_PASSWORD \
       --statediff.db.port=$CERC_STATEDIFF_DB_PORT \
       --statediff.db.user=$CERC_STATEDIFF_DB_USER \
+      --statediff.db.logstatements=${CERC_STATEDIFF_DB_LOG_STATEMENTS:-false} \
       --statediff.waitforsync=true \
       --statediff.writing=true"
     fi
@@ -86,6 +87,6 @@ else
       --miner.threads=1 \
       --metrics \
       --verbosity=${CERC_GETH_VERBOSITY:-3} \
-      --vmodule="${CERC_GETH_VMODULE:-statediff/*=6}" \
+      --vmodule="${CERC_GETH_VMODULE:-statediff/*=5}" \
       --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS}
 fi

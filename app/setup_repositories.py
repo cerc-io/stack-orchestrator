@@ -23,6 +23,7 @@ import git
 from tqdm import tqdm
 import click
 import importlib.resources
+import yaml
 from .util import include_exclude_check
 
 
@@ -64,9 +65,11 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
+    stack = ctx.obj.stack
 
     branches = []
 
+    # TODO: branches file needs to be re-worked in the context of stacks
     if branches_file:
         if verbose:
             print(f"loading branches from: {branches_file}")
@@ -96,8 +99,16 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
     with importlib.resources.open_text(data, "repository-list.txt") as repository_list_file:
         all_repos = repository_list_file.read().splitlines()
 
+    if stack:
+        resource_data_dir = importlib.resources.files(data)
+        with importlib.resources.as_file(resource_data_dir.joinpath(f"stacks/{stack}/stack.yml")) as stack_file_path:
+            stack_config = yaml.safe_load(open(stack_file_path, "r"))
+            print(f"stack is: {stack_config}")
+
     if verbose:
         print(f"Repos: {all_repos}")
+        if stack:
+            print(f"Stack: {stack}")
 
     repos = []
     for repo in all_repos:

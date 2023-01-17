@@ -86,6 +86,7 @@ else
       --mine \
       --miner.threads=1 \
       --metrics \
+      --metrics.addr="0.0.0.0" \
       --verbosity=${CERC_GETH_VERBOSITY:-3} \
       --vmodule="${CERC_GETH_VMODULE:-statediff/*=5}" \
       --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS}

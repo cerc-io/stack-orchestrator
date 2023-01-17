@@ -20,7 +20,7 @@ setup(
     python_requires='>=3.7',
     include_package_data=True,
     # See: https://github.com/pypa/setuptools/issues/1806
-    package_data={'': ['data/*', 'data/*/*', 'data/*/*/*']},
+    package_data={'': ['data/*', 'data/*/*', 'data/*/*/*', 'data/*/*/*/*', 'data/*/*/*/*/*']},
     classifiers=[
         "Programming Language :: Python :: 3.8",
         "Operating System :: OS Independent",

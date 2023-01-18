@@ -22,6 +22,7 @@ from python_on_whales import DockerClient
 import click
 import importlib.resources
 from pathlib import Path
+import yaml
 from .util import include_exclude_check
 
 
@@ -40,6 +41,7 @@ def command(ctx, include, exclude, cluster, command, services):
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
+    stack = ctx.obj.stack
 
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
@@ -56,15 +58,27 @@ def command(ctx, include, exclude, cluster, command, services):
     # See: https://stackoverflow.com/a/20885799/1701505
     from . import data
     with importlib.resources.open_text(data, "pod-list.txt") as pod_list_file:
-        pods = pod_list_file.read().splitlines()
+        all_pods = pod_list_file.read().splitlines()
+
+    pods_in_scope = []
+    if stack:
+        # In order to be compatible with Python 3.8 we need to use this hack to get the path:
+        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+        stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
+        with stack_file_path:
+            stack_config = yaml.safe_load(open(stack_file_path, "r"))
+            # TODO: syntax check the input here
+            pods_in_scope = stack_config['pods']
+    else:
+        pods_in_scope = all_pods
 
     if verbose:
-        print(f"Pods: {pods}")
+        print(f"Pods: {pods_in_scope}")
 
     # Construct a docker compose command suitable for our purpose
 
     compose_files = []
-    for pod in pods:
+    for pod in pods_in_scope:
         if include_exclude_check(pod, include, exclude):
             compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod}.yml")
             compose_files.append(compose_file_name)

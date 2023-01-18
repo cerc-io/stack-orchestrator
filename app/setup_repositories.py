@@ -100,21 +100,25 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
     with importlib.resources.open_text(data, "repository-list.txt") as repository_list_file:
         all_repos = repository_list_file.read().splitlines()
 
+    repos_in_scope = []
     if stack:
         # In order to be compatible with Python 3.8 we need to use this hack to get the path:
         # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
         stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
         with stack_file_path:
             stack_config = yaml.safe_load(open(stack_file_path, "r"))
-            print(f"stack is: {stack_config}")
+            # TODO: syntax check the input here
+            repos_in_scope = stack_config['repos']
+    else:
+        repos_in_scope = all_repos
 
     if verbose:
-        print(f"Repos: {all_repos}")
+        print(f"Repos: {repos_in_scope}")
         if stack:
             print(f"Stack: {stack}")
 
     repos = []
-    for repo in all_repos:
+    for repo in repos_in_scope:
         if include_exclude_check(repo, include, exclude):
             repos.append(repo)
         else:

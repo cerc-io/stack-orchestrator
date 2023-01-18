@@ -26,6 +26,7 @@ import subprocess
 import click
 import importlib.resources
 from pathlib import Path
+import yaml
 from .util import include_exclude_check
 
 # TODO: find a place for this
@@ -43,6 +44,7 @@ def command(ctx, include, exclude):
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
     local_stack = ctx.obj.local_stack
+    stack = ctx.obj.stack
 
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     container_build_dir = Path(__file__).absolute().parent.joinpath("data", "container-build")
@@ -62,10 +64,24 @@ def command(ctx, include, exclude):
     # See: https://stackoverflow.com/a/20885799/1701505
     from . import data
     with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
-        containers = container_list_file.read().splitlines()
+        all_containers = container_list_file.read().splitlines()
+
+    containers_in_scope = []
+    if stack:
+        # In order to be compatible with Python 3.8 we need to use this hack to get the path:
+        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+        stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
+        with stack_file_path:
+            stack_config = yaml.safe_load(open(stack_file_path, "r"))
+            # TODO: syntax check the input here
+            containers_in_scope = stack_config['containers']
+    else:
+        containers_in_scope = all_containers
 
     if verbose:
-        print(f'Containers: {containers}')
+        print(f'Containers: {containers_in_scope}')
+        if stack:
+            print(f"Stack: {stack}")
 
     # TODO: make this configurable
     container_build_env = {
@@ -101,7 +117,7 @@ def command(ctx, include, exclude):
         else:
             print("Skipped")
 
-    for container in containers:
+    for container in containers_in_scope:
         if include_exclude_check(container, include, exclude):
             process_container(container)
         else:

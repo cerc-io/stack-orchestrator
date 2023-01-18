@@ -23,6 +23,7 @@ import git
 from tqdm import tqdm
 import click
 import importlib.resources
+from pathlib import Path
 import yaml
 from .util import include_exclude_check
 
@@ -100,8 +101,10 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
         all_repos = repository_list_file.read().splitlines()
 
     if stack:
-        resource_data_dir = importlib.resources.files(data)
-        with importlib.resources.as_file(resource_data_dir.joinpath(f"stacks/{stack}/stack.yml")) as stack_file_path:
+        # In order to be compatible with Python 3.8 we need to use this hack to get the path:
+        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+        stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
+        with stack_file_path:
             stack_config = yaml.safe_load(open(stack_file_path, "r"))
             print(f"stack is: {stack_config}")
 

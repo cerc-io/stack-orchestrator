@@ -1,5 +1,5 @@
 version: "1.0"
-name: laconicd-fixturenet
+name: fixturenet-laconicd
 repos:
   - cerc-io/laconicd
   - cerc-io/laconic-sdk

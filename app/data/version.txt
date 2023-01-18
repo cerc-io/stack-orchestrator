@@ -1,2 +1,2 @@
 # This file should be re-generated running: scripts/update-version-file.sh script
-v1.0.9-alpha-32b4c00
+v1.0.9-alpha-04a3049

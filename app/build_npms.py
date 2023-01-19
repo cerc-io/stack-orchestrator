@@ -19,6 +19,7 @@
 # CERC_REPO_BASE_DIR defaults to ~/cerc
 
 import os
+import sys
 from decouple import config
 import click
 import importlib.resources
@@ -40,6 +41,7 @@ def command(ctx, include, exclude):
     local_stack = ctx.obj.local_stack
     debug = ctx.obj.debug
     stack = ctx.obj.stack
+    continue_on_error = ctx.obj.continue_on_error
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -99,7 +101,13 @@ def command(ctx, include, exclude):
                 # the command output as a string, in reality it is always the empty string.
                 # Since we detect errors via catching exceptions below, we can safely ignore it here.
             except DockerException as e:
-                print(f"FATAL error executing build in container:\n {e}")
+                print(f"Error executing build for {package} in container:\n {e}")
+                if not continue_on_error:
+                    print("FATAL Error: build failed and --continue-on-error not set, exiting")
+                    sys.exit(1)
+                else:
+                    print("****** Build Error, continuing because --continue-on-error is set")
+
         else:
             print("Skipped")
 

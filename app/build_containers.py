@@ -1,4 +1,4 @@
-# Copyright © 2022 Cerc
+# Copyright © 2022, 2023 Cerc
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -27,8 +27,7 @@ import subprocess
 import click
 import importlib.resources
 from pathlib import Path
-import yaml
-from .util import include_exclude_check
+from .util import include_exclude_check, get_parsed_stack_config
 
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
@@ -70,13 +69,8 @@ def command(ctx, include, exclude):
 
     containers_in_scope = []
     if stack:
-        # In order to be compatible with Python 3.8 we need to use this hack to get the path:
-        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-        stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
-        with stack_file_path:
-            stack_config = yaml.safe_load(open(stack_file_path, "r"))
-            # TODO: syntax check the input here
-            containers_in_scope = stack_config['containers']
+        stack_config = get_parsed_stack_config(stack)
+        containers_in_scope = stack_config['containers']
     else:
         containers_in_scope = all_containers
 

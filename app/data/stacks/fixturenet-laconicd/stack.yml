@@ -4,6 +4,9 @@ repos:
   - cerc-io/laconicd
   - cerc-io/laconic-sdk
   - cerc-io/laconic-registry-cli
+npms:
+  - laconic-sdk
+  - laconic-registry-cli
 containers:
   - cerc/laconicd
   - cerc/laconic-registry-cli

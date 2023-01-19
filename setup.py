@@ -6,7 +6,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = fh.read()
 setup(
     name='laconic-stack-orchestrator',
-    version='1.0.9',
+    version='1.0.12',
     author='Cerc',
     author_email='info@cerc.io',
     license='GNU Affero General Public License',

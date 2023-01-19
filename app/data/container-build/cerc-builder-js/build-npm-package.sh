@@ -17,6 +17,8 @@ if [[ $# -eq 2 ]]; then
 else
     package_publish_version=$( cat package.json | jq -r .version )
 fi
+# Exit on error
+set -e
 # Get the name of this package from package.json since we weren't passed that
 package_name=$( cat package.json | jq -r .name )
 local_npm_registry_url=$1

@@ -22,7 +22,9 @@ import os
 from decouple import config
 import click
 import importlib.resources
+from pathlib import Path
 from python_on_whales import docker
+import yaml
 from .util import include_exclude_check
 
 @click.command()
@@ -37,6 +39,7 @@ def command(ctx, include, exclude):
     dry_run = ctx.obj.dry_run
     local_stack = ctx.obj.local_stack
     debug = ctx.obj.debug
+    stack = ctx.obj.stack
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -53,10 +56,22 @@ def command(ctx, include, exclude):
     # See: https://stackoverflow.com/a/20885799/1701505
     from . import data
     with importlib.resources.open_text(data, "npm-package-list.txt") as package_list_file:
-        packages = package_list_file.read().splitlines()
+        all_packages = package_list_file.read().splitlines()
+
+    packages_in_scope = []
+    if stack:
+        # In order to be compatible with Python 3.8 we need to use this hack to get the path:
+        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+        stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
+        with stack_file_path:
+            stack_config = yaml.safe_load(open(stack_file_path, "r"))
+            # TODO: syntax check the input here
+            packages_in_scope = stack_config['npms']
+    else:
+        packages_in_scope = all_packages
 
     if verbose:
-        print(f'Packages: {packages}')
+        print(f'Packages: {packages_in_scope}')
 
     def build_package(package):
         if not quiet:
@@ -84,7 +99,7 @@ def command(ctx, include, exclude):
         else:
             print("Skipped")
 
-    for package in packages:
+    for package in packages_in_scope:
         if include_exclude_check(package, include, exclude):
             build_package(package)
         else:

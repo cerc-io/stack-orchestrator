@@ -1,4 +1,4 @@
-# Copyright © 2022 Cerc
+# Copyright © 2022, 2023 Cerc
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -22,8 +22,7 @@ from python_on_whales import DockerClient
 import click
 import importlib.resources
 from pathlib import Path
-import yaml
-from .util import include_exclude_check
+from .util import include_exclude_check, get_parsed_stack_config
 
 
 @click.command()
@@ -62,13 +61,9 @@ def command(ctx, include, exclude, cluster, command, services):
 
     pods_in_scope = []
     if stack:
-        # In order to be compatible with Python 3.8 we need to use this hack to get the path:
-        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-        stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
-        with stack_file_path:
-            stack_config = yaml.safe_load(open(stack_file_path, "r"))
-            # TODO: syntax check the input here
-            pods_in_scope = stack_config['pods']
+        stack_config = get_parsed_stack_config(stack)
+        # TODO: syntax check the input here
+        pods_in_scope = stack_config['pods']
     else:
         pods_in_scope = all_pods
 

@@ -23,7 +23,7 @@ from decouple import config
 import click
 import importlib.resources
 from pathlib import Path
-from python_on_whales import docker
+from python_on_whales import docker, DockerException
 import yaml
 from .util import include_exclude_check
 
@@ -84,18 +84,21 @@ def command(ctx, include, exclude):
             if verbose:
                 print(f"Executing: {build_command}")
             envs = {"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
-            build_result = docker.run("cerc/builder-js",
-                                      remove=True,
-                                      interactive=True,
-                                      tty=True,
-                                      user=f"{os.getuid()}:{os.getgid()}",
-                                      envs=envs,
-                                      add_hosts=[("gitea.local", "host-gateway")],
-                                      volumes=[(repo_full_path, "/workspace")],
-                                      command=build_command
-                                      )
-            # TODO: check result in build_result.returncode
-            print(f"Result is: {build_result}")
+            try:
+                build_result = docker.run("cerc/builder-js",
+                                          remove=True,
+                                          interactive=True,
+                                          tty=True,
+                                          user=f"{os.getuid()}:{os.getgid()}",
+                                          envs=envs,
+                                          add_hosts=[("gitea.local", "host-gateway")],
+                                          volumes=[(repo_full_path, "/workspace")],
+                                          command=build_command
+                                          )
+                # TODO: check result in build_result.returncode
+                print(f"Result is: {build_result}")
+            except DockerException as e:
+                print(f"FATAL error executing build in container:\n {e}")
         else:
             print("Skipped")
 

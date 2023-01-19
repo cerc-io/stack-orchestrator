@@ -14,14 +14,23 @@ if [[ $# -ne 2 ]]; then
     echo "Illegal number of parameters" >&2
     exit 1
 fi
+# Exit on error
+set -e
 target_package=$1
 local_npm_registry_url=$2
 # TODO: use jq rather than sed here:
 versioned_target_package=$(grep ${target_package} package.json | sed -e 's#[[:space:]]\{1,\}\"\('${target_package}'\)\":[[:space:]]\{1,\}\"\(.*\)\",#\1@\2#' )
 # Use yarn info to get URL checksums etc from the new registry
 yarn_info_output=$(yarn info --json $versioned_target_package 2>/dev/null)
-# Code below parses out the values we need
+# First check if the target version actually exists. 
+# If it doesn't exist there will be no .data.dist.tarball element,
+# and jq will output the string "null"
 package_tarball=$(echo $yarn_info_output | jq -r .data.dist.tarball)
+if [[ $package_tarball == "null" ]]; then
+    echo "FATAL: Target package version ($versioned_target_package) not found" >&2
+    exit 1
+fi
+# Code below parses out the values we need
 # When running inside a container, the registry can return a URL with the wrong host name due to proxying
 # so we need to check if that has happened and fix the URL if so.
 if ! [[ "${package_tarball}" =~ ^${local_npm_registry_url}.* ]]; then
@@ -33,6 +42,7 @@ package_integrity=$(echo $yarn_info_output | jq -r .data.dist.integrity)
 package_shasum=$(echo $yarn_info_output | jq -r .data.dist.shasum)
 package_resolved=${package_tarball}#${package_shasum}
 # Some strings need to be escaped so they work when passed to sed later
+escaped_package_integrity=$(printf '%s\n' "$package_integrity" | sed -e 's/[\/&]/\\&/g')
 escaped_package_resolved=$(printf '%s\n' "$package_resolved" | sed -e 's/[\/&]/\\&/g')
 escaped_target_package=$(printf '%s\n' "$target_package" | sed -e 's/[\/&]/\\&/g')
 if [ -n "$CERC_SCRIPT_VERBOSE" ]; then
@@ -44,4 +54,4 @@ fi
 # Use magic sed regex to replace the values in yarn.lock
 # Note: yarn.lock is not json so we can not use jq for this
 sed -i -e '/^\"'${escaped_target_package}'.*\":$/ , /^\".*$/ s/^\([[:space:]]\{1,\}resolved \).*$/\1'\"${escaped_package_resolved}\"'/' yarn.lock
-sed -i -e '/^\"'${escaped_target_package}'.*\":$/ , /^\".*$/ s/^\([[:space:]]\{1,\}integrity \).*$/\1'${package_integrity}'/' yarn.lock
+sed -i -e '/^\"'${escaped_target_package}'.*\":$/ , /^\".*$/ s/^\([[:space:]]\{1,\}integrity \).*$/\1'${escaped_package_integrity}'/' yarn.lock

@@ -13,6 +13,8 @@ if [[ -z "${CERC_NPM_AUTH_TOKEN}" ]]; then
     echo "CERC_NPM_AUTH_TOKEN is not set" >&2
     exit 1
 fi
+# Exit on error
+set -e
 local_npm_registry_url=$1
 package_publish_version=$2
 # TODO: make this a paramater and allow a list of scopes

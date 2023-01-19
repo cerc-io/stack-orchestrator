@@ -21,6 +21,7 @@
 # TODO: display the available list of containers; allow re-build of either all or specific containers
 
 import os
+import sys
 from decouple import config
 import subprocess
 import click
@@ -45,6 +46,7 @@ def command(ctx, include, exclude):
     dry_run = ctx.obj.dry_run
     local_stack = ctx.obj.local_stack
     stack = ctx.obj.stack
+    continue_on_error = ctx.obj.continue_on_error
 
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     container_build_dir = Path(__file__).absolute().parent.joinpath("data", "container-build")
@@ -112,8 +114,15 @@ def command(ctx, include, exclude):
             if verbose:
                 print(f"Executing: {build_command}")
             build_result = subprocess.run(build_command, shell=True, env=container_build_env)
-            # TODO: check result in build_result.returncode
-            print(f"Result is: {build_result}")
+            if verbose:
+                print(f"Return code is: {build_result.returncode}")
+            if build_result.returncode != 0:
+                print(f"Error running build for {container}")
+                if not continue_on_error:
+                    print("FATAL Error: container build failed and --continue-on-error not set, exiting")
+                    sys.exit(1)
+                else:
+                    print("****** Container Build Error, continuing because --continue-on-error is set")
         else:
             print("Skipped")
 

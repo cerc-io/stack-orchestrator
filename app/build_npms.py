@@ -19,11 +19,12 @@
 # CERC_REPO_BASE_DIR defaults to ~/cerc
 
 import os
+import sys
 from decouple import config
 import click
 import importlib.resources
 from pathlib import Path
-from python_on_whales import docker
+from python_on_whales import docker, DockerException
 import yaml
 from .util import include_exclude_check
 
@@ -40,6 +41,7 @@ def command(ctx, include, exclude):
     local_stack = ctx.obj.local_stack
     debug = ctx.obj.debug
     stack = ctx.obj.stack
+    continue_on_error = ctx.obj.continue_on_error
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -84,18 +86,28 @@ def command(ctx, include, exclude):
             if verbose:
                 print(f"Executing: {build_command}")
             envs = {"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
-            build_result = docker.run("cerc/builder-js",
-                                      remove=True,
-                                      interactive=True,
-                                      tty=True,
-                                      user=f"{os.getuid()}:{os.getgid()}",
-                                      envs=envs,
-                                      add_hosts=[("gitea.local", "host-gateway")],
-                                      volumes=[(repo_full_path, "/workspace")],
-                                      command=build_command
-                                      )
-            # TODO: check result in build_result.returncode
-            print(f"Result is: {build_result}")
+            try:
+                docker.run("cerc/builder-js",
+                           remove=True,
+                           interactive=True,
+                           tty=True,
+                           user=f"{os.getuid()}:{os.getgid()}",
+                           envs=envs,
+                           add_hosts=[("gitea.local", "host-gateway")],
+                           volumes=[(repo_full_path, "/workspace")],
+                           command=build_command
+                           )
+                # Note that although the docs say that build_result should contain
+                # the command output as a string, in reality it is always the empty string.
+                # Since we detect errors via catching exceptions below, we can safely ignore it here.
+            except DockerException as e:
+                print(f"Error executing build for {package} in container:\n {e}")
+                if not continue_on_error:
+                    print("FATAL Error: build failed and --continue-on-error not set, exiting")
+                    sys.exit(1)
+                else:
+                    print("****** Build Error, continuing because --continue-on-error is set")
+
         else:
             print("Skipped")
 

@@ -13,6 +13,6 @@ containers:
   - cerc/watcher-erc721
 pods:
   - go-ethereum-foundry
-  - db
+  - ipld-eth-db
   - ipld-eth-server
   - watcher-erc721

@@ -13,6 +13,6 @@ containers:
   - cerc/watcher-erc20
 pods:
   - go-ethereum-foundry
-  - db
+  - ipld-eth-db
   - ipld-eth-server
   - watcher-erc20

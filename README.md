@@ -8,9 +8,9 @@ Stack Orchestrator allows building and deployment of a Laconic Stack on a single
 
 Ensure that the following are already installed:
 
-- [Python3](https://wiki.python.org/moin/BeginnersGuide/Download)
-- [Docker](https://docs.docker.com/get-docker/) 
-- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Python3](https://wiki.python.org/moin/BeginnersGuide/Download): `python3 --version` >= `3.10.8`
+- [Docker](https://docs.docker.com/get-docker/): `docker --version` >= `20.10.21`
+- [Docker Compose](https://docs.docker.com/compose/install/): `docker-compose --version` >= `2.13.0`
 
 Note: if installing docker-compose via package manager (as opposed to Docker Desktop), you must [install the plugin](https://docs.docker.com/compose/install/linux/#install-the-plugin-manually), e.g., on Linux:
 
@@ -97,7 +97,7 @@ laconic-so --verbose deploy-system --include ipld-eth-db,go-ethereum-foundry,ipl
 
 ## Contributing
 
-See the [CONTRIBUTING.md](.github/CONTRIBUTING.md) for developer mode install.
+See the [CONTRIBUTING.md](/docs/CONTRIBUTING.md) for developer mode install.
 
 ## Platform Support
 

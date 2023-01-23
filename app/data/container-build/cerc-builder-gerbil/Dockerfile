@@ -2,10 +2,15 @@
 FROM gerbil/ubuntu
 
 # Install the Solidity compiler (latest stable version)
+# and guile
+# and libsecp256k1-dev
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && export DEBCONF_NOWARNINGS="yes" && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:ethereum/ethereum && \
-    apt-get update && apt-get install -y solc && \
+    apt-get update && \
+    apt-get install -y solc && \
+    apt-get install -y guile-3.0 && \
+    apt-get install -y libsecp256k1-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN mkdir /scripts

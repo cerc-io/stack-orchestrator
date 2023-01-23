@@ -1,8 +1,8 @@
 version: "1.0"
 name: fixturenet-eth
+decription: "Ethereum Fixturenet"
 repos:
   - cerc-io/go-ethereum
-  - cerc-io/lighthouse
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse

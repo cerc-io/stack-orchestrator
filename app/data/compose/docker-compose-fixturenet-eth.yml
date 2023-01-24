@@ -32,9 +32,9 @@ services:
     depends_on:
       - fixturenet-eth-bootnode-geth
     ports:
-      - "8545:8545"
-      - "40000:40000"
-      - "6060:6060"
+      - "8545"
+      - "40000"
+      - "6060"
 
   fixturenet-eth-geth-2:
     hostname: fixturenet-eth-geth-2

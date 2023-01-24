@@ -13,13 +13,15 @@ rm -rf $CERC_REPO_BASE_DIR
 mkdir -p $CERC_REPO_BASE_DIR
 # Pull an example small public repo to test we can pull a repo
 $TEST_TARGET_SO setup-repositories --include cerc-io/laconic-sdk
-# TODO: test building the repo into a container
-# Build two example containers
-# TODO: 
-$TEST_TARGET_SO build-containers --include cerc/builder-js,cerc/test-container
+# Test pulling a stack
+$TEST_TARGET_SO --stack test setup-repositories
+# Test building the a stack container
+$TEST_TARGET_SO --stack test build-containers
+# Build one example containers
+$TEST_TARGET_SO build-containers --include cerc/builder-js
 # Deploy the test container
-$TEST_TARGET_SO deploy-system --include test up
+$TEST_TARGET_SO --stack test deploy-system up
 # TODO: test that we can use the deployed container somehow
 # Clean up
-$TEST_TARGET_SO deploy-system --include test down
+$TEST_TARGET_SO --stack test deploy-system down
 echo "Test passed"

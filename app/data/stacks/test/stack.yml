@@ -1,0 +1,7 @@
+version: "1.0"
+name: test
+description: "A test stack"
+containers:
+  - cerc/test-container
+pods:
+  - test

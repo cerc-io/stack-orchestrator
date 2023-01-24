@@ -30,9 +30,9 @@ from .util import include_exclude_check, get_parsed_stack_config
 @click.option("--exclude", help="don\'t start these components")
 @click.option("--cluster", help="specify a non-default cluster name")
 @click.argument('command', required=True)  # help: command: up|down|ps
-@click.argument('services', nargs=-1)  # help: command: up|down|ps <service1> <service2>
+@click.argument('extra_args', nargs=-1)  # help: command: up|down|ps <service1> <service2>
 @click.pass_context
-def command(ctx, include, exclude, cluster, command, services):
+def command(ctx, include, exclude, cluster, command, extra_args):
     '''deploy a stack'''
 
     # TODO: implement option exclusion and command value constraint lost with the move from argparse to click
@@ -87,17 +87,27 @@ def command(ctx, include, exclude, cluster, command, services):
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
     docker = DockerClient(compose_files=compose_files, compose_project_name=cluster)
 
-    services_list = list(services) or None
+    extra_args_list = list(extra_args) or None
 
     if not dry_run:
         if command == "up":
             if verbose:
-                print(f"Running compose up for services: {services_list}")
-            docker.compose.up(detach=True, services=services_list)
+                print(f"Running compose up for extra_args: {extra_args_list}")
+            docker.compose.up(detach=True, services=extra_args_list)
         elif command == "down":
             if verbose:
                 print("Running compose down")
             docker.compose.down()
+        elif command == "port":
+            if extra_args_list is None or len(extra_args_list) < 2:
+                print("Usage: port <service> <exposed-port>")
+                sys.exit(1)
+            service_name = extra_args_list[0]
+            exposed_port = extra_args_list[1]
+            if verbose:
+                print("Running compose port")
+            mapped_port_data = docker.compose.port(service_name, exposed_port)
+            print(f"{mapped_port_data[0]}:{mapped_port_data[1]}")
         elif command == "ps":
             if verbose:
                 print("Running compose ps")

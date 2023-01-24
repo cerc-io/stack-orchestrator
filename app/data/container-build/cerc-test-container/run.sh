@@ -12,5 +12,5 @@ else
     echo `date` > $EXISTSFILENAME
 fi
 
-# Sleep forever to keep docker happy
-while true; do sleep 10; done
+# Run nginx which will block here forever
+/usr/sbin/nginx -g "daemon off;"

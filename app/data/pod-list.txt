@@ -6,10 +6,10 @@ ipld-eth-beacon-db
 ipld-eth-beacon-indexer
 ipld-eth-server
 lighthouse
-prometheus-grafana
 laconicd
 fixturenet-laconicd
 fixturenet-eth
+fixturenet-eth-metrics
 watcher-mobymask
 watcher-erc20
 watcher-erc721

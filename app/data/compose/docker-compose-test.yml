@@ -3,3 +3,5 @@ services:
   test:
     image: cerc/test-container:local
     restart: always
+    ports:
+      - "80"

@@ -8,12 +8,14 @@ LIGHTHOUSE_BASE_URL=${LIGHTHOUSE_BASE_URL}
 GETH_BASE_URL=${GETH_BASE_URL}
 
 if [ -z "$LIGHTHOUSE_BASE_URL" ]; then
-  LIGHTHOUSE_PORT=`docker ps -f "name=fixturenet-eth-lighthouse-1-1" --format "{{.Ports}}" | head -1 | cut -d':' -f2 | cut -d'-' -f1`
+  LIGHTHOUSE_CONTAINER=`docker ps -q -f "name=fixturenet-eth-lighthouse-1-1"`
+  LIGHTHOUSE_PORT=`docker port $LIGHTHOUSE_CONTAINER 8001 | cut -d':' -f2`
   LIGHTHOUSE_BASE_URL="http://localhost:${LIGHTHOUSE_PORT}"
 fi
 
 if [ -z "$GETH_BASE_URL" ]; then
-  GETH_PORT=`docker ps -f "name=fixturenet-eth-geth-1-1" --format "{{.Ports}}" | head -1 | cut -d':' -f2 | cut -d'-' -f1`
+  GETH_CONTAINER=`docker ps -q -f "name=fixturenet-eth-geth-1-1"`
+  GETH_PORT=`docker port $GETH_CONTAINER 8545 | cut -d':' -f2`
   GETH_BASE_URL="http://localhost:${GETH_PORT}"
 fi
 

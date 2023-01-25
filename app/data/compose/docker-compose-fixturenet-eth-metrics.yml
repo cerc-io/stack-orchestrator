@@ -1,0 +1,21 @@
+version: "3.2"
+services:
+  prometheus:
+    restart: always
+    image: prom/prometheus
+    depends_on:
+      fixturenet-eth-geth-1:
+        condition: service_healthy
+    volumes:
+      - ../config/fixturenet-eth-metrics/prometheus/etc:/etc/prometheus
+    ports:
+      - "9090"
+  grafana:
+    restart: always
+    image: grafana/grafana
+    volumes:
+      - ../config/fixturenet-eth-metrics/grafana/etc/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ../config/fixturenet-eth-metrics/grafana/etc/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ../config/fixturenet-eth-metrics/grafana/etc/dashboards:/etc/grafana/dashboards
+    ports:
+      - "3000"

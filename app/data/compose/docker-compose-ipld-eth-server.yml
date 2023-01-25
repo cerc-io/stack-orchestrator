@@ -22,8 +22,7 @@ services:
       ETH_CHAIN_ID: 99
       ETH_FORWARD_ETH_CALLS: "false"
       ETH_FORWARD_GET_STORAGE_AT: "false"
-      ETH_PROXY_ON_ERROR: "true"
-      ETH_HTTP_PATH: "fixturenet-eth-geth-1:8545"
+      ETH_PROXY_ON_ERROR: "false"
       METRICS: "true"
       PROM_HTTP: "true"
       PROM_HTTP_ADDR: "0.0.0.0"
@@ -38,6 +37,7 @@ services:
       - "8081"
       - "8082"
       - "8090"
+      - "40000"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8081"]
       interval: 20s

@@ -12,19 +12,29 @@
 # ./scripts/publish_shiv_package_github.sh
 # In addition, a valid GitHub token must be defined in
 # CERC_PACKAGE_RELEASE_GITHUB_TOKEN
+if [[ -z "${CERC_PACKAGE_RELEASE_GITHUB_TOKEN}" ]]; then
+    echo "CERC_PACKAGE_RELEASE_GITHUB_TOKEN is not set" >&2
+    exit 1
+fi
 # TODO: check args and env vars
 major=$1
 minor=$2
 patch=$3
 export PATH=$CERC_GH_RELEASE_SCRIPTS_DIR:$PATH
-git_tag_manager.sh -M ${major} -m ${minor} -p ${patch} -t "Release ${major}.${minor}.${patch}"
+github_org="cerc-io"
+github_repository="stack-orchestrator"
+latest_package=$(ls -1t ./package/* | head -1)
+uploaded_package="./package/laconic-so"
+# Remove any old package
+rm ${uploaded_package}
+cp ${latest_package} ${uploaded_package}
 github_release_manager.sh \
-        -l david@bozemanpass.com -t ${CERC_PACKAGE_RELEASE_GITHUB_TOKEN} \
-        -o cerc-io -r stack-orchestrator \
+        -l notused -t ${CERC_PACKAGE_RELEASE_GITHUB_TOKEN} \
+        -o ${github_org} -r ${github_repository} \
         -d v${major}.${minor}.${patch} \
         -c create
 github_release_manager.sh \
-        -l david@bozemanpass.com -t ${CERC_PACKAGE_RELEASE_GITHUB_TOKEN} \
-        -o cerc-io -r stack-orchestrator \
+        -l notused -t ${CERC_PACKAGE_RELEASE_GITHUB_TOKEN} \
+        -o ${github_org} -r ${github_repository} \
         -d v${major}.${minor}.${patch} \
-        -c upload ./package/laconic-so
+        -c upload ${uploaded_package}

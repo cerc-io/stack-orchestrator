@@ -32,7 +32,7 @@ github_release_manager.sh \
         -l notused -t ${CERC_PACKAGE_RELEASE_GITHUB_TOKEN} \
         -o ${github_org} -r ${github_repository} \
         -d v${major}.${minor}.${patch} \
-        -c create
+        -c create -m "Release v${major}.${minor}.${patch}"
 github_release_manager.sh \
         -l notused -t ${CERC_PACKAGE_RELEASE_GITHUB_TOKEN} \
         -o ${github_org} -r ${github_repository} \

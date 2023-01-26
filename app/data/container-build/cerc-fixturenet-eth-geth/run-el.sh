@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
+    set -x
+fi
+
 ETHERBASE=`cat /opt/testnet/build/el/accounts.csv | head -1 | cut -d',' -f2`
 NETWORK_ID=`cat /opt/testnet/el/el-config.yaml | grep 'chain_id' | awk '{ print $2 }'`
 NETRESTRICT=`ip addr | grep inet | grep -v '127.0' | awk '{print $2}'`
@@ -28,7 +32,9 @@ else
     echo -n "$JWT" > /opt/testnet/build/el/jwtsecret
 
     if [ "$CERC_RUN_STATEDIFF" == "detect" ] && [ -n "$CERC_STATEDIFF_DB_HOST" ]; then
-      if [ -n "$(dig $CERC_STATEDIFF_DB_HOST +short)" ]; then
+      dig_result=$(dig $CERC_STATEDIFF_DB_HOST +short)
+      dig_status_code=$?
+      if [[ $dig_status_code = 0 && -n $dig_result ]]; then
         echo "Statediff DB at $CERC_STATEDIFF_DB_HOST"
         CERC_RUN_STATEDIFF="true"
       else

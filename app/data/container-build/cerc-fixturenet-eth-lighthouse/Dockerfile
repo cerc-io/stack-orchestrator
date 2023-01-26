@@ -27,4 +27,8 @@ RUN cd /opt/testnet && make genesis-cl
 # Work around some bugs in lcli where the default path is always used.
 RUN mkdir -p /root/.lighthouse && cd /root/.lighthouse && ln -s /opt/testnet/build/cl/testnet
 
+RUN mkdir -p /scripts
+COPY scripts/status-internal.sh /scripts
+COPY scripts/status.sh /scripts
+
 ENTRYPOINT ["/opt/testnet/run.sh"]

@@ -326,8 +326,9 @@
             "uid": "jZUuGao4k"
           },
           "editorMode": "code",
-          "expr": "rate(rpc_duration_eth_call_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
-          "legendFormat": "eth_call",
+          "expr": "rate(rpc_duration_eth_blockNumber_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_blockNumber",
           "range": true,
           "refId": "A"
         },
@@ -337,47 +338,11 @@
             "uid": "jZUuGao4k"
           },
           "editorMode": "code",
-          "expr": "rate(rpc_duration_eth_getBlockByHash_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "expr": "rate(rpc_duration_eth_call_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
           "hide": false,
-          "legendFormat": "eth_getBlocksByHash",
+          "legendFormat": "eth_call",
           "range": true,
           "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "jZUuGao4k"
-          },
-          "editorMode": "code",
-          "expr": "rate(rpc_duration_eth_getBlockByNumber_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
-          "hide": false,
-          "legendFormat": "eth_getBlocksByNumber",
-          "range": true,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "jZUuGao4k"
-          },
-          "editorMode": "code",
-          "expr": "rate(rpc_duration_eth_getStorageAt_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
-          "hide": false,
-          "legendFormat": "getStorageAt",
-          "range": true,
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "jZUuGao4k"
-          },
-          "editorMode": "code",
-          "expr": "rate(rpc_duration_statediff_writeStateDiffAt_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
-          "hide": false,
-          "legendFormat": "statediff_writeStateDiffAt",
-          "range": true,
-          "refId": "E"
         },
         {
           "datasource": {
@@ -389,7 +354,355 @@
           "hide": false,
           "legendFormat": "eth_chainId",
           "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_estimateGas_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_estimateGas",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_gasPrice_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_gasPrice",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getBalance_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getBalance",
+          "range": true,
           "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getBlockByHash_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getBlockByHash",
+          "range": true,
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getBlockByNumber_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getBlockByNumber",
+          "range": true,
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getBlockReceipts_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getBlockReceipts",
+          "range": true,
+          "refId": "I"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getBlockTransactionCountByHash_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getBlockTransactionCountByHash",
+          "range": true,
+          "refId": "J"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getBlockTransactionCountByNumber_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getBlockTransactionCountByNumber",
+          "range": true,
+          "refId": "K"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getCode_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getCode",
+          "range": true,
+          "refId": "L"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getFilterChanges_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getFilterChanges",
+          "range": true,
+          "refId": "M"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getFilterLogs_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getFilterLogs",
+          "range": true,
+          "refId": "N"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getLogs_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getLogs",
+          "range": true,
+          "refId": "O"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getStorageAt_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getStorageAt",
+          "range": true,
+          "refId": "P"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getTransactionByBlockHashAndIndex_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getTransactionByBlockHashAndIndex",
+          "range": true,
+          "refId": "Q"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getTransactionByBlockNumberAndIndex_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getTransactionByBlockNumberAndIndex",
+          "range": true,
+          "refId": "R"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getTransactionByHash_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getTransactionByHash",
+          "range": true,
+          "refId": "S"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getTransactionCount_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getTransactionCount",
+          "range": true,
+          "refId": "T"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getTransactionReceipt_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getTransactionReceipt",
+          "range": true,
+          "refId": "U"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getUncleCountByBlockHash_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getUncleCountByBlockHash",
+          "range": true,
+          "refId": "V"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_getUncleCountByBlockNumber_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_getUncleCountByBlockNumber",
+          "range": true,
+          "refId": "W"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_mining_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_mining_success",
+          "range": true,
+          "refId": "X"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_newBlockFilter_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_newBlockFilter",
+          "range": true,
+          "refId": "Y"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_newFilter_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_newFilter",
+          "range": true,
+          "refId": "Z"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_newPendingTransactionFilter_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_newPendingTransactionFilter",
+          "range": true,
+          "refId": "AA"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_sendRawTransaction_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_sendRawTransaction",
+          "range": true,
+          "refId": "AB"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_signTransaction_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_signTransaction",
+          "range": true,
+          "refId": "AC"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_subscribe_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_subscribe",
+          "range": true,
+          "refId": "AD"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_syncing_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_syncing",
+          "range": true,
+          "refId": "AE"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_eth_unsubscribe_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "eth_unsubscribe",
+          "range": true,
+          "refId": "AF"
         },
         {
           "datasource": {
@@ -401,7 +714,19 @@
           "hide": false,
           "legendFormat": "statediff_writeStateDiffFor",
           "range": true,
-          "refId": "G"
+          "refId": "AG"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "jZUuGao4k"
+          },
+          "editorMode": "code",
+          "expr": "rate(rpc_duration_statediff_writeStateDiffAt_success_count{instance=\"${node}:6060\"}[$__rate_interval])",
+          "hide": false,
+          "legendFormat": "statediff_writeStateDiffAt",
+          "range": true,
+          "refId": "AH"
         }
       ],
       "title": "geth API Requests/sec",

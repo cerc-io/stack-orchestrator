@@ -98,6 +98,15 @@ def command(ctx, include, exclude, cluster, command, extra_args):
             if verbose:
                 print("Running compose down")
             docker.compose.down()
+        elif command == "exec":
+            if extra_args_list is None or len(extra_args_list) < 2:
+                print("Usage: exec <service> <cmd>")
+                sys.exit(1)
+            service_name = extra_args_list[0]
+            command_to_exec = extra_args_list[1:]
+            if verbose:
+                print(f"Running compose exec {service_name} {command_to_exec}")
+            docker.compose.execute(service_name, command_to_exec)
         elif command == "port":
             if extra_args_list is None or len(extra_args_list) < 2:
                 print("Usage: port <service> <exposed-port>")
@@ -105,7 +114,7 @@ def command(ctx, include, exclude, cluster, command, extra_args):
             service_name = extra_args_list[0]
             exposed_port = extra_args_list[1]
             if verbose:
-                print("Running compose port")
+                print(f"Running compose port {service_name} {exposed_port}")
             mapped_port_data = docker.compose.port(service_name, exposed_port)
             print(f"{mapped_port_data[0]}:{mapped_port_data[1]}")
         elif command == "ps":

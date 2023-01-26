@@ -3,6 +3,7 @@ name: fixturenet-eth
 decription: "Ethereum Fixturenet"
 repos:
   - cerc-io/go-ethereum
+  - cerc-io/tx-spammer
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse

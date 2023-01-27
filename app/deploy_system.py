@@ -109,7 +109,7 @@ def command(ctx, include, exclude, cluster, command, extra_args):
             command_to_exec = extra_args_list[1:]
             container_exec_env = {
                 "CERC_SCRIPT_DEBUG": "true"
-            } if debug else None
+            } if debug else {}
             if verbose:
                 print(f"Running compose exec {service_name} {command_to_exec}")
             docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)

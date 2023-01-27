@@ -4,12 +4,12 @@ Instructions for deploying a local a geth + lighthouse blockchain "fixturenet" f
 
 ## Clone required repositories
 ```
-$ laconic-so setup-repositories --include cerc-io/go-ethereum
+$ laconic-so --stack fixturenet-eth setup-repositories
 ```
 
 ## Build the fixturenet-eth containers
 ```
-$ laconic-so build-containers --include cerc/go-ethereum,cerc/lighthouse,cerc/fixturenet-eth-geth,cerc/fixturenet-eth-lighthouse
+$ laconic-so --stack fixturenet-eth build-containers
 ```
 This should create several container images in the local image registry: 
 
@@ -20,7 +20,7 @@ This should create several container images in the local image registry:
 
 ## Deploy the stack
 ```
-$ laconic-so deploy-system --include fixturenet-eth up
+$ laconic-so --stack fixturenet-eth deploy-system up
 ```
 
 ## Check status

@@ -37,6 +37,7 @@ def command(ctx, include, exclude, cluster, command, extra_args):
 
     # TODO: implement option exclusion and command value constraint lost with the move from argparse to click
 
+    debug = ctx.obj.debug
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
@@ -91,6 +92,8 @@ def command(ctx, include, exclude, cluster, command, extra_args):
 
     if not dry_run:
         if command == "up":
+            if debug:
+                os.environ["CERC_SCRIPT_DEBUG"] = "true"
             if verbose:
                 print(f"Running compose up for extra_args: {extra_args_list}")
             docker.compose.up(detach=True, services=extra_args_list)
@@ -104,9 +107,12 @@ def command(ctx, include, exclude, cluster, command, extra_args):
                 sys.exit(1)
             service_name = extra_args_list[0]
             command_to_exec = extra_args_list[1:]
+            container_exec_env = {
+                "CERC_SCRIPT_DEBUG": "true"
+            } if debug else None
             if verbose:
                 print(f"Running compose exec {service_name} {command_to_exec}")
-            docker.compose.execute(service_name, command_to_exec)
+            docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
         elif command == "port":
             if extra_args_list is None or len(extra_args_list) < 2:
                 print("Usage: port <service> <exposed-port>")

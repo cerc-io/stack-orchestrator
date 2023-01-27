@@ -1,5 +1,7 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
+    set -x
+fi
 STATUSES=("geth to generate DAG" "beacon phase0" "beacon altair" "beacon bellatrix pre-merge" "beacon bellatrix merge")
 STATUS=0
 
@@ -7,6 +9,8 @@ STATUS=0
 LIGHTHOUSE_BASE_URL=${LIGHTHOUSE_BASE_URL}
 GETH_BASE_URL=${GETH_BASE_URL}
 
+# TODO: Docker commands below should be replaced by some interface into stack orchestrator
+# or some execution environment-neutral mechanism.
 if [ -z "$LIGHTHOUSE_BASE_URL" ]; then
   LIGHTHOUSE_CONTAINER=`docker ps -q -f "name=fixturenet-eth-lighthouse-1-1"`
   LIGHTHOUSE_PORT=`docker port $LIGHTHOUSE_CONTAINER 8001 | cut -d':' -f2`

@@ -10,6 +10,7 @@ DEPS=(github.com/fare/gerbil-utils
       github.com/vyzo/gerbil-libp2p
       ) ;
 for i in ${DEPS[@]} ; do
+  echo "Installing gerbil package: $i"
   gxpkg install $i &&
   gxpkg build $i
 done

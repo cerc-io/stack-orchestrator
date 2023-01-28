@@ -16,6 +16,12 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && export DEBCONF_NO
 RUN mkdir /scripts
 COPY install-dependencies.sh /scripts
 
+# Override the definition of GERBIL_PATH in the base image, but
+# is safe because (at present) no gerbil packages are installed in the base image
+# We do this in order to allow a set of pre-installed packages from the container
+# to be used with an arbitrary, potentially different set of projects bind mounted
+# at /src
+ENV GERBIL_PATH=/.gerbil
 RUN bash /scripts/install-dependencies.sh
 
 # Needed to prevent git from raging about /src

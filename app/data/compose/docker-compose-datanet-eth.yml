@@ -1,0 +1,68 @@
+version: '3.7'
+
+services:
+  datanet-eth-bootnode-geth:
+    hostname: datanet-eth-bootnode-geth
+    env_file:
+      - ../config/datanet-eth/datanet-eth.env
+    environment:
+      RUN_BOOTNODE: "true"
+    image: cerc/datanet-eth-geth:local
+    ports:
+      - "9898"
+      - "30303"
+
+  datanet-eth-geth-1:
+    hostname: datanet-eth-geth-1
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      CERC_REMOTE_DEBUG: "true"
+      CERC_RUN_STATEDIFF: "detect"
+      CERC_STATEDIFF_DB_NODE_ID: 1
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    env_file:
+      - ../config/datanet-eth/datanet-eth.env
+    image: cerc/datanet-eth-geth:local
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+    depends_on:
+      - datanet-eth-bootnode-geth
+    ports:
+      - "8545"
+      - "40000"
+      - "6060"
+
+  datanet-eth-geth-2:
+    hostname: datanet-eth-geth-2
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+    env_file:
+      - ../config/datanet-eth/datanet-eth.env
+    image: cerc/datanet-eth-geth:local
+    depends_on:
+      - datanet-eth-bootnode-geth
+
+  datanet-tx-spammer:
+    restart: always
+    image: cerc/tx-spammer:local
+    environment:
+      ACCOUNTS_CSV_URL: http://datanet-eth-bootnode-geth:9898/accounts.csv
+      ETH_HTTP_PATH: http://datanet-eth-geth-1:8545
+      LOG_LEVEL: info
+      SPAMMER_COMMAND: autoSend
+      ETH_CALL_FREQ: 0
+      ETH_SEND_FREQ: 0
+    depends_on:
+      datanet-eth-bootnode-geth:
+        condition: service_started
+      datanet-eth-geth-1:
+        condition: service_healthy

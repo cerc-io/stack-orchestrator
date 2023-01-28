@@ -8,6 +8,7 @@ ipld-eth-server
 lighthouse
 laconicd
 fixturenet-laconicd
+datanet-eth
 fixturenet-eth
 fixturenet-eth-metrics
 watcher-mobymask

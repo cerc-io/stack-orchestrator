@@ -1,6 +1,4 @@
-# Use locally build foundry base image to work around there being
-# no aarm64 image published.
-FROM foundry-rs/foundry:local
+FROM ghcr.io/foundry-rs/foundry
 
 RUN apk update ; apk add --no-cache --allow-untrusted ca-certificates curl bash git jq
 RUN apk add --no-cache --upgrade grep

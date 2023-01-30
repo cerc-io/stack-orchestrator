@@ -13,6 +13,8 @@ services:
   grafana:
     restart: always
     image: grafana/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=changeme6325
     volumes:
       - ../config/fixturenet-eth-metrics/grafana/etc/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ../config/fixturenet-eth-metrics/grafana/etc/provisioning/datasources:/etc/grafana/provisioning/datasources

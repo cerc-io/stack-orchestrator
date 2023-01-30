@@ -18,6 +18,8 @@ cp -rp $SCRIPT_DIR/../cerc-fixturenet-eth-geth $SCRIPT_DIR/build
 #   (2) Maintains a fast block rate, since the difficulty will never exceed the capped value.
 sed -i '' 's/^terminal_total_difficulty:.*$/capped_maximum_difficulty: 1/' $SCRIPT_DIR/build/genesis/el/el-config.yaml
 
+# Build the image.
 docker build -t cerc/datanet-eth-geth:local ${SCRIPT_DIR}/build
 
+# Clean up the "build" directory.
 rm -rf $SCRIPT_DIR/build

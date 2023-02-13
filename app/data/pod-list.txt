@@ -19,3 +19,4 @@ eth-probe
 keycloak
 tx-spammer
 kubo
+laconic-explorer

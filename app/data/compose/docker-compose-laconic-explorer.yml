@@ -1,0 +1,7 @@
+version: "3.2"
+services:
+  laconicd:
+    restart: unless-stopped
+    image: cerc/laconic-explorer:local
+    ports:
+      - "1317"

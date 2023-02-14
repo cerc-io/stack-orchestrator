@@ -10,6 +10,4 @@ COPY . .
 
 RUN echo "Building Laconic Explorer" && \
     git checkout master && \
-    yarn && yarn build
-
-#WORKDIR /app/packages/erc20-watcher
+    yarn && yarn serve

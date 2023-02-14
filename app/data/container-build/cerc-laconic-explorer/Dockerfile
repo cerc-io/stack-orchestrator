@@ -10,4 +10,6 @@ COPY . .
 
 RUN echo "Building Laconic Explorer" && \
     git checkout master && \
-    yarn && yarn serve
+    yarn
+
+CMD ["yarn serve"] 

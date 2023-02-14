@@ -25,3 +25,4 @@ cerc/keycloak
 cerc/tx-spammer
 cerc/builder-gerbil
 cerc/laconic-explorer
+cerc/nginx

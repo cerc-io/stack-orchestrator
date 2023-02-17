@@ -7,13 +7,13 @@ Instructions to deploy a local ERC20 watcher stack (core + watcher) for demonstr
 Clone required repositories:
 
 ```bash
-laconic-so setup-repositories --include cerc-io/go-ethereum,cerc-io/ipld-eth-db,cerc-io/ipld-eth-server,cerc-io/watcher-ts 
+laconic-so --stack erc20 setup-repositories
 ```
 
 Build the core and watcher container images:
 
 ```bash
-laconic-so build-containers --include cerc/go-ethereum,cerc/go-ethereum-foundry,cerc/ipld-eth-db,cerc/ipld-eth-server,cerc/watcher-erc20
+laconic-so --stack erc20 build-containers
 ```
 
 This should create the required docker images in the local image registry.
@@ -21,7 +21,7 @@ This should create the required docker images in the local image registry.
 Deploy the stack:
 
 ```bash
-laconic-so deploy-system --include ipld-eth-db,go-ethereum-foundry,ipld-eth-server,watcher-erc20 up
+laconic-so --stack erc20 deploy-system up
 ```
 
 ## Demo

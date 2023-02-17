@@ -24,6 +24,7 @@ from decouple import config
 import click
 import importlib.resources
 from python_on_whales import docker, DockerException
+from .base import get_stack
 from .util import include_exclude_check, get_parsed_stack_config
 
 @click.command()
@@ -40,6 +41,12 @@ def command(ctx, include, exclude):
     debug = ctx.obj.debug
     stack = ctx.obj.stack
     continue_on_error = ctx.obj.continue_on_error
+
+    # build-npms depends on having access to a writable package registry
+    # so we check here that it is available
+    package_registry_stack = get_stack(ctx.obj, 'package-registry')
+    package_registry_stack.ensure_available()
+    npm_registry_url = package_registry_stack.get_url('package-registry')
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -75,7 +82,7 @@ def command(ctx, include, exclude):
         repo_dir = package
         repo_full_path = os.path.join(dev_root_path, repo_dir)
         # TODO: make the npm registry url configurable.
-        build_command = ["sh", "-c", "cd /workspace && build-npm-package-local-dependencies.sh http://gitea.local:3000/api/packages/cerc-io/npm/"]
+        build_command = ["sh", "-c", f"cd /workspace && build-npm-package-local-dependencies.sh {npm_registry_url}"]
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")
@@ -87,6 +94,7 @@ def command(ctx, include, exclude):
                            tty=True,
                            user=f"{os.getuid()}:{os.getgid()}",
                            envs=envs,
+                           # TODO: detect this host name in npm_registry_url rather than hard-wiring it
                            add_hosts=[("gitea.local", "host-gateway")],
                            volumes=[(repo_full_path, "/workspace")],
                            command=build_command

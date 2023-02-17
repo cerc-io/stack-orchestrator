@@ -18,6 +18,8 @@
 import hashlib
 import os
 import sys
+from decouple import config
+import subprocess
 from python_on_whales import DockerClient
 import click
 import importlib.resources
@@ -40,8 +42,15 @@ def command(ctx, include, exclude, cluster, command, extra_args):
     debug = ctx.obj.debug
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
+    local_stack = ctx.obj.local_stack
     dry_run = ctx.obj.dry_run
     stack = ctx.obj.stack
+
+    if local_stack:
+        dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
+        print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
+    else:
+        dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
@@ -68,19 +77,37 @@ def command(ctx, include, exclude, cluster, command, extra_args):
     else:
         pods_in_scope = all_pods
 
+    # Convert all pod definitions to v1.1 format
+    pods_in_scope = _convert_to_new_format(pods_in_scope)
+
     if verbose:
         print(f"Pods: {pods_in_scope}")
 
     # Construct a docker compose command suitable for our purpose
 
     compose_files = []
+    pre_start_commands = []
+    post_start_commands = []
     for pod in pods_in_scope:
-        if include_exclude_check(pod, include, exclude):
-            compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod}.yml")
+        pod_name = pod["name"]
+        pod_repository = pod["repository"]
+        pod_path = pod["path"]
+        if include_exclude_check(pod_name, include, exclude):
+            if pod_repository is None or pod_repository == "internal":
+                compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_path}.yml")
+            else:
+                pod_root_dir = os.path.join(dev_root_path, pod_repository.split("/")[-1], pod["path"])
+                compose_file_name = os.path.join(pod_root_dir, "docker-compose.yml")
+                pod_pre_start_command = pod["pre_start_command"]
+                pod_post_start_command = pod["post_start_command"]
+                if pod_pre_start_command is not None:
+                    pre_start_commands.append(os.path.join(pod_root_dir, pod_pre_start_command))
+                if pod_post_start_command is not None:
+                    post_start_commands.append(os.path.join(pod_root_dir, pod_post_start_command))
             compose_files.append(compose_file_name)
         else:
             if verbose:
-                print(f"Excluding: {pod}")
+                print(f"Excluding: {pod_name}")
 
     if verbose:
         print(f"files: {compose_files}")
@@ -96,7 +123,11 @@ def command(ctx, include, exclude, cluster, command, extra_args):
                 os.environ["CERC_SCRIPT_DEBUG"] = "true"
             if verbose:
                 print(f"Running compose up for extra_args: {extra_args_list}")
+            for pre_start_command in pre_start_commands:
+                _run_command(ctx.obj, cluster, pre_start_command)
             docker.compose.up(detach=True, services=extra_args_list)
+            for post_start_command in post_start_commands:
+                _run_command(ctx.obj, cluster, post_start_command)
         elif command == "down":
             if verbose:
                 print("Running compose down")
@@ -148,3 +179,34 @@ def command(ctx, include, exclude, cluster, command, extra_args):
             if verbose:
                 print("Running compose logs")
             docker.compose.logs()
+
+
+def _convert_to_new_format(old_pod_array):
+    new_pod_array = []
+    for old_pod in old_pod_array:
+        if isinstance(old_pod, dict):
+            new_pod_array.append(old_pod)
+        else:
+            new_pod = {
+                "name": old_pod,
+                "repository": "internal",
+                "path": old_pod
+            }
+            new_pod_array.append(new_pod)
+    return new_pod_array
+
+
+def _run_command(ctx, cluster_name, command):
+    if ctx.verbose:
+        print(f"Running command: {command}")
+    command_dir = os.path.dirname(command)
+    print(f"command_dir: {command_dir}")
+    command_file = os.path.join(".", os.path.basename(command))
+    command_env = os.environ.copy()
+    command_env["CERC_SO_COMPOSE_PROJECT"] = cluster_name
+    if ctx.debug:
+        command_env["CERC_SCRIPT_DEBUG"] = "true"
+    command_result = subprocess.run(command_file, shell=True, env=command_env, cwd=command_dir)
+    if command_result.returncode != 0:
+        print(f"FATAL Error running command: {command}")
+        sys.exit(1)

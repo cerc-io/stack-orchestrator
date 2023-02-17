@@ -124,10 +124,10 @@ def command(ctx, include, exclude, cluster, command, extra_args):
             if verbose:
                 print(f"Running compose up for extra_args: {extra_args_list}")
             for pre_start_command in pre_start_commands:
-                _run_command(ctx.obj, pre_start_command)
+                _run_command(ctx.obj, cluster, pre_start_command)
             docker.compose.up(detach=True, services=extra_args_list)
             for post_start_command in post_start_commands:
-                _run_command(ctx.obj, post_start_command)
+                _run_command(ctx.obj, cluster, post_start_command)
         elif command == "down":
             if verbose:
                 print("Running compose down")
@@ -196,14 +196,17 @@ def _convert_to_new_format(old_pod_array):
     return new_pod_array
 
 
-def _run_command(ctx, command):
+def _run_command(ctx, cluster_name, command):
     if ctx.verbose:
         print(f"Running command: {command}")
     command_dir = os.path.dirname(command)
     print(f"command_dir: {command_dir}")
     command_file = os.path.join(".", os.path.basename(command))
-    my_env = os.environ.copy()
-    command_result = subprocess.run(f"bash {command_file}", shell=True, env=my_env, cwd=command_dir)
+    command_env = os.environ.copy()
+    command_env["CERC_SO_COMPOSE_PROJECT"] = cluster_name
+    if ctx.debug:
+        command_env["CERC_SCRIPT_DEBUG"] = "true"
+    command_result = subprocess.run(command_file, shell=True, env=command_env, cwd=command_dir)
     if command_result.returncode != 0:
         print(f"FATAL Error running command: {command}")
         sys.exit(1)

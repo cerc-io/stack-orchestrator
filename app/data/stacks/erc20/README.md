@@ -153,5 +153,5 @@ Transfer funds between different accounts using MetaMask and use the playground 
 To stop all the services running in background run:
 
 ```bash
-laconic-so deploy-system --include ipld-eth-db,go-ethereum-foundry,ipld-eth-server,watcher-erc20 down
+laconic-so --stack erc20 deploy-system down
 ```

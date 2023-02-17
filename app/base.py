@@ -31,4 +31,4 @@ class base_stack():
     def get_url(self):
         return "http://gitea.local:3000/api/packages/cerc-io/npm/"
 
-# need code to 
+# TODO: finish this implementation for the npm package registry

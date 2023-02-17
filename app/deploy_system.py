@@ -200,7 +200,6 @@ def _run_command(ctx, cluster_name, command):
     if ctx.verbose:
         print(f"Running command: {command}")
     command_dir = os.path.dirname(command)
-    print(f"command_dir: {command_dir}")
     command_file = os.path.join(".", os.path.basename(command))
     command_env = os.environ.copy()
     command_env["CERC_SO_COMPOSE_PROJECT"] = cluster_name

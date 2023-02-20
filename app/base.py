@@ -15,6 +15,8 @@
 
 import os
 from abc import ABC, abstractmethod
+from .deploy_system import get_stack_status
+
 
 def get_stack(config, stack):
     if stack == "package-registry":
@@ -40,7 +42,7 @@ class base_stack(ABC):
 
 class package_registry_stack(base_stack):
 
-    def ensure_available(self):
+    def ensure_available(self, ctx):
         self.url = "<no registry url set>"
         # Check if we were given an external registry URL
         url_from_environment = os.environ.get("CERC_NPM_REGISTRY_URL")
@@ -51,20 +53,21 @@ class package_registry_stack(base_stack):
         else:
             # Otherwise we expect to use the local package-registry stack
             # First check if the stack is up
-            # If not, print a message about how to start it and return fail to the caller
-            return False
-            # If it is available, get its mapped port and construct its URL
-            self.url = "http://gitea.local:3000/api/packages/cerc-io/npm/"
+            registry_running = get_stack_status("package-registry")
+            if registry_running:
+                # If it is available, get its mapped port and construct its URL
+                if self.config.debug:
+                    print("Found local package registry stack is up")
+                self.url = "http://gitea.local:3000/api/packages/cerc-io/npm/"
+            else:
+                # If not, print a message about how to start it and return fail to the caller
+                return False
         return True
 
     def get_url(self):
         return self.url
 
 # Temporary helper functions while we figure out a good interface to the stack deploy code
-
-
-def _is_stack_running(stack):
-    return True
 
 
 def _get_stack_mapped_port(stack, service, exposed_port):

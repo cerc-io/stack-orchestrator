@@ -58,6 +58,7 @@ class package_registry_stack(base_stack):
                 # If it is available, get its mapped port and construct its URL
                 if self.config.debug:
                     print("Found local package registry stack is up")
+                # TODO: get url from deploy-stack
                 self.url = "http://gitea.local:3000/api/packages/cerc-io/npm/"
             else:
                 # If not, print a message about how to start it and return fail to the caller

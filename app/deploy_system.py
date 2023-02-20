@@ -16,6 +16,7 @@
 # Deploys the system components using docker-compose
 
 import hashlib
+import copy
 import os
 import sys
 from decouple import config
@@ -117,8 +118,25 @@ def command(ctx, include, exclude, cluster, command, extra_args):
             docker.compose.logs()
 
 
-def get_stack_status(stack):
-    pass
+def get_stack_status(ctx, stack):
+
+    ctx_copy = copy.copy(ctx)
+    ctx_copy.stack = stack
+
+    cluster_context = _make_cluster_context(ctx_copy, [], [], None)
+    docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster)
+    # TODO: refactor to avoid duplicating this code above
+    if ctx.verbose:
+        print("Running compose ps")
+    container_list = docker.compose.ps()
+    if len(container_list) > 0:
+        if ctx.debug:
+            print(f"Container list from compose ps: {container_list}")
+        return True
+    else:
+        if ctx.debug:
+            print("No containers found from compose ps")
+        False
 
 
 def _make_cluster_context(ctx, include, exclude, cluster):

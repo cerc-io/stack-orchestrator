@@ -61,10 +61,10 @@ def command(ctx, include, exclude, cluster, command, extra_args):
             if verbose:
                 print(f"Running compose up for extra_args: {extra_args_list}")
             for pre_start_command in cluster_context.pre_start_commands:
-                _run_command(ctx.obj, cluster, pre_start_command)
+                _run_command(ctx.obj, cluster_context.cluster, pre_start_command)
             docker.compose.up(detach=True, services=extra_args_list)
             for post_start_command in cluster_context.post_start_commands:
-                _run_command(ctx.obj, cluster, post_start_command)
+                _run_command(ctx.obj, cluster_context.cluster, post_start_command)
         elif command == "down":
             if verbose:
                 print("Running compose down")
@@ -123,7 +123,7 @@ def get_stack_status(ctx, stack):
     ctx_copy = copy.copy(ctx)
     ctx_copy.stack = stack
 
-    cluster_context = _make_cluster_context(ctx_copy, [], [], None)
+    cluster_context = _make_cluster_context(ctx_copy, None, None, None)
     docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster)
     # TODO: refactor to avoid duplicating this code above
     if ctx.verbose:

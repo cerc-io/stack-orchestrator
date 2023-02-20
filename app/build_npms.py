@@ -44,9 +44,16 @@ def command(ctx, include, exclude):
 
     # build-npms depends on having access to a writable package registry
     # so we check here that it is available
-    package_registry_stack = get_stack(ctx.obj, 'package-registry')
-    package_registry_stack.ensure_available()
-    npm_registry_url = package_registry_stack.get_url('package-registry')
+    package_registry_stack = get_stack(ctx.obj, "package-registry")
+    registry_available = package_registry_stack.ensure_available()
+    if not registry_available:
+        print("FATAL: no npm registry available for build-npms command")
+        sys.exit(1)
+    npm_registry_url = package_registry_stack.get_url()
+    npm_registry_url_token = config("CERC_NPM_AUTH_TOKEN", default=None)
+    if not npm_registry_url_token:
+        print("FATAL: CERC_NPM_AUTH_TOKEN is not defined")
+        sys.exit(1)
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -86,7 +93,7 @@ def command(ctx, include, exclude):
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")
-            envs = {"CERC_NPM_AUTH_TOKEN": os.environ["CERC_NPM_AUTH_TOKEN"]} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
+            envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
             try:
                 docker.run("cerc/builder-js",
                            remove=True,

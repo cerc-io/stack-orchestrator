@@ -27,6 +27,8 @@ from python_on_whales import docker, DockerException
 from .base import get_stack
 from .util import include_exclude_check, get_parsed_stack_config
 
+builder_js_image_name = "cerc/builder-js:local"
+
 @click.command()
 @click.option('--include', help="only build these packages")
 @click.option('--exclude', help="don\'t build these packages")
@@ -41,6 +43,8 @@ def command(ctx, include, exclude):
     debug = ctx.obj.debug
     stack = ctx.obj.stack
     continue_on_error = ctx.obj.continue_on_error
+
+    _ensure_prerequisites()
 
     # build-npms depends on having access to a writable package registry
     # so we check here that it is available
@@ -95,7 +99,7 @@ def command(ctx, include, exclude):
                 print(f"Executing: {build_command}")
             envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
             try:
-                docker.run("cerc/builder-js",
+                docker.run(builder_js_image_name,
                            remove=True,
                            interactive=True,
                            tty=True,
@@ -126,3 +130,13 @@ def command(ctx, include, exclude):
         else:
             if verbose:
                 print(f"Excluding: {package}")
+
+
+def _ensure_prerequisites():
+    # Check that the builder-js container is available and
+    # Tell the user how to build it if not
+    images = docker.image.list(builder_js_image_name)
+    if len(images) == 0:
+        print(f"FATAL: builder image: {builder_js_image_name} is required but was not found")
+        print("Please run this command to create it: laconic-so --stack build-support build-containers")
+        sys.exit(1)

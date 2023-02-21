@@ -1,0 +1,13 @@
+version: "3.2"
+# See: https://docs.ipfs.tech/install/run-ipfs-inside-docker/#set-up
+services:
+  ipfs:
+    image: ipfs/kubo:master-2023-02-20-714a968
+    restart: always
+    volumes:
+      - ./ipfs/import:/import
+      - ./ipfs/data:/data/ipfs
+    ports:
+      - "8080"
+      - "4001"
+      - "5001"

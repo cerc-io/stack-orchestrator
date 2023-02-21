@@ -69,9 +69,3 @@ class package_registry_stack(base_stack):
 
     def get_url(self):
         return self.url
-
-# Temporary helper functions while we figure out a good interface to the stack deploy code
-
-
-def _get_stack_mapped_port(stack, service, exposed_port):
-    return 3000

@@ -6,23 +6,23 @@ Instructions to deploy a local ERC721 watcher stack (core + watcher) for demonst
 
 * Clone / pull required repositories:
 
-  ```bash
-  $ laconic-so setup-repositories --include cerc-io/go-ethereum,cerc-io/ipld-eth-db,cerc-io/ipld-eth-server,cerc-io/watcher-ts --pull
-  ```
+```bash
+laconic-so --stack erc721 setup-repositories
+```
 
 * Build the core and watcher container images:
 
-  ```bash
-  $ laconic-so build-containers --include cerc/go-ethereum,cerc/go-ethereum-foundry,cerc/ipld-eth-db,cerc/ipld-eth-server,cerc/watcher-erc721
-  ```
+```bash
+laconic-so --stack erc721 build-containers
+```
 
   This should create the required docker images in the local image registry.
 
 * Deploy the stack:
 
-  ```bash
-  $ laconic-so deploy-system --include db,go-ethereum-foundry,ipld-eth-server,watcher-erc721 up
-  ```
+```bash
+laconic-so --stack erc721 deploy-system up
+```
 
 ## Demo
 
@@ -209,6 +209,6 @@ Instructions to deploy a local ERC721 watcher stack (core + watcher) for demonst
 
 * To stop all the services running in background:
 
-  ```bash
-  $ laconic-so deploy-system --include db,go-ethereum-foundry,ipld-eth-server,watcher-erc721 down
-  ```
+```bash
+laconic-so --stack erc721 deploy-system down
+```

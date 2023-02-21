@@ -20,6 +20,7 @@
 
 import os
 import sys
+from shutil import rmtree, copytree
 from decouple import config
 import click
 import importlib.resources
@@ -65,11 +66,17 @@ def command(ctx, include, exclude):
     else:
         dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
-    if not quiet:
+    build_root_path = os.path.join(dev_root_path, "build-trees")
+
+    if verbose:
         print(f'Dev Root is: {dev_root_path}')
 
     if not os.path.isdir(dev_root_path):
         print('Dev root directory doesn\'t exist, creating')
+        os.makedirs(dev_root_path)
+    if not os.path.isdir(dev_root_path):
+        print('Build root directory doesn\'t exist, creating')
+        os.makedirs(build_root_path)
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from . import data
@@ -92,7 +99,19 @@ def command(ctx, include, exclude):
             print(f"Building npm package: {package}")
         repo_dir = package
         repo_full_path = os.path.join(dev_root_path, repo_dir)
-        # TODO: make the npm registry url configurable.
+        # Copy the repo and build that to avoid propagating JS tooling file changes back into the cloned repo
+        repo_copy_path = os.path.join(build_root_path, repo_dir)
+        # First delete any old build tree
+        if os.path.isdir(repo_copy_path):
+            if verbose:
+                print(f"Deleting old build tree: {repo_copy_path}")
+            if not dry_run:
+                rmtree(repo_copy_path)
+        # Now copy the repo into the build tree location
+        if verbose:
+            print(f"Copying build tree from: {repo_full_path} to: {repo_copy_path}")
+        if not dry_run:
+            copytree(repo_full_path, repo_copy_path)
         build_command = ["sh", "-c", f"cd /workspace && build-npm-package-local-dependencies.sh {npm_registry_url}"]
         if not dry_run:
             if verbose:
@@ -107,7 +126,7 @@ def command(ctx, include, exclude):
                            envs=envs,
                            # TODO: detect this host name in npm_registry_url rather than hard-wiring it
                            add_hosts=[("gitea.local", "host-gateway")],
-                           volumes=[(repo_full_path, "/workspace")],
+                           volumes=[(repo_copy_path, "/workspace")],
                            command=build_command
                            )
                 # Note that although the docs say that build_result should contain

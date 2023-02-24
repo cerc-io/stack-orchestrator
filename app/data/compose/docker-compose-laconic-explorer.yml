@@ -1,7 +1,22 @@
-version: "3.2"
+version: '3.8'
+
 services:
-  laconicd:
-    restart: unless-stopped
+  laconic-explorer:
     image: cerc/laconic-explorer:local
+      #env_file:
+      #- ../config/laconic-explorer/TODO?
+      #volumes:
+      #- ../config/keycloak/import:/import
     ports:
-      - "1317"
+      - "8080:8080"
+    command: ["yarn serve"]
+    depends_on:
+      explorer-nginx:
+        condition: service_healthy
+  explorer-nginx:
+    image: nginx:1.23-alpine
+    restart: always
+    volumes:
+      - ../config/laconic-explorer/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"

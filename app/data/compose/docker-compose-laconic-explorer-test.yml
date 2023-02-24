@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  laconic-explorer:
+    image: cerc/laconic-explorer:local
+      #env_file:
+      #- ../config/laconic-explorer/TODO?
+      #volumes:
+      #- ../config/keycloak/import:/import
+    ports:
+      - "8080:8080"
+        #    command: ["yarn serve"]
+    stdin_open: true

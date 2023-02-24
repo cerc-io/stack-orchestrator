@@ -39,6 +39,7 @@ RUN mkdir /scripts
 COPY build-npm-package.sh /scripts
 COPY yarn-local-registry-fixup.sh /scripts
 COPY build-npm-package-local-dependencies.sh /scripts
+COPY fixup-for-uid.sh /scripts
 ENV PATH="${PATH}:/scripts"
 
 COPY entrypoint.sh .

@@ -116,7 +116,11 @@ def command(ctx, include, exclude):
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")
-            envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
+            # Originally we used the PEP 584 merge operator:
+            # envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
+            # but that isn't available in Python 3.8 (default in Ubuntu 20) so for now we use dict.update:
+            envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token}
+            envs.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
             try:
                 docker.run(builder_js_image_name,
                            remove=True,

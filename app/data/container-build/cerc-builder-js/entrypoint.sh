@@ -1,3 +1,3 @@
 #!/bin/sh
-/scripts/fixup-for-uid.sh
+/scripts/check-uid.sh
 exec "$@"

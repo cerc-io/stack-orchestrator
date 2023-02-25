@@ -22,7 +22,7 @@ RUN \
         groupmod -g ${CERC_HOST_GID} ${USERNAME} ; \
     fi \
     && if [ ${CERC_HOST_UID} -ne 1000 ] ; then \
-        usermod -u ${CERC_HOST_UID} -g ${CERC_HOST_GID} ${USERNAME} ; \
+        usermod -u ${CERC_HOST_UID} -g ${CERC_HOST_GID} ${USERNAME} && chown ${CERC_HOST_UID}:${CERC_HOST_GID} /home/${USERNAME} ; \
     fi
 
 RUN \

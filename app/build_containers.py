@@ -83,7 +83,9 @@ def command(ctx, include, exclude):
     container_build_env = {
         "CERC_NPM_URL": "http://gitea.local:3000/api/packages/cerc-io/npm/",
         "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default="<token-not-supplied>"),
-        "CERC_REPO_BASE_DIR": dev_root_path
+        "CERC_REPO_BASE_DIR": dev_root_path,
+        "CERC_HOST_UID": f"{os.getuid()}",
+        "CERC_HOST_GID": f"{os.getgid()}"
     }
 
     def process_container(container):
@@ -106,7 +108,7 @@ def command(ctx, include, exclude):
             build_command = os.path.join(container_build_dir, "default-build.sh") + f" {container}:local {repo_dir_or_build_dir}"
         if not dry_run:
             if verbose:
-                print(f"Executing: {build_command}")
+                print(f"Executing: {build_command} with environment: {container_build_env}")
             build_result = subprocess.run(build_command, shell=True, env=container_build_env)
             if verbose:
                 print(f"Return code is: {build_result.returncode}")

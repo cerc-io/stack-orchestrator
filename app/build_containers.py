@@ -85,7 +85,8 @@ def command(ctx, include, exclude):
         "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default="<token-not-supplied>"),
         "CERC_REPO_BASE_DIR": dev_root_path,
         "CERC_HOST_UID": f"{os.getuid()}",
-        "CERC_HOST_GID": f"{os.getgid()}"
+        "CERC_HOST_GID": f"{os.getgid()}",
+        "DOCKER_BUILDKIT": "0"
     }
 
     def process_container(container):

@@ -1,13 +1,29 @@
 # Originally from: https://github.com/devcontainers/images/blob/main/src/javascript-node/.devcontainer/Dockerfile
+# Which depends on: https://github.com/nodejs/docker-node/blob/main/Dockerfile-debian.template
 # [Choice] Node.js version (use -bullseye variants on local arm64/Apple Silicon): 18, 16, 14, 18-bullseye, 16-bullseye, 14-bullseye, 18-buster, 16-buster, 14-buster
 ARG VARIANT=16-bullseye
 FROM node:${VARIANT}
+
+# Set these args to change the uid/gid for the base container's "node" user to match that of the host user (so bind mounts work as expected).
+ARG CERC_HOST_UID=1000
+ARG CERC_HOST_GID=1000
+# Make these values available at runtime to allow a consistency check.
+ENV HOST_UID=${CERC_HOST_UID}
+ENV HOST_GID=${CERC_HOST_GID}
 
 ARG USERNAME=node
 ARG NPM_GLOBAL=/usr/local/share/npm-global
 
 # Add NPM global to PATH.
 ENV PATH=${NPM_GLOBAL}/bin:${PATH}
+
+RUN \
+    if [ ${CERC_HOST_GID} -ne 1000 ] ; then \
+        groupmod -g ${CERC_HOST_GID} ${USERNAME} ; \
+    fi \
+    && if [ ${CERC_HOST_UID} -ne 1000 ] ; then \
+        usermod -u ${CERC_HOST_UID} -g ${CERC_HOST_GID} ${USERNAME} ; \
+    fi
 
 RUN \
     # Configure global npm install location, use group to adapt to UID/GID changes
@@ -39,7 +55,7 @@ RUN mkdir /scripts
 COPY build-npm-package.sh /scripts
 COPY yarn-local-registry-fixup.sh /scripts
 COPY build-npm-package-local-dependencies.sh /scripts
-COPY fixup-for-uid.sh /scripts
+COPY check-uid.sh /scripts
 ENV PATH="${PATH}:/scripts"
 
 COPY entrypoint.sh .

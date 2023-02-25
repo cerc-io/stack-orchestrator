@@ -11,4 +11,4 @@ fi
 image_tag=$1
 build_dir=$2
 echo "Building ${image_tag} in ${build_dir}"
-docker build -t ${image_tag} ${build_dir}
+docker build -t ${image_tag} --build-arg CERC_HOST_UID=${CERC_HOST_UID} --build-arg CERC_HOST_GID=${CERC_HOST_GID} ${build_dir}

@@ -55,5 +55,6 @@ def cli(ctx, stack, quiet, verbose, dry_run, local_stack, debug, continue_on_err
 cli.add_command(setup_repositories.command, "setup-repositories")
 cli.add_command(build_containers.command, "build-containers")
 cli.add_command(build_npms.command, "build-npms")
+cli.add_command(deploy_system.command, "deploy")  # deploy is an alias for deploy-system
 cli.add_command(deploy_system.command, "deploy-system")
 cli.add_command(version.command, "version")

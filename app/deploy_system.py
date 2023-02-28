@@ -151,10 +151,13 @@ def _make_cluster_context(ctx, include, exclude, cluster):
     compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
 
     if cluster is None:
-        # Create default unique, stable cluster name from confile file path
+        # Create default unique, stable cluster name from confile file path and stack name if provided
         # TODO: change this to the config file path
         path = os.path.realpath(sys.argv[0])
-        hash = hashlib.md5(path.encode()).hexdigest()
+        unique_cluster_descriptor = f"{path},{ctx.stack},{include},{exclude}"
+        if ctx.debug:
+            print(f"pre-hash descriptor: {unique_cluster_descriptor}")
+        hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()
         cluster = f"laconic-{hash}"
         if ctx.verbose:
             print(f"Using cluster name: {cluster}")

@@ -1,0 +1,17 @@
+version: "1.0"
+name: fixturenet-eth-statediff
+decription: "Loaded Ethereum Fixturenet"
+repos:
+  - cerc-io/go-ethereum
+  - cerc-io/tx-spammer
+  - cerc-io/ipld-eth-db
+containers:
+  - cerc/lighthouse
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/ipld-eth-db
+  - cerc/tx-spammer
+pods:
+  - fixturenet-eth
+  - tx-spammer
+  - ipld-eth-db

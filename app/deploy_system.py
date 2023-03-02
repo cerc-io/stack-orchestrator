@@ -56,10 +56,11 @@ def command(ctx, include, exclude, cluster, command, extra_args):
 
     if not dry_run:
         if command == "up":
-            if debug:
-                os.environ["CERC_SCRIPT_DEBUG"] = "true"
+            container_exec_env = _make_runtime_env(ctx.obj)
+            for attr, value in container_exec_env.items():
+                os.environ[attr] = value
             if verbose:
-                print(f"Running compose up for extra_args: {extra_args_list}")
+                print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {extra_args_list}")
             for pre_start_command in cluster_context.pre_start_commands:
                 _run_command(ctx.obj, cluster_context.cluster, pre_start_command)
             docker.compose.up(detach=True, services=extra_args_list)
@@ -75,11 +76,7 @@ def command(ctx, include, exclude, cluster, command, extra_args):
                 sys.exit(1)
             service_name = extra_args_list[0]
             command_to_exec = extra_args_list[1:]
-            container_exec_env = {
-                "CERC_HOST_UID": f"{os.getuid()}",
-                "CERC_HOST_GID": f"{os.getgid()}"
-            }
-            container_exec_env.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
+            container_exec_env = _make_runtime_env(ctx.obj)
             if verbose:
                 print(f"Running compose exec {service_name} {command_to_exec}")
             docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
@@ -139,6 +136,15 @@ def get_stack_status(ctx, stack):
         if ctx.debug:
             print("No containers found from compose ps")
         False
+
+
+def _make_runtime_env(ctx):
+    container_exec_env = {
+        "CERC_HOST_UID": f"{os.getuid()}",
+        "CERC_HOST_GID": f"{os.getgid()}"
+    }
+    container_exec_env.update({"CERC_SCRIPT_DEBUG": "true"} if ctx.debug else {})
+    return container_exec_env
 
 
 def _make_cluster_context(ctx, include, exclude, cluster):

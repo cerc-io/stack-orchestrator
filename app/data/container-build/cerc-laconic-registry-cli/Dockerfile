@@ -48,9 +48,6 @@ RUN npm config set @lirewine:registry ${CERC_NPM_URL} \
 # TODO: the image at this point could be made a base image for several different CLI images
 # that install different Node-based CLI commands
 
-# DEBUG, remove
-RUN yarn info @cerc-io/laconic-registry-cli
-
 # Globally install the cli package
 RUN yarn global add @cerc-io/laconic-registry-cli
 

@@ -51,4 +51,6 @@ RUN npm config set @lirewine:registry ${CERC_NPM_URL} \
 # Globally install the cli package
 RUN yarn global add @cerc-io/laconic-registry-cli
 
-ENTRYPOINT ["laconic"]
+# Default command sleeps forever so docker doesn't kill it
+CMD ["sh", "-c", "while :; do sleep 600; done"]
+

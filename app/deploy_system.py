@@ -75,7 +75,7 @@ def command(ctx, include, exclude, cluster, command, extra_args):
                 print("Usage: exec <service> <cmd>")
                 sys.exit(1)
             service_name = extra_args_list[0]
-            command_to_exec = extra_args_list[1:]
+            command_to_exec = ["sh", "-c"] + extra_args_list[1:]
             container_exec_env = _make_runtime_env(ctx.obj)
             if verbose:
                 print(f"Running compose exec {service_name} {command_to_exec}")

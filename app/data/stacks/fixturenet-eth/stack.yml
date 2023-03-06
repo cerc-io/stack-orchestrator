@@ -11,3 +11,4 @@ containers:
   - cerc/fixturenet-eth-lighthouse
 pods:
   - fixturenet-eth
+  - foundry

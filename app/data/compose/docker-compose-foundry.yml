@@ -1,0 +1,5 @@
+# Add-on pod to include foundry tooling within a fixturenet
+services:
+  foundry:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: ["while :; do sleep 600; done"]

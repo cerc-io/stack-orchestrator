@@ -54,7 +54,7 @@ RUN yarn global add @cerc-io/laconic-registry-cli
 # Add scripts
 RUN mkdir /scripts
 ENV PATH="${PATH}:/scripts"
-COPY ./import.key.sh /scripts
+COPY ./import-key.sh /scripts
 
 # Default command sleeps forever so docker doesn't kill it
 CMD ["sh", "-c", "while :; do sleep 600; done"]

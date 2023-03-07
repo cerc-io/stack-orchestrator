@@ -114,7 +114,8 @@ def command(ctx, include, exclude, cluster, command, extra_args):
         elif command == "logs":
             if verbose:
                 print("Running compose logs")
-            docker.compose.logs()
+            logs_output = docker.compose.logs(services=extra_args_list if extra_args_list != None else [])
+            print(logs_output)
 
 
 def get_stack_status(ctx, stack):

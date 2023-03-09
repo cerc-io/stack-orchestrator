@@ -13,3 +13,6 @@ containers:
   - cerc/laconic-registry-cli
 pods:
   - fixturenet-laconicd
+config:
+  cli:
+    key: laconicd.mykey

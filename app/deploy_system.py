@@ -304,7 +304,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                     print(f"fetched source value: {source_value}")
                 destination_output = docker.compose.execute(pd.destination_container,
                                                             ["sh", "-c",
-                                                             f"sh /scripts/import-{pd.destination_variable}.sh {pd.source_variable}"],
+                                                             f"sh /scripts/import-{pd.destination_variable}.sh {source_value}"],
                                                             tty=False,
                                                             envs=container_exec_env)
                 if ctx.debug:

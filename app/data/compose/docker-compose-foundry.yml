@@ -5,3 +5,4 @@ services:
     command: ["while :; do sleep 600; done"]
     volumes:
       - ../config/foundry/foundry.toml:/foundry.toml
+      - ./foundry/workspace:/workspace

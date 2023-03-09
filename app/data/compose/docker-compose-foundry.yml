@@ -3,3 +3,5 @@ services:
   foundry:
     image: ghcr.io/foundry-rs/foundry:latest
     command: ["while :; do sleep 600; done"]
+    volumes:
+      - ../config/foundry/foundry.toml:/foundry.toml

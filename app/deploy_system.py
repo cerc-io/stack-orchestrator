@@ -188,8 +188,10 @@ def _make_cluster_context(ctx, include, exclude, cluster):
         stack_config = get_parsed_stack_config(ctx.stack)
         # TODO: syntax check the input here
         pods_in_scope = stack_config['pods']
+        cluster_config = stack_config['config'] if 'config' in stack_config else None
     else:
         pods_in_scope = all_pods
+        cluster_config = None
 
     # Convert all pod definitions to v1.1 format
     pods_in_scope = _convert_to_new_format(pods_in_scope)
@@ -225,8 +227,6 @@ def _make_cluster_context(ctx, include, exclude, cluster):
 
     if ctx.verbose:
         print(f"files: {compose_files}")
-
-    cluster_config = stack_config['config'] if 'config' in stack_config else None
 
     return cluster_context(cluster, compose_files, pre_start_commands, post_start_commands, cluster_config)
 
@@ -278,7 +278,6 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
         source_variable: str
         destination_container: str
         destination_variable: str
-
 
     if cluster_config is not None:
         for container in cluster_config:

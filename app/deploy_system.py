@@ -19,6 +19,7 @@ import hashlib
 import copy
 import os
 import sys
+from dataclasses import dataclass
 from decouple import config
 import subprocess
 from python_on_whales import DockerClient
@@ -66,6 +67,9 @@ def command(ctx, include, exclude, cluster, command, extra_args):
             docker.compose.up(detach=True, services=extra_args_list)
             for post_start_command in cluster_context.post_start_commands:
                 _run_command(ctx.obj, cluster_context.cluster, post_start_command)
+
+            _orchestrate_cluster_config(ctx.obj, cluster_context.config, docker, container_exec_env)
+
         elif command == "down":
             if verbose:
                 print("Running compose down")
@@ -114,7 +118,7 @@ def command(ctx, include, exclude, cluster, command, extra_args):
         elif command == "logs":
             if verbose:
                 print("Running compose logs")
-            logs_output = docker.compose.logs(services=extra_args_list if extra_args_list != None else [])
+            logs_output = docker.compose.logs(services=extra_args_list if extra_args_list is not None else [])
             print(logs_output)
 
 
@@ -219,15 +223,18 @@ def _make_cluster_context(ctx, include, exclude, cluster):
     if ctx.verbose:
         print(f"files: {compose_files}")
 
-    return cluster_context(cluster, compose_files, pre_start_commands, post_start_commands)
+    cluster_config = stack_config['config'] if 'config' in stack_config else None
+
+    return cluster_context(cluster, compose_files, pre_start_commands, post_start_commands, cluster_config)
 
 
 class cluster_context:
-    def __init__(self, cluster, compose_files, pre_start_commands, post_start_commands) -> None:
+    def __init__(self, cluster, compose_files, pre_start_commands, post_start_commands, config) -> None:
         self.cluster = cluster
         self.compose_files = compose_files
         self.pre_start_commands = pre_start_commands
         self.post_start_commands = post_start_commands
+        self.config = config
 
 
 def _convert_to_new_format(old_pod_array):
@@ -258,3 +265,46 @@ def _run_command(ctx, cluster_name, command):
     if command_result.returncode != 0:
         print(f"FATAL Error running command: {command}")
         sys.exit(1)
+
+
+def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env):
+
+    @dataclass
+    class ConfigDirective:
+        source_container: str
+        source_variable: str
+        destination_container: str
+        destination_variable: str
+
+
+    if cluster_config is not None:
+        for container in cluster_config:
+            container_config = cluster_config[container]
+            if ctx.verbose:
+                print(f"{container} config: {container_config}")
+            for directive in container_config:
+                pd = ConfigDirective(
+                    container_config[directive].split(".")[0],
+                    container_config[directive].split(".")[1],
+                    container,
+                    directive
+                )
+                if ctx.verbose:
+                    print(f"Setting {pd.destination_container}.{pd.destination_variable} = {pd.source_container}.{pd.source_variable}")
+                # TODO: fix the script paths so they're consistent between containers
+                source_value = docker.compose.execute(pd.source_container,
+                                                      ["sh", "-c",
+                                                          f"sh /docker-entrypoint-scripts.d/export-{pd.source_variable}.sh"],
+                                                      tty=False,
+                                                      envs=container_exec_env)
+                # TODO: handle the case that the value is not yet available
+                if ctx.debug:
+                    print(f"fetched source value: {source_value}")
+                destination_output = docker.compose.execute(pd.destination_container,
+                                                            ["sh", "-c",
+                                                             f"sh /scripts/import-{pd.destination_variable}.sh {pd.source_variable}"],
+                                                            tty=False,
+                                                            envs=container_exec_env)
+                if ctx.debug:
+                    print(f"destination output: {destination_output}")
+                # TODO: detect errors here

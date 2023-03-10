@@ -24,7 +24,7 @@ if [ -z "$GETH_BASE_URL" ]; then
 fi
 
 function inc_status() {
-  echo " DONE!"
+  echo " done"
   STATUS=$((STATUS + 1))
   if [ $STATUS -lt ${#STATUSES[@]} ]; then
     echo -n "Waiting for ${STATUSES[$STATUS]}..."

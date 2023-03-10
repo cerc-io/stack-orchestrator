@@ -22,7 +22,7 @@ import sys
 from dataclasses import dataclass
 from decouple import config
 import subprocess
-from python_on_whales import DockerClient
+from python_on_whales import DockerClient, DockerException
 import click
 import importlib.resources
 from pathlib import Path
@@ -83,7 +83,10 @@ def command(ctx, include, exclude, cluster, command, extra_args):
             container_exec_env = _make_runtime_env(ctx.obj)
             if verbose:
                 print(f"Running compose exec {service_name} {command_to_exec}")
-            docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
+            try:
+                docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
+            except DockerException as error:
+                print(f"container command returned error exit status")
         elif command == "port":
             if extra_args_list is None or len(extra_args_list) < 2:
                 print("Usage: port <service> <exposed-port>")
@@ -301,7 +304,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                     print(f"fetched source value: {source_value}")
                 destination_output = docker.compose.execute(pd.destination_container,
                                                             ["sh", "-c",
-                                                             f"sh /scripts/import-{pd.destination_variable}.sh {pd.source_variable}"],
+                                                             f"sh /scripts/import-{pd.destination_variable}.sh {source_value}"],
                                                             tty=False,
                                                             envs=container_exec_env)
                 if ctx.debug:

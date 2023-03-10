@@ -20,27 +20,31 @@ This should create several container images in the local image registry:
 
 ## Deploy the stack
 ```
-$ laconic-so --stack fixturenet-eth deploy-system up
+$ laconic-so --stack fixturenet-eth deploy up
 ```
 
 ## Check status
 
 ```
-$ container-build/cerc-fixturenet-eth-lighthouse/scripts/status.sh
-Waiting for geth to generate DAG ..................................................... DONE!
-Waiting for beacon phase0 .... DONE!
-Waiting for beacon altair .... DONE!
-Waiting for beacon bellatrix pre-merge .... DONE!
-Waiting for beacon bellatrix merge .... DONE!
+$ laconic-so --stack fixturenet-eth deploy exec fixturenet-eth-bootnode-lighthouse /scripts/status-internal.sh
+Waiting for geth to generate DAG.... done
+Waiting for beacon phase0.... done
+Waiting for beacon altair.... done
+Waiting for beacon bellatrix pre-merge.... done
+Waiting for beacon bellatrix merge.... done
 
-$ docker ps -f 'name=laconic' --format 'table {{.Names}}\t{{.Ports}}'  | cut -d'-' -f3- | sort
-NAMES                                                                           PORTS
-fixturenet-eth-bootnode-geth-1         8545-8546/tcp, 30303/udp, 0.0.0.0:55847->9898/tcp, 0.0.0.0:55848->30303/tcp
-fixturenet-eth-bootnode-lighthouse-1
-fixturenet-eth-geth-1-1                8546/tcp, 30303/tcp, 30303/udp, 0.0.0.0:55851->8545/tcp
-fixturenet-eth-geth-2-1                8545-8546/tcp, 30303/tcp, 30303/udp
-fixturenet-eth-lighthouse-1-1          0.0.0.0:55858->8001/tcp
-fixturenet-eth-lighthouse-2-1
+$ laconic-so --stack fixturenet-eth deploy ps
+Running containers:
+id: c6538b60c0328dadfa2c5585c4d09674a6a13e6d712ff1cd82a26849e4e5679b, name: laconic-b12fa16e999821562937781f8ab0b1e8-fixturenet-eth-bootnode-geth-1, ports: 0.0.0.0:58909->30303/tcp, 0.0.0.0:58910->9898/tcp
+id: 5b70597a8211bc7e78d33e50486cb565a7f4a9ce581ce150b3bb450e342bdeda, name: laconic-b12fa16e999821562937781f8ab0b1e8-fixturenet-eth-bootnode-lighthouse-1, ports:
+id: 19ed78867b6c534d893835cdeb1e89a9ea553b8e8c02ab02468e4bd1563a340f, name: laconic-b12fa16e999821562937781f8ab0b1e8-fixturenet-eth-geth-1-1, ports: 0.0.0.0:58911->40000/tcp, 0.0.0.0:58912->6060/tcp, 0.0.0.0:58913->8545/tcp
+id: 8da0e30a1ce33122d8fd2225e4d26c7f30eb4bfbfa743f2af04d9db5d0bf7fa6, name: laconic-b12fa16e999821562937781f8ab0b1e8-fixturenet-eth-geth-2-1, ports:
+id: 387a42a14971034588ba9aeb9b9e2ca7fc0cc61b96f8fe8c2ab770c9d6fb1e0f, name: laconic-b12fa16e999821562937781f8ab0b1e8-fixturenet-eth-lighthouse-1-1, ports: 0.0.0.0:58917->8001/tcp
+id: de5115bf89087bae03b291664a73ffe3554fe23e79e4b8345e088b040d5580ac, name: laconic-b12fa16e999821562937781f8ab0b1e8-fixturenet-eth-lighthouse-2-1, ports:
+id: 2a7e5a0fb2be7fc9261a7b725a40818facbbe6d0cb2497d82c0e02de0a8e959b, name: laconic-b12fa16e999821562937781f8ab0b1e8-foundry-1, ports:
+
+$ laconic-so --stack fixturenet-eth deploy exec foundry "cast block-number"
+3
 ```
 
 ## Additional pieces
@@ -69,11 +73,11 @@ $ laconic-so deploy-system --include db,fixturenet-eth,ipld-eth-server,ipld-eth-
 # Status
 
 $ container-build/cerc-fixturenet-eth-lighthouse/scripts/status.sh
-Waiting for geth to generate DAG.... DONE!
-Waiting for beacon phase0.... DONE!
-Waiting for beacon altair.... DONE!
-Waiting for beacon bellatrix pre-merge.... DONE!
-Waiting for beacon bellatrix merge.... DONE!
+Waiting for geth to generate DAG.... done
+Waiting for beacon phase0.... done
+Waiting for beacon altair.... done
+Waiting for beacon bellatrix pre-merge.... done
+Waiting for beacon bellatrix merge.... done
 
 $ docker ps -f 'name=laconic' --format 'table {{.Names}}\t{{.Ports}}'  | cut -d'-' -f3- | sort
 NAMES                                                                           PORTS

@@ -4,11 +4,13 @@ decription: "Ethereum Fixturenet"
 repos:
   - cerc-io/go-ethereum
   - cerc-io/tx-spammer
+  - dboreham/foundry
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse
   - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
+  - cerc/foundry
 pods:
   - fixturenet-eth
   - foundry

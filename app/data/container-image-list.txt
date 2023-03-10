@@ -1,4 +1,4 @@
-foundry-rs/foundry
+cerc/foundry
 cerc/test-contract
 cerc/eth-statediff-fill-service
 cerc/eth-statediff-service

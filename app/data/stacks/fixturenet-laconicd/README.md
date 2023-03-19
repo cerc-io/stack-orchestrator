@@ -44,7 +44,5 @@ $ laconic-so --stack fixturenet-laconicd deploy logs
 ```
 ## 6. Test with the Registry CLI
 ```
-$ laconic-so --stack fixturenet-laconicd deploy exec laconicd "sh /docker-entrypoint-scripts.d/export-mykey.sh"
-$ laconic-so --stack fixturenet-laconicd deploy exec cli "sh /scripts/import-key.sh xxxxxxxxxxxxxxxxxxxxxxx"
 $ laconic-so --stack fixturenet-laconicd deploy exec cli "laconic cns status"
 ```

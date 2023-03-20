@@ -26,7 +26,21 @@ laconic-so --stack mobymask-v2 deploy-system up
 
 ## Tests
 
-Find the watcher container's id using `docker ps` and export it for later use:
+Find the watcher container's id:
+
+```bash
+docker ps | grep "cerc/watcher-mobymask-v2:local"
+```
+
+Example output
+
+```
+8b38e9a64d7e   cerc/watcher-mobymask-v2:local   "sh -c 'yarn server'"    35 seconds ago   Up 14 seconds (health: starting)   0.0.0.0:3001->3001/tcp, 0.0.0.0:9001->9001/tcp, 0.0.0.0:9090->9090/tcp   laconic-aeb84676de2b0a7671ae90d537fc7d26-mobymask-watcher-server-1
+```
+
+In above output the container ID is `8b38e9a64d7e`
+
+Export it for later use:
 
 ```bash
 export CONTAINER_ID=<CONTAINER_ID>

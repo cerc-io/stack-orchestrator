@@ -48,6 +48,7 @@ PING gitea.local (127.0.0.1) 56(84) bytes of data.
 64 bytes from localhost (127.0.0.1): icmp_seq=1 ttl=64 time=0.147 ms
 64 bytes from localhost (127.0.0.1): icmp_seq=2 ttl=64 time=0.033 ms
 ```
+Although not necessary in order to build and publish packages, you can now access the Gitea web interface at: [http://gitea.local:3000](http://gitea.local:3000) using these credentials: gitea_admin/admin1234 (Note: please properly secure Gitea if public internet access is allowed).
 
 Now npm packages can be built:
 ### Build npm Packages

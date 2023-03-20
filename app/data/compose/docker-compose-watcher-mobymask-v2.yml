@@ -1,0 +1,47 @@
+version: '3.2'
+
+services:
+  mobymask-watcher-db:
+    restart: unless-stopped
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=vdbm
+      - POSTGRES_MULTIPLE_DATABASES=mobymask-watcher,mobymask-watcher-job-queue
+      - POSTGRES_EXTENSION=mobymask-watcher-job-queue:pgcrypto
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
+      - mobymask_watcher_db_data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:15432:5432"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  mobymask-watcher-server:
+    restart: unless-stopped
+    depends_on:
+      mobymask-watcher-db:
+        condition: service_healthy
+    image: cerc/watcher-mobymask-v2:local
+    command: ["sh", "-c", "yarn server"]
+    volumes:
+      - ../config/watcher-mobymask-v2/watcher.toml:/app/packages/mobymask-v2-watcher/environments/local.toml
+      - ../config/watcher-mobymask-v2/.env:/app/packages/peer/.env
+      - ../config/watcher-mobymask-v2/relay-id.json:/app/packages/mobymask-v2-watcher/relay-id.json
+    ports:
+      - "0.0.0.0:3001:3001"
+      - "0.0.0.0:9001:9001"
+      - "0.0.0.0:9090:9090"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "9090"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+volumes:
+  mobymask_watcher_db_data:

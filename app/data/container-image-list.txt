@@ -18,6 +18,9 @@ cerc/watcher-erc20
 cerc/watcher-erc721
 cerc/watcher-uniswap-v3
 cerc/uniswap-v3-info
+cerc/watcher-v2-mobymask
+cerc/react-peer
+cerc/mobymask-ui
 cerc/test-container
 cerc/eth-probe
 cerc/builder-js

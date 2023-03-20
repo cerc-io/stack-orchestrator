@@ -11,6 +11,8 @@ cerc-io/laconic-sdk
 cerc-io/laconic-registry-cli
 cerc-io/mobymask-watcher
 cerc-io/watcher-ts
+cerc-io/react-peer
+cerc-io/mobymask-ui
 vulcanize/uniswap-watcher-ts
 vulcanize/uniswap-v3-info
 vulcanize/assemblyscript

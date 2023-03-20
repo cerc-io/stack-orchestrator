@@ -1,0 +1,12 @@
+version: "1.0"
+name: mobymask-v2-watcher
+repos:
+  - cerc-io/watcher-ts
+  - cerc-io/react-peer
+  - cerc-io/mobymask-ui
+containers:
+  - cerc/watcher-v2-mobymask
+  - cerc/react-peer
+  - cerc/mobymask-ui
+pods:
+  - watcher-v2-mobymask

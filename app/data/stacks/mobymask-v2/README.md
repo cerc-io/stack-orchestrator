@@ -1,19 +1,19 @@
 # MobyMask v2 watcher
 
-Instructions to deploy MobyMask v2 watcher stack using [laconic-stack-orchestrator](../../README.md#setup)
+Instructions to deploy MobyMask v2 watcher stack using [laconic-stack-orchestrator](/README.md#install)
 
 ## Setup
 
 Clone required repositories:
 
 ```bash
-laconic-so --stack mobymask-v2-watcher setup-repositories
+laconic-so --stack mobymask-v2 setup-repositories
 ```
 
 Build the container images:
 
 ```bash
-laconic-so --stack mobymask-v2-watcher build-containers
+laconic-so --stack mobymask-v2 build-containers
 ```
 
 This should create the required docker images in the local image registry.
@@ -21,7 +21,7 @@ This should create the required docker images in the local image registry.
 Deploy the stack:
 
 ```bash
-laconic-so --stack mobymask-v2-watcher deploy-system up
+laconic-so --stack mobymask-v2 deploy-system up
 ```
 
 ## Tests
@@ -43,5 +43,5 @@ docker exec -w /app/packages/peer $CONTAINER_ID yarn test
 To stop all the services running in background run:
 
 ```bash
-laconic-so --stack mobymask-v2-watcher deploy-system down
+laconic-so --stack mobymask-v2 deploy-system down
 ```

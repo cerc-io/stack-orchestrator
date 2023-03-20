@@ -7,6 +7,6 @@ WORKDIR /app
 COPY . .
 
 RUN echo "Building react-peer" && \
-    yarn
+    yarn && yarn workspace @cerc-io/react-peer build
 
 WORKDIR /app

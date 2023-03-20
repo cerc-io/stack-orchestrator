@@ -26,12 +26,12 @@ services:
     depends_on:
       mobymask-watcher-db:
         condition: service_healthy
-    image: cerc/watcher-v2-mobymask:local
+    image: cerc/watcher-mobymask-v2:local
     command: ["sh", "-c", "yarn server"]
     volumes:
-      - ../config/watcher-v2-mobymask/mobymask-v2-watcher.toml:/app/packages/mobymask-v2-watcher/environments/local.toml
-      - ../config/watcher-v2-mobymask/.env:/app/packages/peer/.env
-      - ../config/watcher-v2-mobymask/relay-id.json:/app/packages/mobymask-v2-watcher/relay-id.json
+      - ../config/watcher-mobymask-v2/watcher.toml:/app/packages/mobymask-v2-watcher/environments/local.toml
+      - ../config/watcher-mobymask-v2/.env:/app/packages/peer/.env
+      - ../config/watcher-mobymask-v2/relay-id.json:/app/packages/mobymask-v2-watcher/relay-id.json
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"

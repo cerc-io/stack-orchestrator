@@ -6,7 +6,9 @@ WORKDIR /app
 
 COPY . .
 
+RUN yarn global add serve
+
 RUN echo "Building react-peer" && \
-    yarn && yarn workspace @cerc-io/react-peer build
+    yarn && yarn build --ignore @cerc-io/test-app
 
 WORKDIR /app

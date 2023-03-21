@@ -6,6 +6,7 @@ repos:
   - cerc-io/mobymask-ui
 containers:
   - cerc/watcher-mobymask-v2
+  - cerc/react-peer
   - cerc/mobymask-ui
 pods:
   - watcher-mobymask-v2

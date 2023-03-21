@@ -6,6 +6,8 @@ WORKDIR /app
 
 COPY . .
 
+RUN npm install -g serve
+
 RUN echo "Building mobymask-ui" && \
     npm install
 

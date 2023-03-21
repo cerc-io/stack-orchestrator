@@ -30,7 +30,7 @@ services:
     command: ["sh", "-c", "yarn server"]
     volumes:
       - ../config/watcher-mobymask-v2/watcher.toml:/app/packages/mobymask-v2-watcher/environments/local.toml
-      - ../config/watcher-mobymask-v2/.env:/app/packages/peer/.env
+      - ../config/watcher-mobymask-v2/peer.env:/app/packages/peer/.env
       - ../config/watcher-mobymask-v2/relay-id.json:/app/packages/mobymask-v2-watcher/relay-id.json
     ports:
       - "0.0.0.0:3001:3001"

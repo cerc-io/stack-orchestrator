@@ -1,0 +1,19 @@
+version: "1.0"
+name: fixturenet-laconic-loaded
+description: "A full featured laconic fixturenet"
+repos:
+  - cerc-io/laconicd
+  - cerc-io/laconic-sdk
+  - cerc-io/laconic-registry-cli
+  - cerc-io/laconic-console
+npms:
+  - laconic-sdk
+  - laconic-registry-cli
+containers:
+  - cerc/laconicd
+  - cerc/laconic-registry-cli
+pods:
+  - fixturenet-laconicd
+config:
+  cli:
+    key: laconicd.mykey

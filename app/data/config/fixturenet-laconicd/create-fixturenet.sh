@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
-# Originally from: https://github.com/cerc-io/laconicd/blob/main/init.sh
-# TODO: fold this back into the laconicd repo
-
+# TODO: this file is now an unmodified copy of cerc-io/laconicd/init.sh
+# so we should have a mechanism to bundle it inside the container rather than link from here
+# at deploy time.
 
 KEY="mykey"
 CHAINID="laconic_9000-1"
@@ -10,7 +10,7 @@ MONIKER="localtestnet"
 KEYRING="test"
 KEYALGO="eth_secp256k1"
 LOGLEVEL="info"
-# to trace evm
+# trace evm
 TRACE="--trace"
 # TRACE=""
 
@@ -28,7 +28,7 @@ laconicd config chain-id $CHAINID
 # if $KEY exists it should be deleted
 laconicd keys add $KEY --keyring-backend $KEYRING --algo $KEYALGO
 
-# Set moniker and chain-id for laconic (Moniker can be anything, chain-id must be an integer)
+# Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
 laconicd init $MONIKER --chain-id $CHAINID
 
 # Change parameter token denominations to aphoton
@@ -37,28 +37,28 @@ cat $HOME/.laconicd/config/genesis.json | jq '.app_state["crisis"]["constant_fee
 cat $HOME/.laconicd/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
 cat $HOME/.laconicd/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
 # Custom modules
-cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["record_rent"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_rent"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_auction_commit_fee"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_auction_reveal_fee"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_auction_minimum_bid"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["record_rent"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_rent"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_auction_commit_fee"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_auction_reveal_fee"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_auction_minimum_bid"]["denom"]="aphoton"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
 
-if [[ "$TEST_NAMESERVICE_EXPIRY" == "true" ]]; then
+if [[ "$TEST_REGISTRY_EXPIRY" == "true" ]]; then
   echo "Setting timers for expiry tests."
 
-  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["record_rent_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_grace_period"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_rent_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["record_rent_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_grace_period"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_rent_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
 fi
 
 if [[ "$TEST_AUCTION_ENABLED" == "true" ]]; then
   echo "Enabling auction and setting timers."
 
-  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_auction_enabled"]=true' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_rent_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_grace_period"]="300s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_auction_commits_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
-  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["nameservice"]["params"]["authority_auction_reveals_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_auction_enabled"]=true' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_rent_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_grace_period"]="300s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_auction_commits_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
+  cat $HOME/.laconicd/config/genesis.json | jq '.app_state["registry"]["params"]["authority_auction_reveals_duration"]="60s"' > $HOME/.laconicd/config/tmp_genesis.json && mv $HOME/.laconicd/config/tmp_genesis.json $HOME/.laconicd/config/genesis.json
 fi
 
 # increase block time (?)

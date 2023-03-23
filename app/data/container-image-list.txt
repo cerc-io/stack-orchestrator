@@ -27,3 +27,5 @@ cerc/builder-js
 cerc/keycloak
 cerc/tx-spammer
 cerc/builder-gerbil
+cerc/optimism-l2geth
+cerc/optimism-batcher

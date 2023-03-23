@@ -19,3 +19,5 @@ vulcanize/assemblyscript
 cerc-io/eth-probe
 cerc-io/tx-spammer
 dboreham/foundry
+ethereum-optimism/op-geth
+ethereum-optimism/optimism

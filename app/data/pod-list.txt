@@ -21,3 +21,4 @@ keycloak
 tx-spammer
 kubo
 foundry
+fixturenet-optimism

@@ -1,0 +1,21 @@
+version: "1.0"
+name: fixturenet-optimism
+decription: "Optimism Fixturenet"
+repos:
+  - cerc-io/go-ethereum
+  - ethereum-optimism/op-geth
+  - ethereum-optimism/optimism
+  - cerc-io/tx-spammer
+  - dboreham/foundry
+containers:
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/optimism-l2geth
+  - cerc/optimism-batcher
+  - cerc/foundry
+pods:
+  - fixturenet-eth
+  - fixturenet-optimism
+  - foundry

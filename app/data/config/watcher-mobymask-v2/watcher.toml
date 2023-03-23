@@ -31,7 +31,7 @@
       enableDebugInfo = true
 
     [server.p2p.peer]
-      relayMultiaddr = '/dns/mobymask-watcher-server/tcp/9090/http/p2p-webrtc-direct/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t'
+      relayMultiaddr = '/dns4/mobymask-watcher-server/tcp/9090/ws/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t'
       pubSubTopic = 'mobymask'
       peerIdFile = './peer-id.json'
       enableDebugInfo = true

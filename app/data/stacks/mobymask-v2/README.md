@@ -134,7 +134,7 @@ The peer-test-app should be running at http://localhost:3003
 
 ## Demo
 
-<!-- TODO -->
+Follow the [demo](./demo.md) to try out the MobyMask app with L2 chain
 
 ## Clean up
 

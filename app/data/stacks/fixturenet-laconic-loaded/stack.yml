@@ -9,6 +9,7 @@ repos:
 npms:
   - laconic-sdk
   - laconic-registry-cli
+  - laconic-console
 containers:
   - cerc/laconicd
   - cerc/laconic-registry-cli

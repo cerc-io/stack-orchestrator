@@ -11,6 +11,7 @@ cerc/ipld-eth-beacon-indexer
 cerc/ipld-eth-server
 cerc/laconicd
 cerc/laconic-registry-cli
+cerc/laconic-console-host
 cerc/fixturenet-eth-geth
 cerc/fixturenet-eth-lighthouse
 cerc/watcher-mobymask

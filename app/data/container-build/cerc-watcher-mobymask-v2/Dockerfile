@@ -4,7 +4,7 @@ RUN apt-get update \
   && apt-get install -y curl gnupg build-essential \
   && curl --silent --location https://deb.nodesource.com/setup_18.x | bash - \
   && apt-get update \
-  && apt-get install -y nodejs git busybox \
+  && apt-get install -y nodejs git busybox jq \
   && node -v
 
 RUN corepack enable \

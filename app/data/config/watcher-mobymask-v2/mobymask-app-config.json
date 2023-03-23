@@ -1,7 +1,4 @@
 {
-  "address": "0xF1Ec16Eedc547A60574EAD530AA120f1e108a9f4",
-  "name": "MobyMask",
-  "chainId": 9000,
   "relayNodes": [
     "/ip4/127.0.0.1/tcp/9090/http/p2p-webrtc-direct/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t"
   ],

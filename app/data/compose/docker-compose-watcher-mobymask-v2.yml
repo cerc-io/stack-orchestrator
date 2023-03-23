@@ -21,6 +21,26 @@ services:
       retries: 15
       start_period: 10s
 
+  mobymask:
+    restart: unless-stopped
+    depends_on:
+      mobymask-watcher-db:
+        condition: service_healthy
+    image: cerc/mobymask:local
+    working_dir: /app/packages/server
+    environment:
+      - ENV=PROD
+    command: ["sh", "-c", "npm start"]
+    volumes:
+      - ../config/watcher-mobymask-v2/secrets.json:/app/packages/server/secrets.json
+      - moby_data_server:/app/packages/server
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3330"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
   mobymask-watcher-server:
     restart: unless-stopped
     depends_on:
@@ -43,14 +63,32 @@ services:
       retries: 15
       start_period: 5s
 
+  mobymask-watcher-peer:
+    restart: unless-stopped
+    depends_on:
+      mobymask:
+        condition: service_healthy
+    image: cerc/watcher-mobymask-v2:local
+    command: ["sh", "peer-start.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v2/watcher.toml:/app/packages/mobymask-v2-watcher/environments/local.toml
+      - ../config/watcher-mobymask-v2/peer-id.json:/app/packages/mobymask-v2-watcher/peer-id.json
+      - ../config/watcher-mobymask-v2/peer-start.sh:/app/packages/mobymask-v2-watcher/peer-start.sh
+      - moby_data_server:/server
+
   mobymask-app:
     depends_on:
       mobymask-watcher-server:
         condition: service_healthy
+      mobymask:
+        condition: service_healthy
     image: cerc/mobymask-ui:local
-    command: ["sh", "-c", "npm run build && serve -s build"]
+    command: ["sh", "mobymask-app-start.sh"]
     volumes:
-      - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/config.json
+      - ../config/watcher-mobymask-v2/mobymask-app.env:/app/.env
+      - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
+      - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/app/mobymask-app-start.sh
+      - moby_data_server:/server
     ports:
       - "0.0.0.0:3002:3000"
     healthcheck:
@@ -59,6 +97,7 @@ services:
       timeout: 5s
       retries: 15
       start_period: 10s
+    shm_size: '1GB'
 
   peer-test-app:
     depends_on:
@@ -80,3 +119,12 @@ services:
 
 volumes:
   mobymask_watcher_db_data:
+  moby_data_server:
+
+networks:
+  # https://docs.docker.com/compose/networking/#configure-the-default-network
+  default:
+    # https://docs.docker.com/compose/networking/#use-a-pre-existing-network
+    name: mobymask-v2-network
+    external: true
+

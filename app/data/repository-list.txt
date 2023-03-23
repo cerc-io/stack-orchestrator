@@ -24,3 +24,5 @@ lirewine/gem
 lirewine/debug
 lirewine/crypto
 telackey/act_runner
+ethereum-optimism/op-geth
+ethereum-optimism/optimism

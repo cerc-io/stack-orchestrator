@@ -30,3 +30,5 @@ cerc/tx-spammer
 cerc/builder-gerbil
 cerc/act-runner
 cerc/act-runner-task-executor
+cerc/optimism-l2geth
+cerc/optimism-batcher

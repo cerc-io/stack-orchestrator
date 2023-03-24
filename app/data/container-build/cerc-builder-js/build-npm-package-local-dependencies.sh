@@ -1,7 +1,7 @@
 #!/bin/bash
 # Usage: build-npm-package-local-dependencies.sh <registry-url> <publish-with-this-version>
 # Runs build-npm-package.sh after first fixing up yarn.lock to use a local
-# npm registry for all packages in a spcific scope (currently @cerc-io)
+# npm registry for all packages in a spcific scope (currently @cerc-io and @lirewine)
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
@@ -17,18 +17,20 @@ fi
 set -e
 local_npm_registry_url=$1
 package_publish_version=$2
-# TODO: make this a paramater and allow a list of scopes
-npm_scope_for_local="@cerc-io"
-# We need to configure the local registry 
-npm config set ${npm_scope_for_local}:registry ${local_npm_registry_url}
-npm config set -- ${local_npm_registry_url}:_authToken ${CERC_NPM_AUTH_TOKEN}
-# Find the set of dependencies from the specified scope
-mapfile -t dependencies_from_scope < <(cat package.json | jq -r '.dependencies | with_entries(if (.key|test("^'${npm_scope_for_local}'/.*$")) then ( {key: .key, value: .value } ) else empty end ) | keys[]')
-echo "Fixing up dependencies"
-for package in "${dependencies_from_scope[@]}"
-do
-    echo "Fixing up package ${package}"
-    yarn-local-registry-fixup.sh $package ${local_npm_registry_url}
+# If we need to handle an additional scope, add it to the list below:
+npm_scopes_to_handle=("@cerc-io" "@lirewine")
+for npm_scope_for_local in ${npm_scopes_to_handle[@]}; do
+    # We need to configure the local registry 
+    npm config set ${npm_scope_for_local}:registry ${local_npm_registry_url}
+    npm config set -- ${local_npm_registry_url}:_authToken ${CERC_NPM_AUTH_TOKEN}
+    # Find the set of dependencies from the specified scope
+    mapfile -t dependencies_from_scope < <(cat package.json | jq -r '.dependencies | with_entries(if (.key|test("^'${npm_scope_for_local}'/.*$")) then ( {key: .key, value: .value } ) else empty end ) | keys[]')
+    echo "Fixing up dependencies"
+    for package in "${dependencies_from_scope[@]}"
+    do
+        echo "Fixing up package ${package}"
+        yarn-local-registry-fixup.sh $package ${local_npm_registry_url}
+    done
 done
 echo "Running build"
 build-npm-package.sh ${local_npm_registry_url} ${package_publish_version}

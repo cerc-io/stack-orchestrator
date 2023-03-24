@@ -40,8 +40,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # RUN su node -c "npm install -g <your-package-list-here>"
 
 # Configure the local npm registry
-RUN npm config set @lirewine:registry ${CERC_NPM_URL} \
-    && npm config set @cerc-io:registry ${CERC_NPM_URL} \
+RUN npm config set @cerc-io:registry ${CERC_NPM_URL} \
     && npm config set @lirewine:registry ${CERC_NPM_URL} \
     && npm config set -- ${CERC_NPM_URL}:_authToken ${CERC_NPM_AUTH_TOKEN}
 

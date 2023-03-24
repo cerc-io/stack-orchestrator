@@ -1,6 +1,4 @@
-gem
 laconic-sdk
-debug
 laconic-registry-cli
 gem
 debug

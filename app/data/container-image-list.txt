@@ -21,6 +21,7 @@ cerc/uniswap-v3-info
 cerc/watcher-mobymask-v2
 cerc/react-peer
 cerc/mobymask-ui
+cerc/mobymask
 cerc/test-container
 cerc/eth-probe
 cerc/builder-js

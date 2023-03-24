@@ -19,3 +19,6 @@ vulcanize/assemblyscript
 cerc-io/eth-probe
 cerc-io/tx-spammer
 dboreham/foundry
+lirewine/gem
+lirewine/debug
+lirewine/crypto

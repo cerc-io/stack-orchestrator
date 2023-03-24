@@ -22,3 +22,4 @@ dboreham/foundry
 lirewine/gem
 lirewine/debug
 lirewine/crypto
+lirewine/sdk

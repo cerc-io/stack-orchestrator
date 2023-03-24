@@ -19,13 +19,14 @@ local_npm_registry_url=$1
 package_publish_version=$2
 # If we need to handle an additional scope, add it to the list below:
 npm_scopes_to_handle=("@cerc-io" "@lirewine")
-for npm_scope_for_local in ${npm_scopes_to_handle[@]}; do
+for npm_scope_for_local in ${npm_scopes_to_handle[@]}
+do
     # We need to configure the local registry
     npm config set ${npm_scope_for_local}:registry ${local_npm_registry_url}
     npm config set -- ${local_npm_registry_url}:_authToken ${CERC_NPM_AUTH_TOKEN}
     # Find the set of dependencies from the specified scope
     mapfile -t dependencies_from_scope < <(cat package.json | jq -r '.dependencies | with_entries(if (.key|test("^'${npm_scope_for_local}'/.*$")) then ( {key: .key, value: .value } ) else empty end ) | keys[]')
-    echo "Fixing up dependencies"
+    echo "Fixing up dependencies in scope ${npm_scope_for_local}"
     for package in "${dependencies_from_scope[@]}"
     do
         echo "Fixing up package ${package}"

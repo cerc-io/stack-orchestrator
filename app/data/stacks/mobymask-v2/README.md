@@ -10,21 +10,29 @@ Clone required repositories:
 laconic-so --stack mobymask-v2 setup-repositories
 ```
 
-Checkout to the required branches in repos
+Checkout to the required versions and branches in repos
 
-* mobymask-ui
-  ```bash
-  cd ~/cerc/mobymask-ui
+```bash
+# watcher-ts
+cd ~/cerc/watcher-ts
+git checkout v0.2.31
 
-  git checkout laconic
-  ```
+# react-peer
+cd ~/cerc/react-peer
+git checkout v0.2.29
 
-* MobyMask
-  ```bash
-  cd ~/cerc/MobyMask
+# mobymask-ui
+cd ~/cerc/mobymask-ui
+git checkout laconic
 
-  git checkout v0.1.1
-  ```
+# laconicd
+cd ~/cerc/laconicd
+git checkout v0.8.0
+
+# MobyMask
+cd ~/cerc/MobyMask
+git checkout v0.1.1
+```
 
 Build the container images:
 
@@ -83,6 +91,12 @@ Deploy the stack:
   ```
 
 * Check that all containers are healthy using `docker ps`
+
+  NOTE: The `mobymask-ui` container might not start. If mobymask-app is not running at http://localhost:3002, run command again to start the container
+
+  ```bash
+  laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 up
+  ```
 
 ## Tests
 

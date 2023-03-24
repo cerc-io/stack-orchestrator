@@ -6,6 +6,8 @@
   laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 logs mobymask
   ```
 
+  NOTE: Clear the browser cache (local storage) for http://127.0.0.1:3002 to remove old invitations
+
   The invite link is seen at the end of the logs
   Example:
   ```

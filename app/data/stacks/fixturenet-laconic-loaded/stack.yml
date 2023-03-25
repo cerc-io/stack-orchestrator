@@ -13,6 +13,10 @@ repos:
 npms:
   - laconic-sdk
   - laconic-registry-cli
+  - debug
+  - crypto
+  - sdk
+  - gem
   - laconic-console
 containers:
   - cerc/laconicd

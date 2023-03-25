@@ -22,8 +22,8 @@ set -e
 # Get the name of this package from package.json since we weren't passed that
 package_name=$( cat package.json | jq -r .name )
 local_npm_registry_url=$1
-npm config set @lirewine:registry ${local_npm_registry_url}
 npm config set @cerc-io:registry ${local_npm_registry_url}
+npm config set @lirewine:registry ${local_npm_registry_url}
 npm config set -- ${local_npm_registry_url}:_authToken ${CERC_NPM_AUTH_TOKEN}
 # First check if the version of this package we're trying to build already exists in the registry
 package_exists=$( yarn info --json ${package_name}@${package_publish_version} 2>/dev/null | jq -r .data.dist.tarball )

@@ -1,10 +1,12 @@
 FROM node:18.15.0-alpine3.16
 
-RUN apk --update --no-cache add make git
+RUN apk --update --no-cache add make git jq
 
 WORKDIR /app
 
 COPY . .
+
+RUN npm install -g serve
 
 RUN echo "Building mobymask-ui" && \
     npm install

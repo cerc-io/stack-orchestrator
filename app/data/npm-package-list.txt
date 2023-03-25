@@ -3,3 +3,4 @@ laconic-registry-cli
 gem
 debug
 crypto
+sdk

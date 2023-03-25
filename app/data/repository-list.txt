@@ -9,6 +9,7 @@ cerc-io/ipld-eth-beacon-db
 cerc-io/laconicd
 cerc-io/laconic-sdk
 cerc-io/laconic-registry-cli
+cerc-io/laconic-console
 cerc-io/mobymask-watcher
 cerc-io/watcher-ts
 cerc-io/react-peer

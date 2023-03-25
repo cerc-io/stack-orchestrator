@@ -1,6 +1,7 @@
 laconic-sdk
 laconic-registry-cli
-gem
+laconic-console
 debug
 crypto
 sdk
+gem

@@ -1,4 +1,4 @@
-FROM ghcr.io/foundry-rs/foundry
+FROM cerc/foundry:local
 
 RUN apk update ; apk add --no-cache --allow-untrusted ca-certificates curl bash git jq
 RUN apk add --no-cache --upgrade grep

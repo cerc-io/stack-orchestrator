@@ -3,6 +3,10 @@ name: package-registry
 decription: "Local Package Registry"
 repos:
   - cerc-io/hosting
+  - telackey/act_runner
+containers:
+  - cerc/act_runner
+  - cerc/act_runner-task-executor
 pods:
   - name: gitea
     repository: cerc-io/hosting

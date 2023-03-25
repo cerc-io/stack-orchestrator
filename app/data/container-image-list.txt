@@ -28,3 +28,5 @@ cerc/builder-js
 cerc/keycloak
 cerc/tx-spammer
 cerc/builder-gerbil
+cerc/act_runner
+cerc/act_runner-task-executor

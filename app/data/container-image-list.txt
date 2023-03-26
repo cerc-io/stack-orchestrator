@@ -29,6 +29,7 @@ cerc/keycloak
 cerc/tx-spammer
 cerc/builder-gerbil
 cerc/optimism-l2geth
-cerc/optimism-batcher
+cerc/optimism-op-batcher
+cerc/optimism-op-node
 cerc/act-runner
 cerc/act-runner-task-executor

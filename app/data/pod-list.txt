@@ -15,6 +15,7 @@ watcher-erc20
 watcher-erc721
 watcher-uniswap-v3
 watcher-mobymask-v2
+mobymask-laconicd
 test
 eth-probe
 keycloak

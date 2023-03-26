@@ -1,7 +1,7 @@
 # Originally from: https://github.com/devcontainers/images/blob/main/src/javascript-node/.devcontainer/Dockerfile
 # Which depends on: https://github.com/nodejs/docker-node/blob/main/Dockerfile-debian.template
 # [Choice] Node.js version (use -bullseye variants on local arm64/Apple Silicon): 18, 16, 14, 18-bullseye, 16-bullseye, 14-bullseye, 18-buster, 16-buster, 14-buster
-ARG VARIANT=16-bullseye
+ARG VARIANT=18-bullseye
 FROM node:${VARIANT}
 
 # Set these args to change the uid/gid for the base container's "node" user to match that of the host user (so bind mounts work as expected).

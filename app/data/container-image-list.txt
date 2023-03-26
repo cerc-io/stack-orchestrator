@@ -21,6 +21,7 @@ cerc/uniswap-v3-info
 cerc/watcher-mobymask-v2
 cerc/react-peer
 cerc/mobymask-ui
+cerc/mobymask
 cerc/test-container
 cerc/eth-probe
 cerc/builder-js
@@ -29,3 +30,5 @@ cerc/tx-spammer
 cerc/builder-gerbil
 cerc/optimism-l2geth
 cerc/optimism-batcher
+cerc/act_runner
+cerc/act_runner-task-executor

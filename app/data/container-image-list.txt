@@ -31,4 +31,5 @@ cerc/builder-gerbil
 cerc/act-runner
 cerc/act-runner-task-executor
 cerc/optimism-l2geth
-cerc/optimism-batcher
+cerc/optimism-op-batcher
+cerc/optimism-op-node

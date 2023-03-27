@@ -6,13 +6,15 @@
   laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 logs mobymask
   ```
 
-  NOTE: Clear the browser cache (local storage) for http://127.0.0.1:3002 to remove old invitations
-
   The invite link is seen at the end of the logs
   Example:
   ```
   laconic-bfb01caf98b1b8f7c8db4d33f11b905a-mobymask-1  | http://127.0.0.1:3002/#/members?invitation=%7B%22v%22%3A1%2C%22signedDelegations%22%3A%5B%7B%22signature%22%3A%220x7559bd412f02677d60820e38243acf61547f79339395a34f7d4e1630e645aeb30535fc219f79b6fbd3af0ce3bd05132ad46d2b274a9fbc4c36bc71edd09850891b%22%2C%22delegation%22%3A%7B%22delegate%22%3A%220xc0838c92B2b71756E0eAD5B3C1e1F186baeEAAac%22%2C%22authority%22%3A%220x0000000000000000000000000000000000000000000000000000000000000000%22%2C%22caveats%22%3A%5B%7B%22enforcer%22%3A%220x558024C7d593B840E1BfD83E9B287a5CDad4db15%22%2C%22terms%22%3A%220x0000000000000000000000000000000000000000000000000000000000000000%22%7D%5D%7D%7D%5D%2C%22key%22%3A%220x98da9805821f1802196443e578fd32af567bababa0a249c07c82df01ecaa7d8d%22%7D
   ```
+
+* Open the invite link in browser to use the mobymask-app.
+
+  NOTE: Clear the browser cache (local storage) for http://127.0.0.1:3002 to remove old invitations
 
 * In the debug panel, check if it is connected to the p2p network (It should be connected to atleast one other peer for pubsub to work).
 

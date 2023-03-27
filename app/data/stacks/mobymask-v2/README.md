@@ -10,6 +10,9 @@ Clone required repositories:
 laconic-so --stack mobymask-v2 setup-repositories
 ```
 
+NOTE: If repositories already exist and are checked out to different versions, `setup-repositories` command will throw an error.
+For getting around this, the repositories mentioned below can be removed and then run the command.
+
 Checkout to the required versions and branches in repos
 
 ```bash

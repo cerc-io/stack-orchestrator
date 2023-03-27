@@ -14,7 +14,7 @@
 
 * Open the invite link in browser to use the mobymask-app.
 
-  NOTE: Clear the browser cache (local storage) for http://127.0.0.1:3002 to remove old invitations
+  NOTE: Before opening the invite link, clear the browser cache (local storage) for http://127.0.0.1:3002 to remove old invitations
 
 * In the debug panel, check if it is connected to the p2p network (It should be connected to atleast one other peer for pubsub to work).
 

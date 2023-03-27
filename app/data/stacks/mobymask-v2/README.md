@@ -65,7 +65,13 @@ Deploy the stack:
   laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "echo y | laconicd keys export mykey --unarmored-hex --unsafe"
   ```
 
-* Set the private key in [secrets.json](../../config/watcher-mobymask-v2/secrets.json) file that will be used by mobymask container to deploy contract
+* Set the private key in [secrets.json](../../config/watcher-mobymask-v2/secrets.json) file that will be used by mobymask container to deploy contract:
+
+  ```bash
+  vi ~/.shiv/laconic-so_48964f2768eabff1d80963d853b776e5d84037f06ef3933bbaed857c1b82f93b/site-packages/app/data/config/watcher-mobymask-v2/secrets.json
+  ```
+  
+  Note that: `~/.shiv/laconic-so_THIS_NUMBER_MIGHT_BE_DIFFERENT_FOR_YOU` and if you've had multiple `laconic-so` installations, ensure you select the correct one.
 
 * Create a new account
 
@@ -85,7 +91,11 @@ Deploy the stack:
   laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "echo y | laconicd keys export alice --unarmored-hex --unsafe"
   ```
 
-* Set the private key (`PRIVATE_KEY`) in [peer-start.sh](../../config/watcher-mobymask-v2/peer-start.sh) file that will be used to start the peer that sends txs to L2 chain
+* Set the private key (`PRIVATE_KEY`) in [peer-start.sh](../../config/watcher-mobymask-v2/peer-start.sh) file that will be used to start the peer that sends txs to L2 chain:
+
+  ```bash
+  vi ~/.shiv/laconic-so_48964f2768eabff1d80963d853b776e5d84037f06ef3933bbaed857c1b82f93b/site-packages/app/data/config/watcher-mobymask-v2/peer-start.sh
+  ```
 
 * Deploy the other containers
 
@@ -123,7 +133,7 @@ Export it for later use:
 export CONTAINER_ID=<CONTAINER_ID>
 ```
 
-Run the peer tests:
+Run the peer tests (from any pwd):
 
 ```bash
 docker exec -w /app/packages/peer $CONTAINER_ID yarn test

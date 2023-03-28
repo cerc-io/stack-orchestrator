@@ -292,21 +292,41 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                     directive
                 )
                 if ctx.verbose:
-                    print(f"Setting {pd.destination_container}.{pd.destination_variable} = {pd.source_container}.{pd.source_variable}")
-                # TODO: fix the script paths so they're consistent between containers
-                source_value = docker.compose.execute(pd.source_container,
-                                                      ["sh", "-c",
-                                                          f"sh /docker-entrypoint-scripts.d/export-{pd.source_variable}.sh"],
-                                                      tty=False,
-                                                      envs=container_exec_env)
-                # TODO: handle the case that the value is not yet available
-                if ctx.debug:
-                    print(f"fetched source value: {source_value}")
-                destination_output = docker.compose.execute(pd.destination_container,
-                                                            ["sh", "-c",
-                                                             f"sh /scripts/import-{pd.destination_variable}.sh {source_value}"],
-                                                            tty=False,
-                                                            envs=container_exec_env)
-                if ctx.debug:
-                    print(f"destination output: {destination_output}")
-                # TODO: detect errors here
+                    print(f"Setting {pd.destination_container}.{pd.destination_variable}"
+                          f" = {pd.source_container}.{pd.source_variable}")
+                # TODO: add a timeout
+                waiting_for_data = True
+                while waiting_for_data:
+                    # TODO: fix the script paths so they're consistent between containers
+                    source_value = None
+                    try:
+                        source_value = docker.compose.execute(pd.source_container,
+                                                              ["sh", "-c",
+                                                                  "sh /docker-entrypoint-scripts.d/export-"
+                                                                  f"{pd.source_variable}.sh"],
+                                                              tty=False,
+                                                              envs=container_exec_env)
+                    except DockerException as error:
+                        if ctx.debug:
+                            print(f"Docker exception reading config source: {error}")
+                        # If the script executed failed for some reason, we get:
+                        # "It returned with code 1"
+                        if "It returned with code 1" in str(error):
+                            if ctx.verbose:
+                                print("Config export script returned an error, re-trying")
+                        # If the script failed to execute (e.g. the file is not there) then we get:
+                        # "It returned with code 2"
+                        if "It returned with code 2" in str(error):
+                            print(f"Fatal error reading config source: {error}")
+                    if source_value:
+                        if ctx.debug:
+                            print(f"fetched source value: {source_value}")
+                        destination_output = docker.compose.execute(pd.destination_container,
+                                                                    ["sh", "-c",
+                                                                        f"sh /scripts/import-{pd.destination_variable}.sh"
+                                                                        f" {source_value}"],
+                                                                    tty=False,
+                                                                    envs=container_exec_env)
+                        waiting_for_data = False
+                    if ctx.debug:
+                        print(f"destination output: {destination_output}")

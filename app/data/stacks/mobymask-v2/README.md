@@ -47,50 +47,10 @@ This should create the required docker images in the local image registry.
 
 Deploy the stack:
 
-* Deploy the laconic chain
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd up
-  ```
-
-* Check that laconic chain status is healthy
-
-  ```bash
-  docker ps
-  ```
-
-* Export the private key from laconicd
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "echo y | laconicd keys export mykey --unarmored-hex --unsafe"
-  ```
-
-* Set the private key in [secrets.json](../../config/watcher-mobymask-v2/secrets.json) file that will be used by mobymask container to deploy contract
-
-* Create a new account
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "laconicd keys add alice"
-  ```
-
-* Transfer balance to new account
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd 'laconicd tx bank send $(laconicd keys show mykey -a) $(laconicd keys show alice -a) 1000000000000000000000000aphoton --fees 2000aphoton'
-  ```
-
-* Export the private key of new account from laconicd
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "echo y | laconicd keys export alice --unarmored-hex --unsafe"
-  ```
-
-* Set the private key (`PRIVATE_KEY`) in [peer-start.sh](../../config/watcher-mobymask-v2/peer-start.sh) file that will be used to start the peer that sends txs to L2 chain
-
 * Deploy the other containers
 
   ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 up
+  laconic-so --stack mobymask-v2 deploy-system up
   ```
 
 * Check that all containers are healthy using `docker ps`
@@ -98,7 +58,7 @@ Deploy the stack:
   NOTE: The `mobymask-ui` container might not start. If mobymask-app is not running at http://localhost:3002, run command again to start the container
 
   ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 up
+  laconic-so --stack mobymask-v2 deploy-system up
   ```
 
 ## Tests

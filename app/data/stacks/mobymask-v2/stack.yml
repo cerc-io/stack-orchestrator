@@ -13,5 +13,7 @@ containers:
   - cerc/laconicd
   - cerc/mobymask
 pods:
-  - mobymask-laconicd
   - watcher-mobymask-v2
+config:
+  mobymask:
+    key: laconicd.mykey

@@ -6,13 +6,17 @@ Stack Orchestrator allows building and deployment of a Laconic Stack on a single
 
 ## Install
 
+**To get started quickly** on a fresh Ubuntu instance (e.g, Digital Ocean); [try this script](./scripts/quick-install-ubuntu.sh)
+
+For any other installation, follow along below and **adapt these instructions based on the specifics of your system.**
+
 Ensure that the following are already installed:
 
 - [Python3](https://wiki.python.org/moin/BeginnersGuide/Download): `python3 --version` >= `3.8.10` (the Python3 shipped in Ubuntu 20+ is good to go)
 - [Docker](https://docs.docker.com/get-docker/): `docker --version` >= `20.10.21`
 - [jq](https://stedolan.github.io/jq/download/): `jq --version` >= `1.5`
 
-Note: if installing docker-compose via package manager on Linux (as opposed to Docker Desktop), you must [install the plugin](https://docs.docker.com/compose/install/linux/#install-the-plugin-manually), e.g. :
+Note: if installing docker via package manager on Linux (as opposed to Docker Desktop), you must [install the compose plugin](https://docs.docker.com/compose/install/linux/#install-the-plugin-manually), e.g. :
 
 ```bash
 mkdir -p ~/.docker/cli-plugins

@@ -17,12 +17,16 @@ ARG NPM_GLOBAL=/usr/local/share/npm-global
 # Add NPM global to PATH.
 ENV PATH=${NPM_GLOBAL}/bin:${PATH}
 
+SHELL ["/bin/bash", "-c"]
+
 RUN \
-    if [ ${CERC_HOST_GID} -ne 1000 ] ; then \
-        groupmod -g ${CERC_HOST_GID} ${USERNAME} ; \
+    # Don't switch container uid/gid if the host uid/gid is 1000 (which means it's already correct),
+    # or root (which won't work anyway) or <= 100 (which also won't work).
+    if [[ ${CERC_HOST_GID} -ne 1000 && ${CERC_HOST_GID} -ne 0 && ${CERC_HOST_GID} -gt 100 ]]; then \
+        groupmod -g ${CERC_HOST_GID} ${USERNAME}; \
     fi \
-    && if [ ${CERC_HOST_UID} -ne 1000 ] ; then \
-        usermod -u ${CERC_HOST_UID} -g ${CERC_HOST_GID} ${USERNAME} && chown ${CERC_HOST_UID}:${CERC_HOST_GID} /home/${USERNAME} ; \
+    && if [[ ${CERC_HOST_UID} -ne 1000 && ${CERC_HOST_UID} -ne 0 && ${CERC_HOST_UID} -gt 100 ]]; then \
+        usermod -u ${CERC_HOST_UID} -g ${CERC_HOST_GID} ${USERNAME} && chown ${CERC_HOST_UID}:${CERC_HOST_GID} /home/${USERNAME}; \
     fi
 
 RUN \

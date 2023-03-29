@@ -18,11 +18,11 @@ Checkout to the required versions and branches in repos
 ```bash
 # watcher-ts
 cd ~/cerc/watcher-ts
-git checkout v0.2.31
+git checkout v0.2.34
 
 # react-peer
 cd ~/cerc/react-peer
-git checkout v0.2.29
+git checkout v0.2.30
 
 # mobymask-ui
 cd ~/cerc/mobymask-ui

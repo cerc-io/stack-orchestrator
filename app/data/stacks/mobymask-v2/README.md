@@ -22,7 +22,7 @@ git checkout v0.2.34
 
 # react-peer
 cd ~/cerc/react-peer
-git checkout v0.2.30
+git checkout v0.2.31
 
 # mobymask-ui
 cd ~/cerc/mobymask-ui
@@ -67,7 +67,7 @@ Deploy the stack:
 
 * Set the private key in [secrets.json](../../config/watcher-mobymask-v2/secrets.json) file that will be used by mobymask container to deploy contract
 
-* Create a new account
+* Create a new account named `alice`
 
   ```bash
   laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "laconicd keys add alice"
@@ -85,7 +85,12 @@ Deploy the stack:
   laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "echo y | laconicd keys export alice --unarmored-hex --unsafe"
   ```
 
-* Set the private key (`PRIVATE_KEY`) in [peer-start.sh](../../config/watcher-mobymask-v2/peer-start.sh) file that will be used to start the peer that sends txs to L2 chain
+* Set the private key (`server.p2p.peer.l2TxConfig.privateKey`) in [watcher.toml](../../config/watcher-mobymask-v2/watcher.toml) file that will be used to start the peer that sends txs to L2 chain
+
+  ```toml
+  [server.p2p.peer.l2TxConfig]
+    privateKey = 'ALICE_PRIVATE_KEY'
+  ```
 
 * Deploy the other containers
 

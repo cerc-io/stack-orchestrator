@@ -1,0 +1,6 @@
+services:
+  laconic-console:
+    restart: unless-stopped
+    image: cerc/laconic-console-host:local
+    ports:
+      - "80"

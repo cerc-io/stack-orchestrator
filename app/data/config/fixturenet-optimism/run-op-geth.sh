@@ -5,13 +5,17 @@ mkdir datadir
 
 echo "pwd" > datadir/password
 
+# TODO: Add in container build or use other tool
+echo "installing jq"
+apk update && apk add jq
+
 # Get SEQUENCER KEY from keys.json
-SEQUENCER_KEY=`jq '.Sequencer.privateKey' /l2-accounts/keys.json`
+SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"')
 echo $SEQUENCER_KEY > datadir/block-signer-key
 
 geth account import --datadir=datadir --password=datadir/password datadir/block-signer-key
 
-while [ ! -f "/op-node/jwt.tx" ]
+while [ ! -f "/op-node/jwt.txt" ]
 do
   echo "Config files not created. Checking after 5 seconds."
   sleep 5
@@ -22,7 +26,7 @@ echo "Config files created by op-node, proceeding with script..."
 cp /op-node/genesis.json ./
 geth init --datadir=datadir genesis.json
 
-SEQUENCER_ADDRESS=`jq '.Sequencer.address' /l2-accounts/keys.json`
+SEQUENCER_ADDRESS=$(jq -r '.Sequencer.address' /l2-accounts/keys.json | tr -d '"')
 echo "SEQUENCER_ADDRESS: ${SEQUENCER_ADDRESS}"
 cp /op-node/jwt.txt ./
 geth \

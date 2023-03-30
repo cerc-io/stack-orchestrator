@@ -23,6 +23,8 @@ RUN make op-node VERSION="$VERSION" GOOS=$TARGETOS GOARCH=$TARGETARCH
 
 FROM alpine:3.15
 
+RUN apk add --no-cache openssl
+
 COPY --from=builder /app/op-node/bin/op-node /usr/local/bin
 
 CMD ["op-node"]

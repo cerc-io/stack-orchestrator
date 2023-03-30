@@ -18,8 +18,9 @@ fi
 set -e
 target_package=$1
 local_npm_registry_url=$2
-# TODO: use jq rather than sed here:
-versioned_target_package=$(grep ${target_package} package.json | sed -e 's#[[:space:]]\{1,\}\"\('${target_package}'\)\":[[:space:]]\{1,\}\"\(.*\)\",#\1@\2#' )
+# Extract the actual version pinned in yarn.lock
+# See: https://stackoverflow.com/questions/60454251/how-to-know-the-version-of-currently-installed-package-from-yarn-lock
+versioned_target_package=$(yarn list --pattern ${target_package} --depth=0 --json --non-interactive --no-progress | jq -r '.data.trees[].name')
 # Use yarn info to get URL checksums etc from the new registry
 yarn_info_output=$(yarn info --json $versioned_target_package 2>/dev/null)
 # First check if the target version actually exists. 

@@ -44,11 +44,14 @@ RUN npm config set @cerc-io:registry ${CERC_NPM_URL} \
     && npm config set @lirewine:registry ${CERC_NPM_URL} \
     && npm config set -- ${CERC_NPM_URL}:_authToken ${CERC_NPM_AUTH_TOKEN}
 
-# TODO: the image at this point could be made a base image for several different CLI images
-# that install different Node-based CLI commands
+# Install simple web server for now (use nginx perhaps later)
+RUN yarn global add http-server
 
-# Globally install the cli package
+# Globally install the payload web app package
 RUN yarn global add @cerc-io/console-app
+
+# Expose port for http
+EXPOSE 80
 
 # Default command sleeps forever so docker doesn't kill it
 CMD ["sh", "-c", "while :; do sleep 600; done"]

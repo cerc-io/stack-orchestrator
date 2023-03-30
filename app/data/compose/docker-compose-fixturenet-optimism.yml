@@ -1,0 +1,28 @@
+version: '3.7'
+
+services:
+
+  fixturenet-optimism-contracts:
+    hostname: fixturenet-optimism-contracts
+    depends_on:
+      fixturenet-eth-geth-1:
+        condition: service_healthy
+    image: cerc/fixturenet-optimism:local
+    environment:
+      CHAIN_ID: 1212
+      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    command: ["sh", "run.sh"]
+    volumes:
+      - ../config/fixturenet-optimism/optimism-contracts/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
+      - ../config/fixturenet-optimism/optimism-contracts/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
+      - ../config/fixturenet-optimism/optimism-contracts/update-config.js:/app/packages/contracts-bedrock/update-config.js
+      - ../config/fixturenet-optimism/optimism-contracts/run.sh:/app/packages/contracts-bedrock/run.sh
+      - fixturenet-geth-accounts:/geth-accounts
+      - l2-accounts:/l2-accounts
+    # TODO: Add healthcheck
+    # healthcheck:
+
+volumes:
+  l2-accounts:
+  # TODO: Required?
+  # fixturenet-geth-accounts:

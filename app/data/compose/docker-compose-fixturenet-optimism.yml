@@ -1,7 +1,6 @@
 version: '3.7'
 
 services:
-
   fixturenet-optimism-contracts:
     hostname: fixturenet-optimism-contracts
     depends_on:
@@ -22,7 +21,56 @@ services:
     # TODO: Add healthcheck
     # healthcheck:
 
+  op-node-l2-config-gen:
+    environment:
+      # TODO: Integrate
+      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    image: cerc/optimism-op-node:local
+    volumes:
+      - ../config/fixturenet-optimism/generate-l2-config.sh:/app/op-node/generate-l2-config.sh
+      # TODO: Integrate
+      - ../test/contracts-bedrock:/app/packages/contracts-bedrock
+      - op_node_data:/app/op-node
+    command: ["sh", "generate-l2-config.sh"]
+
+  op-geth:
+    image: cerc/optimism-l2geth:local
+    depends_on:
+      op-node-l2-config-gen:
+        condition: service_started
+    volumes:
+      - ../config/fixturenet-optimism/run-op-geth.sh:/run-op-geth.sh
+      - op_node_data:/op-node
+      # TODO: Integrate
+      - ../test/l2-accounts:/l2-accounts
+    entrypoint: "sh"
+    command: "/run-op-geth.sh"
+    ports:
+      - "8545"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "http://localhost:8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  op-node:
+    environment:
+      # TODO: Integrate
+      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    depends_on:
+      op-geth:
+        condition: service_healthy
+    image: cerc/optimism-op-node:local
+    volumes:
+      - ../config/fixturenet-optimism/run-op-node.sh:/app/op-node/run-op-node.sh
+      - op_node_data:/app/op-node
+      # TODO: Integrate
+      - ../test/l2-accounts:/l2-accounts
+    command: ["sh", "run-op-node.sh"]
+
 volumes:
+  op_node_data:
   l2-accounts:
   # TODO: Required?
   # fixturenet-geth-accounts:

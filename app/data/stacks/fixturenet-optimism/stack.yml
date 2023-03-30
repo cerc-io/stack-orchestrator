@@ -3,21 +3,19 @@ name: fixturenet-optimism
 decription: "Optimism Fixturenet"
 repos:
   - cerc-io/go-ethereum
+  - dboreham/foundry
   - ethereum-optimism/op-geth
   - ethereum-optimism/optimism
-  - cerc-io/tx-spammer
-  - dboreham/foundry
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse
   - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
+  - cerc/foundry
+  - cerc/optimism-contracts
   - cerc/optimism-l2geth
   - cerc/optimism-op-batcher
   - cerc/optimism-op-node
-  - cerc/optimism-contracts
-  - cerc/foundry
 pods:
   - fixturenet-eth
   - fixturenet-optimism
-  - foundry

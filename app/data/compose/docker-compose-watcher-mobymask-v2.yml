@@ -23,9 +23,6 @@ services:
 
   mobymask:
     restart: unless-stopped
-    depends_on:
-      mobymask-watcher-db:
-        condition: service_healthy
     image: cerc/mobymask:local
     working_dir: /app/packages/server
     environment:
@@ -46,12 +43,17 @@ services:
     depends_on:
       mobymask-watcher-db:
         condition: service_healthy
+      mobymask:
+        condition: service_healthy
     image: cerc/watcher-mobymask-v2:local
-    command: ["sh", "-c", "yarn server"]
+    command: ["sh", "server-start.sh"]
     volumes:
-      - ../config/watcher-mobymask-v2/watcher.toml:/app/packages/mobymask-v2-watcher/environments/local.toml
+      - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml
       - ../config/watcher-mobymask-v2/peer.env:/app/packages/peer/.env
       - ../config/watcher-mobymask-v2/relay-id.json:/app/packages/mobymask-v2-watcher/relay-id.json
+      - ../config/watcher-mobymask-v2/peer-id.json:/app/packages/mobymask-v2-watcher/peer-id.json
+      - ../config/watcher-mobymask-v2/server-start.sh:/app/packages/mobymask-v2-watcher/server-start.sh
+      - moby_data_server:/server
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"
@@ -62,19 +64,6 @@ services:
       timeout: 5s
       retries: 15
       start_period: 5s
-
-  mobymask-watcher-peer:
-    restart: unless-stopped
-    depends_on:
-      mobymask:
-        condition: service_healthy
-    image: cerc/watcher-mobymask-v2:local
-    command: ["sh", "peer-start.sh"]
-    volumes:
-      - ../config/watcher-mobymask-v2/watcher.toml:/app/packages/mobymask-v2-watcher/environments/local.toml
-      - ../config/watcher-mobymask-v2/peer-id.json:/app/packages/mobymask-v2-watcher/peer-id.json
-      - ../config/watcher-mobymask-v2/peer-start.sh:/app/packages/mobymask-v2-watcher/peer-start.sh
-      - moby_data_server:/server
 
   mobymask-app:
     depends_on:

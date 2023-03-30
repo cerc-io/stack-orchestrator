@@ -54,4 +54,4 @@ RUN yarn global add @cerc-io/console-app
 EXPOSE 80
 
 # Default command sleeps forever so docker doesn't kill it
-CMD ["sh", "-c", "while :; do sleep 600; done"]
+CMD ["http-server", "-p", "80", "/usr/local/share/.config/yarn/global/node_modules/@cerc-io/console-app/dist/production"]

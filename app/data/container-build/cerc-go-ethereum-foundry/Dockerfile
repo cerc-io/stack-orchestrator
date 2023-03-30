@@ -1,7 +1,9 @@
+# Note: cerc/foundry is Debian based
 FROM cerc/foundry:local
 
-RUN apk update ; apk add --no-cache --allow-untrusted ca-certificates curl bash git jq
-RUN apk add --no-cache --upgrade grep
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends jq curl netcat
+
 WORKDIR /root
 
 ARG GENESIS_FILE_PATH=genesis.json

@@ -21,7 +21,7 @@
 
   [server.p2p]
     enableRelay = true
-    enablePeer = false
+    enablePeer = true
 
     [server.p2p.relay]
       host = "0.0.0.0"
@@ -35,6 +35,10 @@
       pubSubTopic = 'mobymask'
       peerIdFile = './peer-id.json'
       enableDebugInfo = true
+
+      [server.p2p.peer.l2TxConfig]
+        privateKey = ''
+        contractAddress = REPLACE_WITH_CONTRACT_ADDRESS
 
 [metrics]
   host = "0.0.0.0"

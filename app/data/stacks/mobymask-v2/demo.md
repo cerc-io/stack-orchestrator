@@ -34,7 +34,7 @@
   * Get the container id
 
     ```bash
-    laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 ps | grep mobymask-watcher-peer
+    laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 ps | grep mobymask-watcher-server
     ```
 
   * Check logs

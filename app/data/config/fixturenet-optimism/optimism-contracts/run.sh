@@ -33,7 +33,11 @@ yarn hardhat send-balance --to "${BATCHER_ADDRESS}" --amount 1000 --private-key 
 echo "Balances sent to L2 accounts"
 
 # Select a finalized L1 block as the starting point for roll ups
-CAST_OUTPUT=$(cast block finalized --rpc-url "$L1_RPC")
+until CAST_OUTPUT=$(cast block finalized --rpc-url "$L1_RPC"); do
+    echo "Waiting for a finalized L1 block to exist, retrying after 10s"
+    sleep 10
+done
+
 L1_BLOCKHASH=$(echo "$CAST_OUTPUT" | awk '/hash/{print $2}')
 L1_BLOCKTIMESTAMP=$(echo "$CAST_OUTPUT" | awk '/timestamp/{print $2}')
 
@@ -48,6 +52,8 @@ echo "Updated the deployment config"
 # Create a .env file
 echo "L1_RPC=$L1_RPC" > .env
 echo "PRIVATE_KEY_DEPLOYER=$ADMIN_PRIV_KEY" >> .env
+
+echo "Deploying the L1 smart contracts, this will take a while..."
 
 # Deploy the L1 smart contracts
 yarn hardhat deploy --network getting-started

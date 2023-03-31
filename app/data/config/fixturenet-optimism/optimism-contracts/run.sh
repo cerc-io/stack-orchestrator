@@ -22,6 +22,7 @@ BATCHER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Batcher.address')
 SEQUENCER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Sequencer.address')
 
 # Read the private key of a L1 account
+L1_ADDRESS=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 2)
 L1_PRIV_KEY=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 3)
 
 # Send balances to the above L2 addresses
@@ -52,3 +53,14 @@ echo "PRIVATE_KEY_DEPLOYER=$ADMIN_PRIV_KEY" >> .env
 yarn hardhat deploy --network getting-started
 
 echo "Deployed the L1 smart contracts"
+
+# Read Proxy contarct's JSON and get the address
+PROXY_JSON=$(cat deployments/getting-started/Proxy__OVM_L1StandardBridge.json)
+PROXY_ADDRESS=$(echo "$PROXY_JSON" | jq -r '.address')
+
+# Send balance to the above L2 address
+yarn hardhat send-balance --to "${PROXY_ADDRESS}" --amount 1 --private-key "${L1_PRIV_KEY}" --network getting-started
+
+echo "Balance sent to Proxy L2 contract"
+echo "Use account ${L1_ADDRESS} to deploy contracts to L2"
+echo "Done"

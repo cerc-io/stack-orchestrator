@@ -6,6 +6,8 @@ services:
     depends_on:
       fixturenet-eth-geth-1:
         condition: service_healthy
+      fixturenet-eth-bootnode-lighthouse:
+        condition: service_healthy
     image: cerc/optimism-contracts:local
     environment:
       CHAIN_ID: 1212

@@ -58,6 +58,12 @@ services:
     environment:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-lighthouse:local
+    healthcheck:
+      test: ["CMD", "/scripts/status-internal.sh"]
+      interval: 10s
+      timeout: 100s
+      retries: 3
+      start_period: 15s
 
   fixturenet-eth-lighthouse-1:
     hostname: fixturenet-eth-lighthouse-1

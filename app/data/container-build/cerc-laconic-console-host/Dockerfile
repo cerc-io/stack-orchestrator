@@ -50,6 +50,10 @@ RUN yarn global add http-server
 # Globally install the payload web app package
 RUN yarn global add @cerc-io/console-app
 
+# Temp hack to fix up config
+RUN cd /usr/local/share/.config/yarn/global/node_modules/@cerc-io/console-app/dist/production && \
+    find . -type f -exec sed -i 's#LACONIC_HOSTED_CONFIG_SERVICES_WNS_SERVER#http://laconicd:9473/api#g' {} +
+
 # Expose port for http
 EXPOSE 80
 

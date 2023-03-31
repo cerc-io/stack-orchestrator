@@ -57,7 +57,6 @@ services:
 
   op-node:
     environment:
-      # TODO: Integrate
       L1_RPC: "http://fixturenet-eth-geth-1:8545"
     depends_on:
       op-geth:
@@ -79,7 +78,6 @@ services:
 
   op-batcher:
     environment:
-      # TODO: Integrate
       L1_RPC: "http://fixturenet-eth-geth-1:8545"
     depends_on:
       op-node:

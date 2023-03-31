@@ -1,6 +1,6 @@
 # fixturenet-optimism
 
-Instructions to setup and deploy an end-to-end L1+L2 stack with [fixturenet-eth](../fixturenet-eth/) (L1) and Optimism (L2)
+Instructions to setup and deploy an end-to-end L1+L2 stack with [fixturenet-eth](../fixturenet-eth/) (L1) and [Optimism](https://stack.optimism.io) (L2)
 
 ## Setup
 
@@ -49,5 +49,15 @@ Stop all services running in the background:
 
 ```bash
 laconic-so --stack fixturenet-optimism deploy down
-$ laconic-so --stack fixturenet-optimism deploy up
+```
+
+Remove volumes created by this stack:
+
+```bash
+docker volume ls
+
+docker volume rm laconic-d527651bba3cb61886b36a7400bd2a38_fixturenet-geth-accounts
+docker volume rm laconic-d527651bba3cb61886b36a7400bd2a38_l1-deployment
+docker volume rm laconic-d527651bba3cb61886b36a7400bd2a38_l2-accounts
+docker volume rm laconic-d527651bba3cb61886b36a7400bd2a38_op_node_data
 ```

@@ -6,11 +6,11 @@ services:
     depends_on:
       fixturenet-eth-geth-1:
         condition: service_healthy
-    image: cerc/fixturenet-optimism:local
+    image: cerc/optimism-contracts:local
     environment:
       CHAIN_ID: 1212
       L1_RPC: "http://fixturenet-eth-geth-1:8545"
-    command: ["sh", "run.sh"]
+    command: "./run.sh"
     volumes:
       - ../config/fixturenet-optimism/optimism-contracts/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
       - ../config/fixturenet-optimism/optimism-contracts/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
@@ -72,5 +72,3 @@ services:
 volumes:
   op_node_data:
   l2-accounts:
-  # TODO: Required?
-  # fixturenet-geth-accounts:

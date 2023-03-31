@@ -1,5 +1,6 @@
 FROM cerc/foundry:local
 
+# Install node (local foundry is a debian based image)
 RUN apt-get update \
   && apt-get install -y curl \
   && curl --silent --location https://deb.nodesource.com/setup_16.x | bash - \
@@ -12,6 +13,7 @@ RUN corepack enable \
 
 WORKDIR /app
 
+# Copy optimism repo contents
 COPY . .
 
 RUN echo "Building optimism" && \

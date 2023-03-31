@@ -4,8 +4,8 @@ decription: "Optimism Fixturenet"
 repos:
   - cerc-io/go-ethereum
   - dboreham/foundry
-  - ethereum-optimism/op-geth
   - ethereum-optimism/optimism
+  - ethereum-optimism/op-geth
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse

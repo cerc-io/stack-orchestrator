@@ -33,3 +33,11 @@ This should create the required docker images in the local image registry:
 * cerc/optimism-op-batcher
 * cerc/optimism-op-node
 * cerc/optimism-contracts
+
+# Deploy
+
+Deploy the stack:
+
+```bash
+$ laconic-so --stack fixturenet-optimism deploy up
+```

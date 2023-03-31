@@ -16,9 +16,9 @@ KEYS_JSON=$(cat /l2-accounts/keys.json)
 # Parse JSON into variables
 ADMIN_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Admin.address')
 ADMIN_PRIV_KEY=$(echo "$KEYS_JSON" | jq -r '.Admin.privateKey')
-PROPOSER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Admin.address')
-BATCHER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Admin.address')
-SEQUENCER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Admin.address')
+PROPOSER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Proposer.address')
+BATCHER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Batcher.address')
+SEQUENCER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Sequencer.address')
 
 # Read the private key of a L1 account
 L1_PRIV_KEY=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 3)

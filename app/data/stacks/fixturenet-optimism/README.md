@@ -43,7 +43,16 @@ Deploy the stack:
 laconic-so --stack fixturenet-optimism deploy up
 ```
 
-## Clean up
+To list down the running containers:
+
+```bash
+laconic-so --stack fixturenet-optimism deploy ps
+
+# With status
+docker ps
+```
+
+# Clean up
 
 Stop all services running in the background:
 

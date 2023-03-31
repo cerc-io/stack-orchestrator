@@ -41,6 +41,7 @@ COPY --from=docker.io/mikefarah/yq:latest /usr/bin/yq /usr/local/bin/yq
 
 RUN mkdir -p /scripts
 COPY ./apply-webapp-config.sh /scripts
+COPY ./start-serving-app.sh /scripts
 
 # [Optional] Uncomment if you want to install more global node modules
 # RUN su node -c "npm install -g <your-package-list-here>"
@@ -59,11 +60,8 @@ RUN yarn global add http-server
 # Globally install the payload web app package
 RUN yarn global add @cerc-io/console-app
 
-# Run this script to substitute the config values into the unpackaged webapp files:
-# ./scripts/apply-webapp-config.sh ./config/config.yml /usr/local/share/.config/yarn/global/node_modules/@cerc-io/console-app/dist/production
-
 # Expose port for http
 EXPOSE 80
 
 # Default command sleeps forever so docker doesn't kill it
-CMD ["http-server", "-p", "80", "/usr/local/share/.config/yarn/global/node_modules/@cerc-io/console-app/dist/production"]
+CMD ["/scripts/start-serving-app.sh"]

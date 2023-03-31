@@ -25,6 +25,7 @@ services:
     restart: unless-stopped
     image: cerc/mobymask:local
     working_dir: /app/packages/server
+    # TODO: Configure env file for ETH RPC URL & private key
     environment:
       - ENV=PROD
     command: ["sh", "-c", "npm start"]
@@ -109,11 +110,3 @@ services:
 volumes:
   mobymask_watcher_db_data:
   moby_data_server:
-
-networks:
-  # https://docs.docker.com/compose/networking/#configure-the-default-network
-  default:
-    # https://docs.docker.com/compose/networking/#use-a-pre-existing-network
-    name: mobymask-v2-network
-    external: true
-

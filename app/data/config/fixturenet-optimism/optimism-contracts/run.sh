@@ -74,6 +74,7 @@ PROXY_JSON=$(cat deployments/getting-started/Proxy__OVM_L1StandardBridge.json)
 PROXY_ADDRESS=$(echo "$PROXY_JSON" | jq -r '.address')
 
 # Send balance to the above L2 address
+# TODO: Send balance using second account to reflect in L2
 yarn hardhat send-balance --to "${PROXY_ADDRESS}" --amount 1 --private-key "${L1_PRIV_KEY}" --network getting-started
 
 echo "Balance sent to Proxy L2 contract"

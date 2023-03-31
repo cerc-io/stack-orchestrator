@@ -4,14 +4,11 @@ repos:
   - cerc-io/watcher-ts
   - cerc-io/react-peer
   - cerc-io/mobymask-ui
-  - cerc-io/laconicd
   - cerc-io/MobyMask
 containers:
   - cerc/watcher-mobymask-v2
   - cerc/react-peer
   - cerc/mobymask-ui
-  - cerc/laconicd
   - cerc/mobymask
 pods:
-  - mobymask-laconicd
   - watcher-mobymask-v2

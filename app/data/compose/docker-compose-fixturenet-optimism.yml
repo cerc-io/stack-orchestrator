@@ -70,6 +70,31 @@ services:
       # TODO: Integrate
       - ../test/l2-accounts:/l2-accounts
     command: ["sh", "/app/run-op-node.sh"]
+    ports:
+      - "8547"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost:8547"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+
+  op-batcher:
+    environment:
+      # TODO: Integrate
+      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    depends_on:
+      op-node:
+        condition: service_healthy
+      op-geth:
+        condition: service_healthy
+    image: cerc/optimism-op-batcher:local
+    volumes:
+      - ../config/fixturenet-optimism/run-op-batcher.sh:/run-op-batcher.sh
+      # TODO: Integrate
+      - ../test/l2-accounts:/l2-accounts
+    entrypoint: "sh"
+    command: "/run-op-batcher.sh"
 
 volumes:
   op_node_data:

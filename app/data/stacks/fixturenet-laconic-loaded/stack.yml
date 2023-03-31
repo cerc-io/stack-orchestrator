@@ -21,6 +21,7 @@ npms:
 containers:
   - cerc/laconicd
   - cerc/laconic-registry-cli
+  - cerc/laconic-console-host
 pods:
   - fixturenet-laconicd
   - fixturenet-laconic-console

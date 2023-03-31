@@ -36,6 +36,12 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # ARG EXTRA_NODE_VERSION=10
 # RUN su node -c "source /usr/local/share/nvm/nvm.sh && nvm install ${EXTRA_NODE_VERSION}"
 
+# We do this to get a yq binary from the published container, for the correct architecture we're building here
+COPY --from=docker.io/mikefarah/yq:latest /usr/bin/yq /usr/local/bin/yq
+
+RUN mkdir -p /scripts
+COPY ./apply-webapp-config.sh /scripts
+
 # [Optional] Uncomment if you want to install more global node modules
 # RUN su node -c "npm install -g <your-package-list-here>"
 
@@ -44,15 +50,17 @@ RUN npm config set @cerc-io:registry ${CERC_NPM_URL} \
     && npm config set @lirewine:registry ${CERC_NPM_URL} \
     && npm config set -- ${CERC_NPM_URL}:_authToken ${CERC_NPM_AUTH_TOKEN}
 
+RUN mkdir -p /config
+COPY ./config.yml /config
+
 # Install simple web server for now (use nginx perhaps later)
 RUN yarn global add http-server
 
 # Globally install the payload web app package
 RUN yarn global add @cerc-io/console-app
 
-# Temp hack to fix up config
-RUN cd /usr/local/share/.config/yarn/global/node_modules/@cerc-io/console-app/dist/production && \
-    find . -type f -exec sed -i 's#LACONIC_HOSTED_CONFIG_SERVICES_WNS_SERVER#http://laconicd:9473/api#g' {} +
+# Run this script to substitute the config values into the unpackaged webapp files:
+# ./scripts/apply-webapp-config.sh ./config/config.yml /usr/local/share/.config/yarn/global/node_modules/@cerc-io/console-app/dist/production
 
 # Expose port for http
 EXPOSE 80

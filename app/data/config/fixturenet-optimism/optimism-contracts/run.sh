@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e
 
+# TODO Support restarts; fixturenet-eth-geth currently starts fresh on a restart
+# Exit if a deployment already exists (on restarts)
+# if [ -d "deployments/getting-started" ]; then
+#     echo "Deployment directory deployments/getting-started already exists, exiting"
+#     exit 0
+# fi
+
 # Append tasks/index.ts file
 echo "import './rekey-json'" >> tasks/index.ts
 echo "import './send-balance'" >> tasks/index.ts
@@ -22,6 +29,7 @@ BATCHER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Batcher.address')
 SEQUENCER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Sequencer.address')
 
 # Read the private key of a L1 account
+# TODO: Take from env if /geth-accounts volume doesn't exist to allow using separately running L1
 L1_ADDRESS=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 2)
 L1_PRIV_KEY=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 3)
 

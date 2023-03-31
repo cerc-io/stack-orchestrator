@@ -41,6 +41,7 @@ yarn hardhat send-balance --to "${BATCHER_ADDRESS}" --amount 1000 --private-key 
 echo "Balances sent to L2 accounts"
 
 # Select a finalized L1 block as the starting point for roll ups
+# TODO Use web3.js to get the latest finalized block
 until CAST_OUTPUT=$(cast block finalized --rpc-url "$L1_RPC"); do
     echo "Waiting for a finalized L1 block to exist, retrying after 10s"
     sleep 10

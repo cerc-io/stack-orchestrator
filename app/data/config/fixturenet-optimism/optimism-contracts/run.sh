@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Append tasks/index.ts file
 echo "import './rekey-json'" >> tasks/index.ts

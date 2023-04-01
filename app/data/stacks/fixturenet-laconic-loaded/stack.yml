@@ -1,0 +1,30 @@
+version: "1.0"
+name: fixturenet-laconic-loaded
+description: "A full featured laconic fixturenet"
+repos:
+  - cerc-io/laconicd
+  - lirewine/debug
+  - lirewine/crypto
+  - lirewine/gem
+  - lirewine/sdk
+  - cerc-io/laconic-sdk
+  - cerc-io/laconic-registry-cli
+  - cerc-io/laconic-console
+npms:
+  - laconic-sdk
+  - laconic-registry-cli
+  - debug
+  - crypto
+  - sdk
+  - gem
+  - laconic-console
+containers:
+  - cerc/laconicd
+  - cerc/laconic-registry-cli
+  - cerc/laconic-console-host
+pods:
+  - fixturenet-laconicd
+  - fixturenet-laconic-console
+config:
+  cli:
+    key: laconicd.mykey

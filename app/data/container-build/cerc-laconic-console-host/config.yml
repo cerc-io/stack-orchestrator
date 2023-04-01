@@ -2,5 +2,5 @@
 
 services:
   wns:
-    server: 'http:/laconicd:9473/api'
-    webui: 'http://laconicd:9473/console'
+    server: 'http://localhost:9473/api'
+    webui: 'http://localhost:9473/console'

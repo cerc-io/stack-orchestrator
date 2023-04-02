@@ -5,7 +5,9 @@ repos:
   - cerc-io/ipld-eth-db
   - cerc-io/ipld-eth-server
   - cerc-io/watcher-ts
+  - dboreham/foundry
 containers:
+  - cerc/foundry
   - cerc/go-ethereum
   - cerc/go-ethereum-foundry
   - cerc/ipld-eth-db

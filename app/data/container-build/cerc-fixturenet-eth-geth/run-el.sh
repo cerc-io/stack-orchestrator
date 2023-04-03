@@ -68,6 +68,7 @@ else
       --statediff.db.port=$CERC_STATEDIFF_DB_PORT \
       --statediff.db.user=$CERC_STATEDIFF_DB_USER \
       --statediff.db.logstatements=${CERC_STATEDIFF_DB_LOG_STATEMENTS:-false} \
+      --statediff.db.copyfrom=${CERC_STATEDIFF_DB_COPY_FROM:-true} \
       --statediff.waitforsync=true \
       --statediff.writing=true"
     fi
@@ -78,11 +79,16 @@ else
       --http \
       --http.addr="0.0.0.0" \
       --http.vhosts="*" \
-      --http.api="eth,web3,net,admin,personal,debug,statediff" \
+      --http.api="${CERC_GETH_HTTP_APIS:-eth,web3,net,admin,personal,debug,statediff}" \
       --http.corsdomain="*" \
       --authrpc.addr="0.0.0.0" \
       --authrpc.vhosts="*" \
       --authrpc.jwtsecret="/opt/testnet/build/el/jwtsecret" \
+      --ws \
+      --ws.addr="0.0.0.0" \
+      --ws.origins="*" \
+      --ws.api="${CERC_GETH_WS_APIS:-eth,web3,net,admin,personal,debug,statediff}" \
+      --http.corsdomain="*" \
       --networkid="${NETWORK_ID}" \
       --netrestrict="${NETRESTRICT}" \
       --gcmode archive \

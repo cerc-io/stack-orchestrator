@@ -24,6 +24,8 @@ services:
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/fixturenet-eth-geth:local
+    volumes:
+      - fixturenet-geth-accounts:/opt/testnet/build/el
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
       interval: 30s
@@ -56,6 +58,12 @@ services:
     environment:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-lighthouse:local
+    healthcheck:
+      test: ["CMD", "/scripts/status-internal.sh"]
+      interval: 10s
+      timeout: 100s
+      retries: 3
+      start_period: 15s
 
   fixturenet-eth-lighthouse-1:
     hostname: fixturenet-eth-lighthouse-1
@@ -79,7 +87,7 @@ services:
         condition: service_healthy
     ports:
       - "8001"
-  
+
   fixturenet-eth-lighthouse-2:
     hostname: fixturenet-eth-lighthouse-2
     healthcheck:
@@ -101,3 +109,6 @@ services:
         condition: service_started
       fixturenet-eth-geth-2:
         condition: service_healthy
+
+volumes:
+  fixturenet-geth-accounts:

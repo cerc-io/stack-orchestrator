@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail  ## https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
 
+# WARNING: read this script in detail and understand what it does, prior to running it blindly 
 # This script assumes root permissions on a fresh Ubuntu Digital Ocean droplet
 # with these recommended specs: 16 GB Memory / 8 Intel vCPUs / 320 GB Disk
 
@@ -9,7 +10,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt update -y && apt upgrade -y
 
-apt install docker jq -y
+apt install docker.io jq -y
 
 ## need to do this for Linux <-> docker compose when not installed with Docker Desktop
 mkdir -p ~/.docker/cli-plugins
@@ -22,7 +23,7 @@ curl -L -o ~/bin/laconic-so https://github.com/cerc-io/stack-orchestrator/releas
 chmod +x ~/bin/laconic-so
 
 # set here for this script
-export PATH=$PATH:~/bin
+PATH=$PATH:~/bin
 
 # added to profile, manually running `source ~/.profile` is then required
 echo "export PATH=$PATH:~/bin" >> ~/.profile

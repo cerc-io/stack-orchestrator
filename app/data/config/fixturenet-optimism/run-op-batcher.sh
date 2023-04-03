@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -e -x
 
 # Get BACTHER_KEY from keys.json
 BATCHER_KEY=$(jq -r '.Batcher.privateKey' /l2-accounts/keys.json | tr -d '"')

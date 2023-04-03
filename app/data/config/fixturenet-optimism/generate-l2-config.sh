@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -e -x
 
 op-node genesis l2 \
   --deploy-config /contracts-bedrock/deploy-config/getting-started.json \

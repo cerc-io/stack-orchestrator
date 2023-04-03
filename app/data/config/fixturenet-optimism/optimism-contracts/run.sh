@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -e -x
 
 # TODO Support restarts; fixturenet-eth-geth currently starts fresh on a restart
 # Exit if a deployment already exists (on restarts)

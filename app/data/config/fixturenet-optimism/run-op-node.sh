@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -e -x
 
 # Get SEQUENCER KEY from keys.json
 SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"')

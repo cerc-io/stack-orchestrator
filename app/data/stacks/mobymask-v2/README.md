@@ -43,15 +43,6 @@ This should create the required docker images in the local image registry.
 
 Deploy the stack:
 
-* Set the private key in [secrets.json](../../config/watcher-mobymask-v2/secrets.json) file that will be used by mobymask container to deploy contract
-
-* Set the private key (`server.p2p.peer.l2TxConfig.privateKey`) in [watcher.toml](../../config/watcher-mobymask-v2/watcher-config-template.toml) file that will be used to start the peer that sends txs to L2 chain
-
-  ```toml
-  [server.p2p.peer.l2TxConfig]
-    privateKey = 'SECOND_ACCOUNT_PRIVATE_KEY'
-  ```
-
 * Deploy the containers
 
   ```bash

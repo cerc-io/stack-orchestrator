@@ -6,11 +6,11 @@ SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"'
 
 op-node \
   --l2=http://op-geth:8551 \
-  --l2.jwt-secret=/app/jwt.txt \
+  --l2.jwt-secret=/op-node-data/jwt.txt \
   --sequencer.enabled \
   --sequencer.l1-confs=3 \
   --verifier.l1-confs=3 \
-  --rollup.config=/app/rollup.json \
+  --rollup.config=/op-node-data/rollup.json \
   --rpc.addr=0.0.0.0 \
   --rpc.port=8547 \
   --p2p.disable \

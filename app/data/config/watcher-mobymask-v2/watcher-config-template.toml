@@ -37,8 +37,8 @@
       enableDebugInfo = true
 
       [server.p2p.peer.l2TxConfig]
-        privateKey = ''
-        contractAddress = REPLACE_WITH_CONTRACT_ADDRESS
+        privateKey = 'REPLACE_WITH_PRIVATE_KEY'
+        contractAddress = 'REPLACE_WITH_CONTRACT_ADDRESS'
 
 [metrics]
   host = "0.0.0.0"
@@ -59,7 +59,7 @@
 [upstream]
   [upstream.ethServer]
     gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
-    rpcProviderEndpoint = "http://laconicd:8545"
+    rpcProviderEndpoint = "http://op-geth:8545"
     blockDelayInMilliSecs = 60000
 
   [upstream.cache]

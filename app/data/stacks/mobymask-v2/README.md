@@ -28,10 +28,6 @@ git checkout v0.2.31
 cd ~/cerc/mobymask-ui
 git checkout laconic
 
-# laconicd
-cd ~/cerc/laconicd
-git checkout v0.8.0
-
 # MobyMask
 cd ~/cerc/MobyMask
 git checkout v0.1.1
@@ -47,55 +43,10 @@ This should create the required docker images in the local image registry.
 
 Deploy the stack:
 
-* Deploy the laconic chain
+* Deploy the containers
 
   ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd up
-  ```
-
-* Check that laconic chain status is healthy
-
-  ```bash
-  docker ps
-  ```
-
-* Export the private key from laconicd
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "echo y | laconicd keys export mykey --unarmored-hex --unsafe"
-  ```
-
-* Set the private key in [secrets.json](../../config/watcher-mobymask-v2/secrets.json) file that will be used by mobymask container to deploy contract
-
-* Create a new account named `alice`
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "laconicd keys add alice"
-  ```
-
-* Transfer balance to new account
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd 'laconicd tx bank send $(laconicd keys show mykey -a) $(laconicd keys show alice -a) 1000000000000000000000000aphoton --fees 2000aphoton'
-  ```
-
-* Export the private key of new account from laconicd
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd exec laconicd "echo y | laconicd keys export alice --unarmored-hex --unsafe"
-  ```
-
-* Set the private key (`server.p2p.peer.l2TxConfig.privateKey`) in [watcher.toml](../../config/watcher-mobymask-v2/watcher.toml) file that will be used to start the peer that sends txs to L2 chain
-
-  ```toml
-  [server.p2p.peer.l2TxConfig]
-    privateKey = 'ALICE_PRIVATE_KEY'
-  ```
-
-* Deploy the other containers
-
-  ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 up
+  laconic-so --stack mobymask-v2 deploy-system up
   ```
 
 * Check that all containers are healthy using `docker ps`
@@ -103,7 +54,7 @@ Deploy the stack:
   NOTE: The `mobymask-ui` container might not start. If mobymask-app is not running at http://localhost:3002, run command again to start the container
 
   ```bash
-  laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 up
+  laconic-so --stack mobymask-v2 deploy-system up
   ```
 
 ## Tests
@@ -111,7 +62,7 @@ Deploy the stack:
 Find the watcher container's id:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 ps | grep "mobymask-watcher-server"
+laconic-so --stack mobymask-v2 deploy-system ps | grep "mobymask-watcher-server"
 ```
 
 Example output
@@ -163,9 +114,7 @@ Follow the [demo](./demo.md) to try out the MobyMask app with L2 chain
 Stop all the services running in background run:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 down
-
-laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd down
+laconic-so --stack mobymask-v2 deploy-system down
 ```
 
 Clear volumes:

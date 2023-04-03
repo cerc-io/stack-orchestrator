@@ -3,7 +3,7 @@
 * Get the root invite link URL for mobymask-app
 
   ```
-  laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 logs mobymask
+  laconic-so --stack mobymask-v2 deploy-system logs mobymask
   ```
 
   The invite link is seen at the end of the logs
@@ -34,7 +34,7 @@
   * Get the container id
 
     ```bash
-    laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 ps | grep mobymask-watcher-server
+    laconic-so --stack mobymask-v2 deploy-system ps | grep mobymask-watcher-server
     ```
 
   * Check logs
@@ -74,7 +74,7 @@
   * Get the deployed contract address
 
     ```bash
-    laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 exec mobymask-app "cat src/config.json"
+    laconic-so --stack mobymask-v2 deploy-system exec mobymask-app "cat src/config.json"
     ```
 
     The value of `address` field is the deployed contract address

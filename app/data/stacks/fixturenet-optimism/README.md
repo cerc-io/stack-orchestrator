@@ -76,5 +76,5 @@ docker volume rm laconic-d527651bba3cb61886b36a7400bd2a38_op_node_data
 * Currently not supported:
   * Stopping and restarting the stack from where it left off; currently starts fresh on a restart
   * Pointing Optimism (L2) to external L1 endpoint to allow running only L2 services
-* `cerc/optimism-contracts` image, which currently uses `cerc/foundry` as base, needs to use node-alpine instead as foundry is not necessarily required for our use case; there is a [check](https://github.com/ethereum-optimism/optimism/blob/%40eth-optimism/sdk%400.0.0-20230329025055/packages/contracts-bedrock/package.json#L22) in Optimism build for foundry installation
-    * Resource requirements (memory + time) for building `cerc/foundry` image are on the higher side
+* Resource requirements (memory + time) for building `cerc/foundry` image are on the higher side
+  * `cerc/optimism-contracts` image is currently based on `cerc/foundry` (Optimism requires foundry installation)

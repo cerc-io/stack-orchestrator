@@ -82,8 +82,6 @@ services:
     env_file:
       - ../config/fixturenet-optimism/.env
     depends_on:
-      fixturenet-eth-geth-1:
-        condition: service_healthy
       op-node:
         condition: service_healthy
       op-geth:
@@ -93,7 +91,7 @@ services:
       - ../config/fixturenet-optimism/wait-for-it.sh:/wait-for-it.sh
       - ../config/fixturenet-optimism/run-op-batcher.sh:/run-op-batcher.sh
       - l2_accounts:/l2-accounts:ro
-    entrypoint: "sh"
+    entrypoint: ["sh", "-c"]
     command: |
       "/wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- /run-op-batcher.sh"
     extra_hosts:

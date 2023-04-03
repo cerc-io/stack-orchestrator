@@ -6,6 +6,6 @@ set -e
 L1_PRIV_KEY=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 3)
 
 # Set the private key
-jq --arg privateKey "$L1_PRIV_KEY" '.privateKey = ($privateKey)' secrets.json > tmp.json && mv tmp.json secrets.json
+jq --arg privateKey "$L1_PRIV_KEY" '.privateKey = ($privateKey)' secrets-template.json > secrets.json
 
 npm start

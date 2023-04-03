@@ -80,6 +80,8 @@ services:
     environment:
       L1_RPC: "http://fixturenet-eth-geth-1:8545"
     depends_on:
+      fixturenet-eth-geth-1:
+        condition: service_healthy
       op-node:
         condition: service_healthy
       op-geth:

@@ -37,7 +37,7 @@ services:
     volumes:
       # TODO: add a script to set rpc endpoint from env
       #       add manually if running seperately
-      - ../config/watcher-mobymask-v2/secrets.json:/app/packages/server/secrets.json
+      - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json
       - ../config/watcher-mobymask-v2/deploy-invite.sh:/app/packages/server/deploy-invite.sh
       - moby_data_server:/app/packages/server
       - fixturenet_geth_accounts:/geth-accounts:ro

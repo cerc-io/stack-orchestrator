@@ -114,9 +114,7 @@ Follow the [demo](./demo.md) to try out the MobyMask app with L2 chain
 Stop all the services running in background run:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 down
-
-laconic-so --stack mobymask-v2 deploy-system --include mobymask-laconicd down
+laconic-so --stack mobymask-v2 deploy-system down
 ```
 
 Clear volumes:

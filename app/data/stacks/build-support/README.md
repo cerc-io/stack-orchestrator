@@ -23,6 +23,7 @@ $ laconic-so --stack build-support build-containers --exclude cerc/builder-gerbi
 
 ```
 $ laconic-so --stack package-registry setup-repositories
+$ laconic-so --stack package-registry build-containers 
 $ laconic-so --stack package-registry deploy up
 [+] Running 3/3
  ⠿ Network laconic-aecc4a21d3a502b14522db97d427e850_gitea       Created                                                                                    0.0s

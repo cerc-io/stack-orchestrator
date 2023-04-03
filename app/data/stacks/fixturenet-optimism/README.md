@@ -35,7 +35,7 @@ This should create the required docker images in the local image registry:
 * `cerc/optimism-op-batcher`
 * `cerc/optimism-op-node`
 
-# Deploy
+## Deploy
 
 Deploy the stack:
 
@@ -52,7 +52,7 @@ laconic-so --stack fixturenet-optimism deploy ps
 docker ps
 ```
 
-# Clean up
+## Clean up
 
 Stop all services running in the background:
 
@@ -71,7 +71,7 @@ docker volume rm laconic-d527651bba3cb61886b36a7400bd2a38_l2-accounts
 docker volume rm laconic-d527651bba3cb61886b36a7400bd2a38_op_node_data
 ```
 
-# Known Issues
+## Known Issues
 
 * Currently not supported:
   * Stopping and restarting the stack from where it left off; currently starts fresh on a restart

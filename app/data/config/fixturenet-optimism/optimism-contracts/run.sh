@@ -43,14 +43,13 @@ yarn hardhat send-balance --to "${BATCHER_ADDRESS}" --amount 1000 --private-key 
 echo "Balances sent to L2 accounts"
 
 # Select a finalized L1 block as the starting point for roll ups
-# TODO Use web3.js to get the latest finalized block
-until CAST_OUTPUT=$(cast block finalized --rpc-url "$L1_RPC"); do
+until FINALIZED_BLOCK=$(cast block finalized --rpc-url "$L1_RPC"); do
     echo "Waiting for a finalized L1 block to exist, retrying after 10s"
     sleep 10
 done
 
-L1_BLOCKHASH=$(echo "$CAST_OUTPUT" | awk '/hash/{print $2}')
-L1_BLOCKTIMESTAMP=$(echo "$CAST_OUTPUT" | awk '/timestamp/{print $2}')
+L1_BLOCKHASH=$(echo "$FINALIZED_BLOCK" | awk '/hash/{print $2}')
+L1_BLOCKTIMESTAMP=$(echo "$FINALIZED_BLOCK" | awk '/timestamp/{print $2}')
 
 # Update the deployment config
 sed -i 's/"l2OutputOracleStartingTimestamp": TIMESTAMP/"l2OutputOracleStartingTimestamp": '"$L1_BLOCKTIMESTAMP"'/g' deploy-config/getting-started.json

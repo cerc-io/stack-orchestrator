@@ -4,10 +4,6 @@ services:
   fixturenet-optimism-contracts:
     hostname: fixturenet-optimism-contracts
     image: cerc/optimism-contracts:local
-    depends_on:
-      # TODO Replace dependency with a check
-      fixturenet-eth-bootnode-lighthouse:
-        condition: service_healthy
     env_file:
       - ../config/fixturenet-optimism/optimism-contracts/.env
     command: |
@@ -96,6 +92,7 @@ services:
     command: "/run-op-batcher.sh"
 
 volumes:
-  op_node_data:
-  l2_accounts:
+  fixturenet_geth_accounts:
   l1_deployment:
+  l2_accounts:
+  op_node_data:

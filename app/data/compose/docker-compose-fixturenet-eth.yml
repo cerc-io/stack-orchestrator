@@ -25,7 +25,7 @@ services:
       - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/fixturenet-eth-geth:local
     volumes:
-      - fixturenet-geth-accounts:/opt/testnet/build/el
+      - fixturenet_geth_accounts:/opt/testnet/build/el
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
       interval: 30s
@@ -111,4 +111,4 @@ services:
         condition: service_healthy
 
 volumes:
-  fixturenet-geth-accounts:
+  fixturenet_geth_accounts:

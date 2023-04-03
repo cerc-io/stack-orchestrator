@@ -25,12 +25,22 @@ services:
     restart: unless-stopped
     image: cerc/mobymask:local
     working_dir: /app/packages/server
+    depends_on:
+      op-node:
+        condition: service_healthy
+      op-geth:
+        condition: service_healthy
+    # TODO: Configure env file for ETH RPC URL & private key
     environment:
       - ENV=PROD
-    command: ["sh", "-c", "npm start"]
+    command: ["sh", "./deploy-invite.sh"]
     volumes:
-      - ../config/watcher-mobymask-v2/secrets.json:/app/packages/server/secrets.json
+      # TODO: add a script to set rpc endpoint from env
+      #       add manually if running seperately
+      - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json
+      - ../config/watcher-mobymask-v2/deploy-invite.sh:/app/packages/server/deploy-invite.sh
       - moby_data_server:/app/packages/server
+      - fixturenet_geth_accounts:/geth-accounts:ro
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "3330"]
       interval: 20s
@@ -39,6 +49,7 @@ services:
       start_period: 10s
 
   mobymask-watcher-server:
+    # TODO: pass optimism rpc endpoint
     restart: unless-stopped
     depends_on:
       mobymask-watcher-db:
@@ -48,12 +59,15 @@ services:
     image: cerc/watcher-mobymask-v2:local
     command: ["sh", "server-start.sh"]
     volumes:
+      # TODO: add a script to set rpc endpoint from env
+      #       add manually if running seperately
       - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml
       - ../config/watcher-mobymask-v2/peer.env:/app/packages/peer/.env
       - ../config/watcher-mobymask-v2/relay-id.json:/app/packages/mobymask-v2-watcher/relay-id.json
       - ../config/watcher-mobymask-v2/peer-id.json:/app/packages/mobymask-v2-watcher/peer-id.json
       - ../config/watcher-mobymask-v2/server-start.sh:/app/packages/mobymask-v2-watcher/server-start.sh
       - moby_data_server:/server
+      - fixturenet_geth_accounts:/geth-accounts:ro
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"
@@ -65,6 +79,7 @@ services:
       retries: 15
       start_period: 5s
 
+  # TODO: Move to a separate pod
   mobymask-app:
     depends_on:
       mobymask-watcher-server:
@@ -109,11 +124,4 @@ services:
 volumes:
   mobymask_watcher_db_data:
   moby_data_server:
-
-networks:
-  # https://docs.docker.com/compose/networking/#configure-the-default-network
-  default:
-    # https://docs.docker.com/compose/networking/#use-a-pre-existing-network
-    name: mobymask-v2-network
-    external: true
-
+  fixturenet_geth_accounts:

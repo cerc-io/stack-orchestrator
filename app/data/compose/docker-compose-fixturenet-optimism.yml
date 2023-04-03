@@ -18,9 +18,9 @@ services:
       - ../config/fixturenet-optimism/optimism-contracts/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
       - ../config/fixturenet-optimism/optimism-contracts/update-config.js:/app/packages/contracts-bedrock/update-config.js
       - ../config/fixturenet-optimism/optimism-contracts/run.sh:/app/packages/contracts-bedrock/run.sh
-      - fixturenet-geth-accounts:/geth-accounts:ro
-      - l2-accounts:/l2-accounts
-      - l1-deployment:/app/packages/contracts-bedrock
+      - fixturenet_geth_accounts:/geth-accounts:ro
+      - l2_accounts:/l2-accounts
+      - l1_deployment:/app/packages/contracts-bedrock
 
   op-node-l2-config-gen:
     image: cerc/optimism-op-node:local
@@ -31,7 +31,7 @@ services:
       L1_RPC: "http://fixturenet-eth-geth-1:8545"
     volumes:
       - ../config/fixturenet-optimism/generate-l2-config.sh:/app/generate-l2-config.sh
-      - l1-deployment:/contracts-bedrock:ro
+      - l1_deployment:/contracts-bedrock:ro
       - op_node_data:/app
     command: ["sh", "/app/generate-l2-config.sh"]
 
@@ -43,7 +43,7 @@ services:
     volumes:
       - ../config/fixturenet-optimism/run-op-geth.sh:/run-op-geth.sh
       - op_node_data:/op-node:ro
-      - l2-accounts:/l2-accounts:ro
+      - l2_accounts:/l2-accounts:ro
     entrypoint: "sh"
     command: "/run-op-geth.sh"
     ports:
@@ -64,8 +64,8 @@ services:
     image: cerc/optimism-op-node:local
     volumes:
       - ../config/fixturenet-optimism/run-op-node.sh:/app/run-op-node.sh
-      - op_node_data:/app:ro
-      - l2-accounts:/l2-accounts:ro
+      - op_node_data:/op-node-data:ro
+      - l2_accounts:/l2-accounts:ro
     command: ["sh", "/app/run-op-node.sh"]
     ports:
       - "8547"
@@ -80,6 +80,8 @@ services:
     environment:
       L1_RPC: "http://fixturenet-eth-geth-1:8545"
     depends_on:
+      fixturenet-eth-geth-1:
+        condition: service_healthy
       op-node:
         condition: service_healthy
       op-geth:
@@ -87,11 +89,11 @@ services:
     image: cerc/optimism-op-batcher:local
     volumes:
       - ../config/fixturenet-optimism/run-op-batcher.sh:/run-op-batcher.sh
-      - l2-accounts:/l2-accounts:ro
+      - l2_accounts:/l2-accounts:ro
     entrypoint: "sh"
     command: "/run-op-batcher.sh"
 
 volumes:
   op_node_data:
-  l2-accounts:
-  l1-deployment:
+  l2_accounts:
+  l1_deployment:

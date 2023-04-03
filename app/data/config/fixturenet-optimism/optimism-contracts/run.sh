@@ -1,5 +1,8 @@
 #!/bin/bash
-set -e -x
+set -e
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
+  set -x
+fi
 
 # TODO Support restarts; fixturenet-eth-geth currently starts fresh on a restart
 # Exit if a deployment already exists (on restarts)

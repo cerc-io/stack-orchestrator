@@ -1,5 +1,8 @@
 #!/bin/sh
-set -e -x
+set -e
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
+  set -x
+fi
 
 export L1_RPC="http://${L1_HOST}:${L1_PORT}"
 

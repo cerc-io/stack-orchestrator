@@ -5,11 +5,11 @@ services:
     hostname: fixturenet-optimism-contracts
     image: cerc/optimism-contracts:local
     env_file:
-      - ../config/fixturenet-optimism/optimism-contracts/.env
+      - ../config/fixturenet-optimism/.env
     command: |
       "./wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- ./run.sh"
     volumes:
-      - ../config/fixturenet-optimism/optimism-contracts/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
+      - ../config/fixturenet-optimism/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
       - ../config/fixturenet-optimism/optimism-contracts/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
       - ../config/fixturenet-optimism/optimism-contracts/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
       - ../config/fixturenet-optimism/optimism-contracts/update-config.js:/app/packages/contracts-bedrock/update-config.js
@@ -25,13 +25,15 @@ services:
     depends_on:
       fixturenet-optimism-contracts:
         condition: service_completed_successfully
-    environment:
-      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    env_file:
+      - ../config/fixturenet-optimism/.env
     volumes:
       - ../config/fixturenet-optimism/generate-l2-config.sh:/app/generate-l2-config.sh
       - l1_deployment:/contracts-bedrock:ro
       - op_node_data:/app
     command: ["sh", "/app/generate-l2-config.sh"]
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   op-geth:
     image: cerc/optimism-l2geth:local
@@ -54,8 +56,8 @@ services:
       start_period: 10s
 
   op-node:
-    environment:
-      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    env_file:
+      - ../config/fixturenet-optimism/.env
     depends_on:
       op-geth:
         condition: service_healthy
@@ -73,10 +75,12 @@ services:
       timeout: 10s
       retries: 10
       start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   op-batcher:
-    environment:
-      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    env_file:
+      - ../config/fixturenet-optimism/.env
     depends_on:
       fixturenet-eth-geth-1:
         condition: service_healthy
@@ -86,10 +90,14 @@ services:
         condition: service_healthy
     image: cerc/optimism-op-batcher:local
     volumes:
+      - ../config/fixturenet-optimism/wait-for-it.sh:/wait-for-it.sh
       - ../config/fixturenet-optimism/run-op-batcher.sh:/run-op-batcher.sh
       - l2_accounts:/l2-accounts:ro
     entrypoint: "sh"
-    command: "/run-op-batcher.sh"
+    command: |
+      "/wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- /run-op-batcher.sh"
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
 volumes:
   fixturenet_geth_accounts:

@@ -25,7 +25,7 @@ services:
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
-  # Generates the config files required for L2 (outputs to volume op_node_data)
+  # Generates the config files required for L2 (outputs to volume l2_config)
   op-node-l2-config-gen:
     image: cerc/optimism-op-node:local
     depends_on:
@@ -36,7 +36,7 @@ services:
     volumes:
       - ../config/fixturenet-optimism/generate-l2-config.sh:/app/generate-l2-config.sh
       - l1_deployment:/contracts-bedrock:ro
-      - op_node_data:/app
+      - l2_config:/app
     command: ["sh", "/app/generate-l2-config.sh"]
     extra_hosts:
     - "host.docker.internal:host-gateway"
@@ -49,7 +49,7 @@ services:
         condition: service_started
     volumes:
       - ../config/fixturenet-optimism/run-op-geth.sh:/run-op-geth.sh
-      - op_node_data:/op-node:ro
+      - l2_config:/op-node:ro
       - l2_accounts:/l2-accounts:ro
     entrypoint: "sh"
     command: "/run-op-geth.sh"
@@ -72,7 +72,7 @@ services:
     image: cerc/optimism-op-node:local
     volumes:
       - ../config/fixturenet-optimism/run-op-node.sh:/app/run-op-node.sh
-      - op_node_data:/op-node-data:ro
+      - l2_config:/op-node-data:ro
       - l2_accounts:/l2-accounts:ro
     command: ["sh", "/app/run-op-node.sh"]
     ports:
@@ -111,4 +111,4 @@ volumes:
   fixturenet_geth_accounts:
   l1_deployment:
   l2_accounts:
-  op_node_data:
+  l2_config:

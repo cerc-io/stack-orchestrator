@@ -13,7 +13,7 @@ laconic-so --stack fixturenet-optimism setup-repositories
 Checkout to the required versions and branches in repos:
 
 ```bash
-# optimism
+# Optimism
 cd ~/cerc/optimism
 git checkout @eth-optimism/sdk@0.0.0-20230329025055
 ```

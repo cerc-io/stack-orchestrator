@@ -13,9 +13,9 @@ containers:
   - cerc/fixturenet-eth-lighthouse
   - cerc/foundry
   - cerc/optimism-contracts
+  - cerc/optimism-op-node
   - cerc/optimism-l2geth
   - cerc/optimism-op-batcher
-  - cerc/optimism-op-node
 pods:
   - fixturenet-eth
   - fixturenet-optimism

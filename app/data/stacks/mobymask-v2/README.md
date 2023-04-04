@@ -31,6 +31,10 @@ git checkout laconic
 # MobyMask
 cd ~/cerc/MobyMask
 git checkout v0.1.1
+
+# Optimism
+cd ~/cerc/optimism
+git checkout @eth-optimism/sdk@0.0.0-20230329025055
 ```
 
 Build the container images:
@@ -43,18 +47,20 @@ This should create the required docker images in the local image registry.
 
 Deploy the stack:
 
-* Deploy the containers
+* Deploy the containers:
 
   ```bash
   laconic-so --stack mobymask-v2 deploy-system up
   ```
 
-* Check that all containers are healthy using `docker ps`
+* List and check the health status of all the containers using `docker ps` and wait for them to be `healthy`
 
-  NOTE: The `mobymask-ui` container might not start. If mobymask-app is not running at http://localhost:3002, run command again to start the container
+  NOTE: The `mobymask-app` container might not start; if the app is not running at http://localhost:3002, restart the container using it's id:
 
   ```bash
-  laconic-so --stack mobymask-v2 deploy-system up
+  docker ps -a | grep "mobymask-app"
+
+  docker restart <CONTAINER_ID>
   ```
 
 ## Tests
@@ -87,7 +93,11 @@ docker exec -w /app/packages/peer $CONTAINER_ID yarn test
 
 ## Web Apps
 
-Check that the status for web-app containers are healthy by using `docker ps`
+Check that the web-app containers are healthy:
+
+```bash
+docker ps | grep -E 'mobymask-app|peer-test-app'
+```
 
 ### mobymask-app
 
@@ -119,15 +129,14 @@ laconic-so --stack mobymask-v2 deploy-system down
 
 Clear volumes:
 
-* List all volumes
+* List all relevant volumes:
 
   ```bash
-  docker volume ls
+  docker volume ls -q --filter name=laconic*
   ```
 
-* Remove volumes created by this stack
+* Remove all the listed volumes:
 
-  Example:
   ```bash
-  docker volume rm laconic-bfb01caf98b1b8f7c8db4d33f11b905a_moby_data_server
+  docker volume rm $(docker volume ls -q --filter name=laconic*)
   ```

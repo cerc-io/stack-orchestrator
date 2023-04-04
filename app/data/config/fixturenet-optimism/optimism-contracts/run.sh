@@ -50,8 +50,11 @@ until FINALIZED_BLOCK=$(cast block finalized --rpc-url "$L1_RPC"); do
     sleep 10
 done
 
+L1_BLOCKNUMBER=$(echo "$FINALIZED_BLOCK" | awk '/number/{print $2}')
 L1_BLOCKHASH=$(echo "$FINALIZED_BLOCK" | awk '/hash/{print $2}')
 L1_BLOCKTIMESTAMP=$(echo "$FINALIZED_BLOCK" | awk '/timestamp/{print $2}')
+
+echo "Selected L1 block ${L1_BLOCKNUMBER} as the starting block for roll ups"
 
 # Send balances to the above L2 addresses
 yarn hardhat send-balance --to "${ADMIN_ADDRESS}" --amount 2 --private-key "${L1_PRIV_KEY}" --network getting-started

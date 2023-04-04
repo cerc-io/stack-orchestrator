@@ -2,15 +2,14 @@
 
 Instructions to setup and deploy an end-to-end L1+L2 stack with [fixturenet-eth](../fixturenet-eth/) (L1) and [Optimism](https://stack.optimism.io) (L2)
 
+We support running just the L2 part of stack, given an external L1 endpoint. Follow [L2-ONLY](./L2-ONLY.md) for the same.
+
 ## Setup
 
 Clone required repositories:
 
 ```bash
 laconic-so --stack fixturenet-optimism setup-repositories
-
-# Exclude cerc-io/go-ethereum repository if running L1 separately
-laconic-so --stack fixturenet-optimism setup-repositories --exclude cerc-io/go-ethereum
 ```
 
 Checkout to the required versions and branches in repos:
@@ -25,9 +24,6 @@ Build the container images:
 
 ```bash
 laconic-so --stack fixturenet-optimism build-containers
-
-# Only build containers required for L2 if running L1 separately
-laconic-so --stack fixturenet-optimism build-containers --include cerc/foundry,cerc/optimism-contracts,cerc/optimism-op-node,cerc/optimism-l2geth,cerc/optimism-op-batcher
 ```
 
 This should create the required docker images in the local image registry:
@@ -43,19 +39,10 @@ This should create the required docker images in the local image registry:
 
 ## Deploy
 
-(Optional) Update the [l1-params.env](../../config/fixturenet-optimism/l1-params.env) file with L1 endpoint (`L1_RPC`, `L1_HOST` and `L1_PORT`) and other params if running L1 separately
-
-* NOTE:
-  * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
-  * If L1 is running on the host machine, use `host.docker.internal` as the hostname to access the host port
-
 Deploy the stack:
 
 ```bash
 laconic-so --stack fixturenet-optimism deploy up
-
-# Only start fixturenet-optimism pod (L2) if running L1 separately
-laconic-so --stack fixturenet-optimism deploy up --include fixturenet-optimism
 ```
 
 The `fixturenet-optimism-contracts` service may take a while (`~15 mins`) to complete running as it:
@@ -81,9 +68,6 @@ Stop all services running in the background:
 
 ```bash
 laconic-so --stack fixturenet-optimism deploy down
-
-# If only ran fixturenet-optimism pod (L2)
-laconic-so --stack fixturenet-optimism deploy down --include fixturenet-optimism
 ```
 
 Clear volumes created by this stack:

@@ -8,6 +8,9 @@ Clone required repositories:
 
 ```bash
 laconic-so --stack mobymask-v2 setup-repositories
+
+# Include repositories required for MobyMask if running optimism separately
+laconic-so --stack fixturenet-optimism setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts,cerc-io/react-peer,cerc-io/mobymask-ui
 ```
 
 NOTE: If repositories already exist and are checked out to different versions, `setup-repositories` command will throw an error.
@@ -41,16 +44,28 @@ Build the container images:
 
 ```bash
 laconic-so --stack mobymask-v2 build-containers
+
+# Only build containers required for MobyMask if running optimism separately
+laconic-so --stack fixturenet-optimism build-containers --include cerc/watcher-mobymask-v2,cerc/react-peer,cerc/mobymask-ui,cerc/mobymask
 ```
 
 This should create the required docker images in the local image registry.
 
 Deploy the stack:
 
+* (Optional) Update the [optimism-params.env](../../config/watcher-mobymask-v2/optimism-params.env) file with optimism endpoints and other params if running optimism separately
+
+  NOTE:
+  * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
+  * If optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
+
 * Deploy the containers:
 
   ```bash
   laconic-so --stack mobymask-v2 deploy-system up
+
+  # Only start watcher-mobymask-v2 pod if running optimism separately
+  laconic-so --stack mobymask-v2 deploy up --include watcher-mobymask-v2
   ```
 
 * List and check the health status of all the containers using `docker ps` and wait for them to be `healthy`

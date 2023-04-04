@@ -58,7 +58,7 @@
 
 [upstream]
   [upstream.ethServer]
-    gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
+    gqlApiEndpoint = "REPLACE_WITH_L2_GETH_URL"
     rpcProviderEndpoint = "http://op-geth:8545"
     blockDelayInMilliSecs = 60000
 

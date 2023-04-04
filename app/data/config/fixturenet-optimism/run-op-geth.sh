@@ -9,7 +9,7 @@ mkdir datadir
 echo "pwd" > datadir/password
 
 # TODO: Add in container build or use other tool
-echo "installing jq"
+echo "Installing jq"
 apk update && apk add jq
 
 # Get SEQUENCER KEY from keys.json
@@ -32,6 +32,8 @@ geth init --datadir=datadir genesis.json
 SEQUENCER_ADDRESS=$(jq -r '.Sequencer.address' /l2-accounts/keys.json | tr -d '"')
 echo "SEQUENCER_ADDRESS: ${SEQUENCER_ADDRESS}"
 cp /op-node/jwt.txt ./
+
+# Run op-geth
 geth \
   --datadir ./datadir \
   --http \

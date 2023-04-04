@@ -25,28 +25,31 @@ services:
     restart: unless-stopped
     image: cerc/mobymask:local
     working_dir: /app/packages/server
-    # TODO: Configure env file for private key
     env_file:
       - ../config/watcher-mobymask-v2/optimism-params.env
     environment:
       - ENV=PROD
-    command: |-
-      ./wait-for-it.sh -h $${L2_GETH_HOST} -p $${L2_GETH_PORT} -s \
-      ./wait-for-it.sh -h $${L2_NODE_HOST} -p $${L2_NODE_PORT} -s \
-      sh ./deploy-and-generate-invite.sh
+    command:
+      - sh
+      - -c
+      - |
+        ./wait-for-it.sh -h $${L2_GETH_HOST} -p $${L2_GETH_PORT} -s -t 0 && \
+        ./wait-for-it.sh -h $${L2_NODE_HOST} -p $${L2_NODE_PORT} -s -t 0 && \
+        ./deploy-and-generate-invite.sh
     volumes:
-      # TODO: Move out to config dir
-      - ../config/fixturenet-optimism/wait-for-it.sh:/app/packages/server/wait-for-it.sh
+      - ../config/wait-for-it.sh:/app/packages/server/wait-for-it.sh
       - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json
       - ../config/watcher-mobymask-v2/deploy-and-generate-invite.sh:/app/packages/server/deploy-and-generate-invite.sh
       - moby_data_server:/app/packages/server
-      - ../test/fixturenet_geth_accounts:/geth-accounts:ro
+      - fixturenet_geth_accounts:/geth-accounts:ro
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "3330"]
       interval: 20s
       timeout: 5s
       retries: 15
       start_period: 10s
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   mobymask-watcher-server:
     restart: unless-stopped
@@ -56,7 +59,6 @@ services:
       mobymask:
         condition: service_healthy
     image: cerc/watcher-mobymask-v2:local
-    # TODO: Configure env file for private key
     env_file:
       - ../config/watcher-mobymask-v2/optimism-params.env
     command: ["sh", "server-start.sh"]
@@ -67,7 +69,7 @@ services:
       - ../config/watcher-mobymask-v2/peer-id.json:/app/packages/mobymask-v2-watcher/peer-id.json
       - ../config/watcher-mobymask-v2/server-start.sh:/app/packages/mobymask-v2-watcher/server-start.sh
       - moby_data_server:/server
-      - ../test/fixturenet_geth_accounts:/geth-accounts:ro
+      - fixturenet_geth_accounts:/geth-accounts:ro
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"

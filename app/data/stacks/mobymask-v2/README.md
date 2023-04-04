@@ -10,7 +10,7 @@ Clone required repositories:
 laconic-so --stack mobymask-v2 setup-repositories
 
 # Include repositories required for MobyMask if running optimism separately
-laconic-so --stack fixturenet-optimism setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts,cerc-io/react-peer,cerc-io/mobymask-ui
+laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts,cerc-io/react-peer,cerc-io/mobymask-ui
 ```
 
 NOTE: If repositories already exist and are checked out to different versions, `setup-repositories` command will throw an error.
@@ -46,7 +46,7 @@ Build the container images:
 laconic-so --stack mobymask-v2 build-containers
 
 # Only build containers required for MobyMask if running optimism separately
-laconic-so --stack fixturenet-optimism build-containers --include cerc/watcher-mobymask-v2,cerc/react-peer,cerc/mobymask-ui,cerc/mobymask
+laconic-so --stack mobymask-v2 build-containers --include cerc/watcher-mobymask-v2,cerc/react-peer,cerc/mobymask-ui,cerc/mobymask
 ```
 
 This should create the required docker images in the local image registry.
@@ -65,7 +65,7 @@ Deploy the stack:
   laconic-so --stack mobymask-v2 deploy-system up
 
   # Only start watcher-mobymask-v2 pod if running optimism separately
-  laconic-so --stack mobymask-v2 deploy up --include watcher-mobymask-v2
+  laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 up
   ```
 
 * List and check the health status of all the containers using `docker ps` and wait for them to be `healthy`
@@ -84,6 +84,9 @@ Find the watcher container's id and export it for later use:
 
 ```bash
 laconic-so --stack mobymask-v2 deploy-system ps | grep "mobymask-watcher-server"
+
+# If only running watcher-mobymask-v2 pod
+laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 ps | grep "mobymask-watcher-server"
 
 export CONTAINER_ID=<CONTAINER_ID>
 ```
@@ -136,6 +139,9 @@ Stop all the services running in background run:
 
 ```bash
 laconic-so --stack mobymask-v2 deploy-system down
+
+# If only ran watcher-mobymask-v2 pod
+laconic-so --stack mobymask-v2 deploy down --include watcher-mobymask-v2
 ```
 
 Clear volumes:

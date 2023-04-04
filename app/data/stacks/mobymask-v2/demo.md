@@ -4,6 +4,9 @@
 
   ```bash
   laconic-so --stack mobymask-v2 deploy-system logs mobymask
+
+  # If only running watcher-mobymask-v2 pod
+  laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 logs mobymask
   ```
 
   The invite link is seen at the end of the logs. Example log:
@@ -35,6 +38,9 @@
 
     ```bash
     laconic-so --stack mobymask-v2 deploy-system ps | grep mobymask-watcher-server
+
+    # If only running watcher-mobymask-v2 pod
+    laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 ps | grep mobymask-watcher-server
     ```
 
   * Check logs:
@@ -75,6 +81,9 @@
 
     ```bash
     laconic-so --stack mobymask-v2 deploy-system exec mobymask-app "cat src/config.json"
+
+    # If only running watcher-mobymask-v2 pod
+    laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 exec mobymask-app "cat src/config.json"
     ```
 
     The value of `address` field is the deployed contract address

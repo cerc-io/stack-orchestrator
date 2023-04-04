@@ -25,7 +25,7 @@ RUN make op-batcher VERSION="$VERSION" GOOS=$TARGETOS GOARCH=$TARGETARCH
 
 FROM alpine:3.15
 
-RUN apk add --no-cache jq
+RUN apk add --no-cache jq bash
 
 COPY --from=builder /app/op-batcher/bin/op-batcher /usr/local/bin
 

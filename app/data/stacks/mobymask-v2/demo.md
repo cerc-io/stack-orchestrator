@@ -1,22 +1,22 @@
 # Demo
 
-* Get the root invite link URL for mobymask-app
+* Get the root invite link URL for mobymask-app:
 
-  ```
+  ```bash
   laconic-so --stack mobymask-v2 deploy-system logs mobymask
   ```
 
-  The invite link is seen at the end of the logs
-  Example:
-  ```
+  The invite link is seen at the end of the logs. Example log:
+
+  ```bash
   laconic-bfb01caf98b1b8f7c8db4d33f11b905a-mobymask-1  | http://127.0.0.1:3002/#/members?invitation=%7B%22v%22%3A1%2C%22signedDelegations%22%3A%5B%7B%22signature%22%3A%220x7559bd412f02677d60820e38243acf61547f79339395a34f7d4e1630e645aeb30535fc219f79b6fbd3af0ce3bd05132ad46d2b274a9fbc4c36bc71edd09850891b%22%2C%22delegation%22%3A%7B%22delegate%22%3A%220xc0838c92B2b71756E0eAD5B3C1e1F186baeEAAac%22%2C%22authority%22%3A%220x0000000000000000000000000000000000000000000000000000000000000000%22%2C%22caveats%22%3A%5B%7B%22enforcer%22%3A%220x558024C7d593B840E1BfD83E9B287a5CDad4db15%22%2C%22terms%22%3A%220x0000000000000000000000000000000000000000000000000000000000000000%22%7D%5D%7D%7D%5D%2C%22key%22%3A%220x98da9805821f1802196443e578fd32af567bababa0a249c07c82df01ecaa7d8d%22%7D
   ```
 
-* Open the invite link in browser to use the mobymask-app.
+* Open the invite link in a browser to use the mobymask-app.
 
   NOTE: Before opening the invite link, clear the browser cache (local storage) for http://127.0.0.1:3002 to remove old invitations
 
-* In the debug panel, check if it is connected to the p2p network (It should be connected to atleast one other peer for pubsub to work).
+* In the debug panel, check if it is connected to the p2p network (it should be connected to at least one other peer for pubsub to work).
 
 * Create an invite link in the app by clicking on `Create new invite link` button.
 
@@ -31,24 +31,24 @@
 
 * In a terminal check logs from the watcher peer container.
 
-  * Get the container id
+  * Get the container id:
 
     ```bash
     laconic-so --stack mobymask-v2 deploy-system ps | grep mobymask-watcher-server
     ```
 
-  * Check logs
+  * Check logs:
 
     ```bash
-    docker logs -f CONTAINER_ID
+    docker logs -f <CONTAINER_ID>
     ```
 
-* It should have received the message, sent transaction to L2 chain and received a transaction receipt with block details.
+* It should have received the message, sent transaction to L2 chain and received a transaction receipt for an `invoke` message with block details.
 
   Example log:
 
-  ```
-  2023-03-23T10:25:19.771Z vulcanize:peer-listener [10:25:19] Received a message on mobymask P2P network from peer: PeerId(12D3KooWAVNswtcrX12iDYukEoxdQwD34kJyRWcQTfZ4unGg2xjd)
+  ```bash
+  2023-03-23T10:25:19.771Z vulcanize:peer-listener [10:25:19] Received a message on mobymask P2P network from peer: 12D3KooWAVNswtcrX12iDYukEoxdQwD34kJyRWcQTfZ4unGg2xjd
   2023-03-23T10:25:24.143Z laconic:libp2p-utils Transaction receipt for invoke message {
     to: '0x558024C7d593B840E1BfD83E9B287a5CDad4db15',
     blockNumber: 1996,
@@ -60,7 +60,7 @@
   ```
 
 * Check the phisher in watcher GQL: http://localhost:3001/graphql
-  * Use the blockHash from transaction receipt details or query for latest block
+  * Use the blockHash from transaction receipt details or query for latest block:
 
     ```gql
     query {
@@ -71,7 +71,7 @@
     }
     ```
 
-  * Get the deployed contract address
+  * Get the deployed contract address:
 
     ```bash
     laconic-so --stack mobymask-v2 deploy-system exec mobymask-app "cat src/config.json"
@@ -94,7 +94,7 @@
     }
     ```
 
-    It should return true for reported phisher names.
+    It should return `true` for reported phisher names.
 
   * Watcher internally is using L2 chain `eth_getStorageAt` method.
 
@@ -107,7 +107,7 @@
 
 * Revocation messages can be seen in the debug panel `MESSAGES` tab of other browsers.
 
-* Check the watcher peer logs. It should receive a message and log the transaction receipt for revoke message.
+* Check the watcher peer logs. It should receive a message and log the transaction receipt for a `revoke` message.
 
 * Try reporting a phisher from the revoked invitee's browser.
 
@@ -129,4 +129,4 @@
     }
     ```
 
-    It should return false as the invitation/delegation used for reporting phishers has been revoked.
+    It should return `false` as the invitation/delegation used for reporting phishers has been revoked.

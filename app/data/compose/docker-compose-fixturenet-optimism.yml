@@ -1,40 +1,46 @@
 version: '3.7'
 
 services:
+  # Generates and funds the accounts required when setting up the L2 chain (outputs to volume l2_accounts)
+  # Creates / updates the configuration for L1 contracts deployment
+  # Deploys the L1 smart contracts (outputs to volume l1_deployment)
   fixturenet-optimism-contracts:
     hostname: fixturenet-optimism-contracts
     image: cerc/optimism-contracts:local
-    depends_on:
-      fixturenet-eth-geth-1:
-        condition: service_healthy
-      fixturenet-eth-bootnode-lighthouse:
-        condition: service_healthy
-    environment:
-      CHAIN_ID: 1212
-      L1_RPC: "http://fixturenet-eth-geth-1:8545"
-    command: "./run.sh"
+    env_file:
+      - ../config/fixturenet-optimism/l1-params.env
+    # Waits for L1 endpoint to be up before running the script
+    command: |
+      "./wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- ./run.sh"
     volumes:
-      - ../config/fixturenet-optimism/optimism-contracts/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
-      - ../config/fixturenet-optimism/optimism-contracts/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
+      - ../config/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
+      - ../container-build/cerc-optimism-contracts/hardhat-tasks/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
+      - ../container-build/cerc-optimism-contracts/hardhat-tasks/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
       - ../config/fixturenet-optimism/optimism-contracts/update-config.js:/app/packages/contracts-bedrock/update-config.js
       - ../config/fixturenet-optimism/optimism-contracts/run.sh:/app/packages/contracts-bedrock/run.sh
       - fixturenet_geth_accounts:/geth-accounts:ro
       - l2_accounts:/l2-accounts
       - l1_deployment:/app/packages/contracts-bedrock
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
+  # Generates the config files required for L2 (outputs to volume op_node_data)
   op-node-l2-config-gen:
     image: cerc/optimism-op-node:local
     depends_on:
       fixturenet-optimism-contracts:
         condition: service_completed_successfully
-    environment:
-      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    env_file:
+      - ../config/fixturenet-optimism/l1-params.env
     volumes:
       - ../config/fixturenet-optimism/generate-l2-config.sh:/app/generate-l2-config.sh
       - l1_deployment:/contracts-bedrock:ro
       - op_node_data:/app
     command: ["sh", "/app/generate-l2-config.sh"]
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
+  # Initializes and runs the L2 execution client
   op-geth:
     image: cerc/optimism-l2geth:local
     depends_on:
@@ -55,9 +61,10 @@ services:
       retries: 10
       start_period: 10s
 
+  # Runs the L2 consensus client (Sequencer node)
   op-node:
-    environment:
-      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    env_file:
+      - ../config/fixturenet-optimism/l1-params.env
     depends_on:
       op-geth:
         condition: service_healthy
@@ -75,25 +82,32 @@ services:
       timeout: 10s
       retries: 10
       start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
+  # Runs the batcher (takes transactions from the Sequencer and publishes them to L1)
   op-batcher:
-    environment:
-      L1_RPC: "http://fixturenet-eth-geth-1:8545"
+    env_file:
+      - ../config/fixturenet-optimism/l1-params.env
     depends_on:
-      fixturenet-eth-geth-1:
-        condition: service_healthy
       op-node:
         condition: service_healthy
       op-geth:
         condition: service_healthy
     image: cerc/optimism-op-batcher:local
     volumes:
+      - ../config/wait-for-it.sh:/wait-for-it.sh
       - ../config/fixturenet-optimism/run-op-batcher.sh:/run-op-batcher.sh
       - l2_accounts:/l2-accounts:ro
-    entrypoint: "sh"
-    command: "/run-op-batcher.sh"
+    entrypoint: ["sh", "-c"]
+    # Waits for L1 endpoint to be up before running the batcher
+    command: |
+      "/wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- /run-op-batcher.sh"
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
 volumes:
-  op_node_data:
-  l2_accounts:
+  fixturenet_geth_accounts:
   l1_deployment:
+  l2_accounts:
+  op_node_data:

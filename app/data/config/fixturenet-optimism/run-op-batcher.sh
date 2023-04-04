@@ -1,5 +1,8 @@
 #!/bin/sh
 set -e
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
+  set -x
+fi
 
 # Get BACTHER_KEY from keys.json
 BATCHER_KEY=$(jq -r '.Batcher.privateKey' /l2-accounts/keys.json | tr -d '"')

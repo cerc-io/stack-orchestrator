@@ -28,3 +28,4 @@ lirewine/sdk
 telackey/act_runner
 ethereum-optimism/op-geth
 ethereum-optimism/optimism
+openrelayxyz/plugeth

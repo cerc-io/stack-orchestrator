@@ -19,4 +19,4 @@ jq --arg privateKey "$PRIVATE_KEY_DEPLOYER" '.privateKey = $privateKey' secrets-
 export L2_GETH_URL="http://${L2_GETH_HOST}:${L2_GETH_PORT}"
 jq --arg rpcUrl "$L2_GETH_URL" '.rpcUrl = $rpcUrl' secrets.json > secrets_updated.json && mv secrets_updated.json secrets.json
 
-npm start
+npx ts-node deploy-and-generate-invite.ts

@@ -22,7 +22,6 @@ services:
       start_period: 10s
 
   mobymask:
-    restart: unless-stopped
     image: cerc/mobymask:local
     working_dir: /app/packages/server
     env_file:
@@ -40,14 +39,9 @@ services:
       - ../config/wait-for-it.sh:/app/packages/server/wait-for-it.sh
       - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json
       - ../config/watcher-mobymask-v2/deploy-and-generate-invite.sh:/app/packages/server/deploy-and-generate-invite.sh
+      - ../container-build/cerc-mobymask/scripts/deploy-and-generate-invite.ts:/app/packages/server/deploy-and-generate-invite.ts
       - moby_data_server:/app/packages/server
       - fixturenet_geth_accounts:/geth-accounts:ro
-    healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "3330"]
-      interval: 20s
-      timeout: 5s
-      retries: 15
-      start_period: 10s
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
@@ -57,7 +51,7 @@ services:
       mobymask-watcher-db:
         condition: service_healthy
       mobymask:
-        condition: service_healthy
+        condition: service_completed_successfully
     image: cerc/watcher-mobymask-v2:local
     env_file:
       - ../config/watcher-mobymask-v2/optimism-params.env
@@ -87,7 +81,7 @@ services:
       mobymask-watcher-server:
         condition: service_healthy
       mobymask:
-        condition: service_healthy
+        condition: service_completed_successfully
     image: cerc/mobymask-ui:local
     command: ["sh", "mobymask-app-start.sh"]
     volumes:

@@ -1,2 +1,2 @@
 # This file should be re-generated running: scripts/update-version-file.sh script
-v1.0.35-df23476
+v1.0.36-2515878

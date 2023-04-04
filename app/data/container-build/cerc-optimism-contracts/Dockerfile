@@ -1,4 +1,3 @@
-# TODO: Use a node alpine image
 FROM cerc/foundry:local
 
 # Install node (local foundry is a debian based image)

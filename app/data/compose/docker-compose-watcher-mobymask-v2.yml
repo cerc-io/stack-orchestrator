@@ -33,12 +33,12 @@ services:
     # TODO: Configure env file for ETH RPC URL & private key
     environment:
       - ENV=PROD
-    command: ["sh", "./deploy-invite.sh"]
+    command: ["sh", "./deploy-and-generate-invite.sh"]
     volumes:
-      # TODO: add a script to set rpc endpoint from env
+      # TODO: add a script to set RPC endpoint from env
       #       add manually if running seperately
       - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json
-      - ../config/watcher-mobymask-v2/deploy-invite.sh:/app/packages/server/deploy-invite.sh
+      - ../config/watcher-mobymask-v2/deploy-and-generate-invite.sh:/app/packages/server/deploy-and-generate-invite.sh
       - moby_data_server:/app/packages/server
       - fixturenet_geth_accounts:/geth-accounts:ro
     healthcheck:
@@ -49,7 +49,7 @@ services:
       start_period: 10s
 
   mobymask-watcher-server:
-    # TODO: pass optimism rpc endpoint
+    # TODO: pass optimism RPC endpoint
     restart: unless-stopped
     depends_on:
       mobymask-watcher-db:
@@ -59,7 +59,7 @@ services:
     image: cerc/watcher-mobymask-v2:local
     command: ["sh", "server-start.sh"]
     volumes:
-      # TODO: add a script to set rpc endpoint from env
+      # TODO: add a script to set RPC endpoint from env
       #       add manually if running seperately
       - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml
       - ../config/watcher-mobymask-v2/peer.env:/app/packages/peer/.env

@@ -1,5 +1,8 @@
 #!/bin/sh
 set -e
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
+  set -x
+fi
 
 # Get SEQUENCER KEY from keys.json
 SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"')

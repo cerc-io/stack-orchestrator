@@ -65,25 +65,21 @@ Deploy the stack:
 
 ## Tests
 
-Find the watcher container's id:
+Find the watcher container's id and export it for later use:
 
 ```bash
 laconic-so --stack mobymask-v2 deploy-system ps | grep "mobymask-watcher-server"
+
+export CONTAINER_ID=<CONTAINER_ID>
 ```
 
-Example output
+Example output:
 
 ```
 id: 5d3aae4b22039fcd1c9b18feeb91318ede1100581e75bb5ac54f9e436066b02c, name: laconic-bfb01caf98b1b8f7c8db4d33f11b905a-mobymask-watcher-server-1, ports: 0.0.0.0:3001->3001/tcp, 0.0.0.0:9001->9001/tcp, 0.0.0.0:9090->9090/tcp
 ```
 
 In above output the container ID is `5d3aae4b22039fcd1c9b18feeb91318ede1100581e75bb5ac54f9e436066b02c`
-
-Export it for later use:
-
-```bash
-export CONTAINER_ID=<CONTAINER_ID>
-```
 
 Run the peer tests:
 

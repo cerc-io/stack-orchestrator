@@ -4,8 +4,6 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-export L1_RPC="http://${L1_HOST}:${L1_PORT}"
-
 # Get BACTHER_KEY from keys.json
 BATCHER_KEY=$(jq -r '.Batcher.privateKey' /l2-accounts/keys.json | tr -d '"')
 

@@ -1,11 +1,15 @@
 version: '3.7'
 
 services:
+  # Generates and funds the accounts required when setting up the L2 chain (outputs to volume l2_accounts)
+  # Creates / updates the configuration for L1 contracts deployment
+  # Deploys the L1 smart contracts (outputs to volume l1_deployment)
   fixturenet-optimism-contracts:
     hostname: fixturenet-optimism-contracts
     image: cerc/optimism-contracts:local
     env_file:
       - ../config/fixturenet-optimism/.env
+    # Waits for L1 endpoint to be up before running the script
     command: |
       "./wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- ./run.sh"
     volumes:
@@ -20,6 +24,7 @@ services:
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
+  # Generates the config files required for L2 (outputs to volume op_node_data)
   op-node-l2-config-gen:
     image: cerc/optimism-op-node:local
     depends_on:
@@ -35,6 +40,7 @@ services:
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
+  # Initializes and runs the L2 execution client
   op-geth:
     image: cerc/optimism-l2geth:local
     depends_on:
@@ -55,6 +61,7 @@ services:
       retries: 10
       start_period: 10s
 
+  # Runs the L2 consensus client (Sequencer node)
   op-node:
     env_file:
       - ../config/fixturenet-optimism/.env
@@ -78,6 +85,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Runs the batcher (takes transactions from the Sequencer and publishes them to L1)
   op-batcher:
     env_file:
       - ../config/fixturenet-optimism/.env
@@ -92,6 +100,7 @@ services:
       - ../config/fixturenet-optimism/run-op-batcher.sh:/run-op-batcher.sh
       - l2_accounts:/l2-accounts:ro
     entrypoint: ["sh", "-c"]
+    # Waits for L1 endpoint to be up before running the batcher
     command: |
       "/wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- /run-op-batcher.sh"
     extra_hosts:

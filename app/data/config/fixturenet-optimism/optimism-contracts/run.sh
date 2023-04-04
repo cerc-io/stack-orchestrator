@@ -12,6 +12,7 @@ fi
 # fi
 
 export L1_RPC="http://${L1_HOST}:${L1_PORT}"
+echo "Using L1 RPC endpoint ${L1_RPC}"
 
 # Append tasks/index.ts file
 echo "import './rekey-json'" >> tasks/index.ts

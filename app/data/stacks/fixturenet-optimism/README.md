@@ -44,7 +44,10 @@ This should create the required docker images in the local image registry:
 ## Deploy
 
 (Optional) Update the [l1-params.env](../../config/fixturenet-optimism/l1-params.env) file with L1 endpoint (`L1_RPC`, `L1_HOST` and `L1_PORT`) and other params if running L1 separately
-  * NOTE: If L1 is running on the host machine, use `host.docker.internal` as the hostname to access the host port
+
+* NOTE:
+  * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
+  * If L1 is running on the host machine, use `host.docker.internal` as the hostname to access the host port
 
 Deploy the stack:
 

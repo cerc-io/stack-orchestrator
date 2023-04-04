@@ -98,7 +98,37 @@ docker volume rm $(docker volume ls -q --filter name=laconic*)
 
 ## Known Issues
 
-* Currently not supported:
-  * Stopping and restarting the stack from where it left off; currently starts fresh on a restart
-* Resource requirements (memory + time) for building `cerc/foundry` image are on the higher side
+* `fixturenet-eth` currently starts fresh on a restart
+* Resource requirements (memory + time) for building the `cerc/foundry` image are on the higher side
   * `cerc/optimism-contracts` image is currently based on `cerc/foundry` (Optimism requires foundry installation)
+
+## Troubleshooting
+
+* If `op-geth` service aborts or is restarted, the following error might occur in the `op-node` service:
+
+  ```bash
+  WARN [02-16|21:22:02.868] Derivation process temporary error       attempts=14 err="stage 0 failed resetting: temp: failed to find the L2 Heads to start from: failed to fetch L2 block by hash 0x0000000000000000000000000000000000000000000000000000000000000000: failed to determine block-hash of hash 0x0000000000000000000000000000000000000000000000000000000000000000, could not get payload: not found"
+  ```
+
+* This means that the data directory that `op-geth` is using is corrupted and needs to be reinitialized; the containers `op-geth`, `op-node` and `op-batcher` need to be started afresh:
+  * Stop and remove the concerned containers:
+
+    ```bash
+    # List the containers
+    docker ps -f "name=op-geth|op-node|op-batcher"
+
+    # Force stop and remove the listed containers
+    docker rm -f $(docker ps -qf "name=op-geth|op-node|op-batcher")
+    ```
+
+  * Remove the concerned volume:
+
+    ```bash
+    # List the volume
+    docker volume ls -q --filter name=l2_geth_data
+
+    # Remove the listed volume
+    docker volume rm $(docker volume ls -q --filter name=l2_geth_data)
+    ```
+
+  * Reuse the deployment command used in [Deploy](#deploy) to restart the stopped containers

@@ -8,17 +8,26 @@ fi
 echo "Installing jq"
 apk update && apk add jq
 
+# Get SEQUENCER key from keys.json
+SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"')
+
 # Initialize op-geth if datadir/geth not found
 if [ -f /op-node/jwt.txt ] && [ -d datadir/geth ]; then
-  echo "Found existing datadir, skipping initialization"
+  echo "Found existing datadir, checking block signer key"
+
+  BLOCK_SIGNER_KEY=$(cat datadir/block-signer-key)
+
+  if [ "$SEQUENCER_KEY" = "$BLOCK_SIGNER_KEY" ]; then
+    echo "Sequencer and block signer keys match, skipping initialization"
+  else
+    echo "Sequencer and block signer keys don't match, please clear L2 geth data volume before starting"
+    exit 1
+  fi
 else
   echo "Initializing op-geth"
 
-  mkdir datadir
+  mkdir -p datadir
   echo "pwd" > datadir/password
-
-  # Get SEQUENCER KEY from keys.json
-  SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"')
   echo $SEQUENCER_KEY > datadir/block-signer-key
 
   geth account import --datadir=datadir --password=datadir/password datadir/block-signer-key

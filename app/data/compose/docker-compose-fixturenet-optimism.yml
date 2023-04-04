@@ -41,7 +41,7 @@ services:
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
-  # Initializes and runs the L2 execution client
+  # Initializes and runs the L2 execution client  (outputs to volume l2_geth_data)
   op-geth:
     image: cerc/optimism-l2geth:local
     depends_on:
@@ -51,6 +51,7 @@ services:
       - ../config/fixturenet-optimism/run-op-geth.sh:/run-op-geth.sh
       - l2_config:/op-node:ro
       - l2_accounts:/l2-accounts:ro
+      - l2_geth_data:/datadir
     entrypoint: "sh"
     command: "/run-op-geth.sh"
     ports:
@@ -112,3 +113,4 @@ volumes:
   l1_deployment:
   l2_accounts:
   l2_config:
+  l2_geth_data:

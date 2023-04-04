@@ -36,7 +36,8 @@ if [ -d "deployments/getting-started" ]; then
     echo "Deployment verfication successful, exiting"
     exit 0
   else
-    echo "Deployment verfication failed"
+    echo "Deployment verfication failed, please clear L1 deployment volume before starting"
+    exit 1
   fi
 fi
 

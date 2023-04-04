@@ -14,8 +14,8 @@ services:
       "./wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- ./run.sh"
     volumes:
       - ../config/fixturenet-optimism/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
-      - ../config/fixturenet-optimism/optimism-contracts/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
-      - ../config/fixturenet-optimism/optimism-contracts/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
+      - ../container-build/cerc-optimism-contracts/hardhat-tasks/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
+      - ../container-build/cerc-optimism-contracts/hardhat-tasks/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
       - ../config/fixturenet-optimism/optimism-contracts/update-config.js:/app/packages/contracts-bedrock/update-config.js
       - ../config/fixturenet-optimism/optimism-contracts/run.sh:/app/packages/contracts-bedrock/run.sh
       - fixturenet_geth_accounts:/geth-accounts:ro

@@ -132,11 +132,11 @@ Clear volumes:
 * List all relevant volumes:
 
   ```bash
-  docker volume ls -q --filter name=laconic*
+  docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
   ```
 
 * Remove all the listed volumes:
 
   ```bash
-  docker volume rm $(docker volume ls -q --filter name=laconic*)
+  docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
   ```

@@ -106,7 +106,7 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter name=laconic*
+docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts"
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter name=laconic*)
+docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts")
 ```

@@ -39,7 +39,6 @@ services:
       - ../config/wait-for-it.sh:/app/packages/server/wait-for-it.sh
       - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json
       - ../config/watcher-mobymask-v2/deploy-and-generate-invite.sh:/app/packages/server/deploy-and-generate-invite.sh
-      - ../container-build/cerc-mobymask/scripts/deploy-and-generate-invite.ts:/app/packages/server/deploy-and-generate-invite.ts
       - moby_data_server:/app/packages/server
       - fixturenet_geth_accounts:/geth-accounts:ro
     extra_hosts:

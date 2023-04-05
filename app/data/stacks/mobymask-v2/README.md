@@ -1,6 +1,9 @@
 # MobyMask v2 watcher
 
-Instructions to deploy MobyMask v2 watcher stack using [laconic-stack-orchestrator](/README.md#install)
+Instructions to setup and deploy an end-to-end MobyMask v2 stack ([L1](../fixturenet-eth/) + [L2](../fixturenet-optimism/) chains + watcher) using [laconic-stack-orchestrator](/README.md#install)
+
+We support running just the watcher part of stack, given an external L2 Optimism endpoint.
+Follow [mobymask-only](./mobymask-only.md) for the same.
 
 ## Setup
 
@@ -30,7 +33,7 @@ git checkout laconic
 
 # MobyMask
 cd ~/cerc/MobyMask
-git checkout v0.1.1
+git checkout v0.1.2
 
 # Optimism
 cd ~/cerc/optimism
@@ -68,18 +71,8 @@ Deploy the stack:
 Find the watcher container's id and export it for later use:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy-system ps | grep "mobymask-watcher-server"
-
-export CONTAINER_ID=<CONTAINER_ID>
+export CONTAINER_ID=$(docker ps -q --filter "name=mobymask-watcher-server")
 ```
-
-Example output:
-
-```
-id: 5d3aae4b22039fcd1c9b18feeb91318ede1100581e75bb5ac54f9e436066b02c, name: laconic-bfb01caf98b1b8f7c8db4d33f11b905a-mobymask-watcher-server-1, ports: 0.0.0.0:3001->3001/tcp, 0.0.0.0:9001->9001/tcp, 0.0.0.0:9090->9090/tcp
-```
-
-In above output the container ID is `5d3aae4b22039fcd1c9b18feeb91318ede1100581e75bb5ac54f9e436066b02c`
 
 Run the peer tests:
 
@@ -128,11 +121,11 @@ Clear volumes:
 * List all relevant volumes:
 
   ```bash
-  docker volume ls -q --filter name=laconic*
+  docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
   ```
 
 * Remove all the listed volumes:
 
   ```bash
-  docker volume rm $(docker volume ls -q --filter name=laconic*)
+  docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
   ```

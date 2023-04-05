@@ -23,7 +23,7 @@ cd ../hardhat
 export RPC_URL="${L2_GETH_URL}"
 
 while true; do
-  ACCOUNT_BALANCE=$(yarn hardhat --network deployment balance $PRIVATE_KEY_DEPLOYER | grep ETH)
+  ACCOUNT_BALANCE=$(yarn hardhat --network optimism balance $PRIVATE_KEY_DEPLOYER | grep ETH)
 
   if [ "$ACCOUNT_BALANCE" != "0.0 ETH" ]; then
     echo "Account balance updated: $ACCOUNT_BALANCE"

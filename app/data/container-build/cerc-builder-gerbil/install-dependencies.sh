@@ -11,6 +11,6 @@ DEPS=(github.com/fare/gerbil-utils
       ) ;
 for i in ${DEPS[@]} ; do
   echo "Installing gerbil package: $i"
-  gxpkg install $i &&
+  gxpkg install $i
   gxpkg build $i
 done

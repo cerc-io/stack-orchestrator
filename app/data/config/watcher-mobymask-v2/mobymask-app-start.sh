@@ -14,10 +14,10 @@ else
   jq --arg address "$DEPLOYED_CONTRACT" \
     --argjson chainId $CHAIN_ID \
     --argjson relayNodes "$RELAY_NODES" \
-    '.address = $address | .chainId = $chainId | .relayNodes = $myArray' \
+    '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes' \
     /app/src/mobymask-app-config.json > /app/src/config.json
 fi
 
-REACT_APP_WATCHER_URI="$WATCHER_URL_SCHEME://$WATCHER_HOST:$WATCHER_PORT/graphql" npm run build
+REACT_APP_WATCHER_URI="$APP_WATCHER_URL/graphql" npm run build
 
 serve -s build

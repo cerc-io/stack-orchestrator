@@ -2,15 +2,14 @@ version: '3.2'
 
 services:
   peer-test-app:
-    depends_on:
-      mobymask-watcher-server:
-        condition: service_healthy
     image: cerc/react-peer:local
     working_dir: /app/packages/test-app
-    command: |
-      "./wait-for-it.sh -h $${WATCHER_HOST} -p $${WATCHER_PORT} -s -t 60 -- ./test-app-start.sh"
+    env_file:
+      - ../config/watcher-mobymask-v2/mobymask-params.env
+    command: ["sh", "./test-app-start.sh"]
     volumes:
-      - ../config/watcher-mobymask-v2/test-app-config.json:/app/packages/test-app/src/config.json
+      - ../config/watcher-mobymask-v2/test-app-config.json:/app/packages/test-app/src/test-app-config.json
+      - ../config/watcher-mobymask-v2/test-app-start.sh:/app/packages/test-app/test-app-start.sh
     ports:
       - "0.0.0.0:3003:3000"
     healthcheck:

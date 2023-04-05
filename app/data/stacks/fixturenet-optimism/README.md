@@ -2,7 +2,7 @@
 
 Instructions to setup and deploy an end-to-end L1+L2 stack with [fixturenet-eth](../fixturenet-eth/) (L1) and [Optimism](https://stack.optimism.io) (L2)
 
-We support running just the L2 part of stack, given an external L1 endpoint. Follow [L2-ONLY](./L2-ONLY.md) for the same.
+We support running just the L2 part of stack, given an external L1 endpoint. Follow [l2-only](./l2-only.md) for the same.
 
 ## Setup
 

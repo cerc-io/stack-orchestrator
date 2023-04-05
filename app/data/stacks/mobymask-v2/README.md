@@ -2,15 +2,15 @@
 
 Instructions to deploy MobyMask v2 watcher stack using [laconic-stack-orchestrator](/README.md#install)
 
+We support running just the MobyMask v2 watcher part of stack, given an external L2 Optimism endpoint.
+Follow [mobymask-only](./mobymask-only.md) for the same.
+
 ## Setup
 
 Clone required repositories:
 
 ```bash
 laconic-so --stack mobymask-v2 setup-repositories
-
-# Include repositories required for MobyMask if running optimism separately
-laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts,cerc-io/react-peer,cerc-io/mobymask-ui
 ```
 
 NOTE: If repositories already exist and are checked out to different versions, `setup-repositories` command will throw an error.
@@ -33,6 +33,7 @@ git checkout laconic
 
 # MobyMask
 cd ~/cerc/MobyMask
+# TODO: Checkout to updated version
 git checkout v0.1.1
 
 # Optimism
@@ -44,28 +45,16 @@ Build the container images:
 
 ```bash
 laconic-so --stack mobymask-v2 build-containers
-
-# Only build containers required for MobyMask if running optimism separately
-laconic-so --stack mobymask-v2 build-containers --include cerc/watcher-mobymask-v2,cerc/react-peer,cerc/mobymask-ui,cerc/mobymask
 ```
 
 This should create the required docker images in the local image registry.
 
 Deploy the stack:
 
-* (Optional) Update the [optimism-params.env](../../config/watcher-mobymask-v2/optimism-params.env) file with optimism endpoints and other params if running optimism separately
-
-  NOTE:
-  * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
-  * If optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
-
 * Deploy the containers:
 
   ```bash
   laconic-so --stack mobymask-v2 deploy-system up
-
-  # Only start watcher-mobymask-v2 pod if running optimism separately
-  laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 up
   ```
 
 * List and check the health status of all the containers using `docker ps` and wait for them to be `healthy`
@@ -84,9 +73,6 @@ Find the watcher container's id and export it for later use:
 
 ```bash
 laconic-so --stack mobymask-v2 deploy-system ps | grep "mobymask-watcher-server"
-
-# If only running watcher-mobymask-v2 pod
-laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 ps | grep "mobymask-watcher-server"
 
 export CONTAINER_ID=<CONTAINER_ID>
 ```
@@ -139,9 +125,6 @@ Stop all the services running in background run:
 
 ```bash
 laconic-so --stack mobymask-v2 deploy-system down
-
-# If only ran watcher-mobymask-v2 pod
-laconic-so --stack mobymask-v2 deploy down --include watcher-mobymask-v2
 ```
 
 Clear volumes:

@@ -59,8 +59,10 @@ To list down and monitor the running containers:
 
 ```bash
 laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 ps
+
 # With status
 docker ps
+
 # Check logs for a container
 docker logs -f <CONTAINER_ID>
 ```
@@ -79,7 +81,8 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts"
+docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*mobymask_deployment|.*fixturenet_geth_accounts"
+
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts")
+docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*mobymask_deployment|.*fixturenet_geth_accounts")
 ```

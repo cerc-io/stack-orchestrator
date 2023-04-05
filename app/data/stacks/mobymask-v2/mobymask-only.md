@@ -30,8 +30,7 @@ git checkout laconic
 
 # MobyMask
 cd ~/cerc/MobyMask
-# TODO: Checkout to updated version
-git checkout v0.1.1
+git checkout v0.1.2
 ```
 
 Build the container images:

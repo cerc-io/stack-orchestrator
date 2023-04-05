@@ -4,21 +4,42 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-# TODO Support restarts; fixturenet-eth-geth currently starts fresh on a restart
-# Exit if a deployment already exists (on restarts)
-# if [ -d "deployments/getting-started" ]; then
-#     echo "Deployment directory deployments/getting-started already exists, exiting"
-#     exit 0
-# fi
-
 echo "Using L1 RPC endpoint ${L1_RPC}"
 
-# Append tasks/index.ts file
-echo "import './rekey-json'" >> tasks/index.ts
-echo "import './send-balance'" >> tasks/index.ts
+IMPORT_1="import './verify-contract-deployment'"
+IMPORT_2="import './rekey-json'"
+IMPORT_3="import './send-balance'"
+
+# Append mounted tasks to tasks/index.ts file if not present
+if ! grep -Fxq "$IMPORT_1" tasks/index.ts; then
+  echo "$IMPORT_1" >> tasks/index.ts
+  echo "$IMPORT_2" >> tasks/index.ts
+  echo "$IMPORT_3" >> tasks/index.ts
+fi
 
 # Update the chainId in the hardhat config
 sed -i "/getting-started/ {n; s/.*chainId.*/      chainId: $L1_CHAIN_ID,/}" hardhat.config.ts
+
+# Exit if a deployment already exists (on restarts)
+# Note: fixturenet-eth-geth currently starts fresh on a restart
+if [ -d "deployments/getting-started" ]; then
+  echo "Deployment directory deployments/getting-started found, checking SystemDictator deployment"
+
+  # Read JSON file into variable
+  SYSTEM_DICTATOR_DETAILS=$(cat deployments/getting-started/SystemDictator.json)
+
+  # Parse JSON into variables
+  SYSTEM_DICTATOR_ADDRESS=$(echo "$SYSTEM_DICTATOR_DETAILS" | jq -r '.address')
+  SYSTEM_DICTATOR_TXHASH=$(echo "$SYSTEM_DICTATOR_DETAILS" | jq -r '.transactionHash')
+
+  if yarn hardhat verify-contract-deployment --contract "${SYSTEM_DICTATOR_ADDRESS}" --transaction-hash "${SYSTEM_DICTATOR_TXHASH}"; then
+    echo "Deployment verfication successful, exiting"
+    exit 0
+  else
+    echo "Deployment verfication failed, please clear L1 deployment volume before starting"
+    exit 1
+  fi
+fi
 
 # Generate the L2 account addresses
 yarn hardhat rekey-json --output /l2-accounts/keys.json

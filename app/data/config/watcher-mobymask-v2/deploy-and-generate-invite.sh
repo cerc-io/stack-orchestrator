@@ -30,7 +30,7 @@ if [ -f ./config.json ]; then
   CONTRACT_ADDRESS=$(echo "$DEPLOYMENT_DETAILS" | jq -r '.address')
 
   cd ../hardhat
-  if yarn hardhat verify-deployment --network deployment --contract "${CONTRACT_ADDRESS}"; then
+  if yarn verifyDeployment --network optimism --contract "${CONTRACT_ADDRESS}"; then
     echo "Deployment verfication successful"
     cd ../server
   else
@@ -42,7 +42,7 @@ fi
 # Wait until balance for deployer account is reflected
 cd ../hardhat
 while true; do
-  ACCOUNT_BALANCE=$(yarn hardhat --network optimism balance $PRIVATE_KEY_DEPLOYER | grep ETH)
+  ACCOUNT_BALANCE=$(yarn balance --network optimism $PRIVATE_KEY_DEPLOYER | grep ETH)
 
   if [ "$ACCOUNT_BALANCE" != "0.0 ETH" ]; then
     echo "Account balance updated: $ACCOUNT_BALANCE"

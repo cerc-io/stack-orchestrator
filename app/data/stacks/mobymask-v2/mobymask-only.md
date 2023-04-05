@@ -74,7 +74,7 @@ See [Tests](./README.md#tests) and [Demo](./README.md#demo) to interact with sta
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy down --include watcher-mobymask-v2
+laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 down
 ```
 
 Clear volumes created by this stack:

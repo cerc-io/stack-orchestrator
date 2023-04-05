@@ -26,6 +26,7 @@ services:
     working_dir: /app/packages/server
     env_file:
       - ../config/watcher-mobymask-v2/optimism-params.env
+      - ../config/watcher-mobymask-v2/mobymask-params.env
     environment:
       - ENV=PROD
     command:
@@ -54,6 +55,7 @@ services:
     image: cerc/watcher-mobymask-v2:local
     env_file:
       - ../config/watcher-mobymask-v2/optimism-params.env
+      - ../config/watcher-mobymask-v2/mobymask-params.env
     command: ["sh", "start-server.sh"]
     volumes:
       - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml

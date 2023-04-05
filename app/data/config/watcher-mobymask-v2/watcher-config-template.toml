@@ -36,10 +36,6 @@
       peerIdFile = './peer-id.json'
       enableDebugInfo = true
 
-      [server.p2p.peer.l2TxConfig]
-        privateKey = 'REPLACE_WITH_PRIVATE_KEY'
-        contractAddress = 'REPLACE_WITH_CONTRACT_ADDRESS'
-
 [metrics]
   host = "0.0.0.0"
   port = 9000

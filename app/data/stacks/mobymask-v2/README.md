@@ -116,16 +116,12 @@ Stop all the services running in background run:
 laconic-so --stack mobymask-v2 deploy-system down
 ```
 
-Clear volumes:
+Clear volumes created by this stack:
 
-* List all relevant volumes:
+```bash
+# List all relevant volumes
+docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*mobymask_deployment|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
 
-  ```bash
-  docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
-  ```
-
-* Remove all the listed volumes:
-
-  ```bash
-  docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*moby_data_server|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
-  ```
+# Remove all the listed volumes
+docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*mobymask_deployment|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
+```

@@ -4,6 +4,8 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+echo "Using L2 RPC endpoint ${L2_GETH_RPC}"
+
 # Assign deployed contract address from server config
 CONTRACT_ADDRESS=$(jq -r '.address' /server/config.json | tr -d '"')
 
@@ -17,9 +19,7 @@ fi
 
 sed "s/REPLACE_WITH_PRIVATE_KEY/${PRIVATE_KEY_PEER}/" environments/watcher-config-template.toml > environments/local.toml
 sed -i "s/REPLACE_WITH_CONTRACT_ADDRESS/${CONTRACT_ADDRESS}/" environments/local.toml
-
-export L2_GETH_URL="http://${L2_GETH_HOST}:${L2_GETH_PORT}"
-sed -i 's|REPLACE_WITH_L2_GETH_URL|'"${L2_GETH_URL}"'|' environments/local.toml
+sed -i 's|REPLACE_WITH_L2_GETH_RPC_ENDPOINT|'"${L2_GETH_RPC}"'|' environments/local.toml
 
 echo 'yarn server'
 yarn server

@@ -4,7 +4,7 @@ Instructions to setup and deploy MobyMask v2 watcher independently
 
 ## Setup
 
-Prerequisite: An L2 Optimism RPC endpoint
+Prerequisite: L2 Optimism Geth and Node RPC endpoints
 
 Clone required repositories:
 

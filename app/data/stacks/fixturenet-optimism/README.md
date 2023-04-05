@@ -80,12 +80,6 @@ docker volume ls -q --filter name=laconic*
 docker volume rm $(docker volume ls -q --filter name=laconic*)
 ```
 
-## Known Issues
-
-* `fixturenet-eth` currently starts fresh on a restart
-* Resource requirements (memory + time) for building the `cerc/foundry` image are on the higher side
-  * `cerc/optimism-contracts` image is currently based on `cerc/foundry` (Optimism requires foundry installation)
-
 ## Troubleshooting
 
 * If `op-geth` service aborts or is restarted, the following error might occur in the `op-node` service:
@@ -116,3 +110,9 @@ docker volume rm $(docker volume ls -q --filter name=laconic*)
     ```
 
   * Reuse the deployment command used in [Deploy](#deploy) to restart the stopped containers
+
+## Known Issues
+
+* `fixturenet-eth` currently starts fresh on a restart
+* Resource requirements (memory + time) for building the `cerc/foundry` image are on the higher side
+  * `cerc/optimism-contracts` image is currently based on `cerc/foundry` (Optimism requires foundry installation)

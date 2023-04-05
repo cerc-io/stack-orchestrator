@@ -4,7 +4,7 @@ Instructions to setup and deploy L2 fixturenet using [Optimism](https://stack.op
 
 ## Setup
 
-Pre-requisite: An L1 Ethereum RPC endpoint
+Prerequisite: An L1 Ethereum RPC endpoint
 
 Clone required repositories:
 

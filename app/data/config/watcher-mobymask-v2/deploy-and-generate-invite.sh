@@ -19,4 +19,16 @@ jq --arg privateKey "$PRIVATE_KEY_DEPLOYER" '.privateKey = $privateKey' secrets-
 export L2_GETH_URL="http://${L2_GETH_HOST}:${L2_GETH_PORT}"
 jq --arg rpcUrl "$L2_GETH_URL" '.rpcUrl = $rpcUrl' secrets.json > secrets_updated.json && mv secrets_updated.json secrets.json
 
+export RPC_URL=L2_GETH_URL
+while true; do
+  ACCOUNT_BALANCE=$(yarn hardhat --network deployment balance $PRIVATE_KEY_DEPLOYER | grep ETH)
+
+  if [ "$ACCOUNT_BALANCE" != "0.0 ETH" ]; then
+    echo "Account balance updated: $ACCOUNT_BALANCE"
+    break # exit the loop
+  fi
+
+  sleep 2 # wait for 2 seconds before checking again
+done
+
 npm run deployAndGenerateInvite

@@ -55,7 +55,7 @@ The `fixturenet-optimism-contracts` service may take a while (`~15 mins`) to com
 To list down and monitor the running containers:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy ps
+laconic-so --stack fixturenet-optimism deploy --include fixturenet-optimism ps
 
 # With status
 docker ps

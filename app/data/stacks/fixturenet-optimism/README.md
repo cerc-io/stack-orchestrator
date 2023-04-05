@@ -74,8 +74,6 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter name=laconic*
-
 docker volume ls -q --filter "name=.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
 
 # Remove all the listed volumes

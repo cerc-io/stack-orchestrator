@@ -32,10 +32,6 @@ git checkout laconic
 cd ~/cerc/MobyMask
 # TODO: Checkout to updated version
 git checkout v0.1.1
-
-# Optimism
-cd ~/cerc/optimism
-git checkout @eth-optimism/sdk@0.0.0-20230329025055
 ```
 
 Build the container images:
@@ -63,36 +59,14 @@ laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 up
 To list down and monitor the running containers:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy ps
+laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 ps
 # With status
 docker ps
 # Check logs for a container
 docker logs -f <CONTAINER_ID>
 ```
 
-## Tests
-
-Find the watcher container's id and export it for later use:
-
-```bash
-laconic-so --stack mobymask-v2 deploy-system --include watcher-mobymask-v2 ps | grep "mobymask-watcher-server"
-
-export CONTAINER_ID=<CONTAINER_ID>
-```
-
-Example output:
-
-```
-id: 5d3aae4b22039fcd1c9b18feeb91318ede1100581e75bb5ac54f9e436066b02c, name: laconic-bfb01caf98b1b8f7c8db4d33f11b905a-mobymask-watcher-server-1, ports: 0.0.0.0:3001->3001/tcp, 0.0.0.0:9001->9001/tcp, 0.0.0.0:9090->9090/tcp
-```
-
-In above output the container ID is `5d3aae4b22039fcd1c9b18feeb91318ede1100581e75bb5ac54f9e436066b02c`
-
-Run the peer tests:
-
-```bash
-docker exec -w /app/packages/peer $CONTAINER_ID yarn test
-```
+See [Tests](./README.md#tests) and [Demo](./README.md#demo) to interact with stack
 
 ## Clean up
 

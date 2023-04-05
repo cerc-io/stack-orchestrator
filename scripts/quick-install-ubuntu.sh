@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail  ## https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
+if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
+    set -x
+fi
 
 install_dir=~/bin
 
@@ -10,8 +12,22 @@ install_dir=~/bin
 export DEBIAN_FRONTEND=noninteractive
 
 ## https://docs.docker.com/engine/install/ubuntu/
-sudo apt -y remove docker docker-engine docker.io containerd runc
-sudo apt -y update -y && apt -y upgrade
+## https://superuser.com/questions/518859/ignore-packages-that-are-not-currently-installed-when-using-apt-get-remove1
+packages_to_remove="docker docker-engine docker.io containerd runc"
+installed_packages_to_remove=""
+for package_to_remove in $(echo $packages_to_remove); do
+  $(dpkg --info $package_to_remove &> /dev/null)
+  if [[ $? -eq 0 ]]; then
+    installed_packages_to_remove="$installed_packages_to_remove $package_to_remove"
+  fi
+done
+
+# Enable stop on error now, since we needed it off for the code above
+set -euo pipefail  ## https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
+
+sudo apt -y remove $installed_packages_to_remove
+
+sudo apt -y update
 
 # laconic-so depends on jq
 sudo apt -y install jq
@@ -37,7 +53,6 @@ sudo apt -y update
 sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Allow the current user to use Docker
-sudo groupadd docker
 sudo usermod -aG docker $USER
 
 # install latest `laconic-so`

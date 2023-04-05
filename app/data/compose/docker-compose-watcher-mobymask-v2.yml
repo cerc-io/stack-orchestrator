@@ -42,7 +42,7 @@ services:
       - moby_data_server:/app/packages/server
       - fixturenet_geth_accounts:/geth-accounts:ro
     extra_hosts:
-    - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
 
   mobymask-watcher-server:
     restart: unless-stopped
@@ -73,6 +73,8 @@ services:
       timeout: 5s
       retries: 15
       start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # TODO: Move to a separate pod
   mobymask-app:

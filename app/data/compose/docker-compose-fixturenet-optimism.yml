@@ -14,6 +14,7 @@ services:
       "./wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- ./run.sh"
     volumes:
       - ../config/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
+      - ../container-build/cerc-optimism-contracts/hardhat-tasks/verify-contract-deployment.ts:/app/packages/contracts-bedrock/tasks/verify-contract-deployment.ts
       - ../container-build/cerc-optimism-contracts/hardhat-tasks/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
       - ../container-build/cerc-optimism-contracts/hardhat-tasks/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
       - ../config/fixturenet-optimism/optimism-contracts/update-config.js:/app/packages/contracts-bedrock/update-config.js
@@ -24,7 +25,7 @@ services:
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
-  # Generates the config files required for L2 (outputs to volume op_node_data)
+  # Generates the config files required for L2 (outputs to volume l2_config)
   op-node-l2-config-gen:
     image: cerc/optimism-op-node:local
     depends_on:
@@ -35,12 +36,12 @@ services:
     volumes:
       - ../config/fixturenet-optimism/generate-l2-config.sh:/app/generate-l2-config.sh
       - l1_deployment:/contracts-bedrock:ro
-      - op_node_data:/app
+      - l2_config:/app
     command: ["sh", "/app/generate-l2-config.sh"]
     extra_hosts:
     - "host.docker.internal:host-gateway"
 
-  # Initializes and runs the L2 execution client
+  # Initializes and runs the L2 execution client  (outputs to volume l2_geth_data)
   op-geth:
     image: cerc/optimism-l2geth:local
     depends_on:
@@ -48,8 +49,9 @@ services:
         condition: service_started
     volumes:
       - ../config/fixturenet-optimism/run-op-geth.sh:/run-op-geth.sh
-      - op_node_data:/op-node:ro
+      - l2_config:/op-node:ro
       - l2_accounts:/l2-accounts:ro
+      - l2_geth_data:/datadir
     entrypoint: "sh"
     command: "/run-op-geth.sh"
     ports:
@@ -71,7 +73,7 @@ services:
     image: cerc/optimism-op-node:local
     volumes:
       - ../config/fixturenet-optimism/run-op-node.sh:/app/run-op-node.sh
-      - op_node_data:/op-node-data:ro
+      - l2_config:/op-node-data:ro
       - l2_accounts:/l2-accounts:ro
     command: ["sh", "/app/run-op-node.sh"]
     ports:
@@ -110,4 +112,5 @@ volumes:
   fixturenet_geth_accounts:
   l1_deployment:
   l2_accounts:
-  op_node_data:
+  l2_config:
+  l2_geth_data:

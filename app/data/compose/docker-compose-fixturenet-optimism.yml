@@ -55,7 +55,7 @@ services:
     entrypoint: "sh"
     command: "/run-op-geth.sh"
     ports:
-      - "8545"
+      - "0.0.0.0:8545:8545"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost:8545"]
       interval: 30s
@@ -77,7 +77,7 @@ services:
       - l2_accounts:/l2-accounts:ro
     command: ["sh", "/app/run-op-node.sh"]
     ports:
-      - "8547"
+      - "0.0.0.0:8547:8547"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost:8547"]
       interval: 30s

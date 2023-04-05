@@ -39,7 +39,7 @@ services:
       - ../config/wait-for-it.sh:/app/packages/server/wait-for-it.sh
       - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json
       - ../config/watcher-mobymask-v2/deploy-and-generate-invite.sh:/app/packages/server/deploy-and-generate-invite.sh
-      - moby_data_server:/app/packages/server
+      - mobymask_deployment:/app/packages/server
       - fixturenet_geth_accounts:/geth-accounts:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -54,14 +54,14 @@ services:
     image: cerc/watcher-mobymask-v2:local
     env_file:
       - ../config/watcher-mobymask-v2/optimism-params.env
-    command: ["sh", "server-start.sh"]
+    command: ["sh", "start-server.sh"]
     volumes:
       - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml
       - ../config/watcher-mobymask-v2/peer.env:/app/packages/peer/.env
       - ../config/watcher-mobymask-v2/relay-id.json:/app/packages/mobymask-v2-watcher/relay-id.json
       - ../config/watcher-mobymask-v2/peer-id.json:/app/packages/mobymask-v2-watcher/peer-id.json
-      - ../config/watcher-mobymask-v2/server-start.sh:/app/packages/mobymask-v2-watcher/server-start.sh
-      - moby_data_server:/server
+      - ../config/watcher-mobymask-v2/start-server.sh:/app/packages/mobymask-v2-watcher/start-server.sh
+      - mobymask_deployment:/server
       - fixturenet_geth_accounts:/geth-accounts:ro
     ports:
       - "0.0.0.0:3001:3001"
@@ -89,7 +89,7 @@ services:
       - ../config/watcher-mobymask-v2/mobymask-app.env:/app/.env
       - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
       - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/app/mobymask-app-start.sh
-      - moby_data_server:/server
+      - mobymask_deployment:/server
     ports:
       - "0.0.0.0:3002:3000"
     healthcheck:
@@ -120,5 +120,5 @@ services:
 
 volumes:
   mobymask_watcher_db_data:
-  moby_data_server:
+  mobymask_deployment:
   fixturenet_geth_accounts:

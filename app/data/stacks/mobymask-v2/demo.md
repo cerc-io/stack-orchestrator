@@ -3,7 +3,7 @@
 * Get the root invite link URL for mobymask-app:
 
   ```bash
-  laconic-so --stack mobymask-v2 deploy-system logs mobymask
+  docker logs -f $(docker ps -aq --filter name="mobymask-1")
   ```
 
   The invite link is seen at the end of the logs. Example log:
@@ -29,19 +29,11 @@
 
 * In the `MESSAGES` tab of other browsers, a message can be seen with the signed invocations.
 
-* In a terminal check logs from the watcher peer container.
+* In a terminal, check logs from the watcher peer container:
 
-  * Get the container id:
-
-    ```bash
-    laconic-so --stack mobymask-v2 deploy-system ps | grep mobymask-watcher-server
-    ```
-
-  * Check logs:
-
-    ```bash
-    docker logs -f <CONTAINER_ID>
-    ```
+  ```bash
+  docker logs -f $(docker ps -aq --filter name="mobymask-watcher-server")
+  ```
 
 * It should have received the message, sent transaction to L2 chain and received a transaction receipt for an `invoke` message with block details.
 
@@ -74,7 +66,7 @@
   * Get the deployed contract address:
 
     ```bash
-    laconic-so --stack mobymask-v2 deploy-system exec mobymask-app "cat src/config.json"
+    docker exec -it $(docker ps -aq --filter name="mobymask-app") cat src/config.json
     ```
 
     The value of `address` field is the deployed contract address

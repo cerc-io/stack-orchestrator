@@ -76,48 +76,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # TODO: Move to a separate pod
-  mobymask-app:
-    depends_on:
-      mobymask-watcher-server:
-        condition: service_healthy
-      mobymask:
-        condition: service_completed_successfully
-    image: cerc/mobymask-ui:local
-    command: ["sh", "mobymask-app-start.sh"]
-    volumes:
-      - ../config/watcher-mobymask-v2/mobymask-app.env:/app/.env
-      - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
-      - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/app/mobymask-app-start.sh
-      - mobymask_deployment:/server
-    ports:
-      - "0.0.0.0:3002:3000"
-    healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "3000"]
-      interval: 20s
-      timeout: 5s
-      retries: 15
-      start_period: 10s
-    shm_size: '1GB'
-
-  peer-test-app:
-    depends_on:
-      mobymask-watcher-server:
-        condition: service_healthy
-    image: cerc/react-peer:local
-    working_dir: /app/packages/test-app
-    command: ["sh", "-c", "yarn build && serve -s build"]
-    volumes:
-      - ../config/watcher-mobymask-v2/test-app-config.json:/app/packages/test-app/src/config.json
-    ports:
-      - "0.0.0.0:3003:3000"
-    healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "3000"]
-      interval: 20s
-      timeout: 5s
-      retries: 15
-      start_period: 10s
-
 volumes:
   mobymask_watcher_db_data:
   mobymask_deployment:

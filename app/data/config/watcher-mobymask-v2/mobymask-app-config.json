@@ -1,4 +1,5 @@
 {
+  "name": "MobyMask",
   "relayNodes": [
     "/ip4/127.0.0.1/tcp/9090/ws/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t"
   ],

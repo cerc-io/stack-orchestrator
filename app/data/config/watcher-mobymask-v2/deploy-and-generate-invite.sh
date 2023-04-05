@@ -21,6 +21,12 @@ jq --arg rpcUrl "$L2_GETH_URL" '.rpcUrl = $rpcUrl' secrets.json > secrets_update
 
 export RPC_URL="${L2_GETH_URL}"
 
+if [[ -n "$DEPLOYED_CONTRACT" ]]; then
+  echo "DEPLOYED_CONTRACT is set to '$DEPLOYED_CONTRACT'"
+  echo "Exiting without deploying contract"
+  exit 0
+fi
+
 # Check and exit if a deployment already exists (on restarts)
 if [ -f ./config.json ]; then
   echo "config.json already exists, checking the contract deployment"

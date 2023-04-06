@@ -11,5 +11,15 @@ jobs:
     name: "Run basic test suite"
     runs-on: ubuntu-latest
     steps:
-      - name: Clone project repository
+      - name: "Clone project repository"
         uses: actions/checkout@v3
+      - name: "Install Python"
+        uses: cerc-io/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: "Check Python version"
+        run: python3 --version
+      - name: "Install shiv"
+        run: pip install shiv
+      - name: "Build local shiv bundle"
+        run: ./scripts/build_shiv_package.sh

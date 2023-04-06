@@ -74,7 +74,7 @@ echo \
 sudo apt -y update
 
 echo "**************************************************************************************"
-echo "Installing docker
+echo "Installing docker"
 sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Allow the current user to use Docker
@@ -98,6 +98,7 @@ then
   echo ${path_add_command} >> ~/.profile
 fi
 
+echo "**************************************************************************************"
 # PATH set here for commands run in this script
 export PATH=$PATH:${install_dir}
 echo Installed laconic-so version: $(laconic-so version)

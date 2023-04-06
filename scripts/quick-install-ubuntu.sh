@@ -45,9 +45,11 @@ done
 # Enable stop on error now, since we needed it off for the code above
 set -euo pipefail  ## https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
 
-echo "**************************************************************************************"
-echo "Removing existing docker packages"
-sudo apt -y remove $installed_packages_to_remove
+if [[ -n "${installed_packages_to_remove}" ]]; then
+  echo "**************************************************************************************"
+  echo "Removing existing docker packages"
+  sudo apt -y remove $installed_packages_to_remove
+fi
 
 echo "**************************************************************************************"
 echo "Installing dependencies"
@@ -81,7 +83,7 @@ sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin d
 sudo usermod -aG docker $USER
 
 echo "**************************************************************************************"
-echo "Installing laconic-so
+echo "Installing laconic-so"
 # install latest `laconic-so`
 install_filename=${install_dir}/laconic-so
 mkdir -p  ${install_dir}
@@ -107,7 +109,7 @@ echo "**************************************************************************
 echo "The Laconic Stack Orchestrator program laconic-so has been installed at ${install_filename}"
 echo "The directory ${install_dir} has been added to PATH in new shells via ~/.profile"
 echo "Either open a new shell to use laconic-so on the PATH, or run this command in this shell:"
-echo "export PATH=\$PATH:${install_dir}"
+echo "${path_add_command}"
 echo "**************************************************************************************"
 # Message the user to check docker is working for them
 echo "Please test that docker is correctly installed and working for your user by running the"

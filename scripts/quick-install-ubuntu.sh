@@ -107,12 +107,11 @@ echo Installed laconic-so version: $(laconic-so version)
 
 echo "**************************************************************************************"
 echo "The Laconic Stack Orchestrator program laconic-so has been installed at ${install_filename}"
-echo "The directory ${install_dir} has been added to PATH in new shells via ~/.profile"
-echo "Either open a new shell to use laconic-so on the PATH, or run this command in this shell:"
-echo "${path_add_command}"
+echo "The directory ${install_dir} has been added to PATH in *new* shells via ~/.profile"
 echo "**************************************************************************************"
 # Message the user to check docker is working for them
-echo "Please test that docker is correctly installed and working for your user by running the"
+echo "Please log in again (docker will not work in this current shell) then:"
+echo "test that docker is correctly installed and working for your user by running the"
 echo "command below (it should print a message beginning \"Hello from Docker!\"):"
 echo
 echo "docker run hello-world"

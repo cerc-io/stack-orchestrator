@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: "Run basic test suite"
     runs-on: ubuntu-latest
     steps:
       - name: Clone project repository

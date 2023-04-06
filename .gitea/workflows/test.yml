@@ -1,0 +1,14 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: '*'
+  push:
+    branches: '*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone project repository
+        uses: actions/checkout@v3

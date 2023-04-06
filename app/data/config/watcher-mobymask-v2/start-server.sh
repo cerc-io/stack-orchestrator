@@ -34,7 +34,5 @@ else
   cp environments/watcher-config-template.toml environments/local.toml
 fi
 
-cat environments/local.toml
-
 echo 'yarn server'
 yarn server

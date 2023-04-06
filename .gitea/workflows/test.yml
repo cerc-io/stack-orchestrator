@@ -23,3 +23,5 @@ jobs:
         run: pip install shiv
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
+      - name: "Run smoke tests"
+        run: ./tests/run-smoke-test.sh

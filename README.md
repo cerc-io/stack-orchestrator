@@ -6,6 +6,11 @@ Stack Orchestrator allows building and deployment of a Laconic Stack on a single
 
 ## Install
 
+**To get started quickly** on a fresh Ubuntu instance (e.g, Digital Ocean); [try this script](./scripts/quick-install-ubuntu.sh). **WARNING:** always review scripts prior to running them so that you know what is happening on your machine.
+
+For any other installation, follow along below and **adapt these instructions based on the specifics of your system.**
+
+
 Ensure that the following are already installed:
 
 - [Python3](https://wiki.python.org/moin/BeginnersGuide/Download): `python3 --version` >= `3.8.10` (the Python3 shipped in Ubuntu 20+ is good to go)

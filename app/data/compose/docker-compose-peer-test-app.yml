@@ -2,6 +2,7 @@ version: '3.2'
 
 services:
   peer-test-app:
+    # Builds and serves the peer-test react-app
     image: cerc/react-peer:local
     working_dir: /app/packages/test-app
     env_file:

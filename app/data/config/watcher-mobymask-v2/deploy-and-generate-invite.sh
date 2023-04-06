@@ -22,6 +22,7 @@ jq --arg rpcUrl "$L2_GETH_RPC" '.rpcUrl = $rpcUrl' secrets.json > secrets_update
 
 export RPC_URL="${L2_GETH_RPC}"
 
+# Check if DEPLOYED_CONTRACT environment variable set to skip contract deployment
 if [[ -n "$DEPLOYED_CONTRACT" ]]; then
   echo "DEPLOYED_CONTRACT is set to '$DEPLOYED_CONTRACT'"
   echo "Exiting without deploying contract"
@@ -46,7 +47,7 @@ if [ -f ./config.json ]; then
   fi
 fi
 
-# Wait until balance for deployer account is reflected
+# Wait until balance for deployer account is updated
 cd ../hardhat
 while true; do
   ACCOUNT_BALANCE=$(yarn balance --network optimism "$PRIVATE_KEY_DEPLOYER" | grep ETH)

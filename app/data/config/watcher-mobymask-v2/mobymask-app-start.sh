@@ -4,6 +4,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+# Use config from mounted volume if available (when running web-app along with watcher stack)
 if [ -f /server/config.json ]; then
   echo "Merging config for deployed contract from mounted volume"
   # Merging config files to get deployed contract address
@@ -11,6 +12,7 @@ if [ -f /server/config.json ]; then
 else
   echo "Setting deployed contract details from env"
 
+  # Set config values from environment variables
   jq --arg address "$DEPLOYED_CONTRACT" \
     --argjson chainId $CHAIN_ID \
     --argjson relayNodes "$RELAY_NODES" \

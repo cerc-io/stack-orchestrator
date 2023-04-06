@@ -1,10 +1,13 @@
 version: '3.2'
 
 services:
+  # Builds and serves the mobymask react-app
   mobymask-app:
     image: cerc/mobymask-ui:local
     env_file:
       - ../config/watcher-mobymask-v2/mobymask-params.env
+    # Waits for watcher server to be up before app build
+    # Required when running with watcher stack to get deployed contract address
     command:
       - sh
       - -c

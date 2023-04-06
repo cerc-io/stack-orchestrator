@@ -1,6 +1,7 @@
 version: '3.2'
 
 services:
+  # Starts the postgres database for watcher
   mobymask-watcher-db:
     restart: unless-stopped
     image: postgres:14-alpine
@@ -21,6 +22,8 @@ services:
       retries: 15
       start_period: 10s
 
+  # Deploys mobymask contract and generates an invite link
+  # Deployment is skipped if DEPLOYED_CONTRACT env is already set
   mobymask:
     image: cerc/mobymask:local
     working_dir: /app/packages/server
@@ -29,6 +32,7 @@ services:
       - ../config/watcher-mobymask-v2/mobymask-params.env
     environment:
       - ENV=PROD
+    # Waits for L2 Optimism Geth and Node servers to be up before deploying contract
     command:
       - sh
       - -c
@@ -45,6 +49,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Starts the mobymask-v2-watcher server
   mobymask-watcher-server:
     restart: unless-stopped
     depends_on:
@@ -65,6 +70,7 @@ services:
       - ../config/watcher-mobymask-v2/start-server.sh:/app/packages/mobymask-v2-watcher/start-server.sh
       - mobymask_deployment:/server
       - fixturenet_geth_accounts:/geth-accounts:ro
+    # Expose GQL, metrics and relay node ports
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"

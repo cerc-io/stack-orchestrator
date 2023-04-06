@@ -1,7 +1,7 @@
 version: '3.2'
 
 services:
-  # Builds and serves the mobymask react-app
+  # Builds and serves the MobyMask react-app
   mobymask-app:
     image: cerc/mobymask-ui:local
     env_file:

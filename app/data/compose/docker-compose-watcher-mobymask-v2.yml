@@ -1,7 +1,7 @@
 version: '3.2'
 
 services:
-  # Starts the postgres database for watcher
+  # Starts the PostgreSQL database for watcher
   mobymask-watcher-db:
     restart: unless-stopped
     image: postgres:14-alpine
@@ -22,7 +22,7 @@ services:
       retries: 15
       start_period: 10s
 
-  # Deploys mobymask contract and generates an invite link
+  # Deploys MobyMask contract and generates an invite link
   # Deployment is skipped if DEPLOYED_CONTRACT env is already set
   mobymask:
     image: cerc/mobymask:local

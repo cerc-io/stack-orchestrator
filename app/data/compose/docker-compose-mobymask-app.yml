@@ -1,0 +1,31 @@
+version: '3.2'
+
+services:
+  # Builds and serves the MobyMask react-app
+  mobymask-app:
+    image: cerc/mobymask-ui:local
+    env_file:
+      - ../config/watcher-mobymask-v2/mobymask-params.env
+    # Waits for watcher server to be up before app build
+    # Required when running with watcher stack to get deployed contract address
+    command:
+      - sh
+      - -c
+      - ./wait-for-it.sh -h $${WATCHER_HOST} -p $${WATCHER_PORT} -s -t 0 -- ./mobymask-app-start.sh
+    volumes:
+      - ../config/wait-for-it.sh:/app/wait-for-it.sh
+      - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
+      - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/app/mobymask-app-start.sh
+      - mobymask_deployment:/server
+    ports:
+      - "0.0.0.0:3002:3000"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    shm_size: '1GB'
+
+volumes:
+  mobymask_deployment:

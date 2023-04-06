@@ -1,6 +1,6 @@
 FROM node:18.15.0-alpine3.16
 
-RUN apk --update --no-cache add make git python3
+RUN apk --update --no-cache add make git python3 jq
 
 WORKDIR /app
 

@@ -27,3 +27,5 @@ pods:
   - fixturenet-eth
   - fixturenet-optimism
   - watcher-mobymask-v2
+  - mobymask-app
+  - peer-test-app

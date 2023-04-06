@@ -4,29 +4,20 @@ Instructions to setup and deploy MobyMask v2 watcher independently
 
 ## Setup
 
-Prerequisite: An L2 Optimism RPC endpoint
+Prerequisite: L2 Optimism Geth and Node RPC endpoints
 
 Clone required repositories:
 
 ```bash
-laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts,cerc-io/react-peer,cerc-io/mobymask-ui
+laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts
 ```
 
 Checkout to the required versions and branches in repos:
 
 ```bash
-```bash
 # watcher-ts
 cd ~/cerc/watcher-ts
 git checkout v0.2.34
-
-# react-peer
-cd ~/cerc/react-peer
-git checkout v0.2.31
-
-# mobymask-ui
-cd ~/cerc/mobymask-ui
-git checkout laconic
 
 # MobyMask
 cd ~/cerc/MobyMask
@@ -36,20 +27,24 @@ git checkout v0.1.2
 Build the container images:
 
 ```bash
-laconic-so --stack mobymask-v2 build-containers --include cerc/watcher-mobymask-v2,cerc/react-peer,cerc/mobymask-ui,cerc/mobymask
+laconic-so --stack mobymask-v2 build-containers --include cerc/watcher-mobymask-v2,cerc/mobymask
 ```
 
 This should create the required docker images in the local image registry
 
 ## Deploy
 
-Update the [optimism-params.env](../../config/watcher-mobymask-v2/optimism-params.env) file with Optimism endpoints and other params if running Optimism separately
+### Configuration
 
+* In [mobymask-params.env](../../config/watcher-mobymask-v2/mobymask-params.env) file set `DEPLOYED_CONTRACT` to existing deployed mobymask contract address
+  * Setting `DEPLOYED_CONTRACT` will skip contract deployment when running stack
+* Update the [optimism-params.env](../../config/watcher-mobymask-v2/optimism-params.env) file with Optimism endpoints and other params for the Optimism running separately
+  * If `PRIVATE_KEY_PEER` is not set the inline watcher peer will not send txs to L2 on receiving P2P network messages
 * NOTE:
   * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
   * If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
 
-Deploy the stack:
+### Deploy the stack
 
 ```bash
 laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 up
@@ -67,7 +62,9 @@ docker ps
 docker logs -f <CONTAINER_ID>
 ```
 
-See [Tests](./README.md#tests) and [Demo](./README.md#demo) to interact with stack
+## Tests
+
+See [Tests](./README.md#tests)
 
 ## Clean up
 

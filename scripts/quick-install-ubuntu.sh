@@ -8,15 +8,15 @@ install_dir=~/bin
 # First display a reasonable warning to the user unless run with -y
 if ! [[ $# -eq 1 && $1 == "-y" ]]; then
   echo "**************************************************************************************"
-  echo "This script installs Laconic Stack Orchestrator into: ${install_dir}"
-  echo "It also *removes* any existing docker installed on this machine then installs"
-  echo "the latest docker release as well as other required packages."
+  echo "This script requires sudo privilege. It installs Laconic Stack Orchestrator"
+  echo "into: ${install_dir}. It also *removes* any existing docker installed on"
+  echo "this machine and then installs the latest docker release as well as other"
+  echo "required packages."
   echo "Only proceed if you are sure you want to make those changes to this machine."
   echo "**************************************************************************************"
   read -p "Are you sure you want to proceed? " -n 1 -r
   echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]
-  then
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
   fi
 fi

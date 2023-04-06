@@ -17,6 +17,7 @@ Checkout to the required versions and branches in repos:
 ```bash
 # watcher-ts
 cd ~/cerc/watcher-ts
+# Update version after release
 git checkout v0.2.34
 
 # MobyMask
@@ -38,8 +39,9 @@ This should create the required docker images in the local image registry
 
 * In [mobymask-params.env](../../config/watcher-mobymask-v2/mobymask-params.env) file set `DEPLOYED_CONTRACT` to existing deployed mobymask contract address
   * Setting `DEPLOYED_CONTRACT` will skip contract deployment when running stack
+  * `ENABLE_PEER_L2_TXS` is used to enable/disable sending txs to L2 chain from watcher peer.
 * Update the [optimism-params.env](../../config/watcher-mobymask-v2/optimism-params.env) file with Optimism endpoints and other params for the Optimism running separately
-  * If `PRIVATE_KEY_PEER` is not set the inline watcher peer will not send txs to L2 on receiving P2P network messages
+  * `PRIVATE_KEY_PEER` is used by watcher peer to send txs to L2 chain
 * NOTE:
   * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
   * If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port

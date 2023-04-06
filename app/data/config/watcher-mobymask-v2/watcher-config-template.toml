@@ -35,6 +35,11 @@
       pubSubTopic = 'mobymask'
       peerIdFile = './peer-id.json'
       enableDebugInfo = true
+      enableL2Txs = REPLACE_WITH_ENABLE_PEER_L2_TXS
+
+      [server.p2p.peer.l2TxConfig]
+        privateKey = 'REPLACE_WITH_PRIVATE_KEY_PEER'
+        contractAddress = 'REPLACE_WITH_CONTRACT_ADDRESS'
 
 [metrics]
   host = "0.0.0.0"

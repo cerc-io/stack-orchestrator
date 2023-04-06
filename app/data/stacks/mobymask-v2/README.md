@@ -21,6 +21,7 @@ Checkout to the required versions and branches in repos
 ```bash
 # watcher-ts
 cd ~/cerc/watcher-ts
+# Update version after release
 git checkout v0.2.34
 
 # react-peer

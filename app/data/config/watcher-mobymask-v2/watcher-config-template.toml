@@ -36,10 +36,6 @@
       peerIdFile = './peer-id.json'
       enableDebugInfo = true
 
-      [server.p2p.peer.l2TxConfig]
-        privateKey = 'REPLACE_WITH_PRIVATE_KEY'
-        contractAddress = 'REPLACE_WITH_CONTRACT_ADDRESS'
-
 [metrics]
   host = "0.0.0.0"
   port = 9000
@@ -59,7 +55,7 @@
 [upstream]
   [upstream.ethServer]
     gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
-    rpcProviderEndpoint = "REPLACE_WITH_L2_GETH_URL"
+    rpcProviderEndpoint = "REPLACE_WITH_L2_GETH_RPC_ENDPOINT"
     blockDelayInMilliSecs = 60000
 
   [upstream.cache]

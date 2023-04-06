@@ -12,10 +12,9 @@ To use a user-supplied registry set these environment variables:
 Leave `CERC_NPM_REGISTRY_URL` un-set to use the local gitea registry.
 
 ### 1. Build support containers
-```
-$ laconic-so --stack build-support build-containers
-```
-Note that the scheme/gerbil builder container can take a while to build so if you aren't going to build scheme projects it can be skipped with:
+
+Note: the scheme/gerbil container is excluded as it isn't currently required for the package registry.
+
 ```
 $ laconic-so --stack build-support build-containers --exclude cerc/builder-gerbil
 ```
@@ -37,6 +36,9 @@ Gitea was configured to use host name: gitea.local, ensure that this resolves to
 Success, gitea is properly initialized
 $
 ```
+
+Note: the above commands can take several minutes depending on the specs of your machine.
+
 ### 3. Configure the hostname gitea.local
 How to do this is OS-dependent but usually involves editing a `hosts` file. For example on Linux add this line to the file `/etc/hosts` (needs sudo):
 ```
@@ -56,5 +58,5 @@ Now npm packages can be built:
 Ensure that `CERC_NPM_AUTH_TOKEN` is set with the token printed above when the package-registry stack was deployed (the actual token value will be different than shown in this example):
 ```
 $ export CERC_NPM_AUTH_TOKEN=84fe66a73698bf11edbdccd0a338236b7d1d5c45
-$ laconic-so build-npms --include laconic-sdk
+$ laconic-so build-npms --include laconic-sdk,laconic-registry-cli
 ```

@@ -28,7 +28,7 @@ jobs:
         # Or it might be done on merge to a release branch
         # Somehow by this point however we need to know the release version
         with:
-          input_tag_name: "v1.2.3"
+          tag_name: "v1.2.3"
       - name: "Build local shiv package"
         # Build has to be done after deciding on the version because
         # we bundle the version into the build

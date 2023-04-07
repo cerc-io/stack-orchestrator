@@ -6,6 +6,10 @@ on:
   push:
     branches: '*'
 
+# Enable debug logging
+env:
+  ACTIONS_STEP_DEBUG: true
+
 jobs:
   test:
     name: "Build"

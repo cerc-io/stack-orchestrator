@@ -9,6 +9,7 @@ on:
 # Enable debug logging
 env:
   ACTIONS_STEP_DEBUG: true
+  RUNNER_DEBUG: true
 
 jobs:
   test:

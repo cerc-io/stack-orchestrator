@@ -3,7 +3,7 @@ name: fixturenet-eth
 decription: "Ethereum Fixturenet"
 repos:
   - cerc-io/go-ethereum
-  - sigp/lighthouse
+  - cerc-io/lighthouse
   - dboreham/foundry
 containers:
   - cerc/go-ethereum

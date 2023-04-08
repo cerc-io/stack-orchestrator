@@ -1,4 +1,4 @@
-FROM sigp/lighthouse:v3.2.1-modern
+FROM cerc/lighthouse-base:local
 
 RUN apt-get update; apt-get install bash netcat curl less jq -y;
 

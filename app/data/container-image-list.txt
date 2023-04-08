@@ -34,3 +34,5 @@ cerc/act-runner-task-executor
 cerc/optimism-l2geth
 cerc/optimism-op-batcher
 cerc/optimism-op-node
+cerc/lighthouse-base
+cerc/lighthouse-lcli

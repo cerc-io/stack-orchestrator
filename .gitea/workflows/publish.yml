@@ -18,7 +18,7 @@ jobs:
         run: |
           ./scripts/create_build_tag_file.sh
           build_tag=$(cat ./app/data/build_tag.txt)
-          echo "build-tag=${build_tag}" >> $GITHUB_OUTPUT
+          echo "build-tag=v${build_tag}" >> $GITHUB_OUTPUT
       - name: "Install Python"
         uses: cerc-io/setup-python@v4
         with:

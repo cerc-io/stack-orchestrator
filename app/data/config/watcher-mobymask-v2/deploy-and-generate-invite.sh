@@ -20,6 +20,9 @@ jq --arg privateKey "$PRIVATE_KEY_DEPLOYER" '.privateKey = $privateKey' secrets-
 # Set the RPC URL
 jq --arg rpcUrl "$L2_GETH_RPC" '.rpcUrl = $rpcUrl' secrets.json > secrets_updated.json && mv secrets_updated.json secrets.json
 
+# Set the MobyMask app base URI
+jq --arg baseURI "$MOBYMASK_APP_BASE_URI" '.baseURI = $baseURI' secrets.json > secrets_updated.json && mv secrets_updated.json secrets.json
+
 export RPC_URL="${L2_GETH_RPC}"
 
 # Check if DEPLOYED_CONTRACT environment variable set to skip contract deployment

@@ -4,6 +4,8 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+L1_RPC="${L1_RPC:-${DEFAULT_L1_RPC}}"
+
 # Get BACTHER_KEY from keys.json
 BATCHER_KEY=$(jq -r '.Batcher.privateKey' /l2-accounts/keys.json | tr -d '"')
 

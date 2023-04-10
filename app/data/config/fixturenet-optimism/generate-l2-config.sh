@@ -4,6 +4,8 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+L1_RPC="${L1_RPC:-${DEFAULT_L1_RPC}}"
+
 # Check existing config if it exists
 if [ -f /app/jwt.txt ] && [ -f /app/rollup.json ]; then
   echo "Found existing L2 config, cross-checking with L1 deployment config"

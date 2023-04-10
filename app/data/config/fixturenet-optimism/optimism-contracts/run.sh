@@ -4,6 +4,14 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+L1_CHAIN_ID="${L1_CHAIN_ID:-${DEFAULT_L1_CHAIN_ID}}"
+L1_RPC="${L1_RPC:-${DEFAULT_L1_RPC}}"
+
+L1_ADDRESS="${L1_ADDRESS:-${DEFAULT_L1_ADDRESS}}"
+L1_PRIV_KEY="${L1_PRIV_KEY:-${DEFAULT_L1_PRIV_KEY}}"
+L1_ADDRESS_2="${L1_ADDRESS_2:-${DEFAULT_L1_ADDRESS_2}}"
+L1_PRIV_KEY_2="${L1_PRIV_KEY_2:-${DEFAULT_L1_PRIV_KEY_2}}"
+
 echo "Using L1 RPC endpoint ${L1_RPC}"
 
 IMPORT_1="import './verify-contract-deployment'"

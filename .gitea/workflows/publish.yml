@@ -13,15 +13,11 @@ jobs:
     steps:
       - name: "Clone project repository"
         uses: actions/checkout@v3
-      - name: "Get build info" # TODO: put this in a library
+      - name: "Get build info"
         id: build-info
         run: |
-          build_time=$(date +'%Y%m%d%H%M')
-          product_version=$( cat app/data/version.txt )
-          short_sha=$(git rev-parse --short HEAD)
-          build_tag=$(echo "v${product_version}-${short_sha}-${build_time}")
-          echo "build-time=${build_time}" >> $GITHUB_OUTPUT
-          echo "short-sha=${short_sha}" >> $GITHUB_OUTPUT
+          ./scripts/create_build_tag_file.sh
+          build_tag=$(cat ./app/data/build_tag.txt)
           echo "build-tag=${build_tag}" >> $GITHUB_OUTPUT
       - name: "Install Python"
         uses: cerc-io/setup-python@v4

@@ -35,7 +35,7 @@ jobs:
           exit $result_code
       - name: "Stage artifact file"
         run: |
-                                        cp ${{ steps.build.outputs.package-file }} ./laconic-so
+          cp ${{ steps.build.outputs.package-file }} ./laconic-so
       - name: "Create release"
         uses: cerc-io/action-gh-release@gitea-v1
         with:

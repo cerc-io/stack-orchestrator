@@ -2,9 +2,12 @@ name: Publish
 
 on:
   pull_request:
-    branches: '*'
+    branches:
+      - main
   push:
-    branches: '*'
+    branches:
+      - main
+      - publish-test
 
 jobs:
   publish:

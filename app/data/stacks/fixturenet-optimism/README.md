@@ -39,10 +39,12 @@ This should create the required docker images in the local image registry:
 
 ## Deploy
 
+Create an env file to be used in the next step with contents from [l1-params.env](../../config/fixturenet-optimism/l1-params.env)
+
 Deploy the stack:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy up
+laconic-so --stack fixturenet-optimism deploy --env-file <PATH_TO_ENV_FILE> up
 ```
 
 The `fixturenet-optimism-contracts` service may take a while (`~15 mins`) to complete running as it:

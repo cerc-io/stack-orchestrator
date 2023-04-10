@@ -35,16 +35,14 @@ This should create the required docker images in the local image registry:
 
 ## Deploy
 
-Update the [l1-params.env](../../config/fixturenet-optimism/l1-params.env) file with L1 endpoint (`L1_RPC`, `L1_HOST` and `L1_PORT`) and other params
+Create an env file to be used in the next step with contents from [l1-params.env](../../config/fixturenet-optimism/l1-params.env); update it with L1 endpoint (`L1_RPC`, `L1_HOST` and `L1_PORT`) and other params
 
-* NOTE:
-  * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
-  * If L1 is running on the host machine, use `host.docker.internal` as the hostname to access the host port
+* NOTE: If L1 is running on the host machine, use `host.docker.internal` as the hostname to access the host port
 
 Deploy the stack:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy up --include fixturenet-optimism
+laconic-so --stack fixturenet-optimism deploy --include fixturenet-optimism --env-file <PATH_TO_ENV_FILE> up
 ```
 
 The `fixturenet-optimism-contracts` service may take a while (`~15 mins`) to complete running as it:

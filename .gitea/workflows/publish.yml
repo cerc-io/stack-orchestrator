@@ -5,8 +5,7 @@ on:
     branches:
       - main
   push:
-    branches:
-      - publish-test
+    branches: '*'
 
 jobs:
   publish:

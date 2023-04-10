@@ -4,6 +4,10 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+CHAIN_ID="${CHAIN_ID:-${DEFAULT_CHAIN_ID}}"
+DEPLOYED_CONTRACT="${DEPLOYED_CONTRACT:-${DEFAULT_DEPLOYED_CONTRACT}}"
+RELAY_NODES="${RELAY_NODES:-${DEFAULT_RELAY_NODES}}"
+
 # Use config from mounted volume if available (when running web-app along with watcher stack)
 if [ -f /server/config.json ]; then
   echo "Merging config for deployed contract from mounted volume"

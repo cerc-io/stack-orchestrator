@@ -6,12 +6,17 @@ services:
     image: cerc/mobymask-ui:local
     env_file:
       - ../config/watcher-mobymask-v2/mobymask-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CHAIN_ID: ${CHAIN_ID}
+      DEPLOYED_CONTRACT: ${DEPLOYED_CONTRACT}
+      RELAY_NODES: ${RELAY_NODES}
     # Waits for watcher server to be up before app build
     # Required when running with watcher stack to get deployed contract address
     command:
       - sh
       - -c
-      - ./wait-for-it.sh -h $${WATCHER_HOST} -p $${WATCHER_PORT} -s -t 0 -- ./mobymask-app-start.sh
+      - ./wait-for-it.sh -h ${WATCHER_HOST:-$${DEFAULT_WATCHER_HOST}} -p ${WATCHER_PORT:-$${DEFAULT_WATCHER_PORT}} -s -t 0 -- ./mobymask-app-start.sh
     volumes:
       - ../config/wait-for-it.sh:/app/wait-for-it.sh
       - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json

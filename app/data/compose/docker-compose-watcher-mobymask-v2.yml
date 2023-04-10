@@ -31,14 +31,19 @@ services:
       - ../config/watcher-mobymask-v2/optimism-params.env
       - ../config/watcher-mobymask-v2/mobymask-params.env
     environment:
-      - ENV=PROD
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      ENV: "PROD"
+      L2_GETH_RPC: ${L2_GETH_RPC}
+      PRIVATE_KEY_DEPLOYER: ${PRIVATE_KEY_DEPLOYER}
+      MOBYMASK_APP_BASE_URI: ${MOBYMASK_APP_BASE_URI}
+      DEPLOYED_CONTRACT: ${DEPLOYED_CONTRACT}
     # Waits for L2 Optimism Geth and Node servers to be up before deploying contract
     command:
       - sh
       - -c
       - |
-        ./wait-for-it.sh -h $${L2_GETH_HOST} -p $${L2_GETH_PORT} -s -t 0 && \
-        ./wait-for-it.sh -h $${L2_NODE_HOST} -p $${L2_NODE_PORT} -s -t 0 && \
+        ./wait-for-it.sh -h ${L2_GETH_HOST:-$${DEFAULT_L2_GETH_HOST}} -p ${L2_GETH_PORT:-$${DEFAULT_L2_GETH_PORT}} -s -t 0 && \
+        ./wait-for-it.sh -h ${L2_NODE_HOST:-$${DEFAULT_L2_NODE_HOST}} -p ${L2_NODE_PORT:-$${DEFAULT_L2_NODE_PORT}} -s -t 0 && \
         ./deploy-and-generate-invite.sh
     volumes:
       - ../config/wait-for-it.sh:/app/packages/server/wait-for-it.sh
@@ -51,16 +56,22 @@ services:
 
   # Starts the mobymask-v2-watcher server
   mobymask-watcher-server:
+    image: cerc/watcher-mobymask-v2:local
     restart: unless-stopped
     depends_on:
       mobymask-watcher-db:
         condition: service_healthy
       mobymask:
         condition: service_completed_successfully
-    image: cerc/watcher-mobymask-v2:local
     env_file:
       - ../config/watcher-mobymask-v2/optimism-params.env
       - ../config/watcher-mobymask-v2/mobymask-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      L2_GETH_RPC: ${L2_GETH_RPC}
+      PRIVATE_KEY_PEER: ${PRIVATE_KEY_PEER}
+      ENABLE_PEER_L2_TXS: ${ENABLE_PEER_L2_TXS}
+      DEPLOYED_CONTRACT: ${DEPLOYED_CONTRACT}
     command: ["sh", "start-server.sh"]
     volumes:
       - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml

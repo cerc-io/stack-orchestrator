@@ -4,6 +4,12 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+L2_GETH_RPC="${L2_GETH_RPC:-${DEFAULT_L2_GETH_RPC}}"
+PRIVATE_KEY_PEER="${PRIVATE_KEY_PEER:-${DEFAULT_PRIVATE_KEY_PEER}}"
+
+ENABLE_PEER_L2_TXS="${ENABLE_PEER_L2_TXS:-${DEFAULT_ENABLE_PEER_L2_TXS}}"
+DEPLOYED_CONTRACT="${DEPLOYED_CONTRACT:-${DEFAULT_DEPLOYED_CONTRACT}}"
+
 echo "Using L2 RPC endpoint ${L2_GETH_RPC}"
 
 # Use contract address from environment variable or set from config.json in mounted volume

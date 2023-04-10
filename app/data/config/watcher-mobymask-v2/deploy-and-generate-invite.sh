@@ -4,6 +4,12 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+L2_GETH_RPC="${L2_GETH_RPC:-${DEFAULT_L2_GETH_RPC}}"
+PRIVATE_KEY_DEPLOYER="${PRIVATE_KEY_DEPLOYER:-${DEFAULT_PRIVATE_KEY_DEPLOYER}}"
+
+MOBYMASK_APP_BASE_URI="${MOBYMASK_APP_BASE_URI:-${DEFAULT_MOBYMASK_APP_BASE_URI}}"
+DEPLOYED_CONTRACT="${DEPLOYED_CONTRACT:-${DEFAULT_DEPLOYED_CONTRACT}}"
+
 echo "Using L2 RPC endpoint ${L2_GETH_RPC}"
 
 if [ -f /geth-accounts/accounts.csv ]; then
@@ -26,7 +32,7 @@ jq --arg baseURI "$MOBYMASK_APP_BASE_URI" '.baseURI = $baseURI' secrets.json > s
 export RPC_URL="${L2_GETH_RPC}"
 
 # Check if DEPLOYED_CONTRACT environment variable set to skip contract deployment
-if [[ -n "$DEPLOYED_CONTRACT" ]]; then
+if [ -n "$DEPLOYED_CONTRACT" ]; then
   echo "DEPLOYED_CONTRACT is set to '$DEPLOYED_CONTRACT'"
   echo "Exiting without deploying contract"
   exit 0

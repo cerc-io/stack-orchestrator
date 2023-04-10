@@ -19,7 +19,7 @@ services:
       L1_PRIV_KEY_2: ${L1_PRIV_KEY_2}
     # Waits for L1 endpoint to be up before running the script
     command: |
-      "./wait-for-it.sh -h ${L1_HOST:-$${DEFAULT-L1_HOST}} -p ${L1_PORT:-$${DEFAULT-L1_PORT}} -s -t 60 -- ./run.sh"
+      "./wait-for-it.sh -h ${L1_HOST:-$${DEFAULT_L1_HOST}} -p ${L1_PORT:-$${DEFAULT_L1_PORT}} -s -t 60 -- ./run.sh"
     volumes:
       - ../config/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
       - ../container-build/cerc-optimism-contracts/hardhat-tasks/verify-contract-deployment.ts:/app/packages/contracts-bedrock/tasks/verify-contract-deployment.ts
@@ -121,7 +121,7 @@ services:
     entrypoint: ["sh", "-c"]
     # Waits for L1 endpoint to be up before running the batcher
     command: |
-      "/wait-for-it.sh -h ${L1_HOST:-$${DEFAULT-L1_HOST}} -p ${L1_PORT:-$${DEFAULT-L1_PORT}} -s -t 60 -- /run-op-batcher.sh"
+      "/wait-for-it.sh -h ${L1_HOST:-$${DEFAULT_L1_HOST}} -p ${L1_PORT:-$${DEFAULT_L1_PORT}} -s -t 60 -- /run-op-batcher.sh"
     extra_hosts:
     - "host.docker.internal:host-gateway"
 

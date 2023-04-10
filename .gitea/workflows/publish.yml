@@ -44,3 +44,4 @@ jobs:
           # Hack using endsWith to workaround Gitea sometimes sending "publish-test" vs "refs/heads/publish-test"
           draft: ${{ endsWith('publish-test', github.ref ) }}
           files: ./laconic-so
+  

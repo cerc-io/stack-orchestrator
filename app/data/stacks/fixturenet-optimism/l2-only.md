@@ -35,7 +35,22 @@ This should create the required docker images in the local image registry:
 
 ## Deploy
 
-Create an env file to be used in the next step with contents from [l1-params.env](../../config/fixturenet-optimism/l1-params.env); update it with L1 endpoint (`L1_RPC`, `L1_HOST` and `L1_PORT`) and other params
+Create and update an env file to be used in the next step:
+
+  ```bash
+  # External L1 endpoint
+  L1_CHAIN_ID=
+  L1_RPC=
+  L1_HOST=
+  L1_PORT=
+
+  # Credentials for accounts on L1 to send balance to Optimism Proxy contract from
+  # (enables them to do transactions on L2)
+  L1_ADDRESS=
+  L1_PRIV_KEY=
+  L1_ADDRESS_2=
+  L1_PRIV_KEY_2=
+  ```
 
 * NOTE: If L1 is running on the host machine, use `host.docker.internal` as the hostname to access the host port
 

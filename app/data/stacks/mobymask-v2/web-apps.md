@@ -36,25 +36,38 @@ This should create the required docker images in the local image registry
 
 ### Configuration
 
-* Update the [mobymask-params.env](../../config/watcher-mobymask-v2/mobymask-params.env) file with watcher endpoints and other params required by the web-apps
-  * `WATCHER_HOST` and `WATCHER_PORT` is used to check if watcher is up before building and deploying mobymask-app
-  * `APP_WATCHER_URL` is used by mobymask-app to make GQL queries
-  * `DEPLOYED_CONTRACT` and `CHAIN_ID` is used by mobymask-app in app config when creating messgaes for L2 txs
-  * `RELAY_NODES` is used by the web-apps to connect to the relay nodes (run in watcher)
-* NOTE:
-  * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
-  * If watcher is running on the host machine, use `host.docker.internal` as the hostname to access the host port
+Create an env file to be used in the next step:
+
+  ```bash
+  # Set relay nodes to be used by the web-app
+  RELAY_NODES=["/ip4/127.0.0.1/tcp/9090/ws/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t"]
+
+  # Also add if running MobyMask app:
+
+  # External watcher endpoint
+  WATCHER_HOST=
+  WATCHER_PORT=
+  APP_WATCHER_URL=
+
+  # Set deployed MobyMask contract address to be used in MobyMask app's config
+  DEPLOYED_CONTRACT=
+
+  # L2 Chain ID used by mobymask web-app for L2 txs
+  CHAIN_ID=42069
+  ```
+
+* NOTE: If watcher is running on the host machine, use `host.docker.internal` as the hostname to access the host port
 
 ### Deploy the stack
 
 For running mobymask-app
 ```bash
-laconic-so --stack mobymask-v2 deploy --include mobymask-app up
+laconic-so --stack mobymask-v2 deploy --include mobymask-app --env-file <PATH_TO_ENV_FILE> up
 ```
 
 For running peer-test-app
 ```bash
-laconic-so --stack mobymask-v2 deploy --include peer-test-app up
+laconic-so --stack mobymask-v2 deploy --include peer-test-app --env-file <PATH_TO_ENV_FILE> up
 ```
 
 To list down and monitor the running containers:

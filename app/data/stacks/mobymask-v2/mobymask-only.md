@@ -36,19 +36,38 @@ This should create the required docker images in the local image registry
 
 ### Configuration
 
-* In [mobymask-params.env](../../config/watcher-mobymask-v2/mobymask-params.env) file set `DEPLOYED_CONTRACT` to existing deployed mobymask contract address
-  * Setting `DEPLOYED_CONTRACT` will skip contract deployment when running stack
-  * `ENABLE_PEER_L2_TXS` is used to enable/disable sending txs to L2 chain from watcher peer.
-* Update the [optimism-params.env](../../config/watcher-mobymask-v2/optimism-params.env) file with Optimism endpoints and other params for the Optimism running separately
-  * `PRIVATE_KEY_PEER` is used by watcher peer to send txs to L2 chain
-* NOTE:
-  * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
-  * If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
+Create an env file to be used in the next step:
+
+  ```bash
+  # External L2 endpoints
+  L2_GETH_RPC=
+  L2_GETH_HOST=
+  L2_GETH_PORT=
+
+  L2_NODE_HOST=
+  L2_NODE_PORT=
+
+  # Credentials for accounts to perform txs on L2
+  PRIVATE_KEY_DEPLOYER=
+  PRIVATE_KEY_PEER=
+
+  # Base URI for mobymask-app (used for generating invite)
+  MOBYMASK_APP_BASE_URI="http://127.0.0.1:3002/#"
+
+  # Set to false for disabling watcher peer to send txs to L2
+  ENABLE_PEER_L2_TXS=true
+
+  # Set deployed MobyMask contract address to avoid deploying contract in the stack
+  # mobymask-app will use this contract address in config if run separately
+  DEPLOYED_CONTRACT=
+  ```
+
+* NOTE: If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
 
 ### Deploy the stack
 
 ```bash
-laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 up
+laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 --env-file <PATH_TO_ENV_FILE> up
 ```
 
 To list down and monitor the running containers:

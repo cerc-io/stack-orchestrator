@@ -21,6 +21,8 @@ jobs:
         run: python3 --version
       - name: "Install shiv"
         run: pip install shiv
+      - name: "Generate build version file"
+        run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
       - name: "Run smoke tests"

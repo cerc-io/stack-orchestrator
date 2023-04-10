@@ -38,7 +38,7 @@ jobs:
           result_code=$?
           echo "::set-output name=package-file::$(ls ./package/*)"
           exit $result_code          
-      - name "Stage artifact file"
+      - name: "Stage artifact file"
         run: |
                     cp ${{ steps.build.outputs.package-file }} ./laconic-so
       - name: "Upload release artifact"

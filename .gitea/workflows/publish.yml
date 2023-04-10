@@ -29,8 +29,6 @@ jobs:
         run: pip install shiv
       - name: "Build local shiv package"
         id: build
-        # Build has to be done after deciding on the version because
-        # we bundle the version into the build
         run: |
           ./scripts/build_shiv_package.sh
           result_code=$?
@@ -38,7 +36,7 @@ jobs:
           exit $result_code          
       - name: "Stage artifact file"
         run: |
-                    cp ${{ steps.build.outputs.package-file }} ./laconic-so
+          cp ${{ steps.build.outputs.package-file }} ./laconic-so
       - name: "Create release"
         uses: cerc-io/action-gh-release@gitea-v1
         with:

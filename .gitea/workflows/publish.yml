@@ -18,7 +18,6 @@ jobs:
         run: |
           build_tag=$(./scripts/create_build_tag_file.sh)
           echo "build-tag=v${build_tag}" >> $GITHUB_OUTPUT
-          echo "Build tag set to v${build_tag}"          
       - name: "Install Python"
         uses: cerc-io/setup-python@v4
         with:
@@ -27,20 +26,20 @@ jobs:
         run: python3 --version
       - name: "Install shiv"
         run: pip install shiv
-      - name: "Test things"
-        run: echo "Build tag is ${{ steps.build-info.outputs.build-tag }}"
       - name: "Build local shiv package"
         id: build
         run: |
           ./scripts/build_shiv_package.sh
           result_code=$?
           echo "package-file=$(ls ./package/*)" >> $GITHUB_OUTPUT
-          exit $result_code                    
+          exit $result_code
       - name: "Stage artifact file"
         run: |
-          cp ${{ steps.build.outputs.package-file }} ./laconic-so
+                                        cp ${{ steps.build.outputs.package-file }} ./laconic-so
       - name: "Create release"
         uses: cerc-io/action-gh-release@gitea-v1
         with:
-          tag_name: "${{ steps.build-info.outputs.build-tag }}"
+          tag_name: ${{ steps.build-info.outputs.build-tag }}
+          # On the publish test branch, mark our release as a draft
+          draft: ${{ github.ref == 'refs/heads/publish-test' }}
           files: ./laconic-so

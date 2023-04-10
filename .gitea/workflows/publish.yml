@@ -36,7 +36,9 @@ jobs:
           ./scripts/build_shiv_package.sh
           result_code=$?
           echo "package-file=$(ls ./package/*)" >> $GITHUB_OUTPUT
-          exit $result_code          
+          exit $result_code
+      - name: "Test things"
+        run: echo "Build tag is: ${{ steps.build-info.outputs.build-tag }}"
       - name: "Stage artifact file"
         run: |
           cp ${{ steps.build.outputs.package-file }} ./laconic-so

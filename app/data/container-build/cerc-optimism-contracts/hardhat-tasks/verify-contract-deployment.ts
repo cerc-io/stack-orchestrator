@@ -9,7 +9,7 @@ task(
   .addParam('transactionHash', 'Hash of the deployment transaction')
   .setAction(async ({ contract, transactionHash }, { ethers }) => {
     const provider = new ethers.providers.JsonRpcProvider(
-      `${process.env.L1_RPC}`
+      `${process.env.CERC_L1_RPC}`
     )
 
     // Get the deployment tx receipt

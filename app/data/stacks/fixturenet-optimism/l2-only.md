@@ -10,6 +10,8 @@ Clone required repositories:
 
 ```bash
 laconic-so --stack fixturenet-optimism setup-repositories --exclude cerc-io/go-ethereum
+
+# If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```
 
 Checkout to the required versions and branches in repos:
@@ -35,16 +37,29 @@ This should create the required docker images in the local image registry:
 
 ## Deploy
 
-Update the [l1-params.env](../../config/fixturenet-optimism/l1-params.env) file with L1 endpoint (`L1_RPC`, `L1_HOST` and `L1_PORT`) and other params
+Create and update an env file to be used in the next step ([defaults](../../config/fixturenet-optimism/l1-params.env)):
 
-* NOTE:
-  * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
-  * If L1 is running on the host machine, use `host.docker.internal` as the hostname to access the host port
+  ```bash
+  # External L1 endpoint
+  CERC_L1_CHAIN_ID=
+  CERC_L1_RPC=
+  CERC_L1_HOST=
+  CERC_L1_PORT=
+
+  # Credentials for accounts on L1 to send balance to Optimism Proxy contract from
+  # (enables them to do transactions on L2)
+  CERC_L1_ADDRESS=
+  CERC_L1_PRIV_KEY=
+  CERC_L1_ADDRESS_2=
+  CERC_L1_PRIV_KEY_2=
+  ```
+
+* NOTE: If L1 is running on the host machine, use `host.docker.internal` as the hostname to access the host port
 
 Deploy the stack:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy up --include fixturenet-optimism
+laconic-so --stack fixturenet-optimism deploy --include fixturenet-optimism --env-file <PATH_TO_ENV_FILE> up
 ```
 
 The `fixturenet-optimism-contracts` service may take a while (`~15 mins`) to complete running as it:
@@ -69,7 +84,7 @@ docker logs -f <CONTAINER_ID>
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy down --include fixturenet-optimism
+laconic-so --stack fixturenet-optimism deploy --include fixturenet-optimism down
 ```
 
 Clear volumes created by this stack:

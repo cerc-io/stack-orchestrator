@@ -32,11 +32,12 @@ from .util import include_exclude_check, get_parsed_stack_config
 @click.command()
 @click.option("--include", help="only start these components")
 @click.option("--exclude", help="don\'t start these components")
+@click.option("--env-file", help="env file to be used")
 @click.option("--cluster", help="specify a non-default cluster name")
 @click.argument('command', required=True)  # help: command: up|down|ps
 @click.argument('extra_args', nargs=-1)  # help: command: up|down|ps <service1> <service2>
 @click.pass_context
-def command(ctx, include, exclude, cluster, command, extra_args):
+def command(ctx, include, exclude, env_file, cluster, command, extra_args):
     '''deploy a stack'''
 
     # TODO: implement option exclusion and command value constraint lost with the move from argparse to click
@@ -51,7 +52,7 @@ def command(ctx, include, exclude, cluster, command, extra_args):
     cluster_context = _make_cluster_context(ctx.obj, include, exclude, cluster)
 
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster)
+    docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster, compose_env_file=env_file)
 
     extra_args_list = list(extra_args) or None
 

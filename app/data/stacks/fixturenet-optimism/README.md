@@ -10,6 +10,8 @@ Clone required repositories:
 
 ```bash
 laconic-so --stack fixturenet-optimism setup-repositories
+
+# If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```
 
 Checkout to the required versions and branches in repos:
@@ -109,7 +111,7 @@ docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_geth_accounts
     docker volume rm $(docker volume ls -q --filter name=l2_geth_data)
     ```
 
-  * Reuse the deployment command used in [Deploy](#deploy) to restart the stopped containers
+  * Re-run the deployment command used in [Deploy](#deploy) to restart the stopped containers
 
 ## Known Issues
 

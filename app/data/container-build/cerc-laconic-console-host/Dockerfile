@@ -42,7 +42,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 COPY --from=docker.io/mikefarah/yq:latest /usr/bin/yq /usr/local/bin/yq
 
 RUN mkdir -p /scripts
-COPY ../apply-webapp-config.sh /scripts
+COPY ./apply-webapp-config.sh /scripts
 COPY ./start-serving-app.sh /scripts
 
 # [Optional] Uncomment if you want to install more global node modules

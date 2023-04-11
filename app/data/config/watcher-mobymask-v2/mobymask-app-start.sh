@@ -28,14 +28,10 @@ else
   echo "Taking deployed contract details from env"
 fi
 
-# Use yq to replace the values in the YAML file with environment variables
-yq e \
-    --arg deployed_contract "$CERC_DEPLOYED_CONTRACT" \
-    --arg watcher_url "$CERC_APP_WATCHER_URL" \
-    --arg chain_id "$CERC_CHAIN_ID" \
-    --argjson relay_nodes "$CERC_RELAY_NODES" \
-    '.address = $deployed_contract | .chainId = $chain_id | .relayNodes = $relay_nodes | .watcherUrl = $watcher_url' \
-    /config/config-template.yml \
-    | envsubst > /config/config.yml
+# Use yq to create config.yml with environment variables
+yq -n ".address = env(CERC_DEPLOYED_CONTRACT)" > /config/config.yml
+yq ".watcherUrl = env(CERC_APP_WATCHER_URL)" -i /config/config.yml
+yq ".chainId = env(CERC_CHAIN_ID)" -i /config/config.yml
+yq ".relayNodes = env(CERC_RELAY_NODES)" -i /config/config.yml
 
-sh /scripts/mobymask-app-start.sh
+sh /scripts/start-serving-app.sh

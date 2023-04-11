@@ -8,11 +8,11 @@ if [[ $# -ne 2 ]]; then
 fi
 config_file_name=$1
 webapp_files_dir=$2
-if ![[ -f ${config_file_name} ]]; then
+if ! [[ -f ${config_file_name} ]]; then
     echo "Config file ${config_file_name} does not exist" >&2
     exit 1
 fi
-if ![[ -d ${webapp_files_dir} ]]; then
+if ! [[ -d ${webapp_files_dir} ]]; then
     echo "Webapp directory ${webapp_files_dir} does not exist" >&2
     exit 1
 fi

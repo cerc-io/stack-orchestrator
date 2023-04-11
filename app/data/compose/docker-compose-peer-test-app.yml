@@ -9,7 +9,7 @@ services:
       - ../config/watcher-mobymask-v2/mobymask-params.env
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      RELAY_NODES: ${RELAY_NODES}
+      CERC_RELAY_NODES: ${CERC_RELAY_NODES}
     command: ["sh", "./test-app-start.sh"]
     volumes:
       - ../config/watcher-mobymask-v2/test-app-config.json:/app/packages/test-app/src/test-app-config.json

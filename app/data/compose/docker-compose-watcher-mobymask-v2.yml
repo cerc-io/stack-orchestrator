@@ -22,8 +22,8 @@ services:
       retries: 15
       start_period: 10s
 
-  # Deploys MobyMask contract and generates an invite link
-  # Deployment is skipped if DEPLOYED_CONTRACT env is already set
+  # Deploys the MobyMask contract and generates an invite link
+  # Deployment is skipped if CERC_DEPLOYED_CONTRACT env is set
   mobymask:
     image: cerc/mobymask:local
     working_dir: /app/packages/server
@@ -33,17 +33,17 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       ENV: "PROD"
-      L2_GETH_RPC: ${L2_GETH_RPC}
-      PRIVATE_KEY_DEPLOYER: ${PRIVATE_KEY_DEPLOYER}
-      MOBYMASK_APP_BASE_URI: ${MOBYMASK_APP_BASE_URI}
-      DEPLOYED_CONTRACT: ${DEPLOYED_CONTRACT}
+      CERC_L2_GETH_RPC: ${CERC_L2_GETH_RPC}
+      CERC_PRIVATE_KEY_DEPLOYER: ${CERC_PRIVATE_KEY_DEPLOYER}
+      CERC_MOBYMASK_APP_BASE_URI: ${CERC_MOBYMASK_APP_BASE_URI}
+      CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
     # Waits for L2 Optimism Geth and Node servers to be up before deploying contract
     command:
       - sh
       - -c
       - |
-        ./wait-for-it.sh -h ${L2_GETH_HOST:-$${DEFAULT_L2_GETH_HOST}} -p ${L2_GETH_PORT:-$${DEFAULT_L2_GETH_PORT}} -s -t 0 && \
-        ./wait-for-it.sh -h ${L2_NODE_HOST:-$${DEFAULT_L2_NODE_HOST}} -p ${L2_NODE_PORT:-$${DEFAULT_L2_NODE_PORT}} -s -t 0 && \
+        ./wait-for-it.sh -h ${CERC_L2_GETH_HOST:-$${DEFAULT_CERC_L2_GETH_HOST}} -p ${CERC_L2_GETH_PORT:-$${DEFAULT_CERC_L2_GETH_PORT}} -s -t 0 && \
+        ./wait-for-it.sh -h ${CERC_L2_NODE_HOST:-$${DEFAULT_CERC_L2_NODE_HOST}} -p ${CERC_L2_NODE_PORT:-$${DEFAULT_CERC_L2_NODE_PORT}} -s -t 0 && \
         ./deploy-and-generate-invite.sh
     volumes:
       - ../config/wait-for-it.sh:/app/packages/server/wait-for-it.sh
@@ -68,10 +68,10 @@ services:
       - ../config/watcher-mobymask-v2/mobymask-params.env
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      L2_GETH_RPC: ${L2_GETH_RPC}
-      PRIVATE_KEY_PEER: ${PRIVATE_KEY_PEER}
-      ENABLE_PEER_L2_TXS: ${ENABLE_PEER_L2_TXS}
-      DEPLOYED_CONTRACT: ${DEPLOYED_CONTRACT}
+      CERC_L2_GETH_RPC: ${CERC_L2_GETH_RPC}
+      CERC_PRIVATE_KEY_PEER: ${CERC_PRIVATE_KEY_PEER}
+      CERC_ENABLE_PEER_L2_TXS: ${CERC_ENABLE_PEER_L2_TXS}
+      CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
     command: ["sh", "start-server.sh"]
     volumes:
       - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml

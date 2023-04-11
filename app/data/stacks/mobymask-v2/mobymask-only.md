@@ -42,26 +42,26 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   ```bash
   # External L2 endpoints
-  L2_GETH_RPC=
-  L2_GETH_HOST=
-  L2_GETH_PORT=
+  CERC_L2_GETH_RPC=
+  CERC_L2_GETH_HOST=
+  CERC_L2_GETH_PORT=
 
-  L2_NODE_HOST=
-  L2_NODE_PORT=
+  CERC_L2_NODE_HOST=
+  CERC_L2_NODE_PORT=
 
   # Credentials for accounts to perform txs on L2
-  PRIVATE_KEY_DEPLOYER=
-  PRIVATE_KEY_PEER=
+  CERC_PRIVATE_KEY_DEPLOYER=
+  CERC_PRIVATE_KEY_PEER=
 
   # Base URI for mobymask-app
   # (used for generating a root invite link after deploying the contract)
-  MOBYMASK_APP_BASE_URI="http://127.0.0.1:3002/#"
+  CERC_MOBYMASK_APP_BASE_URI="http://127.0.0.1:3002/#"
 
   # Set to false for disabling watcher peer to send txs to L2
-  ENABLE_PEER_L2_TXS=true
+  CERC_ENABLE_PEER_L2_TXS=true
 
   # (Optional) Set already deployed MobyMask contract address to avoid deploying contract in the stack
-  DEPLOYED_CONTRACT=
+  CERC_DEPLOYED_CONTRACT=
   ```
 
 * NOTE: If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port

@@ -42,22 +42,22 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   ```bash
   # Set relay nodes to be used by the web-app
-  RELAY_NODES=["/ip4/127.0.0.1/tcp/9090/ws/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t"]
+  CERC_RELAY_NODES=["/ip4/127.0.0.1/tcp/9090/ws/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t"]
 
   # Also add if running MobyMask app:
 
   # External watcher endpoint (to check if watcher is up)
-  WATCHER_HOST=
-  WATCHER_PORT=
+  CERC_WATCHER_HOST=
+  CERC_WATCHER_PORT=
 
   # Watcher endpoint used by the app for GQL queries
-  APP_WATCHER_URL="http://127.0.0.1:3001"
+  CERC_APP_WATCHER_URL="http://127.0.0.1:3001"
 
   # Set deployed MobyMask contract address to be used in MobyMask app's config
-  DEPLOYED_CONTRACT=
+  CERC_DEPLOYED_CONTRACT=
 
   # L2 Chain ID used by mobymask web-app for L2 txs
-  CHAIN_ID=42069
+  CERC_CHAIN_ID=42069
   ```
 
 * NOTE: If watcher is running on the host machine, use `host.docker.internal` as the hostname to access the host port

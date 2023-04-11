@@ -29,7 +29,7 @@ git checkout laconic
 Build the container images:
 
 ```bash
-laconic-so --stack mobymask-v2 build-containers --include cerc/react-peer-v2,cerc/mobymask-ui
+laconic-so --stack mobymask-v2 build-containers --include cerc/react-peer,cerc/mobymask-ui
 ```
 
 This should create the required docker images in the local image registry

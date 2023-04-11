@@ -28,13 +28,14 @@ else
   echo "Taking deployed contract details from env"
 fi
 
-# Export config values in a json file
-jq --arg address "$CERC_DEPLOYED_CONTRACT" \
-  --argjson chainId "$CERC_CHAIN_ID" \
-  --argjson relayNodes "$CERC_RELAY_NODES" \
-  '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes' \
-  /app/src/mobymask-app-config.json > /app/src/config.json
+# Use yq to replace the values in the YAML file with environment variables
+yq e \
+    --arg deployed_contract "$CERC_DEPLOYED_CONTRACT" \
+    --arg watcher_url "$CERC_APP_WATCHER_URL" \
+    --arg chain_id "$CERC_CHAIN_ID" \
+    --argjson relay_nodes "$CERC_RELAY_NODES" \
+    '.address = $deployed_contract | .chainId = $chain_id | .relayNodes = $relay_nodes | .watcherUrl = $watcher_url' \
+    /config/config-template.yml \
+    | envsubst > /config/config.yml
 
-REACT_APP_WATCHER_URI="$CERC_APP_WATCHER_URL/graphql" npm run build
-
-serve -s build
+sh /scripts/mobymask-app-start.sh

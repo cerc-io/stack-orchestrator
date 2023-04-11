@@ -14,7 +14,7 @@ $ chmod +x ./laconic-so
 $ export PATH=$PATH:$(pwd)  # Or move laconic-so to ~/bin or your favorite on-path directory
 ```
 ## 2. Prepare the local build environment
-Note that this step needs only to be done once on a new machine. 
+Note that this step needs only to be done once on a new machine.
 Detailed instructions can be found [here](../build-support/README.md). For the impatient run these commands:
 ```
 $ laconic-so --stack build-support build-containers --exclude cerc/builder-gerbil

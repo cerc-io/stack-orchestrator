@@ -10,6 +10,8 @@ Clone required repositories:
 
 ```bash
 laconic-so --stack fixturenet-optimism setup-repositories --exclude cerc-io/go-ethereum
+
+# If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```
 
 Checkout to the required versions and branches in repos:
@@ -35,7 +37,7 @@ This should create the required docker images in the local image registry:
 
 ## Deploy
 
-Create and update an env file to be used in the next step:
+Create and update an env file to be used in the next step ([defaults](../../config/fixturenet-optimism/l1-params.env)):
 
   ```bash
   # External L1 endpoint
@@ -82,7 +84,7 @@ docker logs -f <CONTAINER_ID>
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy down --include fixturenet-optimism
+laconic-so --stack fixturenet-optimism deploy --include fixturenet-optimism down
 ```
 
 Clear volumes created by this stack:

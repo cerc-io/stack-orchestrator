@@ -10,6 +10,8 @@ Clone required repositories:
 
 ```bash
 laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts
+
+# If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```
 
 Checkout to the required versions and branches in repos:
@@ -36,7 +38,7 @@ This should create the required docker images in the local image registry
 
 ### Configuration
 
-Create an env file to be used in the next step:
+Create and update an env file to be used in the next step ([defaults](../../config/watcher-mobymask-v2/)):
 
   ```bash
   # External L2 endpoints
@@ -51,14 +53,14 @@ Create an env file to be used in the next step:
   PRIVATE_KEY_DEPLOYER=
   PRIVATE_KEY_PEER=
 
-  # Base URI for mobymask-app (used for generating invite)
+  # Base URI for mobymask-app
+  # (used for generating a root invite link after deploying the contract)
   MOBYMASK_APP_BASE_URI="http://127.0.0.1:3002/#"
 
   # Set to false for disabling watcher peer to send txs to L2
   ENABLE_PEER_L2_TXS=true
 
-  # Set deployed MobyMask contract address to avoid deploying contract in the stack
-  # mobymask-app will use this contract address in config if run separately
+  # (Optional) Set already deployed MobyMask contract address to avoid deploying contract in the stack
   DEPLOYED_CONTRACT=
   ```
 
@@ -82,9 +84,21 @@ docker ps
 docker logs -f <CONTAINER_ID>
 ```
 
+The watcher endpoint is exposed on port `3001` and the relay node endpoint is exposed on port `9090`
+
+Check the logs of the deployment container to get the deployed contract's address and generated root invite link:
+
+```bash
+docker logs -f $(docker ps -aq --filter name="mobymask-1")
+```
+
 ## Tests
 
 See [Tests](./README.md#tests)
+
+## Web Apps
+
+For deploying the web-app(s) separately after deploying the watcher, follow [web-apps.md](./web-apps.md)
 
 ## Clean up
 

@@ -1,9 +1,11 @@
 # MobyMask v2 watcher
 
-Instructions to setup and deploy an end-to-end MobyMask v2 stack ([L1](../fixturenet-eth/) + [L2](../fixturenet-optimism/) chains + watcher) using [laconic-stack-orchestrator](/README.md#install)
+Instructions to setup and deploy an end-to-end MobyMask v2 stack ([L1](../fixturenet-eth/) + [L2](../fixturenet-optimism/) chains + watcher + web-app(s)) using [laconic-stack-orchestrator](/README.md#install)
 
 We support running just the watcher part of stack, given an external L2 Optimism endpoint.
 Follow [mobymask-only](./mobymask-only.md) for the same.
+
+We also support running just the web-app(s), given external watcher GQL (for mobymask-app) and relay node endpoints. Follow [web-apps.md](./web-apps.md) for the same.
 
 ## Setup
 

@@ -31,6 +31,8 @@ services:
       retries: 15
       start_period: 10s
     shm_size: '1GB'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   mobymask_deployment:

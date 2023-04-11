@@ -10,6 +10,8 @@ Clone required repositories:
 
 ```bash
 laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts
+
+# If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```
 
 Checkout to the required versions and branches in repos:
@@ -36,19 +38,38 @@ This should create the required docker images in the local image registry
 
 ### Configuration
 
-* In [mobymask-params.env](../../config/watcher-mobymask-v2/mobymask-params.env) file set `DEPLOYED_CONTRACT` to existing deployed mobymask contract address
-  * Setting `DEPLOYED_CONTRACT` will skip contract deployment when running stack
-  * `ENABLE_PEER_L2_TXS` is used to enable/disable sending txs to L2 chain from watcher peer.
-* Update the [optimism-params.env](../../config/watcher-mobymask-v2/optimism-params.env) file with Optimism endpoints and other params for the Optimism running separately
-  * `PRIVATE_KEY_PEER` is used by watcher peer to send txs to L2 chain
-* NOTE:
-  * Stack Orchestrator needs to be run in [`dev`](/docs/CONTRIBUTING.md#install-developer-mode) mode to be able to edit the env file
-  * If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
+Create and update an env file to be used in the next step ([defaults](../../config/watcher-mobymask-v2/)):
+
+  ```bash
+  # External L2 endpoints
+  CERC_L2_GETH_RPC=
+  CERC_L2_GETH_HOST=
+  CERC_L2_GETH_PORT=
+
+  CERC_L2_NODE_HOST=
+  CERC_L2_NODE_PORT=
+
+  # Credentials for accounts to perform txs on L2
+  CERC_PRIVATE_KEY_DEPLOYER=
+  CERC_PRIVATE_KEY_PEER=
+
+  # Base URI for mobymask-app
+  # (used for generating a root invite link after deploying the contract)
+  CERC_MOBYMASK_APP_BASE_URI="http://127.0.0.1:3002/#"
+
+  # Set to false for disabling watcher peer to send txs to L2
+  CERC_ENABLE_PEER_L2_TXS=true
+
+  # (Optional) Set already deployed MobyMask contract address to avoid deploying contract in the stack
+  CERC_DEPLOYED_CONTRACT=
+  ```
+
+* NOTE: If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
 
 ### Deploy the stack
 
 ```bash
-laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 up
+laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 --env-file <PATH_TO_ENV_FILE> up
 ```
 
 To list down and monitor the running containers:
@@ -63,9 +84,21 @@ docker ps
 docker logs -f <CONTAINER_ID>
 ```
 
+The watcher endpoint is exposed on host port `3001` and the relay node endpoint is exposed on host port `9090`
+
+Check the logs of the deployment container to get the deployed contract's address and generated root invite link:
+
+```bash
+docker logs -f $(docker ps -aq --filter name="mobymask-1")
+```
+
 ## Tests
 
 See [Tests](./README.md#tests)
+
+## Web Apps
+
+For deploying the web-app(s) separately after deploying the watcher, follow [web-apps.md](./web-apps.md)
 
 ## Clean up
 

@@ -9,9 +9,17 @@ services:
     image: cerc/optimism-contracts:local
     env_file:
       - ../config/fixturenet-optimism/l1-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_L1_CHAIN_ID: ${CERC_L1_CHAIN_ID}
+      CERC_L1_RPC: ${CERC_L1_RPC}
+      CERC_L1_ADDRESS: ${CERC_L1_ADDRESS}
+      CERC_L1_PRIV_KEY: ${CERC_L1_PRIV_KEY}
+      CERC_L1_ADDRESS_2: ${CERC_L1_ADDRESS_2}
+      CERC_L1_PRIV_KEY_2: ${CERC_L1_PRIV_KEY_2}
     # Waits for L1 endpoint to be up before running the script
     command: |
-      "./wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- ./run.sh"
+      "./wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- ./run.sh"
     volumes:
       - ../config/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
       - ../container-build/cerc-optimism-contracts/hardhat-tasks/verify-contract-deployment.ts:/app/packages/contracts-bedrock/tasks/verify-contract-deployment.ts
@@ -33,6 +41,9 @@ services:
         condition: service_completed_successfully
     env_file:
       - ../config/fixturenet-optimism/l1-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_L1_RPC: ${CERC_L1_RPC}
     volumes:
       - ../config/fixturenet-optimism/generate-l2-config.sh:/app/generate-l2-config.sh
       - l1_deployment:/contracts-bedrock:ro
@@ -65,12 +76,15 @@ services:
 
   # Runs the L2 consensus client (Sequencer node)
   op-node:
-    env_file:
-      - ../config/fixturenet-optimism/l1-params.env
+    image: cerc/optimism-op-node:local
     depends_on:
       op-geth:
         condition: service_healthy
-    image: cerc/optimism-op-node:local
+    env_file:
+      - ../config/fixturenet-optimism/l1-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_L1_RPC: ${CERC_L1_RPC}
     volumes:
       - ../config/fixturenet-optimism/run-op-node.sh:/app/run-op-node.sh
       - l2_config:/op-node-data:ro
@@ -89,14 +103,17 @@ services:
 
   # Runs the batcher (takes transactions from the Sequencer and publishes them to L1)
   op-batcher:
-    env_file:
-      - ../config/fixturenet-optimism/l1-params.env
+    image: cerc/optimism-op-batcher:local
     depends_on:
       op-node:
         condition: service_healthy
       op-geth:
         condition: service_healthy
-    image: cerc/optimism-op-batcher:local
+    env_file:
+      - ../config/fixturenet-optimism/l1-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_L1_RPC: ${CERC_L1_RPC}
     volumes:
       - ../config/wait-for-it.sh:/wait-for-it.sh
       - ../config/fixturenet-optimism/run-op-batcher.sh:/run-op-batcher.sh
@@ -104,7 +121,7 @@ services:
     entrypoint: ["sh", "-c"]
     # Waits for L1 endpoint to be up before running the batcher
     command: |
-      "/wait-for-it.sh -h $${L1_HOST} -p $${L1_PORT} -s -t 60 -- /run-op-batcher.sh"
+      "/wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- /run-op-batcher.sh"
     extra_hosts:
     - "host.docker.internal:host-gateway"
 

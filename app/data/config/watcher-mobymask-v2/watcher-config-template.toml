@@ -35,10 +35,10 @@
       pubSubTopic = 'mobymask'
       peerIdFile = './peer-id.json'
       enableDebugInfo = true
-      enableL2Txs = REPLACE_WITH_ENABLE_PEER_L2_TXS
+      enableL2Txs = REPLACE_WITH_CERC_ENABLE_PEER_L2_TXS
 
       [server.p2p.peer.l2TxsConfig]
-        privateKey = 'REPLACE_WITH_PRIVATE_KEY_PEER'
+        privateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_PEER'
         contractAddress = 'REPLACE_WITH_CONTRACT_ADDRESS'
 
 [metrics]
@@ -60,7 +60,7 @@
 [upstream]
   [upstream.ethServer]
     gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
-    rpcProviderEndpoint = "REPLACE_WITH_L2_GETH_RPC_ENDPOINT"
+    rpcProviderEndpoint = "REPLACE_WITH_CERC_L2_GETH_RPC_ENDPOINT"
     blockDelayInMilliSecs = 60000
 
   [upstream.cache]

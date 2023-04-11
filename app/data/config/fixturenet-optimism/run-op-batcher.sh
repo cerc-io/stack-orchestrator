@@ -4,7 +4,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-L1_RPC="${L1_RPC:-${DEFAULT_L1_RPC}}"
+CERC_L1_RPC="${CERC_L1_RPC:-${DEFAULT_CERC_L1_RPC}}"
 
 # Get BACTHER_KEY from keys.json
 BATCHER_KEY=$(jq -r '.Batcher.privateKey' /l2-accounts/keys.json | tr -d '"')
@@ -22,5 +22,5 @@ op-batcher \
   --rpc.enable-admin \
   --max-channel-duration=1 \
   --target-l1-tx-size-bytes=2048 \
-  --l1-eth-rpc=$L1_RPC \
+  --l1-eth-rpc=$CERC_L1_RPC \
   --private-key=$BATCHER_KEY

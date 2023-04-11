@@ -111,7 +111,7 @@ docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_geth_accounts
     docker volume rm $(docker volume ls -q --filter name=l2_geth_data)
     ```
 
-  * Reuse the deployment command used in [Deploy](#deploy) to restart the stopped containers
+  * Re-run the deployment command used in [Deploy](#deploy) to restart the stopped containers
 
 ## Known Issues
 

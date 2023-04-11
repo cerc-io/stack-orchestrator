@@ -4,7 +4,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-L1_RPC="${L1_RPC:-${DEFAULT_L1_RPC}}"
+CERC_L1_RPC="${CERC_L1_RPC:-${DEFAULT_CERC_L1_RPC}}"
 
 # Get SEQUENCER KEY from keys.json
 SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"')
@@ -21,5 +21,5 @@ op-node \
   --p2p.disable \
   --rpc.enable-admin \
   --p2p.sequencer.key=$SEQUENCER_KEY \
-  --l1=$L1_RPC \
+  --l1=$CERC_L1_RPC \
   --l1.rpckind=any

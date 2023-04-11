@@ -41,17 +41,17 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   ```bash
   # External L1 endpoint
-  L1_CHAIN_ID=
-  L1_RPC=
-  L1_HOST=
-  L1_PORT=
+  CERC_L1_CHAIN_ID=
+  CERC_L1_RPC=
+  CERC_L1_HOST=
+  CERC_L1_PORT=
 
   # Credentials for accounts on L1 to send balance to Optimism Proxy contract from
   # (enables them to do transactions on L2)
-  L1_ADDRESS=
-  L1_PRIV_KEY=
-  L1_ADDRESS_2=
-  L1_PRIV_KEY_2=
+  CERC_L1_ADDRESS=
+  CERC_L1_PRIV_KEY=
+  CERC_L1_ADDRESS_2=
+  CERC_L1_PRIV_KEY_2=
   ```
 
 * NOTE: If L1 is running on the host machine, use `host.docker.internal` as the hostname to access the host port

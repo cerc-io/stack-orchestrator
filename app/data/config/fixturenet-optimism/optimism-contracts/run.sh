@@ -4,15 +4,15 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-L1_CHAIN_ID="${L1_CHAIN_ID:-${DEFAULT_L1_CHAIN_ID}}"
-L1_RPC="${L1_RPC:-${DEFAULT_L1_RPC}}"
+CERC_L1_CHAIN_ID="${CERC_L1_CHAIN_ID:-${DEFAULT_CERC_L1_CHAIN_ID}}"
+CERC_L1_RPC="${CERC_L1_RPC:-${DEFAULT_CERC_L1_RPC}}"
 
-L1_ADDRESS="${L1_ADDRESS:-${DEFAULT_L1_ADDRESS}}"
-L1_PRIV_KEY="${L1_PRIV_KEY:-${DEFAULT_L1_PRIV_KEY}}"
-L1_ADDRESS_2="${L1_ADDRESS_2:-${DEFAULT_L1_ADDRESS_2}}"
-L1_PRIV_KEY_2="${L1_PRIV_KEY_2:-${DEFAULT_L1_PRIV_KEY_2}}"
+CERC_L1_ADDRESS="${CERC_L1_ADDRESS:-${DEFAULT_CERC_L1_ADDRESS}}"
+CERC_L1_PRIV_KEY="${CERC_L1_PRIV_KEY:-${DEFAULT_CERC_L1_PRIV_KEY}}"
+CERC_L1_ADDRESS_2="${CERC_L1_ADDRESS_2:-${DEFAULT_CERC_L1_ADDRESS_2}}"
+CERC_L1_PRIV_KEY_2="${CERC_L1_PRIV_KEY_2:-${DEFAULT_CERC_L1_PRIV_KEY_2}}"
 
-echo "Using L1 RPC endpoint ${L1_RPC}"
+echo "Using L1 RPC endpoint ${CERC_L1_RPC}"
 
 IMPORT_1="import './verify-contract-deployment'"
 IMPORT_2="import './rekey-json'"
@@ -26,7 +26,7 @@ if ! grep -Fxq "$IMPORT_1" tasks/index.ts; then
 fi
 
 # Update the chainId in the hardhat config
-sed -i "/getting-started/ {n; s/.*chainId.*/      chainId: $L1_CHAIN_ID,/}" hardhat.config.ts
+sed -i "/getting-started/ {n; s/.*chainId.*/      chainId: $CERC_L1_CHAIN_ID,/}" hardhat.config.ts
 
 # Exit if a deployment already exists (on restarts)
 # Note: fixturenet-eth-geth currently starts fresh on a restart
@@ -65,16 +65,16 @@ SEQUENCER_ADDRESS=$(echo "$KEYS_JSON" | jq -r '.Sequencer.address')
 # Read the private key of L1 accounts
 if [ -f /geth-accounts/accounts.csv ]; then
   echo "Using L1 account credentials from the mounted volume"
-  L1_ADDRESS=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 2)
-  L1_PRIV_KEY=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 3)
-  L1_ADDRESS_2=$(awk -F, 'NR==2{print $(NF-1)}' /geth-accounts/accounts.csv)
-  L1_PRIV_KEY_2=$(awk -F, 'NR==2{print $NF}' /geth-accounts/accounts.csv)
+  CERC_L1_ADDRESS=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 2)
+  CERC_L1_PRIV_KEY=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 3)
+  CERC_L1_ADDRESS_2=$(awk -F, 'NR==2{print $(NF-1)}' /geth-accounts/accounts.csv)
+  CERC_L1_PRIV_KEY_2=$(awk -F, 'NR==2{print $NF}' /geth-accounts/accounts.csv)
 else
   echo "Using L1 account credentials from env"
 fi
 
 # Select a finalized L1 block as the starting point for roll ups
-until FINALIZED_BLOCK=$(cast block finalized --rpc-url "$L1_RPC"); do
+until FINALIZED_BLOCK=$(cast block finalized --rpc-url "$CERC_L1_RPC"); do
     echo "Waiting for a finalized L1 block to exist, retrying after 10s"
     sleep 10
 done
@@ -86,22 +86,22 @@ L1_BLOCKTIMESTAMP=$(echo "$FINALIZED_BLOCK" | awk '/timestamp/{print $2}')
 echo "Selected L1 block ${L1_BLOCKNUMBER} as the starting block for roll ups"
 
 # Send balances to the above L2 addresses
-yarn hardhat send-balance --to "${ADMIN_ADDRESS}" --amount 2 --private-key "${L1_PRIV_KEY}" --network getting-started
-yarn hardhat send-balance --to "${PROPOSER_ADDRESS}" --amount 5 --private-key "${L1_PRIV_KEY}" --network getting-started
-yarn hardhat send-balance --to "${BATCHER_ADDRESS}" --amount 1000 --private-key "${L1_PRIV_KEY}" --network getting-started
+yarn hardhat send-balance --to "${ADMIN_ADDRESS}" --amount 2 --private-key "${CERC_L1_PRIV_KEY}" --network getting-started
+yarn hardhat send-balance --to "${PROPOSER_ADDRESS}" --amount 5 --private-key "${CERC_L1_PRIV_KEY}" --network getting-started
+yarn hardhat send-balance --to "${BATCHER_ADDRESS}" --amount 1000 --private-key "${CERC_L1_PRIV_KEY}" --network getting-started
 
 echo "Balances sent to L2 accounts"
 
 # Update the deployment config
 sed -i 's/"l2OutputOracleStartingTimestamp": TIMESTAMP/"l2OutputOracleStartingTimestamp": '"$L1_BLOCKTIMESTAMP"'/g' deploy-config/getting-started.json
-jq --arg chainid "$L1_CHAIN_ID" '.l1ChainID = ($chainid | tonumber)' deploy-config/getting-started.json > tmp.json && mv tmp.json deploy-config/getting-started.json
+jq --arg chainid "$CERC_L1_CHAIN_ID" '.l1ChainID = ($chainid | tonumber)' deploy-config/getting-started.json > tmp.json && mv tmp.json deploy-config/getting-started.json
 
 node update-config.js deploy-config/getting-started.json "$ADMIN_ADDRESS" "$PROPOSER_ADDRESS" "$BATCHER_ADDRESS" "$SEQUENCER_ADDRESS" "$L1_BLOCKHASH"
 
 echo "Updated the deployment config"
 
 # Create a .env file
-echo "L1_RPC=$L1_RPC" > .env
+echo "CERC_L1_RPC=$CERC_L1_RPC" > .env
 echo "PRIVATE_KEY_DEPLOYER=$ADMIN_PRIV_KEY" >> .env
 
 echo "Deploying the L1 smart contracts, this will take a while..."
@@ -117,12 +117,12 @@ PROXY_ADDRESS=$(echo "$PROXY_JSON" | jq -r '.address')
 
 # Send balance to the above Proxy contract in L1 for reflecting balance in L2
 # First account
-yarn hardhat send-balance --to "${PROXY_ADDRESS}" --amount 1 --private-key "${L1_PRIV_KEY}" --network getting-started
+yarn hardhat send-balance --to "${PROXY_ADDRESS}" --amount 1 --private-key "${CERC_L1_PRIV_KEY}" --network getting-started
 # Second account
-yarn hardhat send-balance --to "${PROXY_ADDRESS}" --amount 1 --private-key "${L1_PRIV_KEY_2}" --network getting-started
+yarn hardhat send-balance --to "${PROXY_ADDRESS}" --amount 1 --private-key "${CERC_L1_PRIV_KEY_2}" --network getting-started
 
 echo "Balance sent to Proxy L2 contract"
 echo "Use following accounts for transactions in L2:"
-echo "${L1_ADDRESS}"
-echo "${L1_ADDRESS_2}"
+echo "${CERC_L1_ADDRESS}"
+echo "${CERC_L1_ADDRESS_2}"
 echo "Done"

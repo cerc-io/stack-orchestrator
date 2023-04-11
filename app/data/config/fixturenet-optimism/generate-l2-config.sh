@@ -4,7 +4,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-L1_RPC="${L1_RPC:-${DEFAULT_L1_RPC}}"
+CERC_L1_RPC="${CERC_L1_RPC:-${DEFAULT_CERC_L1_RPC}}"
 
 # Check existing config if it exists
 if [ -f /app/jwt.txt ] && [ -f /app/rollup.json ]; then
@@ -32,6 +32,6 @@ op-node genesis l2 \
   --deployment-dir /contracts-bedrock/deployments/getting-started/ \
   --outfile.l2 /app/genesis.json \
   --outfile.rollup /app/rollup.json \
-  --l1-rpc $L1_RPC
+  --l1-rpc $CERC_L1_RPC
 
 openssl rand -hex 32 > /app/jwt.txt

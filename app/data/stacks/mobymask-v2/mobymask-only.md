@@ -84,7 +84,7 @@ docker ps
 docker logs -f <CONTAINER_ID>
 ```
 
-The watcher endpoint is exposed on port `3001` and the relay node endpoint is exposed on port `9090`
+The watcher endpoint is exposed on host port `3001` and the relay node endpoint is exposed on host port `9090`
 
 Check the logs of the deployment container to get the deployed contract's address and generated root invite link:
 

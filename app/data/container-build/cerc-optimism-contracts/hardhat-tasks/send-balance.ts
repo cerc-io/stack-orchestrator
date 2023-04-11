@@ -8,7 +8,7 @@ task('send-balance', 'Sends Ether to a specified Ethereum account')
   .addParam('privateKey', 'The private key of the sender')
   .setAction(async ({ to, amount, privateKey }, {}) => {
     // Open the wallet using sender's private key
-    const provider = new ethers.providers.JsonRpcProvider(`${process.env.L1_RPC}`)
+    const provider = new ethers.providers.JsonRpcProvider(`${process.env.CERC_L1_RPC}`)
     const wallet = new ethers.Wallet(privateKey, provider)
 
     // Send amount to the specified address

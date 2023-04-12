@@ -57,6 +57,9 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # (used for generating a root invite link after deploying the contract)
   CERC_MOBYMASK_APP_BASE_URI="http://127.0.0.1:3002/#"
 
+  # Set of relay peers to connect to from the relay node
+  CERC_RELAY_PEERS=[]
+
   # Domain to be used in the relay node's announce address
   CERC_RELAY_ANNOUNCE_DOMAIN=
 

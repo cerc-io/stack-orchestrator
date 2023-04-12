@@ -101,7 +101,7 @@ node update-config.js deploy-config/getting-started.json "$ADMIN_ADDRESS" "$PROP
 echo "Updated the deployment config"
 
 # Create a .env file
-echo "CERC_L1_RPC=$CERC_L1_RPC" > .env
+echo "L1_RPC=$CERC_L1_RPC" > .env
 echo "PRIVATE_KEY_DEPLOYER=$ADMIN_PRIV_KEY" >> .env
 
 echo "Deploying the L1 smart contracts, this will take a while..."

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
@@ -32,6 +32,6 @@ fi
 yq -n ".address = env(CERC_DEPLOYED_CONTRACT)" > /config/config.yml
 yq ".watcherUrl = env(CERC_APP_WATCHER_URL)" -i /config/config.yml
 yq ".chainId = env(CERC_CHAIN_ID)" -i /config/config.yml
-yq ".relayNodes = env(CERC_RELAY_NODES)" -i /config/config.yml
+yq ".relayNodes = strenv(CERC_RELAY_NODES)" -i /config/config.yml
 
-sh /scripts/start-serving-app.sh
+/scripts/start-serving-app.sh

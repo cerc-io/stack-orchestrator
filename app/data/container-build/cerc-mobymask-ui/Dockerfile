@@ -22,7 +22,7 @@ WORKDIR /app
 # Would not be required if publishing package for web-app build
 RUN git clone --branch laconic https://github.com/cerc-io/mobymask-ui.git .
 
-COPY ./mobymask-config.json /src/config.json
+COPY ./mobymask-config.json /app/src/config.json
 
 RUN echo "Building mobymask-ui"
 RUN npm install

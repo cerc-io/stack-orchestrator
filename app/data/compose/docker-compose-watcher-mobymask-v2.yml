@@ -77,7 +77,6 @@ services:
     command: ["sh", "start-server.sh"]
     volumes:
       - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml
-      - ../config/watcher-mobymask-v2/peer.env:/app/packages/peer/.env
       - ../config/watcher-mobymask-v2/start-server.sh:/app/packages/mobymask-v2-watcher/start-server.sh
       - peers_ids:/app/packages/mobymask-v2-watcher/peers
       - mobymask_deployment:/server

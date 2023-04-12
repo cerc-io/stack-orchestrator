@@ -42,6 +42,8 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   ```bash
   # Set of relay nodes to be used by the web-app
+  # (use double quotes " for strings)
+  # Eg. CERC_RELAY_NODES=["/dns4/example.com/tcp/443/wss/p2p/12D3KooWGHmDDCc93XUWL16FMcTPCGu2zFaMkf67k8HZ4gdQbRDr"]
   CERC_RELAY_NODES=[]
 
   # Also add if running MobyMask app:
@@ -111,8 +113,8 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_deployment"
+docker volume ls -q --filter "name=.*mobymask_deployment|.*peers_ids"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_deployment")
+docker volume rm $(docker volume ls -q --filter "name=.*mobymask_deployment|.*peers_ids")
 ```

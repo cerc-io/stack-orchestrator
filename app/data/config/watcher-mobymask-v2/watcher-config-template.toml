@@ -28,6 +28,7 @@
       port = 9090
       relayPeers = []
       peerIdFile = './relay-id.json'
+      announce = 'REPLACE_WITH_CERC_RELAY_ANNOUNCE_DOMAIN'
       enableDebugInfo = true
 
     [server.p2p.peer]

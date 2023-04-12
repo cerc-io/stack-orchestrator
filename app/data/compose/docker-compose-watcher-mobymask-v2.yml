@@ -78,9 +78,8 @@ services:
     volumes:
       - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml
       - ../config/watcher-mobymask-v2/peer.env:/app/packages/peer/.env
-      - ../config/watcher-mobymask-v2/relay-id.json:/app/packages/mobymask-v2-watcher/relay-id.json
-      - ../config/watcher-mobymask-v2/peer-id.json:/app/packages/mobymask-v2-watcher/peer-id.json
       - ../config/watcher-mobymask-v2/start-server.sh:/app/packages/mobymask-v2-watcher/start-server.sh
+      - peers_ids:/app/packages/mobymask-v2-watcher/peers
       - mobymask_deployment:/server
       - fixturenet_geth_accounts:/geth-accounts:ro
     # Expose GQL, metrics and relay node ports
@@ -99,5 +98,6 @@ services:
 
 volumes:
   mobymask_watcher_db_data:
+  peers_ids:
   mobymask_deployment:
   fixturenet_geth_accounts:

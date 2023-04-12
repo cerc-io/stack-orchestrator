@@ -41,8 +41,8 @@ This should create the required docker images in the local image registry
 Create and update an env file to be used in the next step ([defaults](../../config/watcher-mobymask-v2/mobymask-params.env)):
 
   ```bash
-  # Set relay nodes to be used by the web-app
-  CERC_RELAY_NODES=["/ip4/127.0.0.1/tcp/9090/ws/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t"]
+  # Set of relay nodes to be used by the web-app
+  CERC_RELAY_NODES=[]
 
   # Also add if running MobyMask app:
 

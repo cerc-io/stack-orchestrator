@@ -22,6 +22,7 @@ services:
       - ../config/wait-for-it.sh:/app/wait-for-it.sh
       - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
       - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/app/mobymask-app-start.sh
+      - peers_ids:/peers
       - mobymask_deployment:/server
     ports:
       - "0.0.0.0:3002:3000"
@@ -37,3 +38,4 @@ services:
 
 volumes:
   mobymask_deployment:
+  peers_ids:

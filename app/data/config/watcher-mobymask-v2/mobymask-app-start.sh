@@ -19,19 +19,21 @@ echo "Using CERC_RELAY_NODES $CERC_RELAY_NODES"
 
 # Use config from mounted volume if available (when running web-app along with watcher stack)
 if [ -f /server/config.json ]; then
-  echo "Merging config for deployed contract from mounted volume"
-  # Merging config files to get deployed contract address
-  jq -s '.[0] * .[1]' /app/src/mobymask-app-config.json /server/config.json > /app/src/config.json
-else
-  echo "Setting deployed contract details from env"
+  echo "Taking config for deployed contract from mounted volume"
 
-  # Set config values from environment variables
-  jq --arg address "$CERC_DEPLOYED_CONTRACT" \
-    --argjson chainId "$CERC_CHAIN_ID" \
-    --argjson relayNodes "$CERC_RELAY_NODES" \
-    '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes' \
-    /app/src/mobymask-app-config.json > /app/src/config.json
+  # Get deployed contract address and chain id
+  CERC_DEPLOYED_CONTRACT=$(jq -r '.address' /server/config.json | tr -d '"')
+  CERC_CHAIN_ID=$(jq -r '.chainId' /server/config.json)
+else
+  echo "Taking deployed contract details from env"
 fi
+
+# Export config values in a json file
+jq --arg address "$CERC_DEPLOYED_CONTRACT" \
+  --argjson chainId "$CERC_CHAIN_ID" \
+  --argjson relayNodes "$CERC_RELAY_NODES" \
+  '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes' \
+  /app/src/mobymask-app-config.json > /app/src/config.json
 
 REACT_APP_WATCHER_URI="$CERC_APP_WATCHER_URL/graphql" npm run build
 

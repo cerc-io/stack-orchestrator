@@ -14,7 +14,7 @@ fi
 
 echo "Using CERC_RELAY_NODES $CERC_RELAY_NODES"
 
-# Set relay nodes in config from CERC_RELAY_NODES environment variable
+# Set relay nodes in config using CERC_RELAY_NODES
 jq --argjson relayNodes "$CERC_RELAY_NODES" \
   '.relayNodes = $relayNodes' \
   ./src/test-app-config.json > ./src/config.json

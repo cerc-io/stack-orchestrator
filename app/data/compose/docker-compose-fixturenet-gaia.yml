@@ -1,0 +1,18 @@
+version: "3.2"
+services:
+  gaiad:
+    restart: unless-stopped
+    image: cerc/gaia:local
+    command: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
+    volumes:
+      # TODO: look at folding these scripts into the container
+      - ../config/fixturenet-gaia/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
+      - ../config/fixturenet-gaia/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
+    # TODO: determine which of the ports below is really needed
+    ports:
+      - "6060"
+      - "26657"
+      - "26656"
+      - "9090"
+      - "9091"
+      - "1317"

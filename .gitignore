@@ -5,4 +5,6 @@ laconic-so
 laconic_stack_orchestrator.egg-info
 __pycache__
 *~
-
+build
+dist
+package

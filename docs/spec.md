@@ -1,5 +1,7 @@
 # Specification
 
+(note this page is out of date)
+
 
 ## Implementation
 

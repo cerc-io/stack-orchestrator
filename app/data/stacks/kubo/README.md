@@ -6,19 +6,11 @@ The Kubo stack currently uses the native IPFS docker image, therefore a single c
 laconic-so --stack kubo deploy up
 ```
 
-If running locally, visit: [localhost:5001/webui](localhost:5001/webui) and explore the functionality of the WebUI.
+If running locally, visit: http://localhost:5001/webui and explore the functionality of the WebUI.
 
 If running in the cloud, visit `IP:5001/webui` and you'll likely see this error: "Could not connect to the IPFS API". To fix it:
 
-1. Get the container name:
-
-```
-docker ps
-```
-
-```
-4dc93dea88df   ipfs/kubo:master-2023-02-20-714a968   "/sbin/tini -- /usr/…"   51 minutes ago   Up 51 minutes (healthy)   0.0.0.0:4001->4001/tcp, 0.0.0.0:5001->5001/tcp, 4001/udp, 0.0.0.0:8080->8080/tcp, 8081/tcp   laconic-dbbf5498fd7d322930b9484121a6a5f4-ipfs-1
-```
+1. Get the container name with `docker ps`:
 
 2. Go into the container (replace with your container name):
 

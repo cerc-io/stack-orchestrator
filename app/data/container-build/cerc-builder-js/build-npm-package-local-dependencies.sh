@@ -1,7 +1,7 @@
 #!/bin/bash
 # Usage: build-npm-package-local-dependencies.sh <registry-url> <publish-with-this-version>
 # Runs build-npm-package.sh after first fixing up yarn.lock to use a local
-# npm registry for all packages in a spcific scope (currently @cerc-io and @lirewine)
+# npm registry for all packages in a spcific scope (currently @cerc-io, @lirewine and @muknsys)
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
@@ -18,7 +18,7 @@ set -e
 local_npm_registry_url=$1
 package_publish_version=$2
 # If we need to handle an additional scope, add it to the list below:
-npm_scopes_to_handle=("@cerc-io" "@lirewine")
+npm_scopes_to_handle=("@cerc-io" "@lirewine" "@muknsys")
 for npm_scope_for_local in ${npm_scopes_to_handle[@]}
 do
     # We need to configure the local registry

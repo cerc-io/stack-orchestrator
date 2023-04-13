@@ -54,12 +54,32 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  watcher-ts-peer:
+    # TODO: Use watcher-ts local container or publish watcher-ts image
+    image: ghcr.io/cerc-io/watcher-ts:v0.2.37
+    restart: on-failure
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    working_dir: /app/packages/peer
+    command: ["sh", "start-watcher-ts-shell.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v2/start-watcher-ts-shell.sh:/app/packages/peer/start-watcher-ts-shell.sh
+      - peers_ids:/app/packages/peer
+    healthcheck:
+      test: ["CMD", "ls", /app/packages/peer/peer-id.json]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
   # Starts the mobymask-v2-watcher server
   mobymask-watcher-server:
     image: cerc/watcher-mobymask-v2:local
     restart: unless-stopped
     depends_on:
       mobymask-watcher-db:
+        condition: service_healthy
+      watcher-ts-peer:
         condition: service_healthy
       mobymask:
         condition: service_completed_successfully
@@ -76,9 +96,9 @@ services:
       CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
     command: ["sh", "start-server.sh"]
     volumes:
-      - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml
-      - ../config/watcher-mobymask-v2/start-server.sh:/app/packages/mobymask-v2-watcher/start-server.sh
-      - peers_ids:/app/packages/mobymask-v2-watcher/peers
+      - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-mobymask-v2/start-server.sh:/app/start-server.sh
+      - peers_ids:/app/peers
       - mobymask_deployment:/server
       - fixturenet_geth_accounts:/geth-accounts:ro
     # Expose GQL, metrics and relay node ports

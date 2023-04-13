@@ -13,7 +13,7 @@ cd /opt/testnet/build/el
 python3 -m http.server 9898 &
 cd $HOME_DIR
 
-START_CMD="geth"
+START_CMD="geth --datadir=~/ethdata"
 if [ "true" == "$CERC_REMOTE_DEBUG" ] && [ -x "/usr/local/bin/dlv" ]; then
     START_CMD="/usr/local/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /usr/local/bin/geth --continue --"
 fi
@@ -28,7 +28,7 @@ if [ "true" == "$RUN_BOOTNODE" ]; then
 else
     cd /opt/testnet/accounts
     ./import_keys.sh
-    
+
     echo -n "$JWT" > /opt/testnet/build/el/jwtsecret
 
     if [ "$CERC_RUN_STATEDIFF" == "detect" ] && [ -n "$CERC_STATEDIFF_DB_HOST" ]; then

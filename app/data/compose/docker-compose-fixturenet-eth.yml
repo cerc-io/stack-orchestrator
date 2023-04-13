@@ -8,6 +8,8 @@ services:
     environment:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-geth:local
+    volumes:
+      - bootnode_geth_data:/root/ethdata
     ports:
       - "9898"
       - "30303"
@@ -26,6 +28,7 @@ services:
     image: cerc/fixturenet-eth-geth:local
     volumes:
       - fixturenet_geth_accounts:/opt/testnet/build/el
+      - fixturenet_eth_geth_1_data:/root/ethdata
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
       interval: 30s
@@ -52,6 +55,8 @@ services:
     image: cerc/fixturenet-eth-geth:local
     depends_on:
       - fixturenet-eth-bootnode-geth
+    volumes:
+      - fixturenet_eth_geth_2_data:/root/ethdata
 
   fixturenet-eth-bootnode-lighthouse:
     hostname: fixturenet-eth-bootnode-lighthouse
@@ -106,3 +111,6 @@ services:
 
 volumes:
   fixturenet_geth_accounts:
+  bootnode_geth_data:
+  fixturenet_eth_geth_1_data:
+  fixturenet_eth_geth_2_data:

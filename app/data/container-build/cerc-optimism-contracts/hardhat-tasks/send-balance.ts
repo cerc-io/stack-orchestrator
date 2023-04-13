@@ -16,7 +16,11 @@ task('send-balance', 'Sends Ether to a specified Ethereum account')
       to,
       value: ethers.utils.parseEther(amount),
     })
+    const txReceipt = await tx.wait()
 
     console.log(`Balance sent to: ${to}, from: ${wallet.address}`)
+    console.log(
+      `Block: { number: ${txReceipt.blockNumber}, hash: ${txReceipt.blockHash} }`
+    )
     console.log(`Transaction hash: ${tx.hash}`)
   })

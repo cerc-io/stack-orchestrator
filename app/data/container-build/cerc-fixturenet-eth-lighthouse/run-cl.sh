@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "true" == "$RUN_BOOTNODE" ]; then 
+if [ "true" == "$RUN_BOOTNODE" ]; then
     cd /opt/testnet/build/cl
     python3 -m http.server 3000 &
 
@@ -25,6 +25,7 @@ else
     cd /opt/testnet/cl
 
     if [ -z "$LIGHTHOUSE_GENESIS_STATE_URL" ]; then
+        # TODO Avoid on a restart
         ./reset_genesis_time.sh
     else
         while [ 1 -eq 1 ]; do

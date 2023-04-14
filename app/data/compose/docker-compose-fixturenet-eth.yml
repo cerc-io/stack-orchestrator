@@ -63,6 +63,8 @@ services:
     environment:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-lighthouse:local
+    volumes:
+      - fixturenet_eth_bootnode_data:/opt/testnet/build/cl/bootnode
 
   fixturenet-eth-lighthouse-1:
     hostname: fixturenet-eth-lighthouse-1
@@ -79,6 +81,8 @@ services:
       ETH1_ENDPOINT: "http://fixturenet-eth-geth-1:8545"
       EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-1:8551"
     image: cerc/fixturenet-eth-lighthouse:local
+    volumes:
+      - fixturenet_eth_lighthouse_1_data:/opt/testnet/build/cl/node_1
     depends_on:
       fixturenet-eth-bootnode-lighthouse:
         condition: service_started
@@ -103,6 +107,8 @@ services:
       EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-2:8551"
       LIGHTHOUSE_GENESIS_STATE_URL: "http://fixturenet-eth-lighthouse-1:8001/eth/v2/debug/beacon/states/0"
     image: cerc/fixturenet-eth-lighthouse:local
+    volumes:
+      - fixturenet_eth_lighthouse_2_data:/opt/testnet/build/cl/node_2
     depends_on:
       fixturenet-eth-bootnode-lighthouse:
         condition: service_started
@@ -114,3 +120,6 @@ volumes:
   bootnode_geth_data:
   fixturenet_eth_geth_1_data:
   fixturenet_eth_geth_2_data:
+  fixturenet_eth_bootnode_data:
+  fixturenet_eth_lighthouse_1_data:
+  fixturenet_eth_lighthouse_2_data:

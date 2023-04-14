@@ -21,13 +21,20 @@ if [ ! -f "$DATADIR/bootnode/enr.dat" ]; then
     --udp-port $BOOTNODE_PORT \
     --tcp-port $BOOTNODE_PORT \
     --genesis-fork-version $GENESIS_FORK_VERSION \
-    --output-dir $DATADIR/bootnode
+    --output-dir $DATADIR/bootnode-temp
 
-    bootnode_enr=`cat $DATADIR/bootnode/enr.dat`
-    echo "- $bootnode_enr" > $TESTNET_DIR/boot_enr.yaml
-    
-    echo "Generated bootnode enr and written to $TESTNET_DIR/boot_enr.yaml"
+  # Output ENR to a temp dir and mv as "lcli generate-bootnode-enr" will not overwrite an empty dir (mounted volume)
+  mv $DATADIR/bootnode-temp/* $DATADIR/bootnode
+  rm -r $DATADIR/bootnode-temp
+
+  echo "Generated bootnode enr"
+else
+  echo "Found existing bootnode enr"
 fi
+
+bootnode_enr=`cat $DATADIR/bootnode/enr.dat`
+echo "- $bootnode_enr" > $TESTNET_DIR/boot_enr.yaml
+echo "Written bootnode enr to $TESTNET_DIR/boot_enr.yaml"
 
 exec lighthouse boot_node \
     --testnet-dir $TESTNET_DIR \

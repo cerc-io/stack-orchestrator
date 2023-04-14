@@ -9,7 +9,7 @@ services:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-geth:local
     volumes:
-      - bootnode_geth_data:/root/ethdata
+      - fixturenet_eth_bootnode_geth_data:/root/ethdata
     ports:
       - "9898"
       - "30303"
@@ -64,7 +64,7 @@ services:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-lighthouse:local
     volumes:
-      - fixturenet_eth_bootnode_data:/opt/testnet/build/cl/bootnode
+      - fixturenet_eth_bootnode_lighthouse_data:/opt/testnet/build/cl
 
   fixturenet-eth-lighthouse-1:
     hostname: fixturenet-eth-lighthouse-1
@@ -82,7 +82,7 @@ services:
       EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-1:8551"
     image: cerc/fixturenet-eth-lighthouse:local
     volumes:
-      - fixturenet_eth_lighthouse_1_data:/opt/testnet/build/cl/node_1
+      - fixturenet_eth_lighthouse_1_data:/opt/testnet/build/cl
     depends_on:
       fixturenet-eth-bootnode-lighthouse:
         condition: service_started
@@ -108,7 +108,7 @@ services:
       LIGHTHOUSE_GENESIS_STATE_URL: "http://fixturenet-eth-lighthouse-1:8001/eth/v2/debug/beacon/states/0"
     image: cerc/fixturenet-eth-lighthouse:local
     volumes:
-      - fixturenet_eth_lighthouse_2_data:/opt/testnet/build/cl/node_2
+      - fixturenet_eth_lighthouse_2_data:/opt/testnet/build/cl
     depends_on:
       fixturenet-eth-bootnode-lighthouse:
         condition: service_started
@@ -117,9 +117,9 @@ services:
 
 volumes:
   fixturenet_geth_accounts:
-  bootnode_geth_data:
+  fixturenet_eth_bootnode_geth_data:
   fixturenet_eth_geth_1_data:
   fixturenet_eth_geth_2_data:
-  fixturenet_eth_bootnode_data:
+  fixturenet_eth_bootnode_lighthouse_data:
   fixturenet_eth_lighthouse_1_data:
   fixturenet_eth_lighthouse_2_data:

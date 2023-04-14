@@ -55,28 +55,16 @@ services:
       - "host.docker.internal:host-gateway"
 
   # Creates peer-id files if they don't exist
-  # Container keeps running so that peer tests can be run
-  watcher-ts-peer:
+  peer-ids-gen:
     image: cerc/watcher-ts:local
     restart: on-failure
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     working_dir: /app/packages/peer
-    command:
-      - sh
-      - -c
-      - |
-        ./start-watcher-ts-peer.sh && \
-        tail -f /dev/null
+    command: ["sh", "generate-peer-ids.sh"]
     volumes:
-      - ../config/watcher-mobymask-v2/start-watcher-ts-peer.sh:/app/packages/peer/start-watcher-ts-peer.sh
-      - peers_ids:/app/packages/peer
-    healthcheck:
-      test: ["CMD", "ls", /app/packages/peer/peer-id.json]
-      interval: 20s
-      timeout: 5s
-      retries: 15
-      start_period: 5s
+      - ../config/watcher-mobymask-v2/generate-peer-ids.sh:/app/packages/peer/generate-peer-ids.sh
+      - peers_ids:/peer-ids
 
   # Starts the mobymask-v2-watcher server
   mobymask-watcher-server:
@@ -85,8 +73,8 @@ services:
     depends_on:
       mobymask-watcher-db:
         condition: service_healthy
-      watcher-ts-peer:
-        condition: service_healthy
+      peer-ids-gen:
+        condition: service_completed_successfully
       mobymask:
         condition: service_completed_successfully
     env_file:
@@ -120,6 +108,28 @@ services:
       start_period: 5s
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  # Container to run peer tests
+  peer-tests:
+    image: cerc/watcher-ts:local
+    restart: on-failure
+    depends_on:
+      mobymask-watcher-server:
+        condition: service_healthy
+      peer-ids-gen:
+        condition: service_completed_successfully
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    working_dir: /app/packages/peer
+    command:
+      - sh
+      - -c
+      - |
+        ./set-tests-env.sh && \
+        tail -f /dev/null
+    volumes:
+      - ../config/watcher-mobymask-v2/set-tests-env.sh:/app/packages/peer/set-tests-env.sh
+      - peers_ids:/peer-ids
 
 volumes:
   mobymask_watcher_db_data:

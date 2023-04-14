@@ -2,6 +2,25 @@
 
 Sub-commands and flags
 
+## setup-repositories
+
+Clone a single repository:
+```
+$ laconic-so setup-repositories --include cerc-io/go-ethereum
+```
+Clone the repositories for a stack:
+```
+$ laconic-so --stack fixturenet-eth setup-repositories
+```
+Pull latest commits from origin:
+```
+$ laconic-so --stack fixturenet-eth setup-repositories --pull
+```
+Use SSH rather than https:
+```
+$ laconic-so --stack fixturenet-eth setup-repositories --git-ssh
+```
+
 ## build-containers
 
 Build a single container:

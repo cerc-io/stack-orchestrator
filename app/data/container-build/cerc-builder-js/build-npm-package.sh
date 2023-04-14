@@ -24,6 +24,7 @@ package_name=$( cat package.json | jq -r .name )
 local_npm_registry_url=$1
 npm config set @cerc-io:registry ${local_npm_registry_url}
 npm config set @lirewine:registry ${local_npm_registry_url}
+npm config set @muknsys:registry ${local_npm_registry_url}
 # Workaround bug in npm unpublish where it needs the url to be of the form //<foo> and not http://<foo>
 local_npm_registry_url_fixed=$( echo ${local_npm_registry_url} | sed -e 's/^http[s]\{0,1\}://')
 npm config set -- ${local_npm_registry_url_fixed}:_authToken ${CERC_NPM_AUTH_TOKEN}

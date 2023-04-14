@@ -34,8 +34,8 @@ if [[ ! -z "$package_exists" && "$package_exists" != "null" ]]; then
     echo "${package_publish_version} of ${package_name} already exists in the registry"
     if [[ ${CERC_FORCE_REBUILD} == "true" ]]; then
         # Attempt to unpublish the existing package
-        echo "unpublishing existing package version since force rebuild is enabled"
-        npm unpublish ${package_name}@${package_publish_version}
+        echo "NOTE: unpublishing existing package version since force rebuild is enabled"
+        npm unpublish --force ${package_name}@${package_publish_version}
     else
         echo "skipping build since target version already exists"
         exit 0

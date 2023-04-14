@@ -24,3 +24,25 @@ Force full rebuild of container images:
 ```
 $ laconic-so build-containers --include <container-name> --force-rebuild
 ```
+## build-npms
+
+Build a single package:
+```
+$ laconic-so build-npms --include <package-name>
+```
+e.g.
+```
+$ laconic-so build-npms --include laconic-sdk
+```
+Build the packages for a stack:
+```
+$ laconic-so --stack <stack-name> build-npms
+```
+e.g.
+```
+$ laconic-so --stack fixturenet-laconicd build-npms
+```
+Force full rebuild of packages:
+```
+$ laconic-so build-npms --include <package-name> --force-rebuild
+```

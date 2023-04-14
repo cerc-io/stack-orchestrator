@@ -2,9 +2,7 @@
 # Usage: default-build.sh <image-tag> [<repo-relative-path>]
 # if <repo-relative-path> is not supplied, the context is the directory where the Dockerfile lives
 
-# See: https://stackoverflow.com/a/246128/1701505
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-source ${SCRIPT_DIR}/build-base.sh
+source ${CERC_CONTAINER_BASE_DIR}/build-base.sh
 
 if [[ $# -ne 2 ]]; then
     echo "Illegal number of parameters" >&2

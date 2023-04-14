@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 # Build cerc/eth-probe
-docker build -t cerc/eth-probe:local ${CERC_REPO_BASE_DIR}/eth-probe
+source ${CERC_CONTAINER_BASE_DIR}/build-base.sh
+docker build -t cerc/eth-probe:local ${build_command_args} ${CERC_REPO_BASE_DIR}/eth-probe

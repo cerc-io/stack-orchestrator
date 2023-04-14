@@ -87,6 +87,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         "CERC_NPM_URL": "http://gitea.local:3000/api/packages/cerc-io/npm/",
         "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default="<token-not-supplied>"),
         "CERC_REPO_BASE_DIR": dev_root_path,
+        "CERC_CONTAINER_BASE_DIR": container_build_dir,
         "CERC_HOST_UID": f"{os.getuid()}",
         "CERC_HOST_GID": f"{os.getgid()}",
         "DOCKER_BUILDKIT": "0"

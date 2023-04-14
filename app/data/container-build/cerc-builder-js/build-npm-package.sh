@@ -31,7 +31,7 @@ npm config set -- ${local_npm_registry_url_fixed}:_authToken ${CERC_NPM_AUTH_TOK
 # First check if the version of this package we're trying to build already exists in the registry
 package_exists=$( yarn info --json ${package_name}@${package_publish_version} 2>/dev/null | jq -r .data.dist.tarball )
 if [[ ! -z "$package_exists" && "$package_exists" != "null" ]]; then
-    echo "${package_publish_version} of ${package_name} already exists in the registry
+    echo "${package_publish_version} of ${package_name} already exists in the registry"
     if [[ ${CERC_FORCE_REBUILD} == "true" ]]; then
         # Attempt to unpublish the existing package
         echo "unpublishing existing package version since force rebuild is enabled"

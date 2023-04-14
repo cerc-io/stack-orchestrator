@@ -33,8 +33,10 @@ builder_js_image_name = "cerc/builder-js:local"
 @click.command()
 @click.option('--include', help="only build these packages")
 @click.option('--exclude', help="don\'t build these packages")
+@click.option("--force-rebuild", is_flag=True, default=False, help="Override existing target package version check -- force rebuild")
+@click.option("--extra-build-args", help="Supply extra arguments to build")
 @click.pass_context
-def command(ctx, include, exclude):
+def command(ctx, include, exclude, force_rebuild, extra_build_args):
     '''build the set of npm packages required for a complete stack'''
 
     quiet = ctx.obj.quiet
@@ -123,6 +125,8 @@ def command(ctx, include, exclude):
                     "LACONIC_HOSTED_CONFIG_FILE": "config-hosted.yml" # Convention used by our web app packages
                     }
             envs.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
+            envs.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})
+            envs.update({"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args} if extra_build_args else {})
             try:
                 docker.run(builder_js_image_name,
                            remove=True,

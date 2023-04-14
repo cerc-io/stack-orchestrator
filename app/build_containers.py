@@ -36,13 +36,16 @@ from .util import include_exclude_check, get_parsed_stack_config
 @click.command()
 @click.option('--include', help="only build these containers")
 @click.option('--exclude', help="don\'t build these containers")
+@click.option("--force-rebuild", is_flag=True, default=False, help="Override dependency checking -- always rebuild")
+@click.option("--extra-build-args", help="Supply extra arguments to build")
 @click.pass_context
-def command(ctx, include, exclude):
+def command(ctx, include, exclude, force_rebuild, extra_build_args):
     '''build the set of containers required for a complete stack'''
 
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
     dry_run = ctx.obj.dry_run
+    debug = ctx.obj.debug
     local_stack = ctx.obj.local_stack
     stack = ctx.obj.stack
     continue_on_error = ctx.obj.continue_on_error
@@ -84,10 +87,14 @@ def command(ctx, include, exclude):
         "CERC_NPM_URL": "http://gitea.local:3000/api/packages/cerc-io/npm/",
         "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default="<token-not-supplied>"),
         "CERC_REPO_BASE_DIR": dev_root_path,
+        "CERC_CONTAINER_BASE_DIR": container_build_dir,
         "CERC_HOST_UID": f"{os.getuid()}",
         "CERC_HOST_GID": f"{os.getgid()}",
         "DOCKER_BUILDKIT": "0"
     }
+    container_build_env.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
+    container_build_env.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})
+    container_build_env.update({"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args} if extra_build_args else {})
 
     def process_container(container):
         if not quiet:

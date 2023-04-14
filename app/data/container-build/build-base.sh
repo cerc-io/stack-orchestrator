@@ -6,7 +6,7 @@ if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
 fi
 build_command_args=""
 if [[ ${CERC_FORCE_REBUILD} == "true" ]]; then
-    build_command_args="${build_command_args} --pull --no-cache"
+    build_command_args="${build_command_args} --no-cache"
 fi
 if [[ -n "$CERC_CONTAINER_EXTRA_BUILD_ARGS" ]]; then
     build_command_args="${build_command_args} ${CERC_CONTAINER_EXTRA_BUILD_ARGS}"

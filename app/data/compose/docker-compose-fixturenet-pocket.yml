@@ -9,7 +9,9 @@ services:
       - ../config/fixturenet-pocket/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
       - ../config/fixturenet-pocket/chains.json:/root/pocket-configs/chains.json
       - ../config/fixturenet-pocket/genesis.json:/root/pocket-configs/genesis.json
-    # TODO: determine which of the ports below is really needed
     ports:
-      - "8081"
-      - "26657"
+      - "8081:8081" # pocket relay rpc
+networks:
+  net1:
+    name: fixturenet-eth_default
+    external: true

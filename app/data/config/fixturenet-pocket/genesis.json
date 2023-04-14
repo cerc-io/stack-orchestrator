@@ -242,7 +242,8 @@
                     "tokens": "5000000000000",
                     "service_url": "!validator-url",
                     "chains": [
-                        "0001"
+                        "0001",
+                        "0021"
                     ],
                     "unstaking_time": "2021-05-15T00:00:00Z"
                 }

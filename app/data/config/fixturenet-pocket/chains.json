@@ -6,5 +6,13 @@
       "username": "",
       "password": ""
     }
+  },
+  {
+    "id": "0021",
+    "url": "http://fixturenet-eth-geth-1:8545/",
+    "basic_auth": {
+      "username": "",
+      "password": ""
+    }
   }
 ]

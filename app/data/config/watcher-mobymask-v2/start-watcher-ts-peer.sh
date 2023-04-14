@@ -4,10 +4,6 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-# TODO: Build in Dockerfile
-apk --update --no-cache add jq
-yarn build
-
 # Check for peer ids in ./peers folder, create if not present
 if [ -f ./relay-id.json ]; then
   echo "Using peer id for relay node from the mounted volume"
@@ -27,6 +23,3 @@ CERC_RELAY_MULTIADDR="/dns4/mobymask-watcher-server/tcp/9090/ws/p2p/$(jq -r '.id
 
 # Write the relay node's multiaddr to /app/packages/peer/.env for running tests
 echo "RELAY=\"$CERC_RELAY_MULTIADDR\"" > ./.env
-
-# TODO: Discuss leave shell running
-tail -f .env

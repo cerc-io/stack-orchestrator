@@ -73,13 +73,13 @@ Deploy the stack:
 Find the watcher container's id and export it for later use:
 
 ```bash
-export CONTAINER_ID=$(docker ps -q --filter "name=mobymask-watcher-server")
+export CONTAINER_ID=$(docker ps -q --filter "name=watcher-ts-peer")
 ```
 
 Run the peer tests:
 
 ```bash
-docker exec -w /app/packages/peer $CONTAINER_ID yarn test
+docker exec $CONTAINER_ID yarn test
 ```
 
 ## Web Apps

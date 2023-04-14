@@ -54,16 +54,22 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Creates peer-id files if they don't exist
+  # Container keeps running so that peer tests can be run
   watcher-ts-peer:
-    # TODO: Use watcher-ts local container or publish watcher-ts image
-    image: ghcr.io/cerc-io/watcher-ts:v0.2.37
+    image: cerc/watcher-ts:local
     restart: on-failure
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     working_dir: /app/packages/peer
-    command: ["sh", "start-watcher-ts-shell.sh"]
+    command:
+      - sh
+      - -c
+      - |
+        ./start-watcher-ts-peer.sh && \
+        tail -f /dev/null
     volumes:
-      - ../config/watcher-mobymask-v2/start-watcher-ts-shell.sh:/app/packages/peer/start-watcher-ts-shell.sh
+      - ../config/watcher-mobymask-v2/start-watcher-ts-peer.sh:/app/packages/peer/start-watcher-ts-peer.sh
       - peers_ids:/app/packages/peer
     healthcheck:
       test: ["CMD", "ls", /app/packages/peer/peer-id.json]

@@ -19,6 +19,7 @@ containers:
   - cerc/optimism-l2geth
   - cerc/optimism-op-batcher
   - cerc/optimism-op-node
+  - cerc/watcher-ts
   - cerc/watcher-mobymask-v2
   - cerc/react-peer
   - cerc/mobymask-ui

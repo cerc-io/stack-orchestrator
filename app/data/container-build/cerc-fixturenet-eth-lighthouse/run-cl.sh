@@ -25,8 +25,12 @@ else
     cd /opt/testnet/cl
 
     if [ -z "$LIGHTHOUSE_GENESIS_STATE_URL" ]; then
-        # TODO Avoid on a restart
-        ./reset_genesis_time.sh
+        # Check if beacon node data exists to avoid resetting genesis time on a restart
+        if [ -d /opt/testnet/build/cl/node_"$NODE_NUMBER"/beacon ]; then
+            echo "Skipping genesis time reset"
+        else
+            ./reset_genesis_time.sh
+        fi
     else
         while [ 1 -eq 1 ]; do
             echo "Waiting on Genesis time ..."

@@ -1,0 +1,9 @@
+version: "1.0"
+name: fixturenet-pocket
+description: "A pocket fixturenet"
+repos:
+  - vknowable/pocket-core
+containers:
+  - cerc/pocket
+pods:
+  - fixturenet-pocket

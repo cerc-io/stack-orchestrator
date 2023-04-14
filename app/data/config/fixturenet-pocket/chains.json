@@ -1,0 +1,10 @@
+[
+  {
+    "id": "0001",
+    "url": "http://127.0.0.1:8081/",
+    "basic_auth": {
+      "username": "",
+      "password": ""
+    }
+  }
+]

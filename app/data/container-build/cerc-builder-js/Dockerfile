@@ -30,7 +30,7 @@ RUN \
     fi
 
 # Prevents npm from printing version warnings
-ENV NO_UPDATE_NOTIFIER=true
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 
 RUN \
     # Configure global npm install location, use group to adapt to UID/GID changes

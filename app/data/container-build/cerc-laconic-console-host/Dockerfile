@@ -12,6 +12,8 @@ ARG CERC_NPM_AUTH_TOKEN
 
 # Add NPM global to PATH.
 ENV PATH=${NPM_GLOBAL}/bin:${PATH}
+# Prevents npm from printing version warnings
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 
 RUN \
     # Configure global npm install location, use group to adapt to UID/GID changes

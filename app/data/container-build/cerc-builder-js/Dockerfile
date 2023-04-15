@@ -29,6 +29,9 @@ RUN \
         usermod -u ${CERC_HOST_UID} -g ${CERC_HOST_GID} ${USERNAME} && chown ${CERC_HOST_UID}:${CERC_HOST_GID} /home/${USERNAME}; \
     fi
 
+# Prevents npm from printing version warnings
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
+
 RUN \
     # Configure global npm install location, use group to adapt to UID/GID changes
     if ! cat /etc/group | grep -e "^npm:" > /dev/null 2>&1; then groupadd -r npm; fi \

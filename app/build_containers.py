@@ -85,7 +85,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
     # TODO: make this configurable
     container_build_env = {
         "CERC_NPM_REGISTRY_URL": config("CERC_NPM_REGISTRY_URL", default="http://gitea.local:3000/api/packages/cerc-io/npm/"),
-        "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default="<token-not-supplied>"),
+        "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default=""),
         "CERC_REPO_BASE_DIR": dev_root_path,
         "CERC_CONTAINER_BASE_DIR": container_build_dir,
         "CERC_HOST_UID": f"{os.getuid()}",

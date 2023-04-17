@@ -19,6 +19,7 @@ Detailed instructions can be found [here](../build-support/README.md). For the i
 ```
 $ laconic-so --stack build-support build-containers --exclude cerc/builder-gerbil
 $ laconic-so --stack package-registry setup-repositories
+$ laconic-so --stack package-registry build-containers
 $ laconic-so --stack package-registry deploy-system up
 ```
 Then add the localhost alias `gitea.local` and set `CERC_NPM_AUTH_TOKEN` to the token printed when the package-registry stack was deployed above:

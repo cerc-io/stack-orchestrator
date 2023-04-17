@@ -34,7 +34,9 @@ In addition to the pre-requisites listed in the [README](/README.md), the follow
    $ cd stack-orchestrator
    ```
 
-3. Create and activate a venv:
+3. (This and the next step can be done by running `source ./scripts/developer-mode-setup.sh`)
+
+   Create and activate a venv:
    ```
    $ python3 -m venv venv
    $ source ./venv/bin/activate

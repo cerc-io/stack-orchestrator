@@ -1,0 +1,46 @@
+name: Publish
+
+on:
+  push:
+    branches:
+      - main
+      - publish-test
+
+jobs:
+  publish:
+    name: "Build and publish"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      - name: "Get build info"
+        id: build-info
+        run: |
+          build_tag=$(./scripts/create_build_tag_file.sh)
+          echo "build-tag=v${build_tag}" >> $GITHUB_OUTPUT
+      - name: "Install Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: "Print Python version"
+        run: python3 --version
+      - name: "Install shiv"
+        run: pip install shiv
+      - name: "Build local shiv package"
+        id: build
+        run: |
+          ./scripts/build_shiv_package.sh
+          result_code=$?
+          echo "package-file=$(ls ./package/*)" >> $GITHUB_OUTPUT
+          exit $result_code
+      - name: "Stage artifact file"
+        run: |
+          cp ${{ steps.build.outputs.package-file }} ./laconic-so
+      - name: "Create release"
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.build-info.outputs.build-tag }}
+          # On the publish test branch, mark our release as a draft
+          # Hack using endsWith to workaround Gitea sometimes sending "publish-test" vs "refs/heads/publish-test"
+          draft: ${{ endsWith('publish-test', github.ref ) }}
+          files: ./laconic-so

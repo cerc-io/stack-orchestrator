@@ -8,6 +8,7 @@ services:
       # TODO: look at folding these scripts into the container
       - ../config/fixturenet-laconicd/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
       - ../config/fixturenet-laconicd/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
+      - ../config/fixturenet-laconicd/export-myaddress.sh:/docker-entrypoint-scripts.d/export-myaddress.sh
     # TODO: determine which of the ports below is really needed
     ports:
       - "6060"

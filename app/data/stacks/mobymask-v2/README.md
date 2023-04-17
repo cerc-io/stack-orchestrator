@@ -23,7 +23,7 @@ Checkout to the required versions and branches in repos
 ```bash
 # watcher-ts
 cd ~/cerc/watcher-ts
-git checkout v0.2.35
+git checkout v0.2.39
 
 # react-peer
 cd ~/cerc/react-peer
@@ -73,7 +73,7 @@ Deploy the stack:
 Find the watcher container's id and export it for later use:
 
 ```bash
-export CONTAINER_ID=$(docker ps -q --filter "name=watcher-ts-peer")
+export CONTAINER_ID=$(docker ps -q --filter "name=peer-tests")
 ```
 
 Run the peer tests:

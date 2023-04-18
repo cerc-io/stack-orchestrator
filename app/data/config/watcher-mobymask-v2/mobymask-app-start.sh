@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
@@ -28,13 +28,10 @@ else
   echo "Taking deployed contract details from env"
 fi
 
-# Export config values in a json file
-jq --arg address "$CERC_DEPLOYED_CONTRACT" \
-  --argjson chainId "$CERC_CHAIN_ID" \
-  --argjson relayNodes "$CERC_RELAY_NODES" \
-  '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes' \
-  /app/src/mobymask-app-config.json > /app/src/config.json
+# Use yq to create config.yml with environment variables
+yq -n ".address = env(CERC_DEPLOYED_CONTRACT)" > /config/config.yml
+yq ".watcherUrl = env(CERC_APP_WATCHER_URL)" -i /config/config.yml
+yq ".chainId = env(CERC_CHAIN_ID)" -i /config/config.yml
+yq ".relayNodes = strenv(CERC_RELAY_NODES)" -i /config/config.yml
 
-REACT_APP_WATCHER_URI="$CERC_APP_WATCHER_URL/graphql" npm run build
-
-serve -s build
+/scripts/start-serving-app.sh

@@ -26,9 +26,10 @@ do
     kv_pair=(${kv_pair_string//=/ })
     template_string_to_replace=${kv_pair[0]}
     template_value_to_substitute=${kv_pair[1]}
+    template_value_to_substitute_expanded=${template_value_to_substitute//LACONIC_HOSTED_ENDPOINT/${LACONIC_HOSTED_ENDPOINT}}
     # Run find and sed to do the substitution of one variable over all files
     # See: https://stackoverflow.com/a/21479607/1701505
-    echo "Substituting: ${template_string_to_replace} = ${template_value_to_substitute}"
+    echo "Substituting: ${template_string_to_replace} = ${template_value_to_substitute_expanded}"
     # Note: we do not escape our strings, on the expectation they do not container the '#' char.
-    find ${webapp_files_dir} -type f -exec sed -i 's#'${template_string_to_replace}'#'${template_value_to_substitute}'#g' {} +
+    find ${webapp_files_dir} -type f -exec sed -i 's#'${template_string_to_replace}'#'${template_value_to_substitute_expanded}'#g' {} +
 done

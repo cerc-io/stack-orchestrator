@@ -58,6 +58,21 @@ else
     export JWTSECRET="/opt/testnet/build/cl/jwtsecret"
     echo -n "$JWT" > $JWTSECRET
 
+    # See https://linuxconfig.org/how-to-propagate-a-signal-to-child-processes-from-a-bash-script
+    cleanup() {
+        echo "Signal received, cleaning up..."
+
+        beacon_node_pid=$(pgrep -o -f 'lighthouse bn')
+        validator_client_pid=$(pgrep -o -f 'lighthouse vc')
+
+        kill ${beacon_node_pid}
+        kill ${validator_client_pid}
+
+        wait
+        echo "Done"
+    }
+    trap 'cleanup' SIGINT SIGTERM
+
     ./beacon_node.sh 2>&1 | tee /var/log/lighthouse_bn.log &
     lpid=$!
     ./validator_client.sh 2>&1 | tee /var/log/lighthouse_vc.log &

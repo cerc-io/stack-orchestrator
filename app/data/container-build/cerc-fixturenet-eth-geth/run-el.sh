@@ -13,13 +13,14 @@ cd /opt/testnet/build/el
 python3 -m http.server 9898 &
 cd $HOME_DIR
 
-START_CMD="geth --datadir=~/ethdata"
+START_CMD="geth"
 if [ "true" == "$CERC_REMOTE_DEBUG" ] && [ -x "/usr/local/bin/dlv" ]; then
     START_CMD="/usr/local/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /usr/local/bin/geth --continue --"
 fi
 
 if [ "true" == "$RUN_BOOTNODE" ]; then
     $START_CMD \
+       --datadir=~/ethdata \
       --nodekeyhex="${BOOTNODE_KEY}" \
       --nodiscover \
       --ipcdisable \
@@ -74,6 +75,7 @@ else
     fi
 
     $START_CMD \
+      --datadir=~/ethdata \
       --bootnodes="${ENODE}" \
       --allow-insecure-unlock \
       --http \

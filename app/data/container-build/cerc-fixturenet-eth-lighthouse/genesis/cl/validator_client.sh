@@ -21,9 +21,9 @@ while getopts "pd:" flag; do
 done
 
 exec lighthouse \
-  --debug-level $DEBUG_LEVEL \
   vc \
   $BUILDER_PROPOSALS \
+  --debug-level $DEBUG_LEVEL \
   --validators-dir $DATADIR/node_$NODE_NUMBER/validators \
   --secrets-dir $DATADIR/node_$NODE_NUMBER/secrets \
   --testnet-dir $TESTNET_DIR \

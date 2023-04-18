@@ -19,9 +19,9 @@ http_port=8001
 authrpc_port=8551
 
 exec lighthouse \
-  --debug-level $DEBUG_LEVEL \
   bn \
   $SUBSCRIBE_ALL_SUBNETS \
+  --debug-level $DEBUG_LEVEL \
   --boot-nodes "$ENR" \
   --datadir $data_dir \
   --testnet-dir $TESTNET_DIR \

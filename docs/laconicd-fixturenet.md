@@ -72,7 +72,7 @@ It's possible to run into an `ESOCKETTIMEDOUT` error, e.g., `error An unexpected
 4. Set this environment variable to your droplet's IP address:
 
 ```
-export LACONIC_HOSTED_ENDPOINT=68.183.195.210
+export LACONIC_HOSTED_ENDPOINT=http://68.183.195.210
 ```
 
 5. Deploy the stack:
@@ -139,8 +139,8 @@ Additional ports will need to be opened depending on your application. Ensure yo
 
 ```
 wns
-  webui 68.183.195.210:9473/console
-  server 68.183.195.210:9473/api
+  webui http://68.183.195.210:9473/console
+  server http://68.183.195.210:9473/api
 ```
 
 ## Publish and query a sample record to the registry

@@ -38,4 +38,5 @@ exec lighthouse \
   --execution-jwt $JWTSECRET \
   --terminal-total-difficulty-override $ETH1_TTD \
   --suggested-fee-recipient $SUGGESTED_FEE_RECIPIENT \
-  --target-peers $((BN_COUNT - 1))
+  --target-peers $((BN_COUNT - 1)) \
+  --http-allow-sync-stalled \

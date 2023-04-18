@@ -24,7 +24,7 @@ if [ ! -f "$DATADIR/bootnode/enr.dat" ]; then
     --output-dir $DATADIR/bootnode-temp
 
   # Output ENR to a temp dir and mv as "lcli generate-bootnode-enr" will not overwrite an empty dir (mounted volume)
-	mkdir -p $DATADIR/bootnode
+  mkdir -p $DATADIR/bootnode
   mv $DATADIR/bootnode-temp/* $DATADIR/bootnode
   rm -r $DATADIR/bootnode-temp
 

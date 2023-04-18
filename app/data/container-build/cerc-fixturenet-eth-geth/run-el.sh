@@ -18,6 +18,19 @@ if [ "true" == "$CERC_REMOTE_DEBUG" ] && [ -x "/usr/local/bin/dlv" ]; then
     START_CMD="/usr/local/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /usr/local/bin/geth --continue --"
 fi
 
+cleanup() {
+    echo "Signal received, cleaning up..."
+
+    # Kill the child process first (CERC_REMOTE_DEBUG=true uses dlv which starts geth as a child)
+    pkill -P ${geth_pid}
+    sleep 3
+    kill ${geth_pid}
+
+    wait
+    echo "Done"
+}
+trap 'cleanup' SIGINT SIGTERM
+
 if [ "true" == "$RUN_BOOTNODE" ]; then
     $START_CMD \
        --datadir=~/ethdata \
@@ -25,7 +38,10 @@ if [ "true" == "$RUN_BOOTNODE" ]; then
       --nodiscover \
       --ipcdisable \
       --networkid=${NETWORK_ID} \
-      --netrestrict="${NETRESTRICT}"
+      --netrestrict="${NETRESTRICT}" \
+      &
+
+    geth_pid=$!
 else
     cd /opt/testnet/accounts
     ./import_keys.sh
@@ -103,5 +119,10 @@ else
       --metrics.addr="0.0.0.0" \
       --verbosity=${CERC_GETH_VERBOSITY:-3} \
       --vmodule="${CERC_GETH_VMODULE:-statediff/*=5}" \
-      --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS}
+      --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS} \
+      &
+
+    geth_pid=$!
 fi
+
+wait $geth_pid

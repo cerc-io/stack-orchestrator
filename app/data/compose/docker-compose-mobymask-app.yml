@@ -28,7 +28,7 @@ services:
     ports:
       - "0.0.0.0:3002:80"
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "3000"]
+      test: ["CMD", "nc", "-v", "localhost", "80"]
       interval: 20s
       timeout: 5s
       retries: 15

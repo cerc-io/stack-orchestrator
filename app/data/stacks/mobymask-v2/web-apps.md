@@ -19,11 +19,11 @@ Checkout to the required versions and branches in repos:
 ```bash
 # react-peer
 cd ~/cerc/react-peer
-git checkout v0.2.31
+git checkout v0.2.32
 
 # mobymask-ui
 cd ~/cerc/mobymask-ui
-git checkout v0.1.1
+git checkout v0.1.2
 ```
 
 Build the container images:

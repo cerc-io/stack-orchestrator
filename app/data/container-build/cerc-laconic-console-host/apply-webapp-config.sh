@@ -2,13 +2,12 @@
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
-if [[ $# -ne 3 ]]; then
+if [[ $# -ne 2 ]]; then
     echo "Illegal number of parameters" >&2
     exit 1
 fi
 config_file_name=$1
 webapp_files_dir=$2
-config_prefix=$3
 if ! [[ -f ${config_file_name} ]]; then
     echo "Config file ${config_file_name} does not exist" >&2
     exit 1
@@ -18,8 +17,8 @@ if ! [[ -d ${webapp_files_dir} ]]; then
     exit 1
 fi
 # First some magic using yq to translate our yaml config file into an array of key value pairs like:
-# ${config_prefix}<path-through-objects>=<value>
-readarray -t config_kv_pair_array < <( yq '.. | select(length > 2) | ([path | join("_"), .] | join("=") )' ${config_file_name} | sed "s/^/${config_prefix}_/" )
+# LACONIC_HOSTED_CONFIG_<path-through-objects>=<value>
+readarray -t config_kv_pair_array < <( yq '.. | select(length > 2) | ([path | join("_"), .] | join("=") )' ${config_file_name} | sed 's/^/LACONIC_HOSTED_CONFIG_/' )
 declare -p config_kv_pair_array
 # Then iterate over that kv array making the template substitution in our web app files
 for kv_pair_string in "${config_kv_pair_array[@]}"

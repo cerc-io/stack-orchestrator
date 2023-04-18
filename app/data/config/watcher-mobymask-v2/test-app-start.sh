@@ -14,11 +14,7 @@ fi
 
 echo "Using CERC_RELAY_NODES $CERC_RELAY_NODES"
 
-# Set relay nodes in config using CERC_RELAY_NODES
-jq --argjson relayNodes "$CERC_RELAY_NODES" \
-  '.relayNodes = $relayNodes' \
-  ./src/test-app-config.json > ./src/config.json
+# Use yq to create config.yml with environment variables
+yq -n ".relayNodes = strenv(CERC_RELAY_NODES)" > /config/config.yml
 
-yarn build
-
-serve -s build
+/scripts/start-serving-app.sh

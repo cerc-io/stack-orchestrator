@@ -3,6 +3,7 @@ version: '3.2'
 services:
   # Builds and serves the MobyMask react-app
   mobymask-app:
+    restart: unless-stopped
     image: cerc/mobymask-ui:local
     env_file:
       - ../config/watcher-mobymask-v2/mobymask-params.env
@@ -12,6 +13,7 @@ services:
       CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
       CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
+    working_dir: /scripts
     # Waits for watcher server to be up before app build
     # Required when running with watcher stack to get deployed contract address
     command:
@@ -19,15 +21,14 @@ services:
       - -c
       - ./wait-for-it.sh -h ${CERC_WATCHER_HOST:-$${DEFAULT_CERC_WATCHER_HOST}} -p ${CERC_WATCHER_PORT:-$${DEFAULT_CERC_WATCHER_PORT}} -s -t 0 -- ./mobymask-app-start.sh
     volumes:
-      - ../config/wait-for-it.sh:/app/wait-for-it.sh
-      - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
-      - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/app/mobymask-app-start.sh
+      - ../config/wait-for-it.sh:/scripts/wait-for-it.sh
+      - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/scripts/mobymask-app-start.sh
       - peers_ids:/peers
       - mobymask_deployment:/server
     ports:
-      - "0.0.0.0:3002:3000"
+      - "0.0.0.0:3002:80"
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "3000"]
+      test: ["CMD", "nc", "-v", "localhost", "80"]
       interval: 20s
       timeout: 5s
       retries: 15

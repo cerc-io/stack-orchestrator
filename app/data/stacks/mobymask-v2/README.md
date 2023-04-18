@@ -27,11 +27,11 @@ git checkout v0.2.35
 
 # react-peer
 cd ~/cerc/react-peer
-git checkout v0.2.31
+git checkout v0.2.32
 
 # mobymask-ui
 cd ~/cerc/mobymask-ui
-git checkout laconic
+git checkout v0.1.2
 
 # MobyMask
 cd ~/cerc/MobyMask

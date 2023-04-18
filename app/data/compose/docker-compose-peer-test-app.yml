@@ -4,7 +4,7 @@ services:
   peer-test-app:
     # Builds and serves the peer-test react-app
     image: cerc/react-peer:local
-    working_dir: /app/packages/test-app
+    working_dir: /scripts
     env_file:
       - ../config/watcher-mobymask-v2/mobymask-params.env
     environment:
@@ -12,13 +12,12 @@ services:
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
     command: ["sh", "./test-app-start.sh"]
     volumes:
-      - ../config/watcher-mobymask-v2/test-app-config.json:/app/packages/test-app/src/test-app-config.json
-      - ../config/watcher-mobymask-v2/test-app-start.sh:/app/packages/test-app/test-app-start.sh
+      - ../config/watcher-mobymask-v2/test-app-start.sh:/scripts/test-app-start.sh
       - peers_ids:/peers
     ports:
-      - "0.0.0.0:3003:3000"
+      - "0.0.0.0:3003:80"
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "3000"]
+      test: ["CMD", "nc", "-v", "localhost", "80"]
       interval: 20s
       timeout: 5s
       retries: 15

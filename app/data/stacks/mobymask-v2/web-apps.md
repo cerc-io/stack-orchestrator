@@ -19,17 +19,17 @@ Checkout to the required versions and branches in repos:
 ```bash
 # react-peer
 cd ~/cerc/react-peer
-git checkout v0.2.31
+git checkout v0.2.32
 
 # mobymask-ui
 cd ~/cerc/mobymask-ui
-git checkout laconic
+git checkout v0.1.2
 ```
 
 Build the container images:
 
 ```bash
-laconic-so --stack mobymask-v2 build-containers --include cerc/react-peer-v2,cerc/mobymask-ui
+laconic-so --stack mobymask-v2 build-containers --include cerc/react-peer,cerc/mobymask-ui
 ```
 
 This should create the required docker images in the local image registry

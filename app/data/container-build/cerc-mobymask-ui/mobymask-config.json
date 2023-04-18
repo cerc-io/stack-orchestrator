@@ -1,9 +1,0 @@
-{
-  "name": "MobyMask",
-  "address": "MOBYMASK_HOSTED_CONFIG_address",
-  "chainId": "MOBYMASK_HOSTED_CONFIG_chainId",
-  "relayNodes": "MOBYMASK_HOSTED_CONFIG_relayNodes",
-  "peer": {
-    "enableDebugInfo": true
-  }
-}

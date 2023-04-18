@@ -23,7 +23,7 @@ git checkout v0.2.31
 
 # mobymask-ui
 cd ~/cerc/mobymask-ui
-git checkout laconic
+git checkout v0.1.1
 ```
 
 Build the container images:

@@ -110,4 +110,74 @@ laconic-so --stack fixturenet-laconic-loaded deploy exec cli "laconic cns status
 
 ## Configure Digital Ocean firewall
 
-Let's open some ports. In the DO web console, navigate to your droplet's main page. Select the "Networking" tab and scroll down to "Firewall".
+Let's open some ports.
+
+1. In the Digital Ocean web console, navigate to your droplet's main page. Select the "Networking" tab and scroll down to "Firewall".
+
+2. Get the port for the running console:
+
+```
+echo http://IP:$(laconic-so --stack fixturenet-laconic-loaded deploy port laconic-console 80 | cut -d ':' -f 2)
+```
+```
+http://IP:32778
+```
+
+3. Go back to the Digital Ocean web console and set an Inbound Rule for Custom TCP of the above port:
+
+- `32778` in this example, but yours will be different.
+- do the same for port `9473`
+
+Additional ports will need to be opened depending on your application. Ensure you add your droplet to this new Firewall and wait a minute or so for the update to propagate.
+
+4. Navigate to http://IP:port and ensure laconic-console is functioning as expected:
+
+- ensure you are connected to `laconicd`; no error message should pop up;
+- the wifi symbol in the bottom right should have a green check mark beside it
+- navigate to the status tab; it should display similar/identical information
+- navigate to the config tab, you'll see something like (with your IP):
+
+```
+wns
+  webui 68.183.195.210:9473/console
+  server 68.183.195.210:9473/api
+```
+
+## Publish and query a sample record to the registry
+
+1. The following command will create a bond and publish a record:
+
+```
+laconic-so --stack fixturenet-laconic-loaded deploy exec cli ./scripts/create-demo-records.sh
+```
+
+You'll get an output like:
+
+```
+Balance is: 99998999999999998999600000
+Created bond with id: dd88e8d6f9567b32b28e70552aea4419c5dd3307ebae85a284d1fe38904e301a
+Published demo-record-1.yml with id: bafyreierh3xnfivexlscdwubvczmddsnf46uytyfvrbdhkjzztvsz6ruly
+```
+
+The sample record we deployed looks like:
+
+```
+TODO
+```
+
+2. Return to the laconic-console
+
+- the published record should now be viewable
+- explore it for more information
+- click on the link that opens the GraphQL console
+- the query is pre-loaded, click the button to run it
+- inspect the output
+
+3. Try out additional CLI commands
+
+- these are documented [here](https://github.com/cerc-io/laconic-registry-cli#readme) and updates are forthcoming
+- e.g,:
+
+```
+laconic-so --stack fixturenet-laconic-loaded deploy exec cli "laconic cns record list"
+```

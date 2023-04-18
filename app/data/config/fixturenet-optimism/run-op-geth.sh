@@ -47,6 +47,15 @@ fi
 SEQUENCER_ADDRESS=$(jq -r '.Sequencer.address' /l2-accounts/keys.json | tr -d '"')
 echo "SEQUENCER_ADDRESS: ${SEQUENCER_ADDRESS}"
 
+cleanup() {
+    echo "Signal received, cleaning up..."
+    kill ${geth_pid}
+
+    wait
+    echo "Done"
+}
+trap 'cleanup' INT TERM
+
 # Run op-geth
 geth \
   --datadir ./datadir \
@@ -74,4 +83,8 @@ geth \
   --allow-insecure-unlock \
   --mine \
   --miner.etherbase=$SEQUENCER_ADDRESS \
-  --unlock=$SEQUENCER_ADDRESS
+  --unlock=$SEQUENCER_ADDRESS \
+  &
+
+geth_pid=$!
+wait $geth_pid

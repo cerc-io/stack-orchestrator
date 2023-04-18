@@ -13,6 +13,7 @@ CERC_L1_ADDRESS_2="${CERC_L1_ADDRESS_2:-${DEFAULT_CERC_L1_ADDRESS_2}}"
 CERC_L1_PRIV_KEY_2="${CERC_L1_PRIV_KEY_2:-${DEFAULT_CERC_L1_PRIV_KEY_2}}"
 
 echo "Using L1 RPC endpoint ${CERC_L1_RPC}"
+export L1_RPC=${CERC_L1_RPC}
 
 IMPORT_1="import './verify-contract-deployment'"
 IMPORT_2="import './rekey-json'"

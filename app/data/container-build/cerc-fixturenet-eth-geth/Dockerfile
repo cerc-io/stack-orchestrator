@@ -22,6 +22,6 @@ COPY run-el.sh /opt/testnet/run.sh
 RUN cd /opt/testnet && make genesis-el
 
 COPY --from=geth  /usr/local/bin/geth /usr/local/bin/
-RUN geth init /opt/testnet/build/el/geth.json && rm -f ~/.ethereum/geth/nodekey
+RUN geth --datadir ~/ethdata init /opt/testnet/build/el/geth.json && rm -f ~/ethdata/geth/nodekey
 
 ENTRYPOINT ["/opt/testnet/run.sh"]

@@ -3,15 +3,18 @@
 Instructions for deploying a local a geth + lighthouse blockchain "fixturenet" for development and testing purposes using laconic-stack-orchestrator (the installation of which is covered [here](https://github.com/cerc-io/stack-orchestrator#user-mode)):
 
 ## Clone required repositories
+
 ```
 $ laconic-so --stack fixturenet-eth setup-repositories
 ```
 
 ## Build the fixturenet-eth containers
+
 ```
 $ laconic-so --stack fixturenet-eth build-containers
 ```
-This should create several container images in the local image registry: 
+
+This should create several container images in the local image registry:
 
 * cerc/go-ethereum
 * cerc/lighthouse
@@ -19,6 +22,7 @@ This should create several container images in the local image registry:
 * cerc/fixturenet-eth-lighthouse
 
 ## Deploy the stack
+
 ```
 $ laconic-so --stack fixturenet-eth deploy up
 ```
@@ -57,7 +61,7 @@ Several other containers can used with the basic `fixturenet-eth`:
 * `eth-probe` (captures eth1 tx gossip)
 * `keycloak` (nginx proxy with keycloak auth for API authentication)
 * `tx-spammer` (generates and sends automated transactions to the fixturenet)
-	
+
 It is not necessary to use them all at once, but a complete example follows:
 
 ```
@@ -99,4 +103,22 @@ keycloak-db-1                          0.0.0.0:55850->5432/tcp
 keycloak-nginx-1                       0.0.0.0:55859->80/tcp
 migrations-1
 tx-spammer-1
+```
+
+## Clean up
+
+Stop all services running in the background:
+
+```bash
+$ laconic-so --stack fixturenet-eth deploy down
+```
+
+Clear volumes created by this stack:
+
+```bash
+# List all relevant volumes
+$ docker volume ls -q --filter "name=.*fixturenet_eth_bootnode_geth_data|.*fixturenet_eth_bootnode_lighthouse_data|.*fixturenet_eth_geth_1_data|.*fixturenet_eth_geth_2_data|.*fixturenet_eth_lighthouse_1_data|.*fixturenet_eth_lighthouse_2_data|.*fixturenet_geth_accounts"
+
+# Remove all the listed volumes
+$ docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_eth_bootnode_geth_data|.*fixturenet_eth_bootnode_lighthouse_data|.*fixturenet_eth_geth_1_data|.*fixturenet_eth_geth_2_data|.*fixturenet_eth_lighthouse_1_data|.*fixturenet_eth_lighthouse_2_data|.*fixturenet_geth_accounts")
 ```

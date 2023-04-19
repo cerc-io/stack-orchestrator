@@ -31,7 +31,7 @@ RUN \
 
 # Install additional OS packages.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends jq bash
+    && apt-get -y install --no-install-recommends jq bash netcat
 
 # We do this to get a yq binary from the published container, for the correct architecture we're building here
 COPY --from=docker.io/mikefarah/yq:latest /usr/bin/yq /usr/local/bin/yq
@@ -48,8 +48,11 @@ RUN mkdir -p /config
 # Install simple web server for now (use nginx perhaps later)
 RUN yarn global add http-server
 
-# Globally install the payload web app package
-RUN yarn global add @cerc-io/mobymask-ui
+# Globally install both versions of the payload web app package
+# Install old version of MobyMask web app
+RUN yarn global add @cerc-io/mobymask-ui@0.1.2
+# Install the LXDAO version of MobyMask web app
+RUN yarn global add lxdao-mobymask-ui@npm:@cerc-io/mobymask-ui
 
 # Expose port for http
 EXPOSE 80

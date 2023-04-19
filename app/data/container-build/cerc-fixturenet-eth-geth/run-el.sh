@@ -18,13 +18,14 @@ if [ "true" == "$CERC_REMOTE_DEBUG" ] && [ -x "/usr/local/bin/dlv" ]; then
     START_CMD="/usr/local/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /usr/local/bin/geth --continue --"
 fi
 
+# See https://linuxconfig.org/how-to-propagate-a-signal-to-child-processes-from-a-bash-script
 cleanup() {
     echo "Signal received, cleaning up..."
 
-    # Kill the child process first (CERC_REMOTE_DEBUG=true uses dlv which starts geth as a child)
+    # Kill the child process first (CERC_REMOTE_DEBUG=true uses dlv which starts geth as a child process)
     pkill -P ${geth_pid}
-    sleep 3
-    kill ${geth_pid}
+    sleep 2
+    kill $(jobs -p)
 
     wait
     echo "Done"

@@ -15,9 +15,8 @@ services:
       - -c
       - ./wait-for-it.sh -h ${CERC_WATCHER_HOST:-$${DEFAULT_CERC_WATCHER_HOST}} -p ${CERC_WATCHER_PORT:-$${DEFAULT_CERC_WATCHER_PORT}} -s -t 0 -- ./test-app-start.sh
     volumes:
-      - ../config/wait-for-it.sh:/app/packages/test-app/wait-for-it.sh
-      - ../config/watcher-mobymask-v2/test-app-config.json:/app/packages/test-app/src/test-app-config.json
-      - ../config/watcher-mobymask-v2/test-app-start.sh:/app/packages/test-app/test-app-start.sh
+      - ../config/wait-for-it.sh:/scripts/wait-for-it.sh
+      - ../config/watcher-mobymask-v2/test-app-start.sh:/scripts/test-app-start.sh
       - peers_ids:/peers
     ports:
       - "0.0.0.0:3003:80"

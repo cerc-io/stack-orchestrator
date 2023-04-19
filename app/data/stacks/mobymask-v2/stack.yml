@@ -7,8 +7,6 @@ repos:
   - ethereum-optimism/op-geth
   - cerc-io/watcher-ts
   - cerc-io/mobymask-v2-watcher-ts
-  - cerc-io/react-peer
-  - cerc-io/mobymask-ui
   - cerc-io/MobyMask
 containers:
   - cerc/go-ethereum

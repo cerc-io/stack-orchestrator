@@ -25,14 +25,6 @@ Checkout to the required versions and branches in repos
 cd ~/cerc/watcher-ts
 git checkout v0.2.39
 
-# react-peer
-cd ~/cerc/react-peer
-git checkout v0.2.32
-
-# mobymask-ui
-cd ~/cerc/mobymask-ui
-git checkout v0.1.2
-
 # MobyMask
 cd ~/cerc/MobyMask
 git checkout v0.1.2

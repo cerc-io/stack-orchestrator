@@ -18,17 +18,35 @@ if [ "true" == "$CERC_REMOTE_DEBUG" ] && [ -x "/usr/local/bin/dlv" ]; then
     START_CMD="/usr/local/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /usr/local/bin/geth --continue --"
 fi
 
+# See https://linuxconfig.org/how-to-propagate-a-signal-to-child-processes-from-a-bash-script
+cleanup() {
+    echo "Signal received, cleaning up..."
+
+    # Kill the child process first (CERC_REMOTE_DEBUG=true uses dlv which starts geth as a child process)
+    pkill -P ${geth_pid}
+    sleep 2
+    kill $(jobs -p)
+
+    wait
+    echo "Done"
+}
+trap 'cleanup' SIGINT SIGTERM
+
 if [ "true" == "$RUN_BOOTNODE" ]; then
     $START_CMD \
+       --datadir=~/ethdata \
       --nodekeyhex="${BOOTNODE_KEY}" \
       --nodiscover \
       --ipcdisable \
       --networkid=${NETWORK_ID} \
-      --netrestrict="${NETRESTRICT}"
+      --netrestrict="${NETRESTRICT}" \
+      &
+
+    geth_pid=$!
 else
     cd /opt/testnet/accounts
     ./import_keys.sh
-    
+
     echo -n "$JWT" > /opt/testnet/build/el/jwtsecret
 
     if [ "$CERC_RUN_STATEDIFF" == "detect" ] && [ -n "$CERC_STATEDIFF_DB_HOST" ]; then
@@ -74,6 +92,7 @@ else
     fi
 
     $START_CMD \
+      --datadir=~/ethdata \
       --bootnodes="${ENODE}" \
       --allow-insecure-unlock \
       --http \
@@ -101,5 +120,10 @@ else
       --metrics.addr="0.0.0.0" \
       --verbosity=${CERC_GETH_VERBOSITY:-3} \
       --vmodule="${CERC_GETH_VMODULE:-statediff/*=5}" \
-      --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS}
+      --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS} \
+      &
+
+    geth_pid=$!
 fi
+
+wait $geth_pid

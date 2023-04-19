@@ -16,4 +16,4 @@ lcli \
   $TESTNET_DIR/genesis.ssz \
   $NOW
 
-echo "Reset genesis time to now ($NOW)"
+echo "Reset genesis time to ($NOW)"

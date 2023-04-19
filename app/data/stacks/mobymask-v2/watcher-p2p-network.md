@@ -7,7 +7,7 @@ Instructions to setup and deploy a MobyMask v2 watcher that joins in on the exis
 * Laconic Stack Orchestrator ([installation](/README.md#install))
 * A publicly reachable domain name with SSL setup
 
-This demo was tested on a `Ubuntu 22.04 LTS` machine with 8GBs of RAM
+This demo has been tested on a `Ubuntu 22.04 LTS` machine with 8GBs of RAM
 
 ## Setup
 
@@ -40,8 +40,21 @@ Build the container images:
 
   ```bash
   laconic-so --stack mobymask-v2 build-containers --include cerc/watcher-ts,cerc/watcher-mobymask-v2,cerc/mobymask
+  ```
 
-  # This should create the required docker images (cerc/mobymask and cerc/watcher-mobymask-v2) in the local image registry
+Check that the required images are created in the local image registry:
+
+  ```bash
+  docker image ls
+
+  # Expected output:
+
+  # REPOSITORY                TAG      IMAGE ID       CREATED          SIZE
+  # cerc/watcher-mobymask-v2  local    c4dba5dc8d48   24 seconds ago   1.02GB
+  # cerc/watcher-ts           local    9ef61478c243   9 minutes ago    1.84GB
+  # cerc/mobymask             local    9db3f1a69966   2 weeks ago      3.82GB
+  # .
+  # .
   ```
 
 ## Deploy
@@ -61,10 +74,10 @@ Add the following contents to `mobymask-watcher.env`:
   CERC_RELAY_ANNOUNCE_DOMAIN='example.com'
 
 
-  # Do not update
-  CERC_DEPLOYED_CONTRACT="0x2b79F4a92c177B4E61F5c4AC37b1B8A623c665A4"
+  # Do not need to be updated
+  CERC_DEPLOYED_CONTRACT="0x2B6AFbd4F479cE4101Df722cF4E05F941523EaD9"
   CERC_ENABLE_PEER_L2_TXS=false
-  CERC_RELAY_PEERS=['/dns4/relay1.dev.vdb.to/tcp/443/wss/p2p/12D3KooWPeiRZHym2LYTZsbDhciF8tXDimakXPfL4xkRG44s4QUB', '/dns4/relay2.dev.vdb.to/tcp/443/wss/p2p/12D3KooWJD6kLyqHayEkaFVrsDwdyYnPtr5nvjNT9CYTBQJHoYK4']
+  CERC_RELAY_PEERS=['/dns4/relay1.dev.vdb.to/tcp/443/wss/p2p/12D3KooWL47gbosvGGmdiygCUfjL5hrCA4cvqWL12jyEUPzU17Um']
   ```
 
 Replace `CERC_RELAY_ANNOUNCE_DOMAIN` with your public domain name
@@ -72,10 +85,21 @@ Replace `CERC_RELAY_ANNOUNCE_DOMAIN` with your public domain name
 ### Deploy the stack
 
 ```bash
-laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 --env-file mobymask-watcher.env up
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mobymask-v2 --env-file mobymask-watcher.env up
 
-# Expected output:
+# Expected output (ignore the "The X variable is not set. Defaulting to a blank string." warnings):
 
+# [+] Running 10/10
+#  ✔ Network mobymask_v2_default                      Created                            0.1s
+#  ✔ Volume "mobymask_v2_fixturenet_geth_accounts"    Created                            0.0s
+#  ✔ Volume "mobymask_v2_peers_ids"                   Created                            0.0s
+#  ✔ Volume "mobymask_v2_mobymask_watcher_db_data"    Created                            0.0s
+#  ✔ Volume "mobymask_v2_mobymask_deployment"         Created                            0.0s
+#  ✔ Container mobymask_v2-mobymask-watcher-db-1      Healthy                           22.2s
+#  ✔ Container mobymask_v2-mobymask-1                 Exited                             2.2s
+#  ✔ Container mobymask_v2-peer-ids-gen-1             Exited                            23.9s
+#  ✔ Container mobymask_v2-mobymask-watcher-server-1  Healthy                           43.6s
+#  ✔ Container mobymask_v2-peer-tests-1               Started                           44.5s
 ```
 
 This will run the `mobymask-v2-watcher` including:
@@ -87,9 +111,14 @@ The watcher endpoint is exposed on host port `3001` and the relay node endpoint 
 To list down and monitor the running containers:
 
   ```bash
-  laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 ps
+  laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mobymask-v2 ps
 
   # Expected output:
+
+  # Running containers:
+  # id: 25cc3a1cbda27fcd9c2ad4c772bd753ccef1e178f901a70e6ff4191d4a8684e9, name: mobymask_v2-mobymask-watcher-db-1, ports: 0.0.0.0:15432->5432/tcp
+  # id: c9806f78680d68292ffe942222af2003aa3ed5d5c69d7121b573f5028444391d, name: mobymask_v2-mobymask-watcher-server-1, ports: 0.0.0.0:3001->3001/tcp, 0.0.0.0:9001->9001/tcp, 0.0.0.0:9090->9090/tcp
+  # id: 6b30a1d313a88fb86f8a3b37a1b1a3bc053f238664e4b2d196c3ec74e04faf13, name: mobymask_v2-peer-tests-1, ports:
 
 
   # With status
@@ -97,22 +126,30 @@ To list down and monitor the running containers:
 
   # Expected output:
 
+  # CONTAINER ID   IMAGE                            COMMAND                  CREATED         STATUS                   PORTS                                                                    NAMES
+  # 6b30a1d313a8   cerc/watcher-ts:local            "docker-entrypoint.s…"   5 minutes ago   Up 4 minutes                                                                                      mobymask_v2-peer-tests-1
+  # c9806f78680d   cerc/watcher-mobymask-v2:local   "sh start-server.sh"     5 minutes ago   Up 5 minutes (healthy)   0.0.0.0:3001->3001/tcp, 0.0.0.0:9001->9001/tcp, 0.0.0.0:9090->9090/tcp   mobymask_v2-mobymask-watcher-server-1
+  # 25cc3a1cbda2   postgres:14-alpine               "docker-entrypoint.s…"   5 minutes ago   Up 5 minutes (healthy)   0.0.0.0:15432->5432/tcp                                                  mobymask_v2-mobymask-watcher-db-1
+
 
   # Check logs for a container
   docker logs -f <CONTAINER_ID>
   ```
 
-Check watcher container logs to get the multiaddr advertised by relay node:
+Check watcher container logs to get multiaddr advertised by the watcher's relay node:
 
   ```bash
-  laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 logs mobymask-watcher-server | grep -A 3 "Relay node started"
-
-  # Expected output:
+  laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mobymask-v2 logs mobymask-watcher-server | grep -A 2 "Relay node started"
 
   # The multiaddr will be of form /dns4/<CERC_RELAY_ANNOUNCE_DOMAIN>/tcp/443/wss/p2p/<RELAY_PEER_ID>
+  # Expected output:
+
+  # 2023-04-19T11:54:10.007Z laconic:relay Relay node started with id 12D3KooWSPkwDkjVi9FxEMBJAxep5QkzwiwRvKLZFWFm44WuN9j7 (elated-ivory-wandis)
+  # 2023-04-19T11:54:10.007Z laconic:relay Listening on:
+  # 2023-04-19T11:54:10.008Z laconic:relay /dns4/example.com/tcp/443/wss/p2p/12D3KooWSPkwDkjVi9FxEMBJAxep5QkzwiwRvKLZFWFm44WuN9j7
   ```
 
-### Web App
+## Web App
 
 To be able to connect to the relay node from remote peers, it needs to be publicly reachable (that's why need for a public domain). An example Nginx config for domain `example.com` with SSL and the traffic forwarded to `http://127.0.0.1:9090`:
 
@@ -159,7 +196,7 @@ To connect a browser peer to the watcher's relay node:
 * This will refresh the page and connect to the watcher's relay node; you should see the relay multiaddr in `Self Node Info` on the debug panel
 * Switch to the `GRAPH (PEERS)` tab to see peers connected to this browser node and the `GRAPH (NETWORK)` tab to see the whole MobyMask p2p network
 
-Perform transactions (invite requried):
+Perform transactions (invite required):
 * Open the invite link in a browser
 * From the debug panel, confirm that the browser peer is connected to at least one other peer
 * In `Report a phishing attempt` section, report multiple phishers using the `Submit` button. Click on the `Submit batch to p2p network` button; this broadcasts signed invocations to the peers on the network, including the watcher peer
@@ -169,4 +206,40 @@ Perform transactions (invite requried):
   docker logs -f $(docker ps -aq --filter name="mobymask-watcher-server")
 
   # Expected output
+  ```
+
+## Clean up
+
+Stop all services running in the background:
+
+  ```bash
+  laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mobymask-v2 down
+
+  # Expected output:
+
+  # [+] Running 6/6
+  #  ✔ Container mobymask_v2-peer-tests-1               Removed                   10.5s
+  #  ✔ Container mobymask_v2-mobymask-watcher-server-1  Removed                   10.8s
+  #  ✔ Container mobymask_v2-peer-ids-gen-1             Removed                    0.0s
+  #  ✔ Container mobymask_v2-mobymask-1                 Removed                    0.0s
+  #  ✔ Container mobymask_v2-mobymask-watcher-db-1      Removed                    0.6s
+  #  ✔ Network mobymask_v2_default                      Removed                    0.5s
+  ```
+
+Clear volumes created by this stack:
+
+  ```bash
+  # List all relevant volumes
+  docker volume ls -q --filter "name=mobymask_v2*"
+
+  # Expected output:
+
+  # mobymask_v2_fixturenet_geth_accounts
+  # mobymask_v2_mobymask_deployment
+  # mobymask_v2_mobymask_watcher_db_data
+  # mobymask_v2_peers_ids
+
+
+  # Remove all the listed volumes
+  docker volume rm $(docker volume ls -q --filter "name=mobymask_v2*")
   ```

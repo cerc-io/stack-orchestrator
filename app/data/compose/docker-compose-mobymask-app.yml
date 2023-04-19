@@ -34,7 +34,6 @@ services:
       timeout: 5s
       retries: 15
       start_period: 10s
-    shm_size: '1GB'
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -71,7 +70,6 @@ services:
       timeout: 5s
       retries: 15
       start_period: 10s
-    shm_size: '1GB'
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

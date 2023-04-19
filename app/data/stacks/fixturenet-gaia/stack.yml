@@ -1,9 +1,0 @@
-version: "1.0"
-name: fixturenet-gaia
-description: "A gaiad fixturenet"
-repos:
-  - vknowable/gaia
-containers:
-  - cerc/gaia
-pods:
-  - fixturenet-gaia

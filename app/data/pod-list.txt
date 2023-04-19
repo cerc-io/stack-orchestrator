@@ -24,5 +24,4 @@ tx-spammer
 kubo
 foundry
 fixturenet-optimism
-fixturenet-gaia
 fixturenet-pocket

@@ -23,15 +23,7 @@ Checkout to the required versions and branches in repos
 ```bash
 # watcher-ts
 cd ~/cerc/watcher-ts
-git checkout v0.2.35
-
-# react-peer
-cd ~/cerc/react-peer
-git checkout v0.2.32
-
-# mobymask-ui
-cd ~/cerc/mobymask-ui
-git checkout v0.1.2
+git checkout v0.2.39
 
 # MobyMask
 cd ~/cerc/MobyMask
@@ -73,13 +65,13 @@ Deploy the stack:
 Find the watcher container's id and export it for later use:
 
 ```bash
-export CONTAINER_ID=$(docker ps -q --filter "name=mobymask-watcher-server")
+export CONTAINER_ID=$(docker ps -q --filter "name=peer-tests")
 ```
 
 Run the peer tests:
 
 ```bash
-docker exec -w /app/packages/peer $CONTAINER_ID yarn test
+docker exec $CONTAINER_ID yarn test
 ```
 
 ## Web Apps

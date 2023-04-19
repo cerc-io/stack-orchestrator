@@ -6,26 +6,6 @@ Instructions to setup and deploy MobyMask and Peer Test web apps
 
 Prerequisite: Watcher with GQL and relay node endpoints
 
-Clone required repositories:
-
-```bash
-laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/react-peer,cerc-io/mobymask-ui
-
-# If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
-```
-
-Checkout to the required versions and branches in repos:
-
-```bash
-# react-peer
-cd ~/cerc/react-peer
-git checkout v0.2.32
-
-# mobymask-ui
-cd ~/cerc/mobymask-ui
-git checkout v0.1.2
-```
-
 Build the container images:
 
 ```bash

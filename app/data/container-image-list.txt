@@ -14,6 +14,7 @@ cerc/laconic-registry-cli
 cerc/laconic-console-host
 cerc/fixturenet-eth-geth
 cerc/fixturenet-eth-lighthouse
+cerc/watcher-ts
 cerc/watcher-mobymask
 cerc/watcher-erc20
 cerc/watcher-erc721

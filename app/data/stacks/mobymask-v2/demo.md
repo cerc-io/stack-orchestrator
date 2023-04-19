@@ -66,7 +66,7 @@
   * Get the deployed contract address:
 
     ```bash
-    docker exec -it $(docker ps -aq --filter name="mobymask-app") cat src/config.json
+    docker exec -it $(docker ps -aq --filter name="mobymask-app") cat /config/config.yml
     ```
 
     The value of `address` field is the deployed contract address

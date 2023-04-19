@@ -14,26 +14,7 @@ CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRA
 
 echo "Using L2 RPC endpoint ${CERC_L2_GETH_RPC}"
 
-# Check for peer ids in ./peers folder, create if not present
-if [ -f ./peers/relay-id.json ]; then
-  echo "Using peer id for relay node from the mounted volume"
-else
-  echo "Creating a new peer id for relay node"
-  cd ../peer
-  yarn create-peer -f ../mobymask-v2-watcher/peers/relay-id.json
-  cd ../mobymask-v2-watcher
-fi
-
-if [ -f ./peers/peer-id.json ]; then
-  echo "Using peer id for peer node from the mounted volume"
-else
-  echo "Creating a new peer id for peer node"
-  cd ../peer
-  yarn create-peer -f ../mobymask-v2-watcher/peers/peer-id.json
-  cd ../mobymask-v2-watcher
-fi
-
-CERC_RELAY_MULTIADDR="/dns4/mobymask-watcher-server/tcp/9090/ws/p2p/$(jq -r '.id' ./peers/relay-id.json)"
+CERC_RELAY_MULTIADDR="/dns4/mobymask-watcher-server/tcp/9090/ws/p2p/$(jq -r '.id' /app/peers/relay-id.json)"
 
 # Use contract address from environment variable or set from config.json in mounted volume
 if [ -n "$CERC_DEPLOYED_CONTRACT" ]; then
@@ -64,9 +45,6 @@ WATCHER_CONFIG=$(echo "$WATCHER_CONFIG_TEMPLATE" | \
 
 # Write the modified content to a new file
 echo "$WATCHER_CONFIG" > environments/local.toml
-
-# Write the relay node's multiaddr to /app/packages/peer/.env for running tests
-echo "RELAY=\"$CERC_RELAY_MULTIADDR\"" > /app/packages/peer/.env
 
 echo 'yarn server'
 yarn server

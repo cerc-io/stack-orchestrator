@@ -17,4 +17,4 @@ COPY . .
 RUN echo "Building watcher-ts" && \
     yarn && yarn build
 
-WORKDIR /app/packages/mobymask-v2-watcher
+WORKDIR /app

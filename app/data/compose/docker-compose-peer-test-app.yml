@@ -10,8 +10,12 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
-    command: ["sh", "./test-app-start.sh"]
+    command:
+      - sh
+      - -c
+      - ./wait-for-it.sh -h ${CERC_WATCHER_HOST:-$${DEFAULT_CERC_WATCHER_HOST}} -p ${CERC_WATCHER_PORT:-$${DEFAULT_CERC_WATCHER_PORT}} -s -t 0 -- ./test-app-start.sh
     volumes:
+      - ../config/wait-for-it.sh:/scripts/wait-for-it.sh
       - ../config/watcher-mobymask-v2/test-app-start.sh:/scripts/test-app-start.sh
       - peers_ids:/peers
     ports:

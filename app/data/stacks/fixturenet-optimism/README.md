@@ -91,6 +91,9 @@ docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_geth_accounts
   ```
 
 * This means that the data directory that `op-geth` is using is corrupted and needs to be reinitialized; the containers `op-geth`, `op-node` and `op-batcher` need to be started afresh:
+
+  WARNING: This will reset the L2 chain; consequently, all the data on it will be lost
+
   * Stop and remove the concerned containers:
 
     ```bash

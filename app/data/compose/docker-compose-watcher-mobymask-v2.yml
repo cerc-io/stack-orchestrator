@@ -38,14 +38,11 @@ services:
       CERC_PRIVATE_KEY_DEPLOYER: ${CERC_PRIVATE_KEY_DEPLOYER}
       CERC_MOBYMASK_APP_BASE_URI: ${CERC_MOBYMASK_APP_BASE_URI}
       CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
-    # Waits for L2 Optimism Geth and Node servers to be up before deploying contract
-    command:
-      - sh
-      - -c
-      - |
-        ./wait-for-it.sh -h ${CERC_L2_GETH_HOST:-$${DEFAULT_CERC_L2_GETH_HOST}} -p ${CERC_L2_GETH_PORT:-$${DEFAULT_CERC_L2_GETH_PORT}} -s -t 0 && \
-        ./wait-for-it.sh -h ${CERC_L2_NODE_HOST:-$${DEFAULT_CERC_L2_NODE_HOST}} -p ${CERC_L2_NODE_PORT:-$${DEFAULT_CERC_L2_NODE_PORT}} -s -t 0 && \
-        ./deploy-and-generate-invite.sh
+      CERC_L2_GETH_HOST: ${CERC_L2_GETH_HOST}
+      CERC_L2_GETH_PORT: ${CERC_L2_GETH_PORT}
+      CERC_L2_NODE_HOST: ${CERC_L2_NODE_HOST}
+      CERC_L2_NODE_PORT: ${CERC_L2_NODE_PORT}
+    command: ["sh", "deploy-and-generate-invite.sh"]
     volumes:
       - ../config/wait-for-it.sh:/app/packages/server/wait-for-it.sh
       - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json

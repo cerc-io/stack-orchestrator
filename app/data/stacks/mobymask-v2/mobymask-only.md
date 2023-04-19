@@ -43,6 +43,8 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   ```bash
   # External L2 endpoints
   CERC_L2_GETH_RPC=
+
+  # Endpoints waited on before contract deployment
   CERC_L2_GETH_HOST=
   CERC_L2_GETH_PORT=
 

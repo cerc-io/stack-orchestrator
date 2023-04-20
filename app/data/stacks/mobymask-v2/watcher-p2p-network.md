@@ -7,7 +7,7 @@ Instructions to setup and deploy a MobyMask v2 watcher that joins in on the exis
 * Laconic Stack Orchestrator ([installation](/README.md#install))
 * A publicly reachable domain name with SSL setup
 
-This demo has been tested on a `Ubuntu 22.04 LTS` machine with 8GBs of RAM
+This demo has been tested on a `Ubuntu 22.04 LTS` machine with `8GBs` of RAM
 
 ## Setup
 
@@ -17,7 +17,17 @@ Clone required repositories:
   laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts,cerc-io/mobymask-v2-watcher-ts
 
   # This will clone the required repositories at ~/cerc
-  # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
+  # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned in the next step and re-run the command
+
+  # Expected output:
+
+  # Dev Root is: /home/xyz/cerc
+  # Checking: /home/xyz/cerc/watcher-ts: Needs to be fetched
+  # 100%|#############################################################################################################################################| 9.96k/9.96k [00:05<00:00, 1.70kB/s]
+  # Checking: /home/xyz/cerc/mobymask-v2-watcher-ts: Needs to be fetched
+  # 100%|################################################################################################################################################| 19.0/19.0 [00:01<00:00, 13.6B/s]
+  # Checking: /home/xyz/cerc/MobyMask: Needs to be fetched
+  # 100%|##############################################################################################################################################| 1.41k/1.41k [00:18<00:00, 76.4B/s]
   ```
 
 Checkout to the required versions and branches in repos:
@@ -77,7 +87,7 @@ Add the following contents to `mobymask-watcher.env`:
   # Do not need to be updated
   CERC_DEPLOYED_CONTRACT="0x2B6AFbd4F479cE4101Df722cF4E05F941523EaD9"
   CERC_ENABLE_PEER_L2_TXS=false
-  CERC_RELAY_PEERS=['/dns4/relay1.dev.vdb.to/tcp/443/wss/p2p/12D3KooWL47gbosvGGmdiygCUfjL5hrCA4cvqWL12jyEUPzU17Um']
+  CERC_RELAY_PEERS=["/dns4/relay1.dev.vdb.to/tcp/443/wss/p2p/12D3KooWAx83SM9GWVPc9v9fNzLzftRX6EaAFMjhYiFxRYqctcW1", "/dns4/relay2.dev.vdb.to/tcp/443/wss/p2p/12D3KooWBycy6vHVEfUwwYRbPLBdb5gx9gtFSEMpErYPUjUkDNkm", "/dns4/relay3.dev.vdb.to/tcp/443/wss/p2p/12D3KooWARcUJsiGCgiygiRVVK94U8BNSy8DFBbzAF3B6orrabwn"]
   ```
 
 Replace `CERC_RELAY_ANNOUNCE_DOMAIN` with your public domain name
@@ -144,14 +154,14 @@ Check watcher container logs to get multiaddr advertised by the watcher's relay 
   # The multiaddr will be of form /dns4/<CERC_RELAY_ANNOUNCE_DOMAIN>/tcp/443/wss/p2p/<RELAY_PEER_ID>
   # Expected output:
 
-  # 2023-04-19T11:54:10.007Z laconic:relay Relay node started with id 12D3KooWSPkwDkjVi9FxEMBJAxep5QkzwiwRvKLZFWFm44WuN9j7 (elated-ivory-wandis)
-  # 2023-04-19T11:54:10.007Z laconic:relay Listening on:
-  # 2023-04-19T11:54:10.008Z laconic:relay /dns4/example.com/tcp/443/wss/p2p/12D3KooWSPkwDkjVi9FxEMBJAxep5QkzwiwRvKLZFWFm44WuN9j7
+  # mobymask_v2-mobymask-watcher-server-1  | 2023-04-20T04:22:57.069Z laconic:relay Relay node started with id 12D3KooWKef84LAcBNb9wZNs6jC5kQFXjddo47hK6AGHD2dSvGai (characteristic-black-pamella)
+  # mobymask_v2-mobymask-watcher-server-1  | 2023-04-20T04:22:57.069Z laconic:relay Listening on:
+  # mobymask_v2-mobymask-watcher-server-1  | 2023-04-20T04:22:57.070Z laconic:relay /dns4/example.com/tcp/443/wss/p2p/12D3KooWKef84LAcBNb9wZNs6jC5kQFXjddo47hK6AGHD2dSvGai
   ```
 
 ## Web App
 
-To be able to connect to the relay node from remote peers, it needs to be publicly reachable (that's why need for a public domain). An example Nginx config for domain `example.com` with SSL and the traffic forwarded to `http://127.0.0.1:9090`:
+To be able to connect to the relay node from remote peers, it needs to be publicly reachable (which explains the need for a public domain). An example Nginx config for domain `example.com` with SSL and the traffic forwarded to `http://127.0.0.1:9090`:
 
   ```bash
   server {
@@ -198,15 +208,61 @@ To connect a browser peer to the watcher's relay node:
 
 Perform transactions (invite required):
 * Open the invite link in a browser
-* From the debug panel, confirm that the browser peer is connected to at least one other peer
+* From the debug panel, confirm that the browser peer is connected to at least one other peer and close the debug panel
+* Check the status for a phisher to be reported in the `Check Phisher Status` section on homepage
 * In `Report a phishing attempt` section, report multiple phishers using the `Submit` button. Click on the `Submit batch to p2p network` button; this broadcasts signed invocations to the peers on the network, including the watcher peer
 * Check the watcher container logs to see the message received:
-
   ```bash
-  docker logs -f $(docker ps -aq --filter name="mobymask-watcher-server")
+  docker logs $(docker ps -aq --filter name="mobymask-watcher-server")
 
-  # Expected output
+  # Expected output:
+
+  # .
+  # .
+  # 2023-04-20T04:42:01.072Z vulcanize:libp2p-utils [4:42:1] Received a message on mobymask P2P network from peer: 12D3KooWDKCke8hrjm4evwc9HzUzPZXeVTEQqmfLCkdNaXQ7efAZ
+  # 2023-04-20T04:42:01.072Z vulcanize:libp2p-utils Signed invocations:
+  # 2023-04-20T04:42:01.073Z vulcanize:libp2p-utils [
+  #   {
+  #     "signature": "0x18dc2f4092473cbcc4636eb922f6abf17675368363675779e67d2c14bb0a135f6029da12671a3367463d41720938c84bb3ceed727721c3bbc50d8739859412801c",
+  #     "invocations": {
+  #       "batch": [
+  #         {
+  #           "transaction": {
+  #             "to": "0x2B6AFbd4F479cE4101Df722cF4E05F941523EaD9",
+  #             "data": "0x6b6dc9de00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000c5457543a70686973686572310000000000000000000000000000000000000000",
+  #             "gasLimit": 500000
+  #           },
+  #           "authority": [
+  #             {
+  #               "signature": "0x0f91c765faaf851550ddd4345d1bc11eebbf29fde0306a8051f9d3c679c6d6856f66753cad8fcff25203a3e0528b3d7673371343f66a39424f6281c474eada431c",
+  #               "delegation": {
+  #                 "delegate": "0x1B85a1485582C3389F62EB9F2C88f0C89bb1C1F4",
+  #                 "authority": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  #                 "caveats": [
+  #                   {
+  #                     "enforcer": "0x2B6AFbd4F479cE4101Df722cF4E05F941523EaD9",
+  #                     "terms": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  #                   }
+  #                 ]
+  #               }
+  #             }
+  #           ]
+  #         }
+  #       ],
+  #       "replayProtection": {
+  #         "nonce": 1,
+  #         "queue": 64298938
+  #       }
+  #     }
+  #   }
+  # ]
+  # 2023-04-20T04:42:01.087Z vulcanize:libp2p-utils method: claimIfPhisher, value: TWT:phisher1
+  # 2023-04-20T04:42:01.087Z vulcanize:libp2p-utils ------------------------------------------
+  # .
+  # .
   ```
+* Now, again check the status for the accused phishers and confirm that they are registered
+  * The app uses one of the deployed watcher's GQL API for checking the phisher status
 
 ## Clean up
 
@@ -243,3 +299,7 @@ Clear volumes created by this stack:
   # Remove all the listed volumes
   docker volume rm $(docker volume ls -q --filter "name=mobymask_v2*")
   ```
+
+## Troubleshooting
+
+* If you don't see any peer connections being formed in the debug panel on https://mobymask-app.dev.vdb.to/, try clearing out the browser cache (local storage) for https://mobymask-app.dev.vdb.to/ and refreshing the page

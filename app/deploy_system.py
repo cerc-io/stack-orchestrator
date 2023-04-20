@@ -122,7 +122,7 @@ def command(ctx, include, exclude, env_file, cluster, command, extra_args):
         elif command == "logs":
             if verbose:
                 print("Running compose logs")
-            logs_output = docker.compose.logs(services=extra_args_list if extra_args_list is not None else [], no_log_prefix=True)
+            logs_output = docker.compose.logs(services=extra_args_list if extra_args_list is not None else [])
             print(logs_output)
 
 

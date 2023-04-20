@@ -90,6 +90,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         "CERC_CONTAINER_BASE_DIR": container_build_dir,
         "CERC_HOST_UID": f"{os.getuid()}",
         "CERC_HOST_GID": f"{os.getgid()}",
+        "DOCKER_HOST": os.environ["DOCKER_HOST"], # TODO add check for DOCKER_HOST not set at all
         "DOCKER_BUILDKIT": "0"
     }
     container_build_env.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})

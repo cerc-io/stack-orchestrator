@@ -52,7 +52,7 @@ RUN yarn global add http-server
 # Install old version of MobyMask web app
 RUN yarn global add @cerc-io/mobymask-ui@0.1.2
 # Install the LXDAO version of MobyMask web app
-RUN yarn global add @cerc-io/lxdao-mobymask-ui@npm:@cerc-io/mobymask-ui@0.1.2-lxdao-0.1.0
+RUN yarn global add @cerc-io/mobymask-ui-lxdao@npm:@cerc-io/mobymask-ui@0.1.2-lxdao-0.1.0
 
 # Expose port for http
 EXPOSE 80

@@ -21,8 +21,7 @@ RUN mkdir -p /config
 RUN yarn global add http-server
 
 # Globally install the payload web app package
-RUN yarn global add @cerc-io/test-app
-
+RUN yarn global add @cerc-io/test-app@0.2.33
 
 # Expose port for http
 EXPOSE 80

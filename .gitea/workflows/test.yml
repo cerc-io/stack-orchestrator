@@ -1,10 +1,16 @@
-name: Test
+name: Integration Test
 
 on:
   pull_request:
     branches: '*'
   push:
-    branches: '*'
+    branches:
+      - main
+      - ci-test
+
+# Needed until we can incorporate docker startup into the executor container
+env:
+  DOCKER_HOST: unix:///var/run/dind.sock
 
 jobs:
   test:
@@ -25,5 +31,9 @@ jobs:
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
+      - name: Start dockerd # Also needed until we can incorporate into the executor
+        run: |
+          dockerd -H $DOCKER_HOST --userland-proxy=false &
+          sleep 5
       - name: "Run smoke tests"
         run: ./tests/smoke-test/run-smoke-test.sh

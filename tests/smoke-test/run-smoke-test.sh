@@ -1,3 +1,11 @@
+#!/usr/bin/env bash
+set -e
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
+  set -x
+fi
+# Dump environment variables for debugging
+echo "Environment variables:"
+env
 # Basic simple test of stack-orchestrator functionality
 echo "Running stack-orchestrator smoke test"
 # Bit of a hack, test the most recent package
@@ -19,6 +27,8 @@ $TEST_TARGET_SO --stack test setup-repositories
 $TEST_TARGET_SO --stack test build-containers
 # Build one example containers
 $TEST_TARGET_SO build-containers --include cerc/builder-js
+echo "Images in the local registry:"
+docker image ls -a
 # Deploy the test container
 $TEST_TARGET_SO --stack test deploy-system up
 # TODO: test that we can use the deployed container somehow

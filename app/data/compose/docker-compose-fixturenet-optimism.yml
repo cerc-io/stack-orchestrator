@@ -13,6 +13,7 @@ services:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_L1_CHAIN_ID: ${CERC_L1_CHAIN_ID}
       CERC_L1_RPC: ${CERC_L1_RPC}
+      CERC_L1_ACCOUNTS_CSV_URL: ${CERC_L1_ACCOUNTS_CSV_URL}
       CERC_L1_ADDRESS: ${CERC_L1_ADDRESS}
       CERC_L1_PRIV_KEY: ${CERC_L1_PRIV_KEY}
       CERC_L1_ADDRESS_2: ${CERC_L1_ADDRESS_2}
@@ -27,7 +28,6 @@ services:
       - ../container-build/cerc-optimism-contracts/hardhat-tasks/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
       - ../config/fixturenet-optimism/optimism-contracts/update-config.js:/app/packages/contracts-bedrock/update-config.js
       - ../config/fixturenet-optimism/optimism-contracts/run.sh:/app/packages/contracts-bedrock/run.sh
-      - fixturenet_geth_accounts:/geth-accounts:ro
       - l2_accounts:/l2-accounts
       - l1_deployment:/app/packages/contracts-bedrock
     extra_hosts:
@@ -126,7 +126,6 @@ services:
     - "host.docker.internal:host-gateway"
 
 volumes:
-  fixturenet_geth_accounts:
   l1_deployment:
   l2_accounts:
   l2_config:

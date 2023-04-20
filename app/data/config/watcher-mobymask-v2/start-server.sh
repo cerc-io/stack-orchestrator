@@ -5,7 +5,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
 fi
 
 CERC_L2_GETH_RPC="${CERC_L2_GETH_RPC:-${DEFAULT_CERC_L2_GETH_RPC}}"
-CERC_PRIVATE_KEY_PEER="${CERC_PRIVATE_KEY_PEER:-${DEFAULT_CERC_PRIVATE_KEY_PEER}}"
+CERC_L1_ACCOUNTS_CSV_URL="${CERC_L1_ACCOUNTS_CSV_URL:-${DEFAULT_CERC_L1_ACCOUNTS_CSV_URL}}"
 
 CERC_RELAY_PEERS="${CERC_RELAY_PEERS:-${DEFAULT_CERC_RELAY_PEERS}}"
 CERC_RELAY_ANNOUNCE_DOMAIN="${CERC_RELAY_ANNOUNCE_DOMAIN:-${DEFAULT_CERC_RELAY_ANNOUNCE_DOMAIN}}"
@@ -24,12 +24,18 @@ else
   CONTRACT_ADDRESS=$(jq -r '.address' /server/config.json | tr -d '"')
 fi
 
-if [ -f /geth-accounts/accounts.csv ]; then
-  echo "Using L1 private key from the mounted volume"
-  # Read the private key of L1 account for sending txs from peer
+if [ -n "$CERC_L1_ACCOUNTS_CSV_URL" ] && \
+  l1_accounts_response=$(curl -L --write-out '%{http_code}' --silent --output /dev/null "$CERC_L1_ACCOUNTS_CSV_URL") && \
+  [ "$l1_accounts_response" -eq 200 ];
+then
+  echo "Fetching L1 account credentials using provided URL"
+  mkdir -p /geth-accounts
+  wget -O /geth-accounts/accounts.csv "$CERC_L1_ACCOUNTS_CSV_URL"
+
+  # Read the private key of an L1 account for sending txs from peer
   CERC_PRIVATE_KEY_PEER=$(awk -F, 'NR==2{print $NF}' /geth-accounts/accounts.csv)
 else
-  echo "Using CERC_PRIVATE_KEY_PEER from env"
+  echo "Couldn't fetch L1 account credentials, using CERC_PRIVATE_KEY_PEER from env"
 fi
 
 # Read in the config template TOML file and modify it

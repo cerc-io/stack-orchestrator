@@ -25,6 +25,10 @@ Checkout to the required versions and branches in repos
 cd ~/cerc/watcher-ts
 git checkout v0.2.39
 
+# mobymask-v2-watcher-ts
+cd ~/cerc/mobymask-v2-watcher-ts
+git checkout v0.1.0
+
 # MobyMask
 cd ~/cerc/MobyMask
 git checkout v0.1.2
@@ -114,8 +118,8 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
+docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
+docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
 ```

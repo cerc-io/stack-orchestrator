@@ -46,8 +46,13 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   CERC_L1_HOST=
   CERC_L1_PORT=
 
-  # Credentials for accounts on L1 to send balance to Optimism Proxy contract from
+  # URL to get CSV with credentials for accounts on L1
+  # that are used to send balance to Optimism Proxy contract
   # (enables them to do transactions on L2)
+  CERC_L1_ACCOUNTS_CSV_URL=
+
+  # OR
+  # Specify the required account credentials
   CERC_L1_ADDRESS=
   CERC_L1_PRIV_KEY=
   CERC_L1_ADDRESS_2=
@@ -91,10 +96,10 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
+docker volume ls -q --filter "name=.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
+docker volume rm $(docker volume ls -q --filter "name=.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
 ```
 
 ## Troubleshooting

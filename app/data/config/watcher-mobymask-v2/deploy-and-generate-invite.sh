@@ -5,19 +5,25 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
 fi
 
 CERC_L2_GETH_RPC="${CERC_L2_GETH_RPC:-${DEFAULT_CERC_L2_GETH_RPC}}"
-CERC_PRIVATE_KEY_DEPLOYER="${CERC_PRIVATE_KEY_DEPLOYER:-${DEFAULT_CERC_PRIVATE_KEY_DEPLOYER}}"
+CERC_L1_ACCOUNTS_CSV_URL="${CERC_L1_ACCOUNTS_CSV_URL:-${DEFAULT_CERC_L1_ACCOUNTS_CSV_URL}}"
 
 CERC_MOBYMASK_APP_BASE_URI="${CERC_MOBYMASK_APP_BASE_URI:-${DEFAULT_CERC_MOBYMASK_APP_BASE_URI}}"
 CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRACT}}"
 
 echo "Using L2 RPC endpoint ${CERC_L2_GETH_RPC}"
 
-if [ -f /geth-accounts/accounts.csv ]; then
-  echo "Using L1 private key from the mounted volume"
-  # Read the private key of L1 account to deploy contract
+if [ -n "$CERC_L1_ACCOUNTS_CSV_URL" ] && \
+  l1_accounts_response=$(curl -L --write-out '%{http_code}' --silent --output /dev/null "$CERC_L1_ACCOUNTS_CSV_URL") && \
+  [ "$l1_accounts_response" -eq 200 ];
+then
+  echo "Fetching L1 account credentials using provided URL"
+  mkdir -p /geth-accounts
+  wget -O /geth-accounts/accounts.csv "$CERC_L1_ACCOUNTS_CSV_URL"
+
+  # Read the private key of an L1 account to deploy contract
   CERC_PRIVATE_KEY_DEPLOYER=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 3)
 else
-  echo "Using CERC_PRIVATE_KEY_DEPLOYER from env"
+  echo "Couldn't fetch L1 account credentials, using CERC_PRIVATE_KEY_DEPLOYER from env"
 fi
 
 # Set the private key

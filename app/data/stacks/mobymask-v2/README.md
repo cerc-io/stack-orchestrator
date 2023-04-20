@@ -25,6 +25,10 @@ Checkout to the required versions and branches in repos
 cd ~/cerc/watcher-ts
 git checkout v0.2.39
 
+# mobymask-v2-watcher-ts
+cd ~/cerc/mobymask-v2-watcher-ts
+git checkout v0.1.0
+
 # MobyMask
 cd ~/cerc/MobyMask
 git checkout v0.1.2

@@ -24,6 +24,8 @@ $TEST_TARGET_SO --stack test setup-repositories
 $TEST_TARGET_SO --stack test build-containers
 # Build one example containers
 $TEST_TARGET_SO build-containers --include cerc/builder-js
+echo "Images in the local registry:"
+docker image ls
 # Deploy the test container
 $TEST_TARGET_SO --stack test deploy-system up
 # TODO: test that we can use the deployed container somehow

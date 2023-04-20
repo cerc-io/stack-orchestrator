@@ -49,7 +49,11 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   CERC_L2_NODE_HOST=
   CERC_L2_NODE_PORT=
 
-  # Credentials for accounts to perform txs on L2
+  # URL to get CSV with credentials for accounts on L1 to perform txs on L2
+  CERC_L1_ACCOUNTS_CSV_URL=
+
+  # OR
+  # Specify the required account credentials
   CERC_PRIVATE_KEY_DEPLOYER=
   CERC_PRIVATE_KEY_PEER=
 
@@ -118,8 +122,8 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*fixturenet_geth_accounts"
+docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*fixturenet_geth_accounts")
+docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment")
 ```

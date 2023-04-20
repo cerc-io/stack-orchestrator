@@ -1,3 +1,8 @@
+#!/usr/bin/env bash
+set -e
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
+  set -x
+fi
 # Basic simple test of stack-orchestrator functionality
 echo "Running stack-orchestrator smoke test"
 # Bit of a hack, test the most recent package

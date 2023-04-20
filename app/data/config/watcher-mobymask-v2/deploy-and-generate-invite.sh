@@ -10,6 +10,13 @@ CERC_L1_ACCOUNTS_CSV_URL="${CERC_L1_ACCOUNTS_CSV_URL:-${DEFAULT_CERC_L1_ACCOUNTS
 CERC_MOBYMASK_APP_BASE_URI="${CERC_MOBYMASK_APP_BASE_URI:-${DEFAULT_CERC_MOBYMASK_APP_BASE_URI}}"
 CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRACT}}"
 
+# Check if CERC_DEPLOYED_CONTRACT environment variable set to skip contract deployment
+if [ -n "$CERC_DEPLOYED_CONTRACT" ]; then
+  echo "CERC_DEPLOYED_CONTRACT is set to '$CERC_DEPLOYED_CONTRACT'"
+  echo "Skipping contract deployment"
+  exit 0
+fi
+
 echo "Using L2 RPC endpoint ${CERC_L2_GETH_RPC}"
 
 if [ -n "$CERC_L1_ACCOUNTS_CSV_URL" ] && \
@@ -35,14 +42,15 @@ jq --arg rpcUrl "$CERC_L2_GETH_RPC" '.rpcUrl = $rpcUrl' secrets.json > secrets_u
 # Set the MobyMask app base URI
 jq --arg baseURI "$CERC_MOBYMASK_APP_BASE_URI" '.baseURI = $baseURI' secrets.json > secrets_updated.json && mv secrets_updated.json secrets.json
 
-export RPC_URL="${CERC_L2_GETH_RPC}"
+# Wait for L2 Optimism Geth and Node servers to be up before deploying contract
+CERC_L2_GETH_HOST="${CERC_L2_GETH_HOST:-${DEFAULT_CERC_L2_GETH_HOST}}"
+CERC_L2_GETH_PORT="${CERC_L2_GETH_PORT:-${DEFAULT_CERC_L2_GETH_PORT}}"
+CERC_L2_NODE_HOST="${CERC_L2_NODE_HOST:-${DEFAULT_CERC_L2_NODE_HOST}}"
+CERC_L2_NODE_PORT="${CERC_L2_NODE_PORT:-${DEFAULT_CERC_L2_NODE_PORT}}"
+./wait-for-it.sh -h "${CERC_L2_GETH_HOST}" -p "${CERC_L2_GETH_PORT}" -s -t 0
+./wait-for-it.sh -h "${CERC_L2_GETH_PORT}" -p "${CERC_L2_NODE_PORT}" -s -t 0
 
-# Check if CERC_DEPLOYED_CONTRACT environment variable set to skip contract deployment
-if [ -n "$CERC_DEPLOYED_CONTRACT" ]; then
-  echo "CERC_DEPLOYED_CONTRACT is set to '$CERC_DEPLOYED_CONTRACT'"
-  echo "Exiting without deploying contract"
-  exit 0
-fi
+export RPC_URL="${CERC_L2_GETH_RPC}"
 
 # Check and exit if a deployment already exists (on restarts)
 if [ -f ./config.json ]; then

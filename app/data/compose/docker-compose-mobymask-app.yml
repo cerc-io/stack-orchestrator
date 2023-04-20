@@ -49,7 +49,7 @@ services:
       CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
       CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
-      CERC_BUILD_DIR: "lxdao-mobymask-ui/build"
+      CERC_BUILD_DIR: "@cerc-io/lxdao-mobymask-ui/build"
     working_dir: /scripts
     # Waits for watcher server to be up before app build
     # Required when running with watcher stack to get deployed contract address

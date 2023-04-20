@@ -203,16 +203,16 @@ For example, a Nginx configuration for domain `example.com` would look something
 
 To connect a browser peer to the watcher's relay node:
 * Visit https://mobymask-lxdao-app.dev.vdb.to/
-* Click on the debug panel on bottom right of homepage
-* Enter the watcher relay node's multiaddr as the `Primary Relay` and click on `UPDATE` (TODO: UPDATE)
-* This will refresh the page and connect to the watcher's relay node; you should see the relay node's multiaddr in `Self Node Info` on the debug panel
+* Click on debug panel on bottom right of the homepage
+* Select `<custom>` in `Primary Relay` dropdown on the right and enter the watcher relay node's multiaddr
+* Click on `UPDATE` to refresh the page and connect to the watcher's relay node; you should see the relay node's multiaddr in `Self Node Info` on the debug panel
 * Switch to the `GRAPH (PEERS)` tab to see peers connected to this browser node and the `GRAPH (NETWORK)` tab to see the whole MobyMask p2p network
 
 Perform transactions (invite required):
-* Open the invite link in a browser
-* From the debug panel, confirm that the browser peer is connected to at least one other peer and close the debug panel
+* Open the invite link in a browser and open the debug panel
+* Confirm that the browser peer is connected to at least one other peer, then close the debug panel
 * Check the status for a phisher to be reported in the `Check Phisher Status` section on homepage
-* In the `Report Phisher` section, enter multiple phisher records and click on the `Submit batch to p2p network` button; this broadcasts signed invocations to peers on the network, including the watcher peer
+* Select `Report Phisher` option in the `Pending reports` section, enter multiple phisher records and click on the `Submit batch to p2p network` button; this broadcasts signed invocations to peers on the network, including the watcher peer
 * Check the watcher container logs to see the message received:
   ```bash
   docker logs $(docker ps -aq --filter name="mobymask-watcher-server")

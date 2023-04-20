@@ -2,7 +2,7 @@ name: Fixturenet-Eth-Test
 
 on:
   push:
-    branches: 'test-ci'
+    branches: 'ci-test'
 
 jobs:
   test:

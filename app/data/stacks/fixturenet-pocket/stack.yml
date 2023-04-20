@@ -3,7 +3,8 @@ name: fixturenet-pocket
 description: "A single node pocket chain that can serve relays from the geth-1 node in eth-fixturenet"
 repos:
   - cerc-io/go-ethereum
-  - vknowable/pocket-core
+  - pokt-network/pocket-core
+  - pokt-network/pocket-core-deployments # contains the dockerfile
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse

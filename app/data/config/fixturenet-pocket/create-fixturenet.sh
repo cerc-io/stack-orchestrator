@@ -8,8 +8,15 @@ MONIKER="localtestnet"
 SERVICE_URL="http://127.0.0.1:8081"
 PASSWORD="mypassword" # wallet password, required by cli
 
-# validate dependencies are installed
-command -v jq > /dev/null 2>&1 || { echo >&2 "jq not installed. More info: https://stedolan.github.io/jq/download/"; exit 1; }
+# check if jq is installed; install if necessary
+# command -v jq > /dev/null 2>&1 || { echo >&2 "jq not installed. More info: https://stedolan.github.io/jq/download/"; exit 1; }
+if ! command -v jq > /dev/null 2>&1; then
+  echo "jq not installed, downloading..."
+  mkdir -p /home/app/bin
+  wget -O /home/app/bin/jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+  chmod +x /home/app/bin/jq
+  export PATH=$PATH:/home/app/bin
+fi
 
 # remove existing daemon and client
 rm -rf ~/.pocket*

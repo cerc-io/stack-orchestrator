@@ -72,7 +72,7 @@ It's possible to run into an `ESOCKETTIMEDOUT` error, e.g., `error An unexpected
 4. Set this environment variable to your droplet's IP address:
 
 ```
-export LACONIC_HOSTED_ENDPOINT=http://68.183.195.210
+export LACONIC_HOSTED_ENDPOINT=http://<your-IP>
 ```
 
 5. Deploy the stack:

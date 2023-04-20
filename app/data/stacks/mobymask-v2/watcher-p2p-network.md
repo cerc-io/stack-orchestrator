@@ -1,13 +1,13 @@
 # MobyMask Watcher P2P Network
 
-Instructions to setup and deploy a MobyMask v2 watcher that joins in on the existing MobyMask v2 watcher p2p network
+Instructions to setup and deploy a watcher that connects to the existing watcher p2p network
 
 ## Prerequisites
 
 * Laconic Stack Orchestrator ([installation](/README.md#install))
 * A publicly reachable domain name with SSL setup
 
-This demo has been tested on a `Ubuntu 22.04 LTS` machine with `8GBs` of RAM
+This demo has been tested on a `Ubuntu 22.04 LTS` machine with `8GB` of RAM
 
 ## Setup
 
@@ -81,10 +81,10 @@ Add the following contents to `mobymask-watcher.env`:
 
   ```bash
   # Domain to be used in the relay node's announce address
-  CERC_RELAY_ANNOUNCE_DOMAIN='example.com'
+  CERC_RELAY_ANNOUNCE_DOMAIN="example.com"
 
 
-  # Do not need to be updated
+  # DO NOT CHANGE THESE VALUES
   CERC_DEPLOYED_CONTRACT="0x2B6AFbd4F479cE4101Df722cF4E05F941523EaD9"
   CERC_ENABLE_PEER_L2_TXS=false
   CERC_RELAY_PEERS=["/dns4/relay1.dev.vdb.to/tcp/443/wss/p2p/12D3KooWAx83SM9GWVPc9v9fNzLzftRX6EaAFMjhYiFxRYqctcW1", "/dns4/relay2.dev.vdb.to/tcp/443/wss/p2p/12D3KooWBycy6vHVEfUwwYRbPLBdb5gx9gtFSEMpErYPUjUkDNkm", "/dns4/relay3.dev.vdb.to/tcp/443/wss/p2p/12D3KooWARcUJsiGCgiygiRVVK94U8BNSy8DFBbzAF3B6orrabwn"]
@@ -114,7 +114,7 @@ laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mo
 
 This will run the `mobymask-v2-watcher` including:
 * A relay node which is in a federated setup with relay nodes set in the env file
-* A peer node which connects to the watcher relay node as an entrypoint to the MobyMask watcher p2p network. This peer listens for `mobymask` messages from other peers on the network and logs them out to the console
+* A peer node which connects to the watcher relay node as an entrypoint to the MobyMask watcher p2p network. This peer listens for messages from other peers on the network and logs them out to the console
 
 The watcher endpoint is exposed on host port `3001` and the relay node endpoint is exposed on host port `9090`
 
@@ -146,7 +146,7 @@ To list down and monitor the running containers:
   docker logs -f <CONTAINER_ID>
   ```
 
-Check watcher container logs to get multiaddr advertised by the watcher's relay node:
+Check watcher container logs to get multiaddr advertised by the watcher's relay node and note it down for further usage:
 
   ```bash
   laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mobymask-v2 logs mobymask-watcher-server | grep -A 2 "Relay node started"
@@ -161,7 +161,9 @@ Check watcher container logs to get multiaddr advertised by the watcher's relay 
 
 ## Web App
 
-To be able to connect to the relay node from remote peers, it needs to be publicly reachable (which explains the need for a public domain). An example Nginx config for domain `example.com` with SSL and the traffic forwarded to `http://127.0.0.1:9090`:
+To be able to connect to the relay node from remote peers, it needs to be publicly reachable. Configure your website with SSL and the `https` traffic forwarded to port `9090`.
+
+For example, a Nginx configuration for domain `example.com` would look something like:
 
   ```bash
   server {
@@ -200,17 +202,17 @@ To be able to connect to the relay node from remote peers, it needs to be public
   ```
 
 To connect a browser peer to the watcher's relay node:
-* Visit https://mobymask-app.dev.vdb.to/
+* Visit https://mobymask-lxdao-app.dev.vdb.to/
 * Click on the debug panel on bottom right of homepage
 * Enter the watcher relay node's multiaddr as the `Primary Relay` and click on `UPDATE` (TODO: UPDATE)
-* This will refresh the page and connect to the watcher's relay node; you should see the relay multiaddr in `Self Node Info` on the debug panel
+* This will refresh the page and connect to the watcher's relay node; you should see the relay node's multiaddr in `Self Node Info` on the debug panel
 * Switch to the `GRAPH (PEERS)` tab to see peers connected to this browser node and the `GRAPH (NETWORK)` tab to see the whole MobyMask p2p network
 
 Perform transactions (invite required):
 * Open the invite link in a browser
 * From the debug panel, confirm that the browser peer is connected to at least one other peer and close the debug panel
 * Check the status for a phisher to be reported in the `Check Phisher Status` section on homepage
-* In `Report a phishing attempt` section, report multiple phishers using the `Submit` button. Click on the `Submit batch to p2p network` button; this broadcasts signed invocations to the peers on the network, including the watcher peer
+* In the `Report Phisher` section, enter multiple phisher records and click on the `Submit batch to p2p network` button; this broadcasts signed invocations to peers on the network, including the watcher peer
 * Check the watcher container logs to see the message received:
   ```bash
   docker logs $(docker ps -aq --filter name="mobymask-watcher-server")
@@ -261,8 +263,7 @@ Perform transactions (invite required):
   # .
   # .
   ```
-* Now, again check the status for the accused phishers and confirm that they are registered
-  * The app uses one of the deployed watcher's GQL API for checking the phisher status
+* Now, check the status for reported phishers again and confirm that they have been registered
 
 ## Clean up
 
@@ -302,4 +303,4 @@ Clear volumes created by this stack:
 
 ## Troubleshooting
 
-* If you don't see any peer connections being formed in the debug panel on https://mobymask-app.dev.vdb.to/, try clearing out the browser cache (local storage) for https://mobymask-app.dev.vdb.to/ and refreshing the page
+* If you don't see any peer connections being formed in the debug panel on https://mobymask-lxdao-app.dev.vdb.to/, try clearing out the website's local storage and refreshing the page

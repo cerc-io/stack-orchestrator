@@ -31,7 +31,7 @@ services:
       - l2_accounts:/l2-accounts
       - l1_deployment:/app/packages/contracts-bedrock
     extra_hosts:
-    - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
 
   # Generates the config files required for L2 (outputs to volume l2_config)
   op-node-l2-config-gen:
@@ -50,7 +50,7 @@ services:
       - l2_config:/app
     command: ["sh", "/app/generate-l2-config.sh"]
     extra_hosts:
-    - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
 
   # Initializes and runs the L2 execution client  (outputs to volume l2_geth_data)
   op-geth:
@@ -123,7 +123,7 @@ services:
     command: |
       "/wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- /run-op-batcher.sh"
     extra_hosts:
-    - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
 
 volumes:
   l1_deployment:

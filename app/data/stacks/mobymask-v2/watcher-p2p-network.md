@@ -99,9 +99,8 @@ laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mo
 
 # Expected output (ignore the "The X variable is not set. Defaulting to a blank string." warnings):
 
-# [+] Running 10/10
+# [+] Running 9/9
 #  ✔ Network mobymask_v2_default                      Created                            0.1s
-#  ✔ Volume "mobymask_v2_fixturenet_geth_accounts"    Created                            0.0s
 #  ✔ Volume "mobymask_v2_peers_ids"                   Created                            0.0s
 #  ✔ Volume "mobymask_v2_mobymask_watcher_db_data"    Created                            0.0s
 #  ✔ Volume "mobymask_v2_mobymask_deployment"         Created                            0.0s
@@ -291,7 +290,6 @@ Clear volumes created by this stack:
 
   # Expected output:
 
-  # mobymask_v2_fixturenet_geth_accounts
   # mobymask_v2_mobymask_deployment
   # mobymask_v2_mobymask_watcher_db_data
   # mobymask_v2_peers_ids

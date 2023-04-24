@@ -24,6 +24,8 @@ RUN make op-proposer VERSION="$VERSION" GOOS=$TARGETOS GOARCH=$TARGETARCH
 
 FROM alpine:3.15
 
+RUN apk add --no-cache jq bash
+
 COPY --from=builder /app/op-proposer/bin/op-proposer /usr/local/bin
 
 CMD ["op-proposer"]

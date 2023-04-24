@@ -19,7 +19,7 @@ Checkout to the required versions and branches in repos:
 ```bash
 # Optimism
 cd ~/cerc/optimism
-git checkout @eth-optimism/sdk@0.0.0-20230329025055
+git checkout v1.0.3
 ```
 
 Build the container images:

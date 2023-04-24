@@ -110,7 +110,7 @@ echo "PRIVATE_KEY_DEPLOYER=$ADMIN_PRIV_KEY" >> .env
 echo "Deploying the L1 smart contracts, this will take a while..."
 
 # Deploy the L1 smart contracts
-yarn hardhat deploy --network getting-started
+yarn hardhat deploy --network getting-started --tags l1
 
 echo "Deployed the L1 smart contracts"
 

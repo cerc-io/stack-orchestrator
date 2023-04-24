@@ -31,7 +31,6 @@ op-batcher \
   --rpc.port=8548 \
   --rpc.enable-admin \
   --max-channel-duration=1 \
-  --target-l1-tx-size-bytes=2048 \
   --l1-eth-rpc=$CERC_L1_RPC \
   --private-key=$BATCHER_KEY \
   &

@@ -70,7 +70,7 @@ geth \
   --ws.origins="*" \
   --ws.api=debug,eth,txpool,net,engine \
   --syncmode=full \
-  --gcmode=full \
+  --gcmode=archive \
   --nodiscover \
   --maxpeers=0 \
   --networkid=42069 \

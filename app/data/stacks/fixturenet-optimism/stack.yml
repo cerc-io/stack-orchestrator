@@ -16,6 +16,7 @@ containers:
   - cerc/optimism-op-node
   - cerc/optimism-l2geth
   - cerc/optimism-op-batcher
+  - cerc/optimism-op-proposer
 pods:
   - fixturenet-eth
   - fixturenet-optimism

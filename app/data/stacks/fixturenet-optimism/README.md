@@ -36,8 +36,9 @@ This should create the required docker images in the local image registry:
 * `cerc/foundry`
 * `cerc/optimism-contracts`
 * `cerc/optimism-l2geth`
-* `cerc/optimism-op-batcher`
 * `cerc/optimism-op-node`
+* `cerc/optimism-op-batcher`
+* `cerc/optimism-op-proposer`
 
 ## Deploy
 

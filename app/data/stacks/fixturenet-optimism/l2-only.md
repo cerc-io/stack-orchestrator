@@ -25,15 +25,16 @@ git checkout v1.0.3
 Build the container images:
 
 ```bash
-laconic-so --stack fixturenet-optimism build-containers --include cerc/foundry,cerc/optimism-contracts,cerc/optimism-op-node,cerc/optimism-l2geth,cerc/optimism-op-batcher
+laconic-so --stack fixturenet-optimism build-containers --include cerc/foundry,cerc/optimism-contracts,cerc/optimism-op-node,cerc/optimism-l2geth,cerc/optimism-op-batcher,cerc/optimism-op-proposer
 ```
 
 This should create the required docker images in the local image registry:
 * `cerc/foundry`
 * `cerc/optimism-contracts`
 * `cerc/optimism-l2geth`
-* `cerc/optimism-op-batcher`
 * `cerc/optimism-op-node`
+* `cerc/optimism-op-batcher`
+* `cerc/optimism-op-proposer`
 
 ## Deploy
 

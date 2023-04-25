@@ -15,12 +15,7 @@ services:
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
       CERC_BUILD_DIR: "@cerc-io/mobymask-ui/build"
     working_dir: /scripts
-    # Waits for watcher server to be up before app build
-    # Required when running with watcher stack to get deployed contract address
-    command:
-      - sh
-      - -c
-      - ./wait-for-it.sh -h ${CERC_WATCHER_HOST:-$${DEFAULT_CERC_WATCHER_HOST}} -p ${CERC_WATCHER_PORT:-$${DEFAULT_CERC_WATCHER_PORT}} -s -t 0 -- ./mobymask-app-start.sh
+    command: ["sh", "mobymask-app-start.sh"]
     volumes:
       - ../config/wait-for-it.sh:/scripts/wait-for-it.sh
       - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/scripts/mobymask-app-start.sh
@@ -51,12 +46,7 @@ services:
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
       CERC_BUILD_DIR: "@cerc-io/mobymask-ui-lxdao/build"
     working_dir: /scripts
-    # Waits for watcher server to be up before app build
-    # Required when running with watcher stack to get deployed contract address
-    command:
-      - sh
-      - -c
-      - ./wait-for-it.sh -h ${CERC_WATCHER_HOST:-$${DEFAULT_CERC_WATCHER_HOST}} -p ${CERC_WATCHER_PORT:-$${DEFAULT_CERC_WATCHER_PORT}} -s -t 0 -- ./mobymask-app-start.sh
+    command: ["sh", "mobymask-app-start.sh"]
     volumes:
       - ../config/wait-for-it.sh:/scripts/wait-for-it.sh
       - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/scripts/mobymask-app-start.sh

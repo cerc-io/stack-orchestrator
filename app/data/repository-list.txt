@@ -13,8 +13,6 @@ cerc-io/laconic-console
 cerc-io/mobymask-watcher
 cerc-io/watcher-ts
 cerc-io/mobymask-v2-watcher-ts
-cerc-io/react-peer
-cerc-io/mobymask-ui
 cerc-io/MobyMask
 vulcanize/uniswap-watcher-ts
 vulcanize/uniswap-v3-info

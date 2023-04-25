@@ -28,10 +28,6 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   # Also add if running MobyMask app:
 
-  # External watcher endpoint (to check if watcher is up)
-  CERC_WATCHER_HOST=
-  CERC_WATCHER_PORT=
-
   # Watcher endpoint used by the app for GQL queries
   CERC_APP_WATCHER_URL="http://127.0.0.1:3001"
 

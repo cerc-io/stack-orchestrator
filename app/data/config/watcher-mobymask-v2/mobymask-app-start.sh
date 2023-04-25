@@ -17,15 +17,19 @@ fi
 
 echo "Using CERC_RELAY_NODES $CERC_RELAY_NODES"
 
-# Use config from mounted volume if available (when running web-app along with watcher stack)
-if [ -f /server/config.json ]; then
+if [ -z "$CERC_DEPLOYED_CONTRACT" ]; then
+  echo "Taking deployed contract details from env"
+else
+  # Use config from mounted volume (when running web-app along with watcher stack)
   echo "Taking config for deployed contract from mounted volume"
+  while [ ! -f /server/config.json ]; do
+    echo "Config not found, retrying after 5 seconds"
+    sleep 5
+  done
 
   # Get deployed contract address and chain id
   CERC_DEPLOYED_CONTRACT=$(jq -r '.address' /server/config.json | tr -d '"')
   CERC_CHAIN_ID=$(jq -r '.chainId' /server/config.json)
-else
-  echo "Taking deployed contract details from env"
 fi
 
 # Use yq to create config.yml with environment variables

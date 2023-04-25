@@ -35,7 +35,7 @@ git checkout v0.1.2
 
 # Optimism
 cd ~/cerc/optimism
-git checkout v1.0.3
+git checkout v1.0.4
 ```
 
 Build the container images:

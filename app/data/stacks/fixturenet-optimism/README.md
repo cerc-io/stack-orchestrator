@@ -19,7 +19,7 @@ Checkout to the required versions and branches in repos:
 ```bash
 # Optimism
 cd ~/cerc/optimism
-git checkout v1.0.3
+git checkout v1.0.4
 ```
 
 Build the container images:

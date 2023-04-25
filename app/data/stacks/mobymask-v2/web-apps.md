@@ -22,7 +22,7 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   ```bash
   # Set of relay nodes to be used by the web-app
-  # (use double quotes " for strings)
+  # (use double quotes " for strings, avoid space after commas)
   # Eg. CERC_RELAY_NODES=["/dns4/example.com/tcp/443/wss/p2p/12D3KooWGHmDDCc93XUWL16FMcTPCGu2zFaMkf67k8HZ4gdQbRDr"]
   CERC_RELAY_NODES=[]
 

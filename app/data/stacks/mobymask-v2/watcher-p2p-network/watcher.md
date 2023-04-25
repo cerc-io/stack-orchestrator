@@ -221,7 +221,8 @@ Connect a browser peer to the watcher's relay node:
 * Click on `UPDATE` to refresh the page and connect to the watcher's relay node; you should see the relay node's multiaddr in `Self Node Info` on the debug panel
 * Switch to the `GRAPH (PEERS)` tab to see peers connected to this browser node and the `GRAPH (NETWORK)` tab to see the whole MobyMask p2p network
 
-Perform transactions (invite required):
+Perform transactions:
+* An invitation is required to be able to perform transactions; ask an existing user of the app for an invite
 * In a browser, close the app if it's already open and then open the invite link
 * From the debug panel, confirm that the browser peer is connected to at least one other peer
 * Check the status for a phisher to be reported in the `Check Phisher Status` section on homepage

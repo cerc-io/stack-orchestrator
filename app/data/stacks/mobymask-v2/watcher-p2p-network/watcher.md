@@ -201,7 +201,7 @@ For example, a Nginx configuration for domain `example.com` would look something
   }
   ```
 
-To test the web-app, either visit https://mobymask-lxdao-app.dev.vdb.to/ or follow [p2p-network-web-app.md](./p2p-network-web-app.md) to deploy the app locally that hits your watcher's GQL endpoint
+To test the web-app, either visit https://mobymask-lxdao-app.dev.vdb.to/ or follow [web-app.md](./web-app.md) to deploy the app locally that hits your watcher's GQL endpoint
 
 Connect a browser peer to the watcher's relay node:
 * Click on debug panel on bottom right of the homepage

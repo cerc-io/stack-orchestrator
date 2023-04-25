@@ -97,7 +97,7 @@ To monitor the running container:
 Note: For opening an invite link on this deployed app, replace the URL part before `/#` with `http://localhost:3004`
 For example: `http://localhost:3004/#/members?invitation=XYZ`
 
-In order to host the app using a public domain, configure your website with SSL and the `https` traffic forwarded to port `3004`.
+In order to host the app using a public domain, configure your website with SSL and `https` traffic reverse proxied to port `3004`.
 
 For example, a Nginx configuration for domain `my-mobymask-app.example.com` would look something like:
 

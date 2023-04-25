@@ -162,7 +162,7 @@ Check watcher container logs to get multiaddr advertised by the watcher's relay 
 ## Web App
 
 To be able to connect to the relay node from remote peers, it needs to be publicly reachable.
-Configure your website with SSL and the `https` traffic forwarded as:
+Configure your website with SSL and the `https` traffic reverse proxied as:
 * `/graphql` to port `3001` (watcher GQL endpoint)
 * `/` to port `9090` (relay node)
 

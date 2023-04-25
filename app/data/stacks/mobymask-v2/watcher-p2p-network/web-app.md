@@ -51,7 +51,7 @@ Add the following contents to `mobymask-app.env`:
   CERC_RELAY_PEERS=["/dns4/relay1.dev.vdb.to/tcp/443/wss/p2p/12D3KooWAx83SM9GWVPc9v9fNzLzftRX6EaAFMjhYiFxRYqctcW1", "/dns4/relay2.dev.vdb.to/tcp/443/wss/p2p/12D3KooWBycy6vHVEfUwwYRbPLBdb5gx9gtFSEMpErYPUjUkDNkm", "/dns4/relay3.dev.vdb.to/tcp/443/wss/p2p/12D3KooWARcUJsiGCgiygiRVVK94U8BNSy8DFBbzAF3B6orrabwn"]
   ```
 
-Replace `CERC_APP_WATCHER_URL` with the watcher's GQL endpoint
+Replace `CERC_APP_WATCHER_URL` with the watcher's endpoint (eg. `https://mobymask.example.com`)
 
 ### Deploy the stack
 

@@ -81,7 +81,7 @@ Add the following contents to `mobymask-watcher.env`:
 
   ```bash
   # Domain to be used in the relay node's announce address
-  CERC_RELAY_ANNOUNCE_DOMAIN="example.com"
+  CERC_RELAY_ANNOUNCE_DOMAIN="mobymask.example.com"
 
 
   # DO NOT CHANGE THESE VALUES
@@ -116,7 +116,7 @@ This will run the `mobymask-v2-watcher` including:
 * A relay node which is in a federated setup with relay nodes set in the env file
 * A peer node which connects to the watcher relay node as an entrypoint to the MobyMask watcher p2p network. This peer listens for messages from other peers on the network and logs them out to the console
 
-The watcher endpoint is exposed on host port `3001` and the relay node endpoint is exposed on host port `9090`
+The watcher GraphQL endpoint is exposed on host port `3001` and the relay node endpoint is exposed on host port `9090`
 
 To list down and monitor the running containers:
 
@@ -156,18 +156,30 @@ Check watcher container logs to get multiaddr advertised by the watcher's relay 
 
   # mobymask_v2-mobymask-watcher-server-1  | 2023-04-20T04:22:57.069Z laconic:relay Relay node started with id 12D3KooWKef84LAcBNb9wZNs6jC5kQFXjddo47hK6AGHD2dSvGai (characteristic-black-pamella)
   # mobymask_v2-mobymask-watcher-server-1  | 2023-04-20T04:22:57.069Z laconic:relay Listening on:
-  # mobymask_v2-mobymask-watcher-server-1  | 2023-04-20T04:22:57.070Z laconic:relay /dns4/example.com/tcp/443/wss/p2p/12D3KooWKef84LAcBNb9wZNs6jC5kQFXjddo47hK6AGHD2dSvGai
+  # mobymask_v2-mobymask-watcher-server-1  | 2023-04-20T04:22:57.070Z laconic:relay /dns4/mobymask.example.com/tcp/443/wss/p2p/12D3KooWKef84LAcBNb9wZNs6jC5kQFXjddo47hK6AGHD2dSvGai
   ```
 
 ## Web App
 
-To be able to connect to the relay node from remote peers, it needs to be publicly reachable. Configure your website with SSL and the `https` traffic forwarded to port `9090`.
+To be able to connect to the relay node from remote peers, it needs to be publicly reachable.
+Configure your website with SSL and the `https` traffic forwarded as:
+* `/graphql` to port `3001` (watcher GQL endpoint)
+* `/` to port `9090` (relay node)
 
-For example, a Nginx configuration for domain `example.com` would look something like:
+For example, a Nginx configuration for domain `mobymask.example.com` would look something like:
 
   ```bash
   server {
-    server_name example.com;
+    server_name mobymask.example.com;
+
+    location /graphql {
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_pass http://127.0.0.1:3001;
+      proxy_read_timeout 90;
+    }
 
     # https://nginx.org/en/docs/http/websocket.html
     location / {
@@ -182,21 +194,21 @@ For example, a Nginx configuration for domain `example.com` would look something
 
     listen [::]:443 ssl ipv6only=on; # managed by Certbot
     listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/mobymask.example.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/mobymask.example.com/privkey.pem; # managed by Certbot
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
   }
 
   server {
-    if ($host = example.com) {
+    if ($host = mobymask.example.com) {
       return 301 https://$host$request_uri;
     } # managed by Certbot
 
     listen 80;
     listen [::]:80;
 
-    server_name example.com;
+    server_name mobymask.example.com;
     return 404; # managed by Certbot
   }
   ```
@@ -210,8 +222,8 @@ Connect a browser peer to the watcher's relay node:
 * Switch to the `GRAPH (PEERS)` tab to see peers connected to this browser node and the `GRAPH (NETWORK)` tab to see the whole MobyMask p2p network
 
 Perform transactions (invite required):
-* Open the invite link in a fresh browser and open the debug panel
-* Confirm that the browser peer is connected to at least one other peer, then close the debug panel
+* In a browser, close the app if it's already open and then open the invite link
+* From the debug panel, confirm that the browser peer is connected to at least one other peer
 * Check the status for a phisher to be reported in the `Check Phisher Status` section on homepage
 * Select `Report Phisher` option in the `Pending reports` section, enter multiple phisher records and click on the `Submit batch to p2p network` button; this broadcasts signed invocations to peers on the network, including the watcher peer
 * Check the watcher container logs to see the message received:

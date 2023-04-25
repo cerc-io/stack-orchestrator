@@ -85,6 +85,7 @@ Add the following contents to `mobymask-watcher.env`:
 
 
   # DO NOT CHANGE THESE VALUES
+  CERC_L2_GETH_RPC="https://mobymask-l2.dev.vdb.to"
   CERC_DEPLOYED_CONTRACT="0x2B6AFbd4F479cE4101Df722cF4E05F941523EaD9"
   CERC_ENABLE_PEER_L2_TXS=false
   CERC_RELAY_PEERS=["/dns4/relay1.dev.vdb.to/tcp/443/wss/p2p/12D3KooWAx83SM9GWVPc9v9fNzLzftRX6EaAFMjhYiFxRYqctcW1", "/dns4/relay2.dev.vdb.to/tcp/443/wss/p2p/12D3KooWBycy6vHVEfUwwYRbPLBdb5gx9gtFSEMpErYPUjUkDNkm", "/dns4/relay3.dev.vdb.to/tcp/443/wss/p2p/12D3KooWARcUJsiGCgiygiRVVK94U8BNSy8DFBbzAF3B6orrabwn"]
@@ -200,15 +201,16 @@ For example, a Nginx configuration for domain `example.com` would look something
   }
   ```
 
-To connect a browser peer to the watcher's relay node:
-* Visit https://mobymask-lxdao-app.dev.vdb.to/
+To test the web-app, either visit https://mobymask-lxdao-app.dev.vdb.to/ or follow [p2p-network-web-app.md](./p2p-network-web-app.md) to deploy the app locally that hits your watcher's GQL endpoint
+
+Connect a browser peer to the watcher's relay node:
 * Click on debug panel on bottom right of the homepage
 * Select `<custom>` in `Primary Relay` dropdown on the right and enter the watcher relay node's multiaddr
 * Click on `UPDATE` to refresh the page and connect to the watcher's relay node; you should see the relay node's multiaddr in `Self Node Info` on the debug panel
 * Switch to the `GRAPH (PEERS)` tab to see peers connected to this browser node and the `GRAPH (NETWORK)` tab to see the whole MobyMask p2p network
 
 Perform transactions (invite required):
-* Open the invite link in a browser and open the debug panel
+* Open the invite link in a fresh browser and open the debug panel
 * Confirm that the browser peer is connected to at least one other peer, then close the debug panel
 * Check the status for a phisher to be reported in the `Check Phisher Status` section on homepage
 * Select `Report Phisher` option in the `Pending reports` section, enter multiple phisher records and click on the `Submit batch to p2p network` button; this broadcasts signed invocations to peers on the network, including the watcher peer
@@ -286,7 +288,7 @@ Clear volumes created by this stack:
 
   ```bash
   # List all relevant volumes
-  docker volume ls -q --filter "name=mobymask_v2*"
+  docker volume ls -q --filter "name=mobymask_v2"
 
   # Expected output:
 
@@ -296,7 +298,7 @@ Clear volumes created by this stack:
 
 
   # Remove all the listed volumes
-  docker volume rm $(docker volume ls -q --filter "name=mobymask_v2*")
+  docker volume rm $(docker volume ls -q --filter "name=mobymask_v2")
   ```
 
 ## Troubleshooting

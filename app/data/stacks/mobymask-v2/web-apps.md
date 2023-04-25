@@ -46,7 +46,7 @@ For running mobymask-app
 ```bash
 laconic-so --stack mobymask-v2 deploy --include mobymask-app --env-file <PATH_TO_ENV_FILE> up
 
-# Runs on host port 3002
+# Runs mobymask-app on host port 3002 and lxdao-mobymask-app on host port 3004
 ```
 
 For running peer-test-app

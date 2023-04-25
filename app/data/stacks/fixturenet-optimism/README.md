@@ -70,7 +70,7 @@ docker logs -f <CONTAINER_ID>
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy down
+laconic-so --stack fixturenet-optimism deploy down 30
 ```
 
 Clear volumes created by this stack:

@@ -6,9 +6,10 @@ fi
 
 CERC_L1_RPC="${CERC_L1_RPC:-${DEFAULT_CERC_L1_RPC}}"
 
-# Get SEQUENCER KEY from keys.json
+# Get Sequencer key from keys.json
 SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"')
 
+# Run op-node
 op-node \
   --l2=http://op-geth:8551 \
   --l2.jwt-secret=/op-node-data/jwt.txt \

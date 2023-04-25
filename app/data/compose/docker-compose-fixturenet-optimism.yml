@@ -125,6 +125,29 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Runs the proposer (periodically submits new state roots to L1)
+  op-proposer:
+    image: cerc/optimism-op-proposer:local
+    depends_on:
+      op-node:
+        condition: service_healthy
+    env_file:
+      - ../config/fixturenet-optimism/l1-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_L1_RPC: ${CERC_L1_RPC}
+    volumes:
+      - ../config/wait-for-it.sh:/wait-for-it.sh
+      - ../config/fixturenet-optimism/run-op-proposer.sh:/run-op-proposer.sh
+      - l1_deployment:/contracts-bedrock:ro
+      - l2_accounts:/l2-accounts:ro
+    entrypoint: ["sh", "-c"]
+    # Waits for L1 endpoint to be up before running the proposer
+    command: |
+      "/wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- /run-op-proposer.sh"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   l1_deployment:
   l2_accounts:

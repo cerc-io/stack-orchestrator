@@ -6,7 +6,7 @@ fi
 
 CERC_L1_RPC="${CERC_L1_RPC:-${DEFAULT_CERC_L1_RPC}}"
 
-# Get BACTHER_KEY from keys.json
+# Get Batcher key from keys.json
 BATCHER_KEY=$(jq -r '.Batcher.privateKey' /l2-accounts/keys.json | tr -d '"')
 
 cleanup() {
@@ -18,6 +18,7 @@ cleanup() {
 }
 trap 'cleanup' INT TERM
 
+# Run op-batcher
 op-batcher \
   --l2-eth-rpc=http://op-geth:8545 \
   --rollup-rpc=http://op-node:8547 \
@@ -30,7 +31,6 @@ op-batcher \
   --rpc.port=8548 \
   --rpc.enable-admin \
   --max-channel-duration=1 \
-  --target-l1-tx-size-bytes=2048 \
   --l1-eth-rpc=$CERC_L1_RPC \
   --private-key=$BATCHER_KEY \
   &

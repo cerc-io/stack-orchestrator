@@ -74,7 +74,13 @@ def command(ctx, include, exclude, env_file, cluster, command, extra_args):
         elif command == "down":
             if verbose:
                 print("Running compose down")
-            docker.compose.down()
+
+            timeout_arg = None
+            if extra_args_list:
+                timeout_arg=extra_args_list[0]
+
+            # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
+            docker.compose.down(timeout=timeout_arg)
         elif command == "exec":
             if extra_args_list is None or len(extra_args_list) < 2:
                 print("Usage: exec <service> <cmd>")

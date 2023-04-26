@@ -1,0 +1,15 @@
+version: "1.1"
+name: fixturenet-eth-tx
+decription: "Ethereum Fixturenet w/ tx-spammer"
+repos:
+  - cerc-io/go-ethereum
+  - cerc-io/tx-spammer
+containers:
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/tx-spammer
+pods:
+  - fixturenet-eth
+  - tx-spammer

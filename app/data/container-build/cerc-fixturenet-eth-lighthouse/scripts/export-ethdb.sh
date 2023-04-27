@@ -1,12 +1,21 @@
 #!/bin/bash
 
-MY_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+# Exports the complete fixturenet-eth ethdb data to a tarball (default, ./ethdb.tgz), waiting for a minimum
+# block height (default 1000) to be reached before exporting.
+
+# Usage: export-ethdb.sh [min_block_number=1000] [output_file=./ethdb.tgz]
+
+if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
+    set -x
+fi
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 GETH_EXPORT_MIN_BLOCK=${1:-${GETH_EXPORT_MIN_BLOCK:-1000}}
 
 # Wait for block.
-${MY_DIR}/status.sh $GETH_EXPORT_MIN_BLOCK
-if [ $? -ne 0 ]; then
+${SCRIPT_DIR}/status.sh $GETH_EXPORT_MIN_BLOCK
+if [[ $? -ne 0 ]]; then
   echo "Unable to export ethdb." 1>&2
   exit 1
 fi
@@ -14,7 +23,7 @@ fi
 # Stop geth.
 echo -n "Exporting ethdb.... "
 GETH_CONTAINER=`docker ps -q -f "name=${CERC_SO_COMPOSE_PROJECT}-fixturenet-eth-geth-2-1"`
-if [ -z "$GETH_CONTAINER" ]; then 
+if [[ -z "$GETH_CONTAINER" ]]; then
   echo "not found"
   exit 1
 fi

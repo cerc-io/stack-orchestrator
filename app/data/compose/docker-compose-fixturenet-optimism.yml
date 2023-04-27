@@ -122,6 +122,8 @@ services:
     # Waits for L1 endpoint to be up before running the batcher
     command: |
       "/wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- /run-op-batcher.sh"
+    ports:
+      - "127.0.0.1:8548:8548"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -145,6 +147,8 @@ services:
     # Waits for L1 endpoint to be up before running the proposer
     command: |
       "/wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- /run-op-proposer.sh"
+    ports:
+      - "127.0.0.1:8560:8560"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

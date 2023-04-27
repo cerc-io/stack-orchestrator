@@ -26,7 +26,7 @@ It is easy to export data from the fixturenet for offline processing of the raw 
 For example:
 
 ```
-❯ app/data/container-build/cerc-fixturenet-eth-lighthouse/scripts/export-ethdb.sh 500
+$ app/data/container-build/cerc-fixturenet-eth-lighthouse/scripts/export-ethdb.sh 500
 Waiting for geth to generate DAG.... done
 Waiting for beacon phase0.... done
 Waiting for beacon altair.... done

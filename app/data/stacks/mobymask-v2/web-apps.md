@@ -22,15 +22,11 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   ```bash
   # Set of relay nodes to be used by the web-app
-  # (use double quotes " for strings)
+  # (use double quotes " for strings, avoid space after commas)
   # Eg. CERC_RELAY_NODES=["/dns4/example.com/tcp/443/wss/p2p/12D3KooWGHmDDCc93XUWL16FMcTPCGu2zFaMkf67k8HZ4gdQbRDr"]
   CERC_RELAY_NODES=[]
 
   # Also add if running MobyMask app:
-
-  # External watcher endpoint (to check if watcher is up)
-  CERC_WATCHER_HOST=
-  CERC_WATCHER_PORT=
 
   # Watcher endpoint used by the app for GQL queries
   CERC_APP_WATCHER_URL="http://127.0.0.1:3001"
@@ -50,7 +46,7 @@ For running mobymask-app
 ```bash
 laconic-so --stack mobymask-v2 deploy --include mobymask-app --env-file <PATH_TO_ENV_FILE> up
 
-# Runs on host port 3002
+# Runs mobymask-app on host port 3002 and lxdao-mobymask-app on host port 3004
 ```
 
 For running peer-test-app

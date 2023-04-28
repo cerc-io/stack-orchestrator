@@ -10,7 +10,6 @@ laconicd
 fixturenet-laconicd
 fixturenet-eth
 fixturenet-eth-metrics
-watcher-ts
 watcher-mobymask
 watcher-erc20
 watcher-erc721

@@ -127,3 +127,9 @@ else
 fi
 
 wait $geth_pid
+
+if [ "true" == "$CERC_KEEP_RUNNING_AFTER_GETH_EXIT" ]; then
+  while [ 1 -eq 1 ]; do
+    sleep 60
+  done
+fi

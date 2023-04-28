@@ -8,7 +8,7 @@ fi
 echo "Installing jq"
 apk update && apk add jq
 
-# Get SEQUENCER key from keys.json
+# Get Sequencer key from keys.json
 SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"')
 
 # Initialize op-geth if datadir/geth not found
@@ -70,7 +70,7 @@ geth \
   --ws.origins="*" \
   --ws.api=debug,eth,txpool,net,engine \
   --syncmode=full \
-  --gcmode=full \
+  --gcmode=archive \
   --nodiscover \
   --maxpeers=0 \
   --networkid=42069 \

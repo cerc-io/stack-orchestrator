@@ -35,7 +35,7 @@ git checkout v0.1.2
 
 # Optimism
 cd ~/cerc/optimism
-git checkout @eth-optimism/sdk@0.0.0-20230329025055
+git checkout v1.0.4
 ```
 
 Build the container images:
@@ -111,7 +111,7 @@ Follow the [demo](./demo.md) to try out the MobyMask app with L2 chain
 Stop all the services running in background run:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy-system down
+laconic-so --stack mobymask-v2 deploy-system down 30
 ```
 
 Clear volumes created by this stack:

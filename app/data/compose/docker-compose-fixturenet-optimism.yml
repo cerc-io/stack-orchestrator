@@ -31,7 +31,7 @@ services:
       - l2_accounts:/l2-accounts
       - l1_deployment:/app/packages/contracts-bedrock
     extra_hosts:
-    - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
 
   # Generates the config files required for L2 (outputs to volume l2_config)
   op-node-l2-config-gen:
@@ -50,7 +50,7 @@ services:
       - l2_config:/app
     command: ["sh", "/app/generate-l2-config.sh"]
     extra_hosts:
-    - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
 
   # Initializes and runs the L2 execution client  (outputs to volume l2_geth_data)
   op-geth:
@@ -122,8 +122,35 @@ services:
     # Waits for L1 endpoint to be up before running the batcher
     command: |
       "/wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- /run-op-batcher.sh"
+    ports:
+      - "127.0.0.1:8548:8548"
     extra_hosts:
-    - "host.docker.internal:host-gateway"
+      - "host.docker.internal:host-gateway"
+
+  # Runs the proposer (periodically submits new state roots to L1)
+  op-proposer:
+    image: cerc/optimism-op-proposer:local
+    depends_on:
+      op-node:
+        condition: service_healthy
+    env_file:
+      - ../config/fixturenet-optimism/l1-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_L1_RPC: ${CERC_L1_RPC}
+    volumes:
+      - ../config/wait-for-it.sh:/wait-for-it.sh
+      - ../config/fixturenet-optimism/run-op-proposer.sh:/run-op-proposer.sh
+      - l1_deployment:/contracts-bedrock:ro
+      - l2_accounts:/l2-accounts:ro
+    entrypoint: ["sh", "-c"]
+    # Waits for L1 endpoint to be up before running the proposer
+    command: |
+      "/wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- /run-op-proposer.sh"
+    ports:
+      - "127.0.0.1:8560:8560"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   l1_deployment:

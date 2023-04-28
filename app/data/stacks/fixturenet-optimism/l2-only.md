@@ -19,21 +19,22 @@ Checkout to the required versions and branches in repos:
 ```bash
 # Optimism
 cd ~/cerc/optimism
-git checkout @eth-optimism/sdk@0.0.0-20230329025055
+git checkout v1.0.4
 ```
 
 Build the container images:
 
 ```bash
-laconic-so --stack fixturenet-optimism build-containers --include cerc/foundry,cerc/optimism-contracts,cerc/optimism-op-node,cerc/optimism-l2geth,cerc/optimism-op-batcher
+laconic-so --stack fixturenet-optimism build-containers --include cerc/foundry,cerc/optimism-contracts,cerc/optimism-op-node,cerc/optimism-l2geth,cerc/optimism-op-batcher,cerc/optimism-op-proposer
 ```
 
 This should create the required docker images in the local image registry:
 * `cerc/foundry`
 * `cerc/optimism-contracts`
 * `cerc/optimism-l2geth`
-* `cerc/optimism-op-batcher`
 * `cerc/optimism-op-node`
+* `cerc/optimism-op-batcher`
+* `cerc/optimism-op-proposer`
 
 ## Deploy
 
@@ -89,7 +90,7 @@ docker logs -f <CONTAINER_ID>
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy --include fixturenet-optimism down
+laconic-so --stack fixturenet-optimism deploy --include fixturenet-optimism down 30
 ```
 
 Clear volumes created by this stack:

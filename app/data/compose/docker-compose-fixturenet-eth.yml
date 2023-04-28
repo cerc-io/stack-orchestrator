@@ -49,6 +49,8 @@ services:
       timeout: 10s
       retries: 10
       start_period: 3s
+    environment:
+      CERC_KEEP_RUNNING_AFTER_GETH_EXIT: "true"
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/fixturenet-eth-geth:local

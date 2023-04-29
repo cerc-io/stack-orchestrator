@@ -1,0 +1,11 @@
+version: "1.0"
+name: laconic-explorer
+description: "Ping.pub explorer with attached laconicd non-consensus node"
+repos:
+  - cerc-io/laconicd
+  - ping-pub/explorer
+containers:
+  - cerc/laconicd
+  - cerc/laconic-explorer
+pods:
+  - laconic-explorer

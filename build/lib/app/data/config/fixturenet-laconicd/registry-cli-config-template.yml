@@ -1,0 +1,9 @@
+services:
+  cns:
+    restEndpoint: 'http://laconicd:1317'
+    gqlEndpoint: 'http://laconicd:9473/api'
+    userKey: REPLACE_WITH_MYKEY
+    bondId:
+    chainId: laconic_9000-1
+    gas: 250000
+    fees: 200000aphoton

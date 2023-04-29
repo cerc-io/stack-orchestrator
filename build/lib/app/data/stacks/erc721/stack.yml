@@ -1,0 +1,18 @@
+version: "1.0"
+name: erc721-watcher
+repos:
+  - cerc-io/go-ethereum
+  - cerc-io/ipld-eth-db
+  - cerc-io/ipld-eth-server
+  - cerc-io/watcher-ts
+containers:
+  - cerc/go-ethereum
+  - cerc/go-ethereum-foundry
+  - cerc/ipld-eth-db
+  - cerc/ipld-eth-server
+  - cerc/watcher-erc721
+pods:
+  - go-ethereum-foundry
+  - ipld-eth-db
+  - ipld-eth-server
+  - watcher-erc721

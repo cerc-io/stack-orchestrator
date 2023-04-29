@@ -1,0 +1,15 @@
+version: "1.1"
+name: fixturenet-eth
+decription: "Ethereum Fixturenet"
+repos:
+  - cerc-io/go-ethereum
+  - dboreham/foundry
+containers:
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/foundry
+pods:
+  - fixturenet-eth
+  - foundry

@@ -1,0 +1,6 @@
+# Config for laconic-console running in a fixturenet with laconicd
+
+services:
+  wns:
+    server: 'LACONIC_HOSTED_ENDPOINT:9473/api'
+    webui: 'LACONIC_HOSTED_ENDPOINT:9473/console'

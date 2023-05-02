@@ -25,3 +25,4 @@ kubo
 foundry
 fixturenet-optimism
 fixturenet-pocket
+watcher-azimuth

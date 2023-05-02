@@ -1,0 +1,98 @@
+version: '3.2'
+
+services:
+  # Starts the PostgreSQL database for watchers
+  watcher-db:
+    restart: unless-stopped
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=vdbm
+      - POSTGRES_MULTIPLE_DATABASES=azimuth-watcher,azimuth-watcher-job-queue,censures-watcher,censures-watcher-job-queue,claims-watcher,claims-watcher-job-queue,conditional-star-release-watcher,conditional-star-release-watcher-job-queue,delegated-watcher,delegated-watcher-job-queue,ecliptic-watcher,ecliptic-watcher-job-queue,linear-star-release-watcher,linear-star-release-watcher-job-queue,polls-watcher,polls-watcher-job-queue
+      - POSTGRES_EXTENSION=azimuth-watcher-job-queue:pgcrypto,censures-watcher-job-queue:pgcrypto,claims-watcher-job-queue:pgcrypto,conditional-star-release-watcher-job-queue:pgcrypto,delegated-watcher-job-queue:pgcrypto,ecliptic-watcher-job-queue:pgcrypto,linear-star-release-watcher-job-queue:pgcrypto,polls-watcher-job-queue:pgcrypto,
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
+      - watcher_db_data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:15432:5432"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  # Starts the azimuth-watcher server
+  azimuth-watcher-server:
+    image: cerc/watcher-azimuth:local
+    restart: unless-stopped
+    depends_on:
+      watcher-db:
+        condition: service_healthy
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    working_dir: /app/packages/azimuth-watcher
+    command: "yarn server"
+    volumes:
+      - ../config/watcher-azimuth/watcher-configs/azimuth-watcher.toml:/app/packages/azimuth-watcher/environments/local.toml
+    # ports:
+    #   - "0.0.0.0:3001:3001"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "3001"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # Starts the censures-watcher server
+  censures-watcher-server:
+    image: cerc/watcher-azimuth:local
+    restart: unless-stopped
+    depends_on:
+      watcher-db:
+        condition: service_healthy
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    working_dir: /app/packages/censures-watcher
+    command: "yarn server"
+    volumes:
+      - ../config/watcher-azimuth/watcher-configs/censures-watcher.toml:/app/packages/censures-watcher/environments/local.toml
+    # ports:
+    #   - "0.0.0.0:3001:3001"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "3002"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Starts the gateway-server for proxying queries
+  gateway-server:
+    image: cerc/watcher-azimuth:local
+    restart: unless-stopped
+    depends_on:
+      azimuth-watcher-server:
+        condition: service_healthy
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    working_dir: /app/packages/gateway-server
+    command: "yarn server"
+    volumes:
+      - ../config/watcher-azimuth/gateway-watchers.json:/app/packages/gateway-server/dist/watchers.json
+    ports:
+      - "0.0.0.0:4000:4000"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "4000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  watcher_db_data:

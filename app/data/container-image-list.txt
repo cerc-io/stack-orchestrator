@@ -37,3 +37,4 @@ cerc/optimism-op-batcher
 cerc/optimism-op-node
 cerc/optimism-op-proposer
 cerc/pocket
+cerc/watcher-azimuth

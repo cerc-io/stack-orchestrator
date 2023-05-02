@@ -1,0 +1,10 @@
+[
+  {
+    "endpoint": "http://azimuth-watcher-server:3001/graphql",
+    "prefix": "azimuth"
+  },
+  {
+    "endpoint": "http://censures-watcher-server:3002/graphql",
+    "prefix": "censures"
+  }
+]

@@ -175,4 +175,8 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
                         git_repo.git.checkout(branch_to_checkout)
 
     for repo in repos:
-        process_repo(repo)
+        try:
+            process_repo(repo)
+        except git.exc.GitCommandError as error:
+            print(f"\n******* git command returned error exit status:\n{error}")
+            sys.exit(1)

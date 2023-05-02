@@ -2,7 +2,7 @@
 
 Instructions to setup and deploy an end-to-end L1+L2 stack with [fixturenet-eth](../fixturenet-eth/) (L1) and [Optimism](https://stack.optimism.io) (L2)
 
-We support running just the L2 part of stack, given an external L1 endpoint. Follow [l2-only](./l2-only.md) for the same.
+We support running just the L2 part of stack, given an external L1 endpoint. Follow the [L2 only doc](./l2-only.md) for the same.
 
 ## Setup
 
@@ -19,7 +19,7 @@ Checkout to the required versions and branches in repos:
 ```bash
 # Optimism
 cd ~/cerc/optimism
-git checkout @eth-optimism/sdk@0.0.0-20230329025055
+git checkout v1.0.4
 ```
 
 Build the container images:
@@ -27,6 +27,8 @@ Build the container images:
 ```bash
 laconic-so --stack fixturenet-optimism build-containers
 ```
+
+Note: this will take >10 mins depending on the specs of your machine, and **requires** 16GB of memory or greater.
 
 This should create the required docker images in the local image registry:
 * `cerc/go-ethereum`
@@ -36,8 +38,9 @@ This should create the required docker images in the local image registry:
 * `cerc/foundry`
 * `cerc/optimism-contracts`
 * `cerc/optimism-l2geth`
-* `cerc/optimism-op-batcher`
 * `cerc/optimism-op-node`
+* `cerc/optimism-op-batcher`
+* `cerc/optimism-op-proposer`
 
 ## Deploy
 
@@ -47,12 +50,14 @@ Deploy the stack:
 laconic-so --stack fixturenet-optimism deploy up
 ```
 
-The `fixturenet-optimism-contracts` service may take a while (`~15 mins`) to complete running as it:
+If you get the error `service "fixturenet-optimism-contracts" didn't complete successfully: exit 1` with ~25 lines of Traceback, wait 15-20 mins then re-run the command.
+
+The `fixturenet-optimism-contracts` service takes a while to complete running as it:
 1. waits for the 'Merge' to happen on L1
 2. waits for a finalized block to exist on L1 (so that it can be taken as a starting block for roll ups)
 3. deploys the L1 contracts
 
-To list down and monitor the running containers:
+To list and monitor the running containers:
 
 ```bash
 laconic-so --stack fixturenet-optimism deploy ps
@@ -69,17 +74,17 @@ docker logs -f <CONTAINER_ID>
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy down
+laconic-so --stack fixturenet-optimism deploy down 30
 ```
 
 Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
+docker volume ls -q --filter "name=.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
+docker volume rm $(docker volume ls -q --filter "name=.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
 ```
 
 ## Troubleshooting
@@ -91,6 +96,9 @@ docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_geth_accounts
   ```
 
 * This means that the data directory that `op-geth` is using is corrupted and needs to be reinitialized; the containers `op-geth`, `op-node` and `op-batcher` need to be started afresh:
+
+  WARNING: This will reset the L2 chain; consequently, all the data on it will be lost
+
   * Stop and remove the concerned containers:
 
     ```bash

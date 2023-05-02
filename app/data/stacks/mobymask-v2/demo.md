@@ -25,7 +25,7 @@
 * Open the invite link in a new browser with different profile (to simulate remote browser)
   * Check that it is connected to any other peer in the network.
 
-* In `Report a phishing attempt` section, report multiple phishers using the `submit` button. Click on the `Submit batch to p2p network` button. This broadcasts signed invocations to the connected peers.
+* In `Report a phishing attempt` section, report multiple phishers using the `Submit` button. Click on the `Submit batch to p2p network` button. This broadcasts signed invocations to the connected peers.
 
 * In the `MESSAGES` tab of other browsers, a message can be seen with the signed invocations.
 
@@ -66,7 +66,7 @@
   * Get the deployed contract address:
 
     ```bash
-    docker exec -it $(docker ps -aq --filter name="mobymask-app") cat src/config.json
+    docker exec -it $(docker ps -aq --filter name="mobymask-app") cat /config/config.yml
     ```
 
     The value of `address` field is the deployed contract address

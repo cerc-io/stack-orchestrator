@@ -16,7 +16,7 @@ Leave `CERC_NPM_REGISTRY_URL` un-set to use the local gitea registry.
 Note: the scheme/gerbil container is excluded as it isn't currently required for the package registry.
 
 ```
-$ laconic-so --stack build-support build-containers --exclude cerc/builder-gerbil
+$ laconic-so --stack build-support build-containers
 ```
 ### 2. Deploy Gitea Package Registry
 

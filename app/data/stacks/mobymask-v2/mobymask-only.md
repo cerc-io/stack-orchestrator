@@ -9,7 +9,7 @@ Prerequisite: L2 Optimism Geth and Node RPC endpoints
 Clone required repositories:
 
 ```bash
-laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts
+laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts,cerc-io/mobymask-v2-watcher-ts
 
 # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```
@@ -19,7 +19,11 @@ Checkout to the required versions and branches in repos:
 ```bash
 # watcher-ts
 cd ~/cerc/watcher-ts
-git checkout v0.2.35
+git checkout v0.2.39
+
+# mobymask-v2-watcher-ts
+cd ~/cerc/mobymask-v2-watcher-ts
+git checkout v0.1.0
 
 # MobyMask
 cd ~/cerc/MobyMask
@@ -29,7 +33,7 @@ git checkout v0.1.2
 Build the container images:
 
 ```bash
-laconic-so --stack mobymask-v2 build-containers --include cerc/watcher-mobymask-v2,cerc/mobymask
+laconic-so --stack mobymask-v2 build-containers --include cerc/watcher-ts,cerc/watcher-mobymask-v2,cerc/mobymask
 ```
 
 This should create the required docker images in the local image registry
@@ -43,19 +47,31 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   ```bash
   # External L2 endpoints
   CERC_L2_GETH_RPC=
+
+  # Endpoints waited on before contract deployment
   CERC_L2_GETH_HOST=
   CERC_L2_GETH_PORT=
 
   CERC_L2_NODE_HOST=
   CERC_L2_NODE_PORT=
 
-  # Credentials for accounts to perform txs on L2
+  # URL to get CSV with credentials for accounts on L1 to perform txs on L2
+  CERC_L1_ACCOUNTS_CSV_URL=
+
+  # OR
+  # Specify the required account credentials
   CERC_PRIVATE_KEY_DEPLOYER=
   CERC_PRIVATE_KEY_PEER=
 
   # Base URI for mobymask-app
   # (used for generating a root invite link after deploying the contract)
   CERC_MOBYMASK_APP_BASE_URI="http://127.0.0.1:3002/#"
+
+  # (Optional) Set of relay peers to connect to from the relay node
+  CERC_RELAY_PEERS=[]
+
+  # (Optional) Domain to be used in the relay node's announce address
+  CERC_RELAY_ANNOUNCE_DOMAIN=
 
   # Set to false for disabling watcher peer to send txs to L2
   CERC_ENABLE_PEER_L2_TXS=true
@@ -112,8 +128,8 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*mobymask_deployment|.*fixturenet_geth_accounts"
+docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*mobymask_deployment|.*fixturenet_geth_accounts")
+docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment")
 ```

@@ -26,14 +26,15 @@
     [server.p2p.relay]
       host = "0.0.0.0"
       port = 9090
-      relayPeers = []
-      peerIdFile = './relay-id.json'
+      relayPeers = REPLACE_WITH_CERC_RELAY_PEERS
+      peerIdFile = './peers/relay-id.json'
+      announce = 'REPLACE_WITH_CERC_RELAY_ANNOUNCE_DOMAIN'
       enableDebugInfo = true
 
     [server.p2p.peer]
-      relayMultiaddr = '/dns4/mobymask-watcher-server/tcp/9090/ws/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t'
+      relayMultiaddr = 'REPLACE_WITH_CERC_RELAY_MULTIADDR'
       pubSubTopic = 'mobymask'
-      peerIdFile = './peer-id.json'
+      peerIdFile = './peers/peer-id.json'
       enableDebugInfo = true
       enableL2Txs = REPLACE_WITH_CERC_ENABLE_PEER_L2_TXS
 

@@ -16,3 +16,4 @@ pods:
 config:
   cli:
     key: laconicd.mykey
+    address: laconicd.myaddress

@@ -1,17 +1,19 @@
 # Originally from: https://github.com/devcontainers/images/blob/main/src/javascript-node/.devcontainer/Dockerfile
 # [Choice] Node.js version (use -bullseye variants on local arm64/Apple Silicon): 18, 16, 14, 18-bullseye, 16-bullseye, 14-bullseye, 18-buster, 16-buster, 14-buster
-ARG VARIANT=16-bullseye
+ARG VARIANT=18-bullseye
 FROM node:${VARIANT}
 
 ARG USERNAME=node
 ARG NPM_GLOBAL=/usr/local/share/npm-global
 
 # This container pulls npm packages from a local registry configured via these env vars
-ARG CERC_NPM_URL
+ARG CERC_NPM_REGISTRY_URL
 ARG CERC_NPM_AUTH_TOKEN
 
 # Add NPM global to PATH.
 ENV PATH=${NPM_GLOBAL}/bin:${PATH}
+# Prevents npm from printing version warnings
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 
 RUN \
     # Configure global npm install location, use group to adapt to UID/GID changes
@@ -47,9 +49,9 @@ COPY ./start-serving-app.sh /scripts
 # RUN su node -c "npm install -g <your-package-list-here>"
 
 # Configure the local npm registry
-RUN npm config set @cerc-io:registry ${CERC_NPM_URL} \
-    && npm config set @lirewine:registry ${CERC_NPM_URL} \
-    && npm config set -- ${CERC_NPM_URL}:_authToken ${CERC_NPM_AUTH_TOKEN}
+RUN npm config set @cerc-io:registry ${CERC_NPM_REGISTRY_URL} \
+    && npm config set @lirewine:registry ${CERC_NPM_REGISTRY_URL} \
+    && npm config set -- ${CERC_NPM_REGISTRY_URL}:_authToken ${CERC_NPM_AUTH_TOKEN}
 
 RUN mkdir -p /config
 COPY ./config.yml /config

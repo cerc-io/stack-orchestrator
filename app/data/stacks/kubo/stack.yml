@@ -1,0 +1,7 @@
+version: "1.0"
+name: kubo 
+description: "Run kubo (IPFS)"
+repos:
+containers:
+pods:
+  - kubo 

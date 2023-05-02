@@ -1,12 +1,25 @@
 #!/bin/bash
 
-if [ "true" == "$RUN_BOOTNODE" ]; then 
+# See https://linuxconfig.org/how-to-propagate-a-signal-to-child-processes-from-a-bash-script
+cleanup() {
+    echo "Signal received, cleaning up..."
+    kill $(jobs -p)
+
+    wait
+    echo "Done"
+}
+trap 'cleanup' SIGINT SIGTERM
+
+if [ "true" == "$RUN_BOOTNODE" ]; then
     cd /opt/testnet/build/cl
     python3 -m http.server 3000 &
 
 
     cd /opt/testnet/cl
-    ./bootnode.sh 2>&1 | tee /var/log/lighthouse_bootnode.log
+    ./bootnode.sh 2>&1 | tee /var/log/lighthouse_bootnode.log &
+    bootnode_pid=$!
+
+    wait $bootnode_pid
 else
     while [ 1 -eq 1 ]; do
       echo "Waiting on geth ..."
@@ -25,7 +38,12 @@ else
     cd /opt/testnet/cl
 
     if [ -z "$LIGHTHOUSE_GENESIS_STATE_URL" ]; then
-        ./reset_genesis_time.sh
+        # Check if beacon node data exists to avoid resetting genesis time on a restart
+        if [ -d /opt/testnet/build/cl/node_"$NODE_NUMBER"/beacon ]; then
+            echo "Skipping genesis time reset"
+        else
+            ./reset_genesis_time.sh
+        fi
     else
         while [ 1 -eq 1 ]; do
             echo "Waiting on Genesis time ..."
@@ -54,10 +72,9 @@ else
     echo -n "$JWT" > $JWTSECRET
 
     ./beacon_node.sh 2>&1 | tee /var/log/lighthouse_bn.log &
-    lpid=$!
+    beacon_pid=$!
     ./validator_client.sh 2>&1 | tee /var/log/lighthouse_vc.log &
-    vpid=$!
+    validator_pid=$!
 
-    wait $lpid $vpid
+    wait $beacon_pid $validator_pid
 fi
-

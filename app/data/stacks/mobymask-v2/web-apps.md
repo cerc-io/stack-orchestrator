@@ -6,30 +6,10 @@ Instructions to setup and deploy MobyMask and Peer Test web apps
 
 Prerequisite: Watcher with GQL and relay node endpoints
 
-Clone required repositories:
-
-```bash
-laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/react-peer,cerc-io/mobymask-ui
-
-# If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
-```
-
-Checkout to the required versions and branches in repos:
-
-```bash
-# react-peer
-cd ~/cerc/react-peer
-git checkout v0.2.31
-
-# mobymask-ui
-cd ~/cerc/mobymask-ui
-git checkout laconic
-```
-
 Build the container images:
 
 ```bash
-laconic-so --stack mobymask-v2 build-containers --include cerc/react-peer-v2,cerc/mobymask-ui
+laconic-so --stack mobymask-v2 build-containers --include cerc/react-peer,cerc/mobymask-ui
 ```
 
 This should create the required docker images in the local image registry
@@ -41,14 +21,12 @@ This should create the required docker images in the local image registry
 Create and update an env file to be used in the next step ([defaults](../../config/watcher-mobymask-v2/mobymask-params.env)):
 
   ```bash
-  # Set relay nodes to be used by the web-app
-  CERC_RELAY_NODES=["/ip4/127.0.0.1/tcp/9090/ws/p2p/12D3KooWSPCsVkHVyLQoCqhu2YRPvvM7o6r6NRYyLM5zeA6Uig5t"]
+  # Set of relay nodes to be used by the web-app
+  # (use double quotes " for strings, avoid space after commas)
+  # Eg. CERC_RELAY_NODES=["/dns4/example.com/tcp/443/wss/p2p/12D3KooWGHmDDCc93XUWL16FMcTPCGu2zFaMkf67k8HZ4gdQbRDr"]
+  CERC_RELAY_NODES=[]
 
   # Also add if running MobyMask app:
-
-  # External watcher endpoint (to check if watcher is up)
-  CERC_WATCHER_HOST=
-  CERC_WATCHER_PORT=
 
   # Watcher endpoint used by the app for GQL queries
   CERC_APP_WATCHER_URL="http://127.0.0.1:3001"
@@ -68,7 +46,7 @@ For running mobymask-app
 ```bash
 laconic-so --stack mobymask-v2 deploy --include mobymask-app --env-file <PATH_TO_ENV_FILE> up
 
-# Runs on host port 3002
+# Runs mobymask-app on host port 3002 and lxdao-mobymask-app on host port 3004
 ```
 
 For running peer-test-app
@@ -111,8 +89,8 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_deployment"
+docker volume ls -q --filter "name=.*mobymask_deployment|.*peers_ids"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_deployment")
+docker volume rm $(docker volume ls -q --filter "name=.*mobymask_deployment|.*peers_ids")
 ```

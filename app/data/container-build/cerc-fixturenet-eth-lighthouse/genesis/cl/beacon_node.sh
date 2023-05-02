@@ -19,9 +19,9 @@ http_port=8001
 authrpc_port=8551
 
 exec lighthouse \
-  --debug-level $DEBUG_LEVEL \
   bn \
   $SUBSCRIBE_ALL_SUBNETS \
+  --debug-level $DEBUG_LEVEL \
   --boot-nodes "$ENR" \
   --datadir $data_dir \
   --testnet-dir $TESTNET_DIR \
@@ -38,4 +38,5 @@ exec lighthouse \
   --execution-jwt $JWTSECRET \
   --terminal-total-difficulty-override $ETH1_TTD \
   --suggested-fee-recipient $SUGGESTED_FEE_RECIPIENT \
-  --target-peers $((BN_COUNT - 1))
+  --target-peers $((BN_COUNT - 1)) \
+  --http-allow-sync-stalled \

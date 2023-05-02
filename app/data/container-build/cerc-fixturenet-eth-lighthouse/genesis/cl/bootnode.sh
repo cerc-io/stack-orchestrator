@@ -23,10 +23,10 @@ if [ ! -f "$DATADIR/bootnode/enr.dat" ]; then
     --genesis-fork-version $GENESIS_FORK_VERSION \
     --output-dir $DATADIR/bootnode
 
-    bootnode_enr=`cat $DATADIR/bootnode/enr.dat`
-    echo "- $bootnode_enr" > $TESTNET_DIR/boot_enr.yaml
-    
-    echo "Generated bootnode enr and written to $TESTNET_DIR/boot_enr.yaml"
+  bootnode_enr=`cat $DATADIR/bootnode/enr.dat`
+  echo "- $bootnode_enr" > $TESTNET_DIR/boot_enr.yaml
+
+  echo "Generated bootnode enr and written to $TESTNET_DIR/boot_enr.yaml"
 fi
 
 exec lighthouse boot_node \

@@ -12,6 +12,6 @@ for line in `cat ../build/el/accounts.csv`; do
 
   echo ""
   echo "$ADDRESS"
-  geth account import --password .pw.$$ .key.$$
+  geth account import --datadir=~/ethdata --password .pw.$$ .key.$$
   rm -f .pw.$$ .key.$$
 done

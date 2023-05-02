@@ -19,21 +19,22 @@ Checkout to the required versions and branches in repos:
 ```bash
 # Optimism
 cd ~/cerc/optimism
-git checkout @eth-optimism/sdk@0.0.0-20230329025055
+git checkout v1.0.4
 ```
 
 Build the container images:
 
 ```bash
-laconic-so --stack fixturenet-optimism build-containers --include cerc/foundry,cerc/optimism-contracts,cerc/optimism-op-node,cerc/optimism-l2geth,cerc/optimism-op-batcher
+laconic-so --stack fixturenet-optimism build-containers --include cerc/foundry,cerc/optimism-contracts,cerc/optimism-op-node,cerc/optimism-l2geth,cerc/optimism-op-batcher,cerc/optimism-op-proposer
 ```
 
 This should create the required docker images in the local image registry:
 * `cerc/foundry`
 * `cerc/optimism-contracts`
 * `cerc/optimism-l2geth`
-* `cerc/optimism-op-batcher`
 * `cerc/optimism-op-node`
+* `cerc/optimism-op-batcher`
+* `cerc/optimism-op-proposer`
 
 ## Deploy
 
@@ -46,8 +47,13 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   CERC_L1_HOST=
   CERC_L1_PORT=
 
-  # Credentials for accounts on L1 to send balance to Optimism Proxy contract from
+  # URL to get CSV with credentials for accounts on L1
+  # that are used to send balance to Optimism Proxy contract
   # (enables them to do transactions on L2)
+  CERC_L1_ACCOUNTS_CSV_URL=
+
+  # OR
+  # Specify the required account credentials
   CERC_L1_ADDRESS=
   CERC_L1_PRIV_KEY=
   CERC_L1_ADDRESS_2=
@@ -84,17 +90,17 @@ docker logs -f <CONTAINER_ID>
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack fixturenet-optimism deploy --include fixturenet-optimism down
+laconic-so --stack fixturenet-optimism deploy --include fixturenet-optimism down 30
 ```
 
 Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
+docker volume ls -q --filter "name=.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
+docker volume rm $(docker volume ls -q --filter "name=.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
 ```
 
 ## Troubleshooting

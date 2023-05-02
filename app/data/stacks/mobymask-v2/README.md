@@ -23,15 +23,11 @@ Checkout to the required versions and branches in repos
 ```bash
 # watcher-ts
 cd ~/cerc/watcher-ts
-git checkout v0.2.35
+git checkout v0.2.39
 
-# react-peer
-cd ~/cerc/react-peer
-git checkout v0.2.31
-
-# mobymask-ui
-cd ~/cerc/mobymask-ui
-git checkout laconic
+# mobymask-v2-watcher-ts
+cd ~/cerc/mobymask-v2-watcher-ts
+git checkout v0.1.0
 
 # MobyMask
 cd ~/cerc/MobyMask
@@ -39,7 +35,7 @@ git checkout v0.1.2
 
 # Optimism
 cd ~/cerc/optimism
-git checkout @eth-optimism/sdk@0.0.0-20230329025055
+git checkout v1.0.4
 ```
 
 Build the container images:
@@ -73,13 +69,13 @@ Deploy the stack:
 Find the watcher container's id and export it for later use:
 
 ```bash
-export CONTAINER_ID=$(docker ps -q --filter "name=mobymask-watcher-server")
+export CONTAINER_ID=$(docker ps -q --filter "name=peer-tests")
 ```
 
 Run the peer tests:
 
 ```bash
-docker exec -w /app/packages/peer $CONTAINER_ID yarn test
+docker exec $CONTAINER_ID yarn test
 ```
 
 ## Web Apps
@@ -115,15 +111,15 @@ Follow the [demo](./demo.md) to try out the MobyMask app with L2 chain
 Stop all the services running in background run:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy-system down
+laconic-so --stack mobymask-v2 deploy-system down 30
 ```
 
 Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*mobymask_deployment|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
+docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*mobymask_deployment|.*fixturenet_geth_accounts|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
+docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
 ```

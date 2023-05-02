@@ -34,25 +34,34 @@ services:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       ENV: "PROD"
       CERC_L2_GETH_RPC: ${CERC_L2_GETH_RPC}
+      CERC_L1_ACCOUNTS_CSV_URL: ${CERC_L1_ACCOUNTS_CSV_URL}
       CERC_PRIVATE_KEY_DEPLOYER: ${CERC_PRIVATE_KEY_DEPLOYER}
       CERC_MOBYMASK_APP_BASE_URI: ${CERC_MOBYMASK_APP_BASE_URI}
       CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
-    # Waits for L2 Optimism Geth and Node servers to be up before deploying contract
-    command:
-      - sh
-      - -c
-      - |
-        ./wait-for-it.sh -h ${CERC_L2_GETH_HOST:-$${DEFAULT_CERC_L2_GETH_HOST}} -p ${CERC_L2_GETH_PORT:-$${DEFAULT_CERC_L2_GETH_PORT}} -s -t 0 && \
-        ./wait-for-it.sh -h ${CERC_L2_NODE_HOST:-$${DEFAULT_CERC_L2_NODE_HOST}} -p ${CERC_L2_NODE_PORT:-$${DEFAULT_CERC_L2_NODE_PORT}} -s -t 0 && \
-        ./deploy-and-generate-invite.sh
+      CERC_L2_GETH_HOST: ${CERC_L2_GETH_HOST}
+      CERC_L2_GETH_PORT: ${CERC_L2_GETH_PORT}
+      CERC_L2_NODE_HOST: ${CERC_L2_NODE_HOST}
+      CERC_L2_NODE_PORT: ${CERC_L2_NODE_PORT}
+    command: ["sh", "deploy-and-generate-invite.sh"]
     volumes:
       - ../config/wait-for-it.sh:/app/packages/server/wait-for-it.sh
       - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json
       - ../config/watcher-mobymask-v2/deploy-and-generate-invite.sh:/app/packages/server/deploy-and-generate-invite.sh
       - mobymask_deployment:/app/packages/server
-      - fixturenet_geth_accounts:/geth-accounts:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  # Creates peer-id files if they don't exist
+  peer-ids-gen:
+    image: cerc/watcher-ts:local
+    restart: on-failure
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    working_dir: /app/packages/peer
+    command: ["sh", "generate-peer-ids.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v2/generate-peer-ids.sh:/app/packages/peer/generate-peer-ids.sh
+      - peers_ids:/peer-ids
 
   # Starts the mobymask-v2-watcher server
   mobymask-watcher-server:
@@ -61,6 +70,8 @@ services:
     depends_on:
       mobymask-watcher-db:
         condition: service_healthy
+      peer-ids-gen:
+        condition: service_completed_successfully
       mobymask:
         condition: service_completed_successfully
     env_file:
@@ -69,18 +80,18 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_L2_GETH_RPC: ${CERC_L2_GETH_RPC}
+      CERC_L1_ACCOUNTS_CSV_URL: ${CERC_L1_ACCOUNTS_CSV_URL}
       CERC_PRIVATE_KEY_PEER: ${CERC_PRIVATE_KEY_PEER}
+      CERC_RELAY_PEERS: ${CERC_RELAY_PEERS}
+      CERC_RELAY_ANNOUNCE_DOMAIN: ${CERC_RELAY_ANNOUNCE_DOMAIN}
       CERC_ENABLE_PEER_L2_TXS: ${CERC_ENABLE_PEER_L2_TXS}
       CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
     command: ["sh", "start-server.sh"]
     volumes:
-      - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/packages/mobymask-v2-watcher/environments/watcher-config-template.toml
-      - ../config/watcher-mobymask-v2/peer.env:/app/packages/peer/.env
-      - ../config/watcher-mobymask-v2/relay-id.json:/app/packages/mobymask-v2-watcher/relay-id.json
-      - ../config/watcher-mobymask-v2/peer-id.json:/app/packages/mobymask-v2-watcher/peer-id.json
-      - ../config/watcher-mobymask-v2/start-server.sh:/app/packages/mobymask-v2-watcher/start-server.sh
+      - ../config/watcher-mobymask-v2/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-mobymask-v2/start-server.sh:/app/start-server.sh
+      - peers_ids:/app/peers
       - mobymask_deployment:/server
-      - fixturenet_geth_accounts:/geth-accounts:ro
     # Expose GQL, metrics and relay node ports
     ports:
       - "0.0.0.0:3001:3001"
@@ -95,7 +106,29 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Container to run peer tests
+  peer-tests:
+    image: cerc/watcher-ts:local
+    restart: on-failure
+    depends_on:
+      mobymask-watcher-server:
+        condition: service_healthy
+      peer-ids-gen:
+        condition: service_completed_successfully
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    working_dir: /app/packages/peer
+    command:
+      - sh
+      - -c
+      - |
+        ./set-tests-env.sh && \
+        tail -f /dev/null
+    volumes:
+      - ../config/watcher-mobymask-v2/set-tests-env.sh:/app/packages/peer/set-tests-env.sh
+      - peers_ids:/peer-ids
+
 volumes:
   mobymask_watcher_db_data:
+  peers_ids:
   mobymask_deployment:
-  fixturenet_geth_accounts:

@@ -7,5 +7,6 @@ if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
 fi
 python3 -m venv venv
 source ./venv/bin/activate
-pip install --editable .
+python3 -m pip install --upgrade pip setuptools wheel
 pip install shiv
+pip install --editable .

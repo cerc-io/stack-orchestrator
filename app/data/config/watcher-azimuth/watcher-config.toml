@@ -1,0 +1,13 @@
+[server]
+  host = "0.0.0.0"
+
+[database]
+  host = "watcher-db"
+  port = 5432
+  username = "vdbm"
+  password = "password"
+
+[upstream]
+  [upstream.ethServer]
+    gqlApiEndpoint = "http://host.docker.internal:8083/graphql"
+    rpcProviderEndpoint = "http://host.docker.internal:8082"

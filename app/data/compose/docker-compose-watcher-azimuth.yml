@@ -32,11 +32,11 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     working_dir: /app/packages/azimuth-watcher
-    command: "yarn server"
+    command: "./start-server.sh"
     volumes:
-      - ../config/watcher-azimuth/watcher-configs/azimuth-watcher.toml:/app/packages/azimuth-watcher/environments/local.toml
-    # ports:
-    #   - "0.0.0.0:3001:3001"
+      - ../config/watcher-azimuth/watcher-config.toml:/app/packages/azimuth-watcher/environments/watcher-config.toml
+      - ../config/watcher-azimuth/merge-toml.js:/app/packages/azimuth-watcher/merge-toml.js
+      - ../config/watcher-azimuth/start-server.sh:/app/packages/azimuth-watcher/start-server.sh
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "3001"]
       interval: 20s
@@ -56,11 +56,11 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     working_dir: /app/packages/censures-watcher
-    command: "yarn server"
+    command: "./start-server.sh"
     volumes:
-      - ../config/watcher-azimuth/watcher-configs/censures-watcher.toml:/app/packages/censures-watcher/environments/local.toml
-    # ports:
-    #   - "0.0.0.0:3001:3001"
+      - ../config/watcher-azimuth/watcher-config.toml:/app/packages/censures-watcher/environments/watcher-config.toml
+      - ../config/watcher-azimuth/merge-toml.js:/app/packages/censures-watcher/merge-toml.js
+      - ../config/watcher-azimuth/start-server.sh:/app/packages/censures-watcher/start-server.sh
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "3002"]
       interval: 20s

@@ -10,7 +10,7 @@ services:
     volumes:
       # TODO: look at folding these into the container
       - ../config/laconic-explorer/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
-      - ${GENESIS_PATH}:/laconic-configs/genesis.json
+      - ${GENESIS_FILE}:/laconic-configs/genesis.json
     ports:
       - "${P2P_PORT:-27656}:26656"
       - "26657"

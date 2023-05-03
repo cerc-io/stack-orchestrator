@@ -1,31 +1,35 @@
 # Laconicd Explorer
 
-Instructions for first deploying a local Laconic blockchain "fixturenet," and then then deploying a block explorer. The explorer stack has two containers:  
+Instructions for deploying a block explorer for Laconicd. The explorer stack has two containers:  
 - an Nginx image to serve the explorer app, Ping.pub[https://github.com/ping-pub/explorer], configured for Laconicd
 - a non-consensus Laconicd full node to connect with the fixturenet and provide chain data to the explorer
 
-## Prerequisites
-http vs https
-
 ## 1. Start a Laconicd Fixturenet
-Follow the instructions here[https://github.com/cerc-io/stack-orchestrator/tree/main/app/data/stacks/fixturenet-laconicd] to start a Laconicd fixturenet.  
+Follow the instructions [here](https://github.com/cerc-io/stack-orchestrator/tree/main/app/data/stacks/fixturenet-laconicd) to start a Laconicd fixturenet.  
 Verify that it is running correctly and producing blocks with:
 ```
 $ laconic-so --stack fixturenet-laconicd deploy logs
 ```
 
-## 2. Connection requirements
+## 2. Prepare fixturenet connection
 The explorer's full node will need to connect to the fixturenet and sync with the chain. To connect with an already running chain (such as the one created in step 1) we will need:
 - the address of at least one peer (node_id@IP.address:port)
 - the genesis.json file for the chain  
 
 Get the node id of the fixturenet validator and save it for later:
 ```
-command
+$ laconic-so --stack fixturenet-laconicd deploy exec laconicd "curl -s localhost:26657/status" | jq .result.node_info.id
+"14634704773dfa45b2411dbc627a63f9fe835732"
 ```
+*Note:* your node id will be different than the one above.  
 Copy the genesis.json file to the host to a directory of your choice for later:
 ```
-command
+# Find the container id or name of the laconicd container
+$ docker ps
+
+# Copy the genesis.json file from the container to the host
+$ mkdir ~/laconic-explorer
+$ docker cp {container id found above}:/root/.laconicd/config/genesis.json ~/laconic-explorer/genesis.json
 ```
 
 ## 3. Clone explorer repositories
@@ -43,7 +47,7 @@ USE_HTTPS="false"
 
 # domain name hosting the explorer, required if using https
 # eg: "laconic.run"
-# EXPLORER_DOMAIN=""
+# export EXPLORER_DOMAIN=""
 
 # or IP address hosting the explorer, required if not using https
 EXPLORER_IP=""
@@ -86,7 +90,7 @@ You will also need to make sure that ports `80`, `API_PORT` and `RPC_PORT` are o
 $ laconic-so --stack laconic-explorer build-containers
 ```
 ## 6a. Deploy stack
-In `laconic-explorer.env`, set `PEERS` to the value of the fixturenet validator (node_id@IP.address:P2P-port). *E.g.:* if running the demo on a DO droplet, it would look something like ``PEERS={node_id}@{droplet IP}:26656`  
+In `laconic-explorer.env`, set `PEERS` to the value of the fixturenet validator (node_id@IP.address:P2P_port). *E.g.:* if running the demo on a DO droplet, it would look something like ``PEERS={node_id}@{droplet IP}:26656`  
   
 Set `GENESIS_FILE` to the location on the host of `genesis.json` you copied from the fixturenet.  
   
@@ -99,13 +103,13 @@ $ laconic-so --stack laconic-explorer deploy up
 You should now be able to view the explorer by opening `http://EXPLORER_IP` in your web browser. (It may take a few minutes for the explorer's full node to sync up to the head of the fixturenet chain).
   
 ## *Setup for HTTPS:*
-Before starting, you will need a domain name (we'll use `laconic.run` in the examples; yours will be different) with the following A records set to your IP:
+Before starting, you will need a domain name (we'll use `laconic.run` in the examples; yours will be different) with the following A records set to your IP address:
 - `laconic.run`
 - `www.laconic.run`
 - `api.laconic.run`
 - `rpc.laconic.run`
   
-In `laconic-explorer.env`, set `USE_HTTPS` to `"true"` and set `EXPLORER_DOMAIN` to your domain.
+In `laconic-explorer.env`, set `USE_HTTPS` to `"true"` and set `EXPLORER_DOMAIN` to your root domain (`laconic.run`).
   
 You will also need to make sure that ports `80` and `443` are open on your firewall.
 
@@ -118,11 +122,10 @@ Request a single SSL cert for your domain and two subdomains:
 ```
 sudo certbot certonly -d laconic.run -d api.laconic.run -d rpc.laconic.run --register-unsafely-without-email --no-redirect --agree-tos
 ```
-?additional steps?
-Check that the certificate was added correctly:
+When prompted, choose option 1 to spin up a temporary webserver.  
+Check that the certificate was added correctly, and that they're located at `/etc/letsencrypt/live/{domain name}`:
 ```
 sudo certbot certificates
-sudo ls /etc/letsencrypt/live/laconic.run
 ```
 ## 6b. Build containers
 ```

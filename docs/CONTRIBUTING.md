@@ -26,7 +26,7 @@ In addition to the pre-requisites listed in the [README](/README.md), the follow
 
 1. Clone this repository:
    ```
-   $ git clone (https://github.com/cerc-io/stack-orchestrator.git
+   $ git clone https://github.com/cerc-io/stack-orchestrator.git
    ```
 
 2. Enter the project directory:

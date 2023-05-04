@@ -87,20 +87,27 @@ Use shiv to build a single file Python executable zip archive of laconic-so:
    ```
    $ cp stack-orchetrator/laconic-so ~/bin
    $ laconic-so
-      Usage: python -m laconic-so [OPTIONS] COMMAND [ARGS]...
+      Usage: laconic-so [OPTIONS] COMMAND [ARGS]...
 
       Laconic Stack Orchestrator
 
    Options:
+      --stack TEXT         specify a stack to build/deploy
       --quiet
       --verbose
       --dry-run
-      -h, --help  Show this message and exit.
+      --local-stack
+      --debug
+      --continue-on-error
+      -h, --help           Show this message and exit.
 
    Commands:
       build-containers    build the set of containers required for a complete...
+      build-npms          build the set of npm packages required for a...
+      deploy              deploy a stack
       deploy-system       deploy a stack
       setup-repositories  git clone the set of repositories required to build...
+      version             print tool version
    ```
 
 For cutting releases, use the [shiv build script](/scripts/build_shiv_package.sh).

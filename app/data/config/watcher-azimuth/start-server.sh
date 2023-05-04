@@ -21,7 +21,6 @@ echo "Using IPLD GQL endpoint ${CERC_IPLD_GQL}"
 # echo "$WATCHER_CONFIG" > environments/watcher-config.toml
 
 # Merge SO watcher config with existing config file
-yarn add --dev --ignore-scripts toml-js
 node merge-toml.js
 
 

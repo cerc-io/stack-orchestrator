@@ -1,6 +1,7 @@
 {
   "relayNodes": [],
   "peer": {
+    "denyMultiaddrs": [],
     "enableDebugInfo": true
   }
 }

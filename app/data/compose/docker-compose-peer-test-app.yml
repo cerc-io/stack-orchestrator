@@ -10,6 +10,7 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
+      CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
     command: ["sh", "test-app-start.sh"]
     volumes:
       - ../config/wait-for-it.sh:/scripts/wait-for-it.sh

@@ -10,4 +10,4 @@ RUN echo "Building azimuth-watcher-ts" && \
     yarn && yarn build
 
 RUN echo "Install toml-js to update watcher config files" && \
-    yarn add --dev toml-js
+    yarn add --dev --ignore-workspace-root-check toml-js

@@ -29,3 +29,4 @@ ethereum-optimism/op-geth
 ethereum-optimism/optimism
 pokt-network/pocket-core
 pokt-network/pocket-core-deployments
+cerc-io/azimuth-watcher-ts

@@ -1,5 +1,6 @@
 [server]
   host = "0.0.0.0"
+  maxSimultaneousRequests = -1
 
 [database]
   host = "watcher-db"
@@ -9,5 +10,5 @@
 
 [upstream]
   [upstream.ethServer]
-    gqlApiEndpoint = "http://host.docker.internal:8083/graphql"
-    rpcProviderEndpoint = "http://host.docker.internal:8082"
+    gqlApiEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_GQL"
+    rpcProviderEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_RPC"

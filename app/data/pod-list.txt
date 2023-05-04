@@ -24,4 +24,5 @@ tx-spammer
 kubo
 foundry
 fixturenet-optimism
+fixturenet-pocket
 laconic-explorer

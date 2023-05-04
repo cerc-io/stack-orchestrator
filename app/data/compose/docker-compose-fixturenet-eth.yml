@@ -49,6 +49,8 @@ services:
       timeout: 10s
       retries: 10
       start_period: 3s
+    environment:
+      CERC_KEEP_RUNNING_AFTER_GETH_EXIT: "true"
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/fixturenet-eth-geth:local
@@ -62,8 +64,6 @@ services:
     environment:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-lighthouse:local
-    volumes:
-      - fixturenet_eth_bootnode_lighthouse_data:/opt/testnet/build/cl
 
   fixturenet-eth-lighthouse-1:
     hostname: fixturenet-eth-lighthouse-1
@@ -118,6 +118,5 @@ volumes:
   fixturenet_eth_bootnode_geth_data:
   fixturenet_eth_geth_1_data:
   fixturenet_eth_geth_2_data:
-  fixturenet_eth_bootnode_lighthouse_data:
   fixturenet_eth_lighthouse_1_data:
   fixturenet_eth_lighthouse_2_data:

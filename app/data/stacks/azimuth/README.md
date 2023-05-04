@@ -20,7 +20,7 @@ Checkout to the required versions and branches in repos
 ```bash
 # azimuth-watcher-ts
 cd ~/cerc/azimuth-watcher-ts
-# git checkout v0.1.0
+git checkout v0.1.0
 ```
 
 Build the container images:

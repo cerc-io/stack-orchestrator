@@ -25,8 +25,6 @@ const main = () => {
 
   updatedConfig.jobQueue.dbConnectionString = parts.join("://");
 
-  updatedConfig.jobQueue.dbConnectionString = parts.join("://");
-
   fs.writeFileSync('environments/local.toml', tomlJS.dump(updatedConfig), 'utf-8');
 }
 

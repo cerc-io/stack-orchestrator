@@ -13,6 +13,7 @@ services:
       CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
       CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
+      CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
       CERC_BUILD_DIR: "@cerc-io/mobymask-ui/build"
     working_dir: /scripts
     command: ["sh", "mobymask-app-start.sh"]
@@ -44,6 +45,7 @@ services:
       CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
       CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
+      CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
       CERC_BUILD_DIR: "@cerc-io/mobymask-ui-lxdao/build"
     working_dir: /scripts
     command: ["sh", "mobymask-app-start.sh"]

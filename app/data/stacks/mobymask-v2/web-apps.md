@@ -26,6 +26,9 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # Eg. CERC_RELAY_NODES=["/dns4/example.com/tcp/443/wss/p2p/12D3KooWGHmDDCc93XUWL16FMcTPCGu2zFaMkf67k8HZ4gdQbRDr"]
   CERC_RELAY_NODES=[]
 
+  # Set of multiaddrs to be avoided while dialling
+  CERC_DENY_MULTIADDRS=[]
+
   # Also add if running MobyMask app:
 
   # Watcher endpoint used by the app for GQL queries

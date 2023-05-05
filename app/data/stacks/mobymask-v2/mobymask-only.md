@@ -19,11 +19,11 @@ Checkout to the required versions and branches in repos:
 ```bash
 # watcher-ts
 cd ~/cerc/watcher-ts
-git checkout v0.2.39
+git checkout v0.2.41
 
 # mobymask-v2-watcher-ts
 cd ~/cerc/mobymask-v2-watcher-ts
-git checkout v0.1.0
+git checkout v0.1.1
 
 # MobyMask
 cd ~/cerc/MobyMask
@@ -67,11 +67,14 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # (used for generating a root invite link after deploying the contract)
   CERC_MOBYMASK_APP_BASE_URI="http://127.0.0.1:3002/#"
 
+  # (Optional) Domain to be used in the relay node's announce address
+  CERC_RELAY_ANNOUNCE_DOMAIN=
+
   # (Optional) Set of relay peers to connect to from the relay node
   CERC_RELAY_PEERS=[]
 
-  # (Optional) Domain to be used in the relay node's announce address
-  CERC_RELAY_ANNOUNCE_DOMAIN=
+  # (Optional) Set of multiaddrs to be avoided while dialling
+  CERC_DENY_MULTIADDRS=[]
 
   # Set to false for disabling watcher peer to send txs to L2
   CERC_ENABLE_PEER_L2_TXS=true

@@ -15,7 +15,13 @@ CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRA
 
 echo "Using L2 RPC endpoint ${CERC_L2_GETH_RPC}"
 
-CERC_RELAY_MULTIADDR="/dns4/mobymask-watcher-server/tcp/9090/ws/p2p/$(jq -r '.id' /app/peers/relay-id.json)"
+# Use public domain for relay multiaddr in peer config if specified
+# Otherwise, use the docker container's host IP
+if [ -n "$CERC_RELAY_ANNOUNCE_DOMAIN" ]; then
+  CERC_RELAY_MULTIADDR="/dns4/${CERC_RELAY_ANNOUNCE_DOMAIN}/tcp/443/wss/p2p/$(jq -r '.id' /app/peers/relay-id.json)"
+else
+  CERC_RELAY_MULTIADDR="/dns4/mobymask-watcher-server/tcp/9090/ws/p2p/$(jq -r '.id' /app/peers/relay-id.json)"
+fi
 
 # Use contract address from environment variable or set from config.json in mounted volume
 if [ -n "$CERC_DEPLOYED_CONTRACT" ]; then

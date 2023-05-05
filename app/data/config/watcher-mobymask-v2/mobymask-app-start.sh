@@ -7,6 +7,7 @@ fi
 CERC_CHAIN_ID="${CERC_CHAIN_ID:-${DEFAULT_CERC_CHAIN_ID}}"
 CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRACT}}"
 CERC_RELAY_NODES="${CERC_RELAY_NODES:-${DEFAULT_CERC_RELAY_NODES}}"
+CERC_DENY_MULTIADDRS="${CERC_DENY_MULTIADDRS:-${DEFAULT_CERC_DENY_MULTIADDRS}}"
 CERC_APP_WATCHER_URL="${CERC_APP_WATCHER_URL:-${DEFAULT_CERC_APP_WATCHER_URL}}"
 
 # If not set (or []), check the mounted volume for relay peer id
@@ -37,5 +38,6 @@ yq -n ".address = env(CERC_DEPLOYED_CONTRACT)" > /config/config.yml
 yq ".watcherUrl = env(CERC_APP_WATCHER_URL)" -i /config/config.yml
 yq ".chainId = env(CERC_CHAIN_ID)" -i /config/config.yml
 yq ".relayNodes = strenv(CERC_RELAY_NODES)" -i /config/config.yml
+yq ".denyMultiaddrs = strenv(CERC_DENY_MULTIADDRS)" -i /config/config.yml
 
 /scripts/start-serving-app.sh

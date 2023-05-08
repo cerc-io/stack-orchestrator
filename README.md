@@ -35,58 +35,28 @@ curl -L -o ~/bin/laconic-so https://github.com/cerc-io/stack-orchestrator/releas
 ```
 
 Give it execute permissions:
+
 ```bash
 chmod +x ~/bin/laconic-so
 ```
 
 Ensure `laconic-so` is on the [`PATH`](https://unix.stackexchange.com/a/26059)
 
-Verify operation (your version will probably be different, just check here that you see some version outut and not an error):
+Verify operation (your version will probably be different, just check here that you see some version output and not an error):
 
 ```
 laconic-so version
-Version: v1.0.27-7831078
+Version: 1.1.0-7a607c2-202304260513
 ```
 
 ## Usage
 
-Three sub-commands: `setup-repositories`, `build-containers` and `deploy-system` are generally run in order. The following is a slim example for standing up the `erc20-watcher`. Go further with the [erc20 watcher demo](/app/data/stacks/erc20) and other pieces of the stack, within the [`stacks` directory](/app/data/stacks).
+The various [stacks](/app/data/stacks) each contain instructions for running different stacks based on your use case. For example:
 
-### Setup Repositories
-
-Clone the set of git repositories necessary to build a system:
-
-```bash
-laconic-so --stack erc20 setup-repositories
-```
-
-This will default to cloning git reposiories into: `~/cerc` or - if set - the environment variable `CERC_REPO_BASE_DIR`
-
-### Build Containers
-
-Build the set of docker container images required to run a system. It takes around 10 minutes to build all the containers from scratch.
-
-```bash
-laconic-so --stack erc20 build-containers
-```
-
-### Deploy System
-
-Uses `docker compose` to deploy a system (with most recently built container images).
-
-```bash
-laconic-so --stack erc20 deploy-system up
-```
-
-Check out he GraphQL playground here: [http://localhost:3002/graphql](http://localhost:3002/graphql)
-
-See the [erc20 watcher demo](/app/data/stacks/erc20) to continue further.
-
-### Cleanup
-
-```bash
-laconic-so --stack erc20 deploy-system down
-```
+- [self-hosted Gitea](/app/data/stacks/build-support)
+- [an Optimism Fixturenet](/app/data/stacks/fixturenet-optimism)
+- [laconicd with console and CLI](app/data/stacks/fixturenet-laconic-loaded)
+- [kubo (IPFS)](app/data/stacks/kubo)
 
 ## Contributing
 

@@ -2,7 +2,7 @@
 
 Instructions to setup and deploy an end-to-end L1+L2 stack with [fixturenet-eth](../fixturenet-eth/) (L1) and [Optimism](https://stack.optimism.io) (L2)
 
-We support running just the L2 part of stack, given an external L1 endpoint. Follow [l2-only](./l2-only.md) for the same.
+We support running just the L2 part of stack, given an external L1 endpoint. Follow the [L2 only doc](./l2-only.md) for the same.
 
 ## Setup
 
@@ -28,6 +28,8 @@ Build the container images:
 laconic-so --stack fixturenet-optimism build-containers
 ```
 
+Note: this will take >10 mins depending on the specs of your machine, and **requires** 16GB of memory or greater.
+
 This should create the required docker images in the local image registry:
 * `cerc/go-ethereum`
 * `cerc/lighthouse`
@@ -48,12 +50,14 @@ Deploy the stack:
 laconic-so --stack fixturenet-optimism deploy up
 ```
 
-The `fixturenet-optimism-contracts` service may take a while (`~15 mins`) to complete running as it:
+If you get the error `service "fixturenet-optimism-contracts" didn't complete successfully: exit 1` with ~25 lines of Traceback, wait 15-20 mins then re-run the command.
+
+The `fixturenet-optimism-contracts` service takes a while to complete running as it:
 1. waits for the 'Merge' to happen on L1
 2. waits for a finalized block to exist on L1 (so that it can be taken as a starting block for roll ups)
 3. deploys the L1 contracts
 
-To list down and monitor the running containers:
+To list and monitor the running containers:
 
 ```bash
 laconic-so --stack fixturenet-optimism deploy ps

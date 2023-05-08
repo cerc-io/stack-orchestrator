@@ -24,4 +24,6 @@ tx-spammer
 kubo
 foundry
 fixturenet-optimism
+fixturenet-pocket
+watcher-azimuth
 fixturenet-lotus

@@ -117,8 +117,8 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-$ docker volume ls -q --filter "name=.*fixturenet_eth_bootnode_geth_data|.*fixturenet_eth_bootnode_lighthouse_data|.*fixturenet_eth_geth_1_data|.*fixturenet_eth_geth_2_data|.*fixturenet_eth_lighthouse_1_data|.*fixturenet_eth_lighthouse_2_data"
+$ docker volume ls -q --filter "name=.*fixturenet_eth_bootnode_geth_data|.*fixturenet_eth_geth_1_data|.*fixturenet_eth_geth_2_data|.*fixturenet_eth_lighthouse_1_data|.*fixturenet_eth_lighthouse_2_data"
 
 # Remove all the listed volumes
-$ docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_eth_bootnode_geth_data|.*fixturenet_eth_bootnode_lighthouse_data|.*fixturenet_eth_geth_1_data|.*fixturenet_eth_geth_2_data|.*fixturenet_eth_lighthouse_1_data|.*fixturenet_eth_lighthouse_2_data")
+$ docker volume rm $(docker volume ls -q --filter "name=.*fixturenet_eth_bootnode_geth_data|.*fixturenet_eth_geth_1_data|.*fixturenet_eth_geth_2_data|.*fixturenet_eth_lighthouse_1_data|.*fixturenet_eth_lighthouse_2_data")
 ```

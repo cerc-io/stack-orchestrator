@@ -33,7 +33,7 @@ do
     echo "Substituting: ${template_string_to_replace} = ${template_value_to_substitute}"
 
     # TODO: Pass keys to be replaced without double quotes
-    if [[ "$template_string_to_replace" == "${config_prefix}_relayNodes" ]]; then
+    if [[ "$template_string_to_replace" =~ ^${config_prefix}_(relayNodes|denyMultiaddrs)$ ]]; then
         find ${webapp_files_dir} -type f -exec sed -i 's#"'"${template_string_to_replace}"'"#'"${template_value_to_substitute}"'#g' {} +
     else
         # Note: we do not escape our strings, on the expectation they do not container the '#' char.

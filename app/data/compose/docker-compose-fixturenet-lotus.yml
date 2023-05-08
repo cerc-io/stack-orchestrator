@@ -1,0 +1,83 @@
+version: "3.8"
+services:
+
+  lotus-miner:
+    hostname: lotus-miner
+    env_file:
+      - ../config/fixturenet-lotus/lotus-env.env
+    image: cerc/lotus:local
+    volumes:
+      - ../config/fixturenet-lotus/setup-miner.sh:/docker-entrypoint-scripts.d/setup-miner.sh
+      - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
+      - $HOME/stack-orchestrator/app/data/config/fixturenet-lotus/genesis/.genesis-sectors:/root/.genesis-sectors
+#      - lotus-local-net-shared:/root/.lotus-local-net
+    # healthcheck:
+    #   test: ["CMD-SHELL", "grep 'started ChainNotify channel' /var/log/lotus.log"]
+    #   interval: 10s
+    #   timeout: 10s
+    #   retries: 5
+    #   start_period: 30s
+#    depends_on:
+#      - fixturenet-lotus-bootnode
+    entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-miner.sh"]
+    ports:
+      - "1234"
+      - "2345"
+      - "3456"
+      - "1777"
+
+  lotus-node-1:
+    hostname: lotus-node-1
+    env_file:
+      - ../config/fixturenet-lotus/lotus-env.env
+    image: cerc/lotus:local
+    volumes:
+      - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
+      - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
+#      - ../config/fixturenet-lotus/genesis/.genesis-sectors:/root/.genesis-sectors
+#      - ./myscripts/pre-seal-t01000.key:/root/.genesis-sectors/pre-seal-t01000.key
+#      - ./myscripts/pre-seal-t01000.json:/root/.genesis-sectors/pre-seal-t01000.json
+#      - lotus-local-net-shared:/root/.lotus-local-net
+#    healthcheck:
+#      test: ["CMD", "nc", "-v", "localhost", "8545"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 10
+#      start_period: 3s
+#    depends_on:
+#      - fixturenet-lotus-1
+    entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
+#    entrypoint: ["lotus", "--version"]
+    ports:
+      - "1234"
+      - "2345"
+      - "3456"
+      - "1777"
+
+  lotus-node-2:
+    hostname: lotus-node-2
+    env_file:
+      - ../config/fixturenet-lotus/lotus-env.env
+    image: cerc/lotus:local
+    volumes:
+      - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
+      - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
+#      - ../config/fixturenet-lotus/genesis/.genesis-sectors:/root/.genesis-sectors
+#      - ./myscripts/pre-seal-t01000.key:/root/.genesis-sectors/pre-seal-t01000.key
+#      - ./myscripts/pre-seal-t01000.json:/root/.genesis-sectors/pre-seal-t01000.json
+#      - lotus-local-net-shared:/root/.lotus-local-net
+#    healthcheck:
+#      test: ["CMD", "nc", "-v", "localhost", "8545"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 10
+#      start_period: 3s
+#    depends_on:
+#      - fixturenet-lotus-1
+    entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
+#    entrypoint: ["lotus", "--version"]
+    ports:
+      - "1234"
+      - "2345"
+      - "3456"
+      - "1777"

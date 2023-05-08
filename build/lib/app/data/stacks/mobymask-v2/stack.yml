@@ -1,0 +1,31 @@
+version: "1.0"
+name: mobymask-v2
+repos:
+  - cerc-io/go-ethereum
+  - dboreham/foundry
+  - ethereum-optimism/optimism
+  - ethereum-optimism/op-geth
+  - cerc-io/watcher-ts
+  - cerc-io/mobymask-v2-watcher-ts
+  - cerc-io/MobyMask
+containers:
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/foundry
+  - cerc/optimism-contracts
+  - cerc/optimism-l2geth
+  - cerc/optimism-op-batcher
+  - cerc/optimism-op-node
+  - cerc/watcher-ts
+  - cerc/watcher-mobymask-v2
+  - cerc/react-peer
+  - cerc/mobymask-ui
+  - cerc/mobymask
+pods:
+  - fixturenet-eth
+  - fixturenet-optimism
+  - watcher-mobymask-v2
+  - mobymask-app
+  - peer-test-app

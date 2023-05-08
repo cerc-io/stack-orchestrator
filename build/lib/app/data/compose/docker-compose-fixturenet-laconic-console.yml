@@ -1,0 +1,8 @@
+services:
+  laconic-console:
+    restart: unless-stopped
+    image: cerc/laconic-console-host:local
+    environment:
+      - LACONIC_HOSTED_ENDPOINT=${LACONIC_HOSTED_ENDPOINT:-http://localhost}
+    ports:
+      - "80"

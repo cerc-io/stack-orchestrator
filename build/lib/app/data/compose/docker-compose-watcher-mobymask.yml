@@ -1,0 +1,65 @@
+version: '3.2'
+
+# TODO: remove hard-wired host ports
+
+services:
+
+  mobymask-watcher-db:
+    restart: unless-stopped
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=vdbm
+      - POSTGRES_MULTIPLE_DATABASES=mobymask-watcher,mobymask-watcher-job-queue
+      - POSTGRES_EXTENSION=mobymask-watcher-job-queue:pgcrypto
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
+      - mobymask_watcher_db_data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:15432:5432"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  mobymask-watcher-server:
+    restart: unless-stopped
+    depends_on:
+      mobymask-watcher-db:
+        condition: service_healthy
+    image: cerc/watcher-mobymask:local
+    command: ["sh", "-c", "yarn server"]
+    volumes:
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
+    ports:
+      - "0.0.0.0:3001:3001"
+      - "0.0.0.0:9001:9001"
+    extra_hosts:
+      - "ipld-eth-server:host-gateway"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3001"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  mobymask-watcher-job-runner:
+    restart: unless-stopped
+    depends_on:
+      mobymask-watcher-server:
+        condition: service_healthy
+      mobymask-watcher-db:
+        condition: service_healthy
+    image: cerc/watcher-mobymask:local
+    command: ["sh", "-c", "yarn job-runner"]
+    volumes:
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
+    ports:
+      - "0.0.0.0:9000:9000"
+    extra_hosts:
+      - "ipld-eth-server:host-gateway"
+
+volumes:
+  mobymask_watcher_db_data:

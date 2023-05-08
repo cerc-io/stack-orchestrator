@@ -1,0 +1,26 @@
+version: "3.2"
+services:
+  laconicd:
+    restart: unless-stopped
+    image: cerc/laconicd:local
+    command: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
+    volumes:
+      # TODO: look at folding these scripts into the container
+      - ../config/fixturenet-laconicd/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
+      - ../config/fixturenet-laconicd/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
+      - ../config/fixturenet-laconicd/export-myaddress.sh:/docker-entrypoint-scripts.d/export-myaddress.sh
+    # TODO: determine which of the ports below is really needed
+    ports:
+      - "6060"
+      - "26657"
+      - "26656"
+      - "9473:9473"
+      - "8545"
+      - "8546"
+      - "9090"
+      - "9091"
+      - "1317"
+  cli:
+    image: cerc/laconic-registry-cli:local
+    volumes:
+      - ../config/fixturenet-laconicd/registry-cli-config-template.yml:/registry-cli-config-template.yml

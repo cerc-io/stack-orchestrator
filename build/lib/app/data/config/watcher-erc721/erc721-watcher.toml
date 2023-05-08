@@ -1,0 +1,56 @@
+[server]
+  host = "0.0.0.0"
+  port = 3009
+  kind = "lazy"
+
+  # Checkpointing state.
+  checkpointing = true
+
+  # Checkpoint interval in number of blocks.
+  checkpointInterval = 2000
+
+  # Enable state creation
+  enableState = true
+
+  # Boolean to filter logs by contract.
+  filterLogs = false
+
+  # Max block range for which to return events in eventsInRange GQL query.
+  # Use -1 for skipping check on block range.
+  maxEventsBlockRange = 1000
+
+[metrics]
+  host = "127.0.0.1"
+  port = 9000
+  [metrics.gql]
+    port = 9001
+
+[database]
+  type = "postgres"
+  host = "erc721-watcher-db"
+  port = 5432
+  database = "erc721-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+  maxQueryExecutionTime = 100
+
+[upstream]
+  [upstream.ethServer]
+    gqlApiEndpoint = "http://ipld-eth-server:8082/graphql"
+    rpcProviderEndpoint = "http://ipld-eth-server:8081"
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@erc721-watcher-db:5432/erc721-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 100
+  eventsInBatch = 50
+  blockDelayInMilliSecs = 2000
+  prefetchBlocksInMem = true
+  prefetchBlockCount = 10

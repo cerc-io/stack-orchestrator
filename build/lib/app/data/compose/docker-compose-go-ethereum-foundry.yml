@@ -1,0 +1,30 @@
+version: "3.2"
+
+services:
+  go-ethereum:
+    restart: unless-stopped
+    depends_on:
+      ipld-eth-db:
+        condition: service_healthy
+    image: cerc/go-ethereum-foundry:local
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "8545"]
+      interval: 30s
+      timeout: 3s
+      retries: 10
+    environment:
+      DB_USER: vdbm
+      DB_NAME: cerc_testing
+      DB_HOST: ipld-eth-db
+      DB_PORT: 5432
+      DB_PASSWORD: password
+      DB_WRITE: "true"
+      DB_TYPE: postgres
+      DB_DRIVER: sqlx
+      DB_WAIT_FOR_SYNC: "true"
+      CHAIN_ID: "99"
+      USE_GENESIS: "true"
+      EXTRA_START_ARGS: "--metrics --metrics.expensive --metrics.addr 0.0.0.0 --metrics.port 6060"
+    ports:
+      - "127.0.0.1:8545:8545"
+      - "127.0.0.1:8546:8546"

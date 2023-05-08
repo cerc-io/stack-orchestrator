@@ -1,0 +1,15 @@
+version: "1.1"
+name: package-registry
+decription: "Local Package Registry"
+repos:
+  - cerc-io/hosting
+  - telackey/act_runner
+containers:
+  - cerc/act-runner
+  - cerc/act-runner-task-executor
+pods:
+  - name: gitea
+    repository: cerc-io/hosting
+    path: gitea
+    pre_start_command: "run-this-first.sh"
+    post_start_command: "initialize-gitea.sh"

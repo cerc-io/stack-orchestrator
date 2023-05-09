@@ -162,7 +162,13 @@ Published demo-record-1.yml with id: bafyreierh3xnfivexlscdwubvczmddsnf46uytyfvr
 The sample record we deployed looks like:
 
 ```
-TODO
+record:
+  type: WebsiteRegistrationRecord
+  url: 'https://cerc.io'
+  repo_registration_record_cid: QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D
+  build_artifact_cid: QmP8jTG1m9GSDJLCbeWhVSVgEzCPPwXRdCRuJtQ5Tz9Kc9
+  tls_cert_cid: QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR
+  version: 1.0.23
 ```
 
 2. Return to the laconic-console

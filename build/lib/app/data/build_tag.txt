@@ -1,2 +1,2 @@
 # This file should be re-generated running: scripts/create_build_tag_file.sh script
-1.1.0-882374a-202305060108
+1.1.0-a6a1399-202305092241

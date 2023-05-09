@@ -30,7 +30,7 @@ $ laconic-so --stack package-registry deploy up
  ⠿ Container laconic-aecc4a21d3a502b14522db97d427e850-server-1  Started                                                                                    1.9s
 New user 'gitea_admin' has been successfully created!
 This is your gitea access token: 84fe66a73698bf11edbdccd0a338236b7d1d5c45. Keep it safe and secure, it can not be fetched again from gitea.
-To use with laconic-so set this environment variable: export CERC_NPM_AUTH_TOKEN=3e493e77b3e83fe9e882f7e3a79dd4d5441c308b
+To use with laconic-so set this environment variable: export CERC_NPM_AUTH_TOKEN=84fe66a73698bf11edbdccd0a338236b7d1d5c45
 Created the organization cerc-io
 Gitea was configured to use host name: gitea.local, ensure that this resolves to localhost, e.g. with sudo vi /etc/hosts
 Success, gitea is properly initialized

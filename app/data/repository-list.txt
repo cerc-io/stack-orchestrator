@@ -30,3 +30,4 @@ ethereum-optimism/optimism
 pokt-network/pocket-core
 pokt-network/pocket-core-deployments
 cerc-io/azimuth-watcher-ts
+cerc-io/ipld-eth-state-snapshot

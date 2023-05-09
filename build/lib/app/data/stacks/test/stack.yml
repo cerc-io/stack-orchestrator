@@ -1,9 +1,0 @@
-version: "1.0"
-name: test
-description: "A test stack"
-repos:
-  - cerc-io/laconicd
-containers:
-  - cerc/test-container
-pods:
-  - test

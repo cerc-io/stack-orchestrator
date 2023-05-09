@@ -1,6 +1,0 @@
-version: "1.1"
-name: build-support
-decription: "Build Support Components"
-containers:
-  - cerc/builder-js
-  - cerc/builder-gerbil

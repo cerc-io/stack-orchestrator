@@ -1,7 +1,7 @@
 # Laconicd Explorer
 
 Instructions for deploying a block explorer for Laconicd. The explorer stack has two containers:  
-- an Nginx image to serve the explorer app, Ping.pub[https://github.com/ping-pub/explorer], configured for Laconicd
+- an Nginx image to serve the explorer app, [Ping.pub](https://github.com/ping-pub/explorer), configured for Laconicd
 - a non-consensus Laconicd full node to connect with the fixturenet and provide chain data to the explorer
 
 ## 1. Start a Laconicd Fixturenet

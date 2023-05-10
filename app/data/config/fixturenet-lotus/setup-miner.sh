@@ -5,6 +5,14 @@ lotus --version
 # # remove old bootnode peer info if present
 # [ -f /root/.lotus-shared/miner.addr ] && rm /root/.lotus-shared/miner.addr
 
+##TODO: generate genesis files inside container instead of bundling in config dir
+##something like commands below should work, other scripts/compose will have to be updated to corresponding directories
+# lotus fetch-params 2048
+# lotus-seed pre-seal --sector-size 2KiB --num-sectors 2
+# lotus-seed genesis new localnet.json
+# lotus-seed genesis add-miner localnet.json ~/.genesis-sectors/pre-seal-t01000.json
+
+
 # start daemon
 nohup lotus daemon  --genesis=/devgen.car --profile=bootstrapper --bootstrap=false > /var/log/lotus.log 2>&1 &
 

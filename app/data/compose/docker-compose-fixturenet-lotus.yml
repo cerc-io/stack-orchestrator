@@ -13,7 +13,8 @@ services:
       - lotus-shared:/root/.lotus-shared
     healthcheck:
 #      test: ["CMD-SHELL", "grep 'started ChainNotify channel' /var/log/lotus.log"]
-      test: ["CMD-SHELL", "[ -f /root/.lotus-shared/miner.addr ]"]
+#      test: ["CMD-SHELL", "[ -f /root/.lotus-shared/miner.addr ]"]
+      test: ["CMD-SHELL", "[ -d /root/.lotus-miner-local-net ]"]
       interval: 10s
       timeout: 10s
       retries: 10

@@ -38,4 +38,5 @@ cerc/optimism-op-node
 cerc/optimism-op-proposer
 cerc/pocket
 cerc/watcher-azimuth
+cerc/ipld-eth-state-snapshot
 cerc/lotus

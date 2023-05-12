@@ -40,6 +40,14 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # External ipld-eth-server endpoints
   CERC_ETH_SERVER_GQL_ENDPOINT=
   CERC_ETH_SERVER_RPC_ENDPOINT=
+
+  # Whether to use a state snapshot to initialize the watcher
+  CERC_USE_STATE_SNAPSHOT=false
+
+  # State snapshot params
+  # Required if CERC_USE_STATE_SNAPSHOT is set to true
+  CERC_SNAPSHOT_GQL_ENDPOINT=
+  CERC_SNAPSHOT_BLOCKHASH=
   ```
 
 * NOTE: If `ipld-eth-server` is running on the host machine, use `host.docker.internal` as the hostname to access the host port(s)

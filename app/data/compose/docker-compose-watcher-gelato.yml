@@ -17,7 +17,7 @@ services:
       - "0.0.0.0:15432:5432"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "5432"]
-      interval: 20s
+      interval: 10s
       timeout: 5s
       retries: 15
       start_period: 10s
@@ -43,10 +43,10 @@ services:
       - "0.0.0.0:9000:9000"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "9000"]
-      interval: 20s
+      interval: 10s
       timeout: 5s
       retries: 15
-      start_period: 5s
+      start_period: 10s
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -65,10 +65,14 @@ services:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_ETH_SERVER_GQL_ENDPOINT: ${CERC_ETH_SERVER_GQL_ENDPOINT}
       CERC_ETH_SERVER_RPC_ENDPOINT: ${CERC_ETH_SERVER_RPC_ENDPOINT}
+      CERC_USE_STATE_SNAPSHOT: ${CERC_USE_STATE_SNAPSHOT}
+      CERC_SNAPSHOT_GQL_ENDPOINT: ${CERC_SNAPSHOT_GQL_ENDPOINT}
+      CERC_SNAPSHOT_BLOCKHASH: ${CERC_SNAPSHOT_BLOCKHASH}
     command: ["./start-server.sh"]
     volumes:
       - ../config/watcher-gelato/watcher-config-template.toml:/app/environments/watcher-config-template.toml
       - ../config/watcher-gelato/start-server.sh:/app/start-server.sh
+      - ../config/watcher-gelato/create-and-import-checkpoint.sh:/app/create-and-import-checkpoint.sh
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"

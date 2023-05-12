@@ -39,3 +39,4 @@ cerc/optimism-op-proposer
 cerc/pocket
 cerc/watcher-azimuth
 cerc/ipld-eth-state-snapshot
+cerc/watcher-gelato

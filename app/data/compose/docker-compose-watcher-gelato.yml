@@ -1,0 +1,85 @@
+version: '3.2'
+
+services:
+  # Starts the PostgreSQL database for watcher
+  gelato-watcher-db:
+    restart: unless-stopped
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=vdbm
+      - POSTGRES_MULTIPLE_DATABASES=gelato-watcher,gelato-watcher-job-queue
+      - POSTGRES_EXTENSION=gelato-watcher-job-queue:pgcrypto
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
+      - gelato_watcher_db_data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:15432:5432"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  # Starts the gelato-watcher job runner
+  gelato-watcher-job-runner:
+    image: cerc/watcher-gelato:local
+    restart: unless-stopped
+    depends_on:
+      gelato-watcher-db:
+        condition: service_healthy
+    env_file:
+      - ../config/watcher-gelato/watcher-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_ETH_SERVER_GQL_ENDPOINT: ${CERC_ETH_SERVER_GQL_ENDPOINT}
+      CERC_ETH_SERVER_RPC_ENDPOINT: ${CERC_ETH_SERVER_RPC_ENDPOINT}
+    command: ["./start-job-runner.sh"]
+    volumes:
+      - ../config/watcher-gelato/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-gelato/start-job-runner.sh:/app/start-job-runner.sh
+    ports:
+      - "0.0.0.0:9000:9000"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "9000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Starts the gelato-watcher server
+  gelato-watcher-server:
+    image: cerc/watcher-gelato:local
+    restart: unless-stopped
+    depends_on:
+      gelato-watcher-db:
+        condition: service_healthy
+      gelato-watcher-job-runner:
+        condition: service_healthy
+    env_file:
+      - ../config/watcher-gelato/watcher-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_ETH_SERVER_GQL_ENDPOINT: ${CERC_ETH_SERVER_GQL_ENDPOINT}
+      CERC_ETH_SERVER_RPC_ENDPOINT: ${CERC_ETH_SERVER_RPC_ENDPOINT}
+    command: ["./start-server.sh"]
+    volumes:
+      - ../config/watcher-gelato/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-gelato/start-server.sh:/app/start-server.sh
+    ports:
+      - "0.0.0.0:3001:3001"
+      - "0.0.0.0:9001:9001"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3001"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  gelato_watcher_db_data:

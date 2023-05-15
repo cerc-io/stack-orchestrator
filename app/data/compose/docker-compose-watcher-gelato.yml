@@ -73,11 +73,12 @@ services:
       - ../config/watcher-gelato/watcher-config-template.toml:/app/environments/watcher-config-template.toml
       - ../config/watcher-gelato/start-server.sh:/app/start-server.sh
       - ../config/watcher-gelato/create-and-import-checkpoint.sh:/app/create-and-import-checkpoint.sh
+      - gelato_watcher_state_gql:/app/state_checkpoint
     ports:
-      - "0.0.0.0:3001:3001"
+      - "0.0.0.0:3008:3008"
       - "0.0.0.0:9001:9001"
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "3001"]
+      test: ["CMD", "nc", "-v", "localhost", "3008"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -87,3 +88,4 @@ services:
 
 volumes:
   gelato_watcher_db_data:
+  gelato_watcher_state_gql:

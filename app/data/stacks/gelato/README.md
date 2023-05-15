@@ -91,8 +91,8 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*gelato_watcher_db_data"
+docker volume ls -q --filter "name=.*gelato_watcher_db_data|.*gelato_watcher_state_gql"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*gelato_watcher_db_data")
+docker volume rm $(docker volume ls -q --filter "name=.*gelato_watcher_db_data|.*gelato_watcher_state_gql")
 ```

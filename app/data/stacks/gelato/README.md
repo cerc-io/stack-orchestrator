@@ -4,7 +4,7 @@ Instructions to setup and deploy Gelato watcher using [laconic-stack-orchestrato
 
 ## Setup
 
-Prerequisite: `ipld-eth-server` endpoints
+Prerequisite: `ipld-eth-server` RPC and GQL endpoints
 
 Clone required repositories:
 
@@ -38,8 +38,8 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   ```bash
   # External ipld-eth-server endpoints
-  CERC_ETH_SERVER_GQL_ENDPOINT=
-  CERC_ETH_SERVER_RPC_ENDPOINT=
+  CERC_IPLD_ETH_RPC=
+  CERC_IPLD_ETH_GQL=
 
   # Whether to use a state snapshot to initialize the watcher
   CERC_USE_STATE_SNAPSHOT=false

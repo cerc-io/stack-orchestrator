@@ -57,8 +57,8 @@
 
 [upstream]
   [upstream.ethServer]
-    gqlApiEndpoint = "REPLACE_WITH_ETH_SERVER_GQL_ENDPOINT"
-    rpcProviderEndpoint = "REPLACE_WITH_ETH_SERVER_RPC_ENDPOINT"
+    gqlApiEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_GQL"
+    rpcProviderEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_RPC"
 
   [upstream.cache]
     name = "requests"

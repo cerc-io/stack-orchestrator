@@ -33,8 +33,8 @@ services:
       - ../config/watcher-gelato/watcher-params.env
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_ETH_SERVER_GQL_ENDPOINT: ${CERC_ETH_SERVER_GQL_ENDPOINT}
-      CERC_ETH_SERVER_RPC_ENDPOINT: ${CERC_ETH_SERVER_RPC_ENDPOINT}
+      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
+      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
     command: ["./start-job-runner.sh"]
     volumes:
       - ../config/watcher-gelato/watcher-config-template.toml:/app/environments/watcher-config-template.toml
@@ -63,8 +63,8 @@ services:
       - ../config/watcher-gelato/watcher-params.env
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_ETH_SERVER_GQL_ENDPOINT: ${CERC_ETH_SERVER_GQL_ENDPOINT}
-      CERC_ETH_SERVER_RPC_ENDPOINT: ${CERC_ETH_SERVER_RPC_ENDPOINT}
+      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
+      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
       CERC_USE_STATE_SNAPSHOT: ${CERC_USE_STATE_SNAPSHOT}
       CERC_SNAPSHOT_GQL_ENDPOINT: ${CERC_SNAPSHOT_GQL_ENDPOINT}
       CERC_SNAPSHOT_BLOCKHASH: ${CERC_SNAPSHOT_BLOCKHASH}

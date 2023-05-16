@@ -4,7 +4,7 @@ Instructions to setup and deploy Azimuth Watcher stack
 
 ## Setup
 
-Prerequisite: ipld-eth-server RPC and GQL endpoints
+Prerequisite: `ipld-eth-server` RPC and GQL endpoints
 
 Clone required repositories:
 
@@ -41,7 +41,7 @@ This should create the required docker images in the local image registry.
   CERC_IPLD_ETH_GQL=
   ```
 
-* NOTE: If ipld-eth-server is running on the host machine, use `host.docker.internal` as the hostname to access host ports
+* NOTE: If `ipld-eth-server` is running on the host machine, use `host.docker.internal` as the hostname to access host ports
 
 ### Deploy the stack
 

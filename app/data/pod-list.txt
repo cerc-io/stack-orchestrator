@@ -26,4 +26,5 @@ foundry
 fixturenet-optimism
 fixturenet-pocket
 watcher-azimuth
+watcher-gelato
 fixturenet-lotus

@@ -31,4 +31,5 @@ pokt-network/pocket-core
 pokt-network/pocket-core-deployments
 cerc-io/azimuth-watcher-ts
 cerc-io/ipld-eth-state-snapshot
+cerc-io/gelato-watcher-ts
 filecoin-project/lotus

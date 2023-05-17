@@ -15,6 +15,6 @@ WORKDIR /app
 COPY . .
 
 RUN echo "Building mobymask-v2-watcher-ts" && \
-    yarn && yarn build
+  yarn && yarn build
 
 WORKDIR /app

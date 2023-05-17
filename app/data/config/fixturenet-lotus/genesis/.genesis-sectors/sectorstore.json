@@ -1,0 +1,11 @@
+{
+  "ID": "f355523e-69d0-4984-bd0e-9588487c6231",
+  "Weight": 0,
+  "CanSeal": false,
+  "CanStore": false,
+  "MaxStorage": 0,
+  "Groups": null,
+  "AllowTo": null,
+  "AllowTypes": null,
+  "DenyTypes": null
+}

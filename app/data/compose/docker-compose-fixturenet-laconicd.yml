@@ -1,10 +1,11 @@
-version: "3.2"
 services:
   laconicd:
     restart: unless-stopped
     image: cerc/laconicd:local
     command: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
     volumes:
+      # The cosmos-sdk node's database directory:
+      - laconicd-data:/root/.laconicd/data
       # TODO: look at folding these scripts into the container
       - ../config/fixturenet-laconicd/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
       - ../config/fixturenet-laconicd/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh

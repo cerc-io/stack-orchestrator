@@ -1,7 +1,13 @@
-version: "3.2"
 services:
   test:
     image: cerc/test-container:local
     restart: always
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    volumes:
+      - test-data:/var
     ports:
       - "80"
+
+volumes:
+  test-data:

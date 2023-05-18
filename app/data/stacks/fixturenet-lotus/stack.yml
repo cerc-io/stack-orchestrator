@@ -1,0 +1,9 @@
+version: "1.0"
+name: fixturenet-lotus
+description: "A lotus fixturenet"
+repos:
+  - filecoin-project/lotus
+containers:
+  - cerc/lotus
+pods:
+  - fixturenet-lotus

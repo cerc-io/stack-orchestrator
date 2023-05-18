@@ -115,7 +115,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
             # TODO: make this less of a hack -- should be specified in some metadata somewhere
             # Check if we have a repo for this container. If not, set the context dir to the container-build subdir
             repo_full_path = os.path.join(dev_root_path, repo_dir)
-            repo_dir_or_build_dir = repo_dir if os.path.exists(repo_full_path) else build_dir
+            repo_dir_or_build_dir = repo_full_path if os.path.exists(repo_full_path) else build_dir
             build_command = os.path.join(container_build_dir, "default-build.sh") + f" {container}:local {repo_dir_or_build_dir}"
         if not dry_run:
             if verbose:

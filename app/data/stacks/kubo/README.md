@@ -12,10 +12,10 @@ If running in the cloud, visit `IP:5001/webui` and you'll likely see this error:
 
 1. Get the container name with `docker ps`:
 
-2. Go into the container (replace with your container name):
+2. Go into the container:
 
 ```
-docker exec -it laconic-dbbf5498fd7d322930b9484121a6a5f4-ipfs-1 sh
+laconic-so --stack kubo deploy exec ipfs sh
 ```
 
 3. Enable CORS as described in point 2 of the error message. Copy/paste/run each line in sequence, then run `exit` to exit the container.

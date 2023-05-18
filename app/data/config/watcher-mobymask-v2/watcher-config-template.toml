@@ -27,6 +27,7 @@
       host = "0.0.0.0"
       port = 9090
       relayPeers = REPLACE_WITH_CERC_RELAY_PEERS
+      denyMultiaddrs = REPLACE_WITH_CERC_DENY_MULTIADDRS
       peerIdFile = './peers/relay-id.json'
       announce = 'REPLACE_WITH_CERC_RELAY_ANNOUNCE_DOMAIN'
       enableDebugInfo = true
@@ -34,6 +35,7 @@
     [server.p2p.peer]
       relayMultiaddr = 'REPLACE_WITH_CERC_RELAY_MULTIADDR'
       pubSubTopic = 'mobymask'
+      denyMultiaddrs = REPLACE_WITH_CERC_DENY_MULTIADDRS
       peerIdFile = './peers/peer-id.json'
       enableDebugInfo = true
       enableL2Txs = REPLACE_WITH_CERC_ENABLE_PEER_L2_TXS

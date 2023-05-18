@@ -1,0 +1,8 @@
+version: "1.0"
+name: gelato
+repos:
+  - cerc-io/gelato-watcher-ts
+containers:
+  - cerc/watcher-gelato
+pods:
+  - watcher-gelato

@@ -11,14 +11,6 @@ services:
       - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
       - $HOME/stack-orchestrator/app/data/config/fixturenet-lotus/genesis/.genesis-sectors:/root/.genesis-sectors
       - lotus-shared:/root/.lotus-shared
-    healthcheck:
-#      test: ["CMD-SHELL", "grep 'started ChainNotify channel' /var/log/lotus.log"]
-#      test: ["CMD-SHELL", "[ -f /root/.lotus-shared/miner.addr ]"]
-      test: ["CMD-SHELL", "[ -d /root/.lotus-miner-local-net ]"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-miner.sh"]
     ports:
       - "1234"
@@ -36,8 +28,7 @@ services:
       - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
       - lotus-shared:/root/.lotus-shared
     depends_on:
-      lotus-miner:
-        condition: service_healthy
+      - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
     ports:
       - "1234"
@@ -55,8 +46,7 @@ services:
       - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
       - lotus-shared:/root/.lotus-shared
     depends_on:
-      lotus-miner:
-        condition: service_healthy
+      - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
     ports:
       - "1234"

@@ -2,6 +2,7 @@ version: '3.7'
 
 services:
   fixturenet-eth-bootnode-geth:
+    restart: always
     hostname: fixturenet-eth-bootnode-geth
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
@@ -15,6 +16,7 @@ services:
       - "30303"
 
   fixturenet-eth-geth-1:
+    restart: always
     hostname: fixturenet-eth-geth-1
     cap_add:
       - SYS_PTRACE
@@ -42,6 +44,7 @@ services:
       - "6060"
 
   fixturenet-eth-geth-2:
+    restart: always
     hostname: fixturenet-eth-geth-2
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
@@ -60,12 +63,14 @@ services:
       - fixturenet_eth_geth_2_data:/root/ethdata
 
   fixturenet-eth-bootnode-lighthouse:
+    restart: always
     hostname: fixturenet-eth-bootnode-lighthouse
     environment:
       RUN_BOOTNODE: "true"
     image: cerc/fixturenet-eth-lighthouse:local
 
   fixturenet-eth-lighthouse-1:
+    restart: always
     hostname: fixturenet-eth-lighthouse-1
     healthcheck:
       test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8001/eth/v2/beacon/blocks/head"]
@@ -91,6 +96,7 @@ services:
       - "8001"
 
   fixturenet-eth-lighthouse-2:
+    restart: always
     hostname: fixturenet-eth-lighthouse-2
     healthcheck:
       test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8001/eth/v2/beacon/blocks/head"]

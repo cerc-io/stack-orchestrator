@@ -5,6 +5,7 @@ services:
   # Creates / updates the configuration for L1 contracts deployment
   # Deploys the L1 smart contracts (outputs to volume l1_deployment)
   fixturenet-optimism-contracts:
+    restart: on-failure
     hostname: fixturenet-optimism-contracts
     image: cerc/optimism-contracts:local
     env_file:
@@ -35,6 +36,7 @@ services:
 
   # Generates the config files required for L2 (outputs to volume l2_config)
   op-node-l2-config-gen:
+    restart: on-failure
     image: cerc/optimism-op-node:local
     depends_on:
       fixturenet-optimism-contracts:
@@ -54,6 +56,7 @@ services:
 
   # Initializes and runs the L2 execution client  (outputs to volume l2_geth_data)
   op-geth:
+    restart: always
     image: cerc/optimism-l2geth:local
     depends_on:
       op-node-l2-config-gen:
@@ -76,6 +79,7 @@ services:
 
   # Runs the L2 consensus client (Sequencer node)
   op-node:
+    restart: always
     image: cerc/optimism-op-node:local
     depends_on:
       op-geth:
@@ -103,6 +107,7 @@ services:
 
   # Runs the batcher (takes transactions from the Sequencer and publishes them to L1)
   op-batcher:
+    restart: always
     image: cerc/optimism-op-batcher:local
     depends_on:
       op-node:
@@ -129,6 +134,7 @@ services:
 
   # Runs the proposer (periodically submits new state roots to L1)
   op-proposer:
+    restart: always
     image: cerc/optimism-op-proposer:local
     depends_on:
       op-node:

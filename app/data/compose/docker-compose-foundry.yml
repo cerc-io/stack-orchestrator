@@ -1,6 +1,7 @@
 # Add-on pod to include foundry tooling within a fixturenet
 services:
   foundry:
+    restart: always
     image: cerc/foundry:local
     command: ["while :; do sleep 600; done"]
     volumes:

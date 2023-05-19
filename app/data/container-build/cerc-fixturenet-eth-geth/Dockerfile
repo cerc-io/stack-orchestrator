@@ -6,7 +6,7 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 
 FROM cerc/go-ethereum:local as geth
 
-FROM alpine:latest
+FROM alpine:3.17
 RUN apk add --no-cache python3 python3-dev py3-pip curl wget jq build-base gettext libintl openssl bash bind-tools postgresql-client
 
 COPY --from=delve  /go/bin/dlv /usr/local/bin/

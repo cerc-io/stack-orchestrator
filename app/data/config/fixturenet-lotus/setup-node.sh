@@ -4,6 +4,13 @@ lotus --version
 
 ##TODO: paths can use values from lotus-env.env file
 
+# Loop until the daemon is started
+echo "Waiting for miner to share peering info..."
+while [ ! -f /root/.lotus-shared/miner.addr ]; do
+    sleep 5
+done
+echo "Resuming..."
+
 # if not already initialized
 if [ ! -f /root/.lotus-local-net/config.toml ]; then
   # init node config

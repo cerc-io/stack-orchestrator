@@ -2,8 +2,11 @@
 
 lotus --version
 
-# # remove old bootnode peer info if present
-# [ -f /root/.lotus-shared/miner.addr ] && rm /root/.lotus-shared/miner.addr
+# remove old bootnode peer info if present
+if [ -f /root/.lotus-shared/miner.addr ]; then
+  rm /root/.lotus-shared/miner.addr
+fi
+
 
 ##TODO: generate genesis files inside container instead of bundling in config dir
 ##something like commands below should work, other scripts/compose will have to be updated to corresponding directories

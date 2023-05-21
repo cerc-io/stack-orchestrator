@@ -36,4 +36,4 @@ jobs:
           dockerd -H $DOCKER_HOST --userland-proxy=false &
           sleep 5
       - name: "Run smoke tests"
-        run: ./tests/deploy-test/run-deploy-test.sh
+        run: ./tests/deploy/run-deploy-test.sh

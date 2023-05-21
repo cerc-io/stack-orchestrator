@@ -26,4 +26,4 @@ jobs:
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
       - name: "Run smoke tests"
-        run: ./tests/deploy-test/run-deploy-test.sh
+        run: ./tests/deploy/run-deploy-test.sh

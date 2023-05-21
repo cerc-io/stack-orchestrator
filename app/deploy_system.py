@@ -75,7 +75,7 @@ def up(ctx, extra_args):
 
 
 @command.command()
-@click.option("--delete-volumes", default=False, help="delete data volumes")
+@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
 @click.argument('extra_args', nargs=-1)  # help: command: down<service1> <service2>
 @click.pass_context
 def down(ctx, delete_volumes, extra_args):
@@ -88,7 +88,7 @@ def down(ctx, delete_volumes, extra_args):
         if extra_args_list:
             timeout_arg = extra_args_list[0]
         # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
-        ctx.obj.docker.compose.down(timeout=timeout_arg)
+        ctx.obj.docker.compose.down(timeout=timeout_arg, volumes=delete_volumes)
 
 
 @command.command()

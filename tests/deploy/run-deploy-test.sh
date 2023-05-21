@@ -19,12 +19,30 @@ echo "Version reported is: ${reported_version_string}"
 echo "Cloning repositories into: $CERC_REPO_BASE_DIR"
 rm -rf $CERC_REPO_BASE_DIR
 mkdir -p $CERC_REPO_BASE_DIR
-# Test pulling a stack
+# Test bringing the test container up and down
+# with and without volume removal
 $TEST_TARGET_SO --stack test setup-repositories
-# Test building the a stack container
 $TEST_TARGET_SO --stack test build-containers
-$TEST_TARGET_SO --stack test deploy-system up
-# TODO: test that we can use the deployed container somehow
-# Clean up
-$TEST_TARGET_SO --stack test deploy-system down
+$TEST_TARGET_SO --stack test deploy up
+$TEST_TARGET_SO --stack test deploy down
+# The next time we bring the container up the volume will be old (from the previous run above)
+$TEST_TARGET_SO --stack test deploy up
+log_output_1=$( $TEST_TARGET_SO --stack test deploy logs )
+if [[ "$log_output_1" == *"Filesystem is old"* ]]; then
+    echo "Retain volumes test: passed"
+else
+    echo "Retain volumes test: FAILED"
+    exit 1
+fi
+$TEST_TARGET_SO --stack test deploy down --delete-volumes
+# Now when we bring the container up the volume will be new again
+$TEST_TARGET_SO --stack test deploy up
+log_output_2=$( $TEST_TARGET_SO --stack test deploy logs )
+if [[ "$log_output_2" == *"Filesystem is fresh"* ]]; then
+    echo "Delete volumes test: passed"
+else
+    echo "Delete volumes test: FAILED"
+    exit 1
+fi
+$TEST_TARGET_SO --stack test deploy down --delete-volumes
 echo "Test passed"

@@ -24,6 +24,14 @@ mkdir -p $CERC_REPO_BASE_DIR
 $TEST_TARGET_SO --stack test setup-repositories
 $TEST_TARGET_SO --stack test build-containers
 $TEST_TARGET_SO --stack test deploy up
+# Test deploy port command
+deploy_port_output=$( $TEST_TARGET_SO --stack test deploy port test 80 )
+if [[ "$deploy_port_output" =~ ^0.0.0.0:[1-9][0-9]* ]]; then
+    echo "Deploy port test: passed"
+else
+    echo "Deploy port test: FAILED"
+    exit 1
+fi
 $TEST_TARGET_SO --stack test deploy down
 # The next time we bring the container up the volume will be old (from the previous run above)
 $TEST_TARGET_SO --stack test deploy up

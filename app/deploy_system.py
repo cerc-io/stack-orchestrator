@@ -67,11 +67,11 @@ def up(ctx, extra_args):
         if global_context.verbose:
             print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {extra_args_list}")
         for pre_start_command in cluster_context.pre_start_commands:
-            _run_command(ctx.obj, cluster_context.cluster, pre_start_command)
+            _run_command(global_context, cluster_context.cluster, pre_start_command)
         ctx.obj.docker.compose.up(detach=True, services=extra_args_list)
         for post_start_command in cluster_context.post_start_commands:
-            _run_command(ctx.obj, cluster_context.cluster, post_start_command)
-        _orchestrate_cluster_config(ctx.obj, cluster_context.config, ctx.obj.docker, container_exec_env)
+            _run_command(global_context, cluster_context.cluster, post_start_command)
+        _orchestrate_cluster_config(global_context, cluster_context.config, ctx.obj.docker, container_exec_env)
 
 
 @command.command()
@@ -130,7 +130,7 @@ def port(ctx, extra_args):
             sys.exit(1)
         service_name = extra_args_list[0]
         exposed_port = extra_args_list[1]
-        if ctx.parent.obj.verbose:
+        if global_context.verbose:
             print(f"Running compose port {service_name} {exposed_port}")
         mapped_port_data = ctx.obj.docker.compose.port(service_name, exposed_port)
         print(f"{mapped_port_data[0]}:{mapped_port_data[1]}")

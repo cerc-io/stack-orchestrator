@@ -27,8 +27,8 @@ yarn_info_output=$(yarn info --json $versioned_target_package 2>/dev/null)
 # If it doesn't exist there will be no .data.dist.tarball element,
 # and jq will output the string "null"
 package_tarball=$(echo $yarn_info_output | jq -r .data.dist.tarball)
-if [[ $package_tarball == "null" ]]; then
-    echo "FATAL: Target package version ($versioned_target_package) not found" >&2
+if [[ "$yarn_info_output" == "" ||  $package_tarball == "null" ]]; then
+    echo "FATAL: Target package version ($versioned_target_package) not found (or bad npm auth token)" >&2
     exit 1
 fi
 # Code below parses out the values we need

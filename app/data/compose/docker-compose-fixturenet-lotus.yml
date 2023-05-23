@@ -8,8 +8,6 @@ services:
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-miner.sh:/docker-entrypoint-scripts.d/setup-miner.sh
-      - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
-      - $HOME/stack-orchestrator/app/data/config/fixturenet-lotus/genesis/.genesis-sectors:/root/.genesis-sectors
       - lotus-shared:/root/.lotus-shared
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-miner.sh"]
     ports:
@@ -25,7 +23,6 @@ services:
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
-      - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
       - lotus-shared:/root/.lotus-shared
     depends_on:
       - lotus-miner
@@ -43,7 +40,6 @@ services:
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
-      - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
       - lotus-shared:/root/.lotus-shared
     depends_on:
       - lotus-miner

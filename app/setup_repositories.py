@@ -125,11 +125,22 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
             if verbose:
                 print(f"Excluding: {repo}")
 
-    def process_repo(repo):
-        git_ssh_prefix = "git@github.com:"
-        git_http_prefix = "https://github.com/"
-        full_github_repo_path = f"{git_ssh_prefix if git_ssh else git_http_prefix}{repo}"
-        repoName = repo.split("/")[-1]
+    def host_and_path_for_repo(fully_qualified_repo):
+        repo_split = fully_qualified_repo.split("/")
+        # Legacy unqualified repo means github
+        if len(repo_split) == 2:
+            return "github.com", "/".join(repo_split)
+        else:
+            if len(repo_split) == 3:
+                # First part is the host
+                return repo_split[0], "/".join(repo_split[1:])
+
+    def process_repo(fully_qualified_repo):
+        repo_host, repo_path = host_and_path_for_repo(fully_qualified_repo)
+        git_ssh_prefix = f"git@{repo_host}:"
+        git_http_prefix = f"https://{repo_host}/"
+        full_github_repo_path = f"{git_ssh_prefix if git_ssh else git_http_prefix}{repo_path}"
+        repoName = repo_path.split("/")[-1]
         full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
         is_present = os.path.isdir(full_filesystem_repo_path)
         if not quiet:

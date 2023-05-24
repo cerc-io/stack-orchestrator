@@ -3,6 +3,7 @@ name: test
 description: "A test stack"
 repos:
   - github.com/cerc-io/laconicd
+  - git.vdb.to/cerc-io/test-project
 containers:
   - cerc/test-container
 pods:

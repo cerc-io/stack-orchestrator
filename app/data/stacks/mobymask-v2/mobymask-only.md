@@ -9,7 +9,7 @@ Prerequisite: L2 Optimism Geth and Node RPC endpoints
 Clone required repositories:
 
 ```bash
-laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts,cerc-io/mobymask-v2-watcher-ts
+laconic-so --stack mobymask-v2 setup-repositories --include github.com/cerc-io/MobyMask,github.com/cerc-io/watcher-ts,github.com/cerc-io/mobymask-v2-watcher-ts
 
 # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```

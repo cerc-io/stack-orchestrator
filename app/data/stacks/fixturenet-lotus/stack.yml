@@ -2,7 +2,7 @@ version: "1.0"
 name: fixturenet-lotus
 description: "A lotus fixturenet"
 repos:
-  - filecoin-project/lotus
+  - github.com/filecoin-project/lotus
 containers:
   - cerc/lotus
 pods:

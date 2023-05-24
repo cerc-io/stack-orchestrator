@@ -2,11 +2,11 @@ version: "1.0"
 name: fixturenet-eth-loaded
 decription: "Loaded Ethereum Fixturenet"
 repos:
-  - cerc-io/go-ethereum
-  - cerc-io/tx-spammer
-  - cerc-io/ipld-eth-server
-  - cerc-io/ipld-eth-db
-  - cerc/go-ethereum
+  - github.com/cerc-io/go-ethereum
+  - github.com/cerc-io/tx-spammer
+  - github.com/cerc-io/ipld-eth-server
+  - github.com/cerc-io/ipld-eth-db
+  - github.com/cerc-io/go-ethereum
 containers:
   - cerc/lighthouse
   - cerc/fixturenet-eth-geth

@@ -11,7 +11,7 @@ This deployment expects that ipld-eth-server's endpoints are available on the lo
 ## Clone required repositories
 
 ```
-$ laconic-so setup-repositories --include cerc-io/watcher-ts
+$ laconic-so setup-repositories --include github.com/cerc-io/watcher-ts
 ```
 
 ## Build the watcher container

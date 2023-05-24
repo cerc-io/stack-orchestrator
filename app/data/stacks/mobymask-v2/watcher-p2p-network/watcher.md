@@ -14,7 +14,7 @@ This demo has been tested on a `Ubuntu 22.04 LTS` machine with `8GB` of RAM
 Clone required repositories:
 
   ```bash
-  laconic-so --stack mobymask-v2 setup-repositories --include cerc-io/MobyMask,cerc-io/watcher-ts,cerc-io/mobymask-v2-watcher-ts
+  laconic-so --stack mobymask-v2 setup-repositories --include github.com/cerc-io/MobyMask,github.com/cerc-io/watcher-ts,github.com/cerc-io/mobymask-v2-watcher-ts
 
   # This will clone the required repositories at ~/cerc
   # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned in the next step and re-run the command

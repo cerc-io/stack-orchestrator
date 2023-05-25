@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
   fixturenet-eth-bootnode-geth:
     restart: always
@@ -8,9 +6,10 @@ services:
       - ../config/fixturenet-eth/fixturenet-eth.env
     environment:
       RUN_BOOTNODE: "true"
-    image: cerc/fixturenet-eth-geth:local
+    image: cerc/fixturenet-eth-plugeth:local
     volumes:
-      - fixturenet_eth_bootnode_geth_data:/root/ethdata
+      - fixturenet_plugeth_bootnode_geth_data:/root/ethdata
+      - ../config/fixturenet-plugeth/plugins:/root/ethdata/plugins
     ports:
       - "9898"
       - "30303"
@@ -27,11 +26,12 @@ services:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
-    image: cerc/fixturenet-eth-geth:local
+    image: cerc/fixturenet-eth-plugeth:local
     volumes:
-      - fixturenet_eth_geth_1_data:/root/ethdata
+      - fixturenet_plugeth_geth_1_data:/root/ethdata
+      - ../config/fixturenet-plugeth/plugins:/root/ethdata/plugins
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "8545"]
+      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8545/"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -47,7 +47,7 @@ services:
     restart: always
     hostname: fixturenet-eth-geth-2
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "8545"]
+      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8545/"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -56,11 +56,12 @@ services:
       CERC_KEEP_RUNNING_AFTER_GETH_EXIT: "true"
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
-    image: cerc/fixturenet-eth-geth:local
+    image: cerc/fixturenet-eth-plugeth:local
     depends_on:
       - fixturenet-eth-bootnode-geth
     volumes:
-      - fixturenet_eth_geth_2_data:/root/ethdata
+      - fixturenet_plugeth_geth_2_data:/root/ethdata
+      - ../config/fixturenet-plugeth/plugins:/root/ethdata/plugins
 
   fixturenet-eth-bootnode-lighthouse:
     restart: always
@@ -86,7 +87,7 @@ services:
       EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-1:8551"
     image: cerc/fixturenet-eth-lighthouse:local
     volumes:
-      - fixturenet_eth_lighthouse_1_data:/opt/testnet/build/cl
+      - fixturenet_plugeth_lighthouse_1_data:/opt/testnet/build/cl
     depends_on:
       fixturenet-eth-bootnode-lighthouse:
         condition: service_started
@@ -113,7 +114,7 @@ services:
       LIGHTHOUSE_GENESIS_STATE_URL: "http://fixturenet-eth-lighthouse-1:8001/eth/v2/debug/beacon/states/0"
     image: cerc/fixturenet-eth-lighthouse:local
     volumes:
-      - fixturenet_eth_lighthouse_2_data:/opt/testnet/build/cl
+      - fixturenet_plugeth_lighthouse_2_data:/opt/testnet/build/cl
     depends_on:
       fixturenet-eth-bootnode-lighthouse:
         condition: service_started
@@ -121,8 +122,8 @@ services:
         condition: service_healthy
 
 volumes:
-  fixturenet_eth_bootnode_geth_data:
-  fixturenet_eth_geth_1_data:
-  fixturenet_eth_geth_2_data:
-  fixturenet_eth_lighthouse_1_data:
-  fixturenet_eth_lighthouse_2_data:
+  fixturenet_plugeth_bootnode_geth_data:
+  fixturenet_plugeth_geth_1_data:
+  fixturenet_plugeth_geth_2_data:
+  fixturenet_plugeth_lighthouse_1_data:
+  fixturenet_plugeth_lighthouse_2_data:

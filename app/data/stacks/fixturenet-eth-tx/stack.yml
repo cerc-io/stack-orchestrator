@@ -2,8 +2,8 @@ version: "1.2"
 name: fixturenet-eth-tx
 decription: "Ethereum Fixturenet w/ tx-spammer"
 repos:
-  - cerc-io/go-ethereum
-  - cerc-io/tx-spammer
+  - github.com/cerc-io/go-ethereum
+  - github.com/cerc-io/tx-spammer
   - dboreham/foundry
 containers:
   - cerc/go-ethereum

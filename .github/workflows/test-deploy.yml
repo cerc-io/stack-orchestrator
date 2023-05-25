@@ -1,4 +1,4 @@
-name: Smoke Test
+name: Deploy Test
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: "Run basic test suite"
+    name: "Run deploy test suite"
     runs-on: ubuntu-latest
     steps:
       - name: "Clone project repository"
@@ -25,5 +25,5 @@ jobs:
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
-      - name: "Run smoke tests"
-        run: ./tests/smoke-test/run-smoke-test.sh
+      - name: "Run deploy tests"
+        run: ./tests/deploy/run-deploy-test.sh

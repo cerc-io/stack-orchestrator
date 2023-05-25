@@ -28,108 +28,146 @@ import importlib.resources
 from pathlib import Path
 from .util import include_exclude_check, get_parsed_stack_config
 
+class DeployCommandContext(object):
+    def __init__(self, cluster_context, docker):
+        self.cluster_context = cluster_context
+        self.docker = docker
 
-@click.command()
+
+@click.group()
 @click.option("--include", help="only start these components")
 @click.option("--exclude", help="don\'t start these components")
 @click.option("--env-file", help="env file to be used")
 @click.option("--cluster", help="specify a non-default cluster name")
-@click.argument('command', required=True)  # help: command: up|down|ps
-@click.argument('extra_args', nargs=-1)  # help: command: up|down|ps <service1> <service2>
 @click.pass_context
-def command(ctx, include, exclude, env_file, cluster, command, extra_args):
+def command(ctx, include, exclude, env_file, cluster):
     '''deploy a stack'''
 
-    # TODO: implement option exclusion and command value constraint lost with the move from argparse to click
-
-    debug = ctx.obj.debug
-    quiet = ctx.obj.quiet
-    verbose = ctx.obj.verbose
-    local_stack = ctx.obj.local_stack
-    dry_run = ctx.obj.dry_run
-    stack = ctx.obj.stack
-
-    cluster_context = _make_cluster_context(ctx.obj, include, exclude, cluster)
+    cluster_context = _make_cluster_context(ctx.obj, include, exclude, cluster, env_file)
 
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster, compose_env_file=env_file)
+    docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
+                          compose_env_file=cluster_context.env_file)
 
+    ctx.obj = DeployCommandContext(cluster_context, docker)
+    # Subcommand is executed now, by the magic of click
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
+@click.pass_context
+def up(ctx, extra_args):
+    global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
+    if not global_context.dry_run:
+        cluster_context = ctx.obj.cluster_context
+        container_exec_env = _make_runtime_env(global_context)
+        for attr, value in container_exec_env.items():
+            os.environ[attr] = value
+        if global_context.verbose:
+            print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {extra_args_list}")
+        for pre_start_command in cluster_context.pre_start_commands:
+            _run_command(global_context, cluster_context.cluster, pre_start_command)
+        ctx.obj.docker.compose.up(detach=True, services=extra_args_list)
+        for post_start_command in cluster_context.post_start_commands:
+            _run_command(global_context, cluster_context.cluster, post_start_command)
+        _orchestrate_cluster_config(global_context, cluster_context.config, ctx.obj.docker, container_exec_env)
 
-    if not dry_run:
-        if command == "up":
-            container_exec_env = _make_runtime_env(ctx.obj)
-            for attr, value in container_exec_env.items():
-                os.environ[attr] = value
-            if verbose:
-                print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {extra_args_list}")
-            for pre_start_command in cluster_context.pre_start_commands:
-                _run_command(ctx.obj, cluster_context.cluster, pre_start_command)
-            docker.compose.up(detach=True, services=extra_args_list)
-            for post_start_command in cluster_context.post_start_commands:
-                _run_command(ctx.obj, cluster_context.cluster, post_start_command)
 
-            _orchestrate_cluster_config(ctx.obj, cluster_context.config, docker, container_exec_env)
+@command.command()
+@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
+@click.argument('extra_args', nargs=-1)  # help: command: down<service1> <service2>
+@click.pass_context
+def down(ctx, delete_volumes, extra_args):
+    global_context = ctx.parent.parent.obj
+    extra_args_list = list(extra_args) or None
+    if not global_context.dry_run:
+        if global_context.verbose:
+            print("Running compose down")
+        timeout_arg = None
+        if extra_args_list:
+            timeout_arg = extra_args_list[0]
+        # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
+        ctx.obj.docker.compose.down(timeout=timeout_arg, volumes=delete_volumes)
 
-        elif command == "down":
-            if verbose:
-                print("Running compose down")
 
-            timeout_arg = None
-            if extra_args_list:
-                timeout_arg=extra_args_list[0]
+@command.command()
+@click.pass_context
+def ps(ctx):
+    global_context = ctx.parent.parent.obj
+    if not global_context.dry_run:
+        if global_context.verbose:
+            print("Running compose ps")
+        container_list = ctx.obj.docker.compose.ps()
+        if len(container_list) > 0:
+            print("Running containers:")
+            for container in container_list:
+                print(f"id: {container.id}, name: {container.name}, ports: ", end="")
+                ports = container.network_settings.ports
+                comma = ""
+                for port_mapping in ports.keys():
+                    mapping = ports[port_mapping]
+                    print(comma, end="")
+                    if mapping is None:
+                        print(f"{port_mapping}", end="")
+                    else:
+                        print(f"{mapping[0]['HostIp']}:{mapping[0]['HostPort']}->{port_mapping}", end="")
+                    comma = ", "
+                print()
+        else:
+            print("No containers running")
 
-            # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
-            docker.compose.down(timeout=timeout_arg)
-        elif command == "exec":
-            if extra_args_list is None or len(extra_args_list) < 2:
-                print("Usage: exec <service> <cmd>")
-                sys.exit(1)
-            service_name = extra_args_list[0]
-            command_to_exec = ["sh", "-c"] + extra_args_list[1:]
-            container_exec_env = _make_runtime_env(ctx.obj)
-            if verbose:
-                print(f"Running compose exec {service_name} {command_to_exec}")
-            try:
-                docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
-            except DockerException as error:
-                print(f"container command returned error exit status")
-        elif command == "port":
-            if extra_args_list is None or len(extra_args_list) < 2:
-                print("Usage: port <service> <exposed-port>")
-                sys.exit(1)
-            service_name = extra_args_list[0]
-            exposed_port = extra_args_list[1]
-            if verbose:
-                print(f"Running compose port {service_name} {exposed_port}")
-            mapped_port_data = docker.compose.port(service_name, exposed_port)
-            print(f"{mapped_port_data[0]}:{mapped_port_data[1]}")
-        elif command == "ps":
-            if verbose:
-                print("Running compose ps")
-            container_list = docker.compose.ps()
-            if len(container_list) > 0:
-                print("Running containers:")
-                for container in container_list:
-                    print(f"id: {container.id}, name: {container.name}, ports: ", end="")
-                    ports = container.network_settings.ports
-                    comma = ""
-                    for port_mapping in ports.keys():
-                        mapping = ports[port_mapping]
-                        print(comma, end="")
-                        if mapping is None:
-                            print(f"{port_mapping}", end="")
-                        else:
-                            print(f"{mapping[0]['HostIp']}:{mapping[0]['HostPort']}->{port_mapping}", end="")
-                        comma = ", "
-                    print()
-            else:
-                print("No containers running")
-        elif command == "logs":
-            if verbose:
-                print("Running compose logs")
-            logs_output = docker.compose.logs(services=extra_args_list if extra_args_list is not None else [])
-            print(logs_output)
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: port <service1> <service2>
+@click.pass_context
+def port(ctx, extra_args):
+    global_context = ctx.parent.parent.obj
+    extra_args_list = list(extra_args) or None
+    if not global_context.dry_run:
+        if extra_args_list is None or len(extra_args_list) < 2:
+            print("Usage: port <service> <exposed-port>")
+            sys.exit(1)
+        service_name = extra_args_list[0]
+        exposed_port = extra_args_list[1]
+        if global_context.verbose:
+            print(f"Running compose port {service_name} {exposed_port}")
+        mapped_port_data = ctx.obj.docker.compose.port(service_name, exposed_port)
+        print(f"{mapped_port_data[0]}:{mapped_port_data[1]}")
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: exec <service> <command>
+@click.pass_context
+def exec(ctx, extra_args):
+    global_context = ctx.parent.parent.obj
+    extra_args_list = list(extra_args) or None
+    if not global_context.dry_run:
+        if extra_args_list is None or len(extra_args_list) < 2:
+            print("Usage: exec <service> <cmd>")
+            sys.exit(1)
+        service_name = extra_args_list[0]
+        command_to_exec = ["sh", "-c"] + extra_args_list[1:]
+        container_exec_env = _make_runtime_env(global_context)
+        if global_context.verbose:
+            print(f"Running compose exec {service_name} {command_to_exec}")
+        try:
+            ctx.obj.docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
+        except DockerException as error:
+            print(f"container command returned error exit status")
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
+@click.pass_context
+def logs(ctx, extra_args):
+    global_context = ctx.parent.parent.obj
+    extra_args_list = list(extra_args) or None
+    if not global_context.dry_run:
+        if global_context.verbose:
+            print("Running compose logs")
+        logs_output = ctx.obj.docker.compose.logs(services=extra_args_list if extra_args_list is not None else [])
+        print(logs_output)
 
 
 def get_stack_status(ctx, stack):
@@ -137,7 +175,7 @@ def get_stack_status(ctx, stack):
     ctx_copy = copy.copy(ctx)
     ctx_copy.stack = stack
 
-    cluster_context = _make_cluster_context(ctx_copy, None, None, None)
+    cluster_context = _make_cluster_context(ctx_copy, None, None, None, None)
     docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster)
     # TODO: refactor to avoid duplicating this code above
     if ctx.verbose:
@@ -162,7 +200,7 @@ def _make_runtime_env(ctx):
     return container_exec_env
 
 
-def _make_cluster_context(ctx, include, exclude, cluster):
+def _make_cluster_context(ctx, include, exclude, cluster, env_file):
 
     if ctx.local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -235,16 +273,17 @@ def _make_cluster_context(ctx, include, exclude, cluster):
     if ctx.verbose:
         print(f"files: {compose_files}")
 
-    return cluster_context(cluster, compose_files, pre_start_commands, post_start_commands, cluster_config)
+    return cluster_context(cluster, compose_files, pre_start_commands, post_start_commands, cluster_config, env_file)
 
 
 class cluster_context:
-    def __init__(self, cluster, compose_files, pre_start_commands, post_start_commands, config) -> None:
+    def __init__(self, cluster, compose_files, pre_start_commands, post_start_commands, config, env_file) -> None:
         self.cluster = cluster
         self.compose_files = compose_files
         self.pre_start_commands = pre_start_commands
         self.post_start_commands = post_start_commands
         self.config = config
+        self.env_file = env_file
 
 
 def _convert_to_new_format(old_pod_array):

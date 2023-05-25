@@ -1,4 +1,4 @@
-name: Integration Test
+name: Smoke Test
 
 on:
   pull_request:

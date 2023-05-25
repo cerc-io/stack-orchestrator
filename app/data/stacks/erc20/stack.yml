@@ -1,11 +1,11 @@
 version: "1.0"
 name: erc20-watcher
 repos:
-  - cerc-io/go-ethereum
-  - cerc-io/ipld-eth-db
-  - cerc-io/ipld-eth-server
-  - cerc-io/watcher-ts
-  - dboreham/foundry
+  - github.com/cerc-io/go-ethereum
+  - github.com/cerc-io/ipld-eth-db
+  - github.com/cerc-io/ipld-eth-server
+  - github.com/cerc-io/watcher-ts
+  - github.com/dboreham/foundry
 containers:
   - cerc/foundry
   - cerc/go-ethereum

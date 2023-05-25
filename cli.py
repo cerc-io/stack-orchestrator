@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
+from dataclasses import dataclass
 
 from app import setup_repositories
 from app import build_containers
@@ -24,17 +25,15 @@ from app import version
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
-# TODO: this seems kind of weird and heavy on boilerplate -- check it is
-# the best Python can do for us.
-class Options(object):
-    def __init__(self, stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error):
-        self.stack = stack
-        self.quiet = quiet
-        self.verbose = verbose
-        self.dry_run = dry_run
-        self.local_stack = local_stack
-        self.debug = debug
-        self.continue_on_error = continue_on_error
+@dataclass
+class Options:
+    stack: str
+    quiet: bool = False
+    verbose: bool = False
+    dry_run: bool = False
+    local_stack: bool = False
+    debug: bool = False
+    continue_on_error: bool = False
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)

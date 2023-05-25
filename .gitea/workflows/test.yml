@@ -37,3 +37,4 @@ jobs:
           sleep 5
       - name: "Run smoke tests"
         run: ./tests/smoke-test/run-smoke-test.sh
+

@@ -6,7 +6,6 @@ See `stacks/fixturenet-eth/README.md` for more information.
 
 ## Containers
 
-* cerc/plugeth
 * cerc/lighthouse
 * cerc/fixturenet-eth-plugeth
 * cerc/fixturenet-eth-lighthouse

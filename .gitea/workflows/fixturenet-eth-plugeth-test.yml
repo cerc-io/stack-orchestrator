@@ -1,0 +1,36 @@
+name: Fixturenet-Eth-Plugeth-Test
+
+on:
+  push:
+    branches: 'ci-test'
+
+# Needed until we can incorporate docker startup into the executor container
+env:
+  DOCKER_HOST: unix:///var/run/dind.sock
+
+
+jobs:
+  test:
+    name: "Run an Ethereum plugeth fixturenet test"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      - name: "Install Python"
+        uses: cerc-io/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: "Print Python version"
+        run: python3 --version
+      - name: "Install shiv"
+        run: pip install shiv
+      - name: "Generate build version file"
+        run: ./scripts/create_build_tag_file.sh
+      - name: "Build local shiv package"
+        run: ./scripts/build_shiv_package.sh
+      - name: Start dockerd # Also needed until we can incorporate into the executor
+        run: |
+          dockerd -H $DOCKER_HOST --userland-proxy=false &
+          sleep 5
+      - name: "Run fixturenet-eth tests"
+        run: ./tests/fixturenet-eth-plugeth/run-test.sh

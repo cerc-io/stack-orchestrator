@@ -3,7 +3,7 @@ name: package-registry
 decription: "Local Package Registry"
 repos:
   - github.com/cerc-io/hosting
-  - github.com/telackey/act_runner
+  - gitea.com/gitea/act_runner
 containers:
   - cerc/act-runner
   - cerc/act-runner-task-executor

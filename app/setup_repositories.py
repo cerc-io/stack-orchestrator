@@ -121,9 +121,8 @@ def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_pa
     else:
         branch_to_checkout = repo_branch
 
-    print(f"branch_to_checkout: {branch_to_checkout}")
     if branch_to_checkout:
-        if current_repo_branch and (current_repo_branch != branch_to_checkout):
+        if current_repo_branch is None or (current_repo_branch and (current_repo_branch != branch_to_checkout)):
             if not quiet:
                 print(f"switching to branch {branch_to_checkout} in repo {repo_path}")
             git_repo = git.Repo(full_filesystem_repo_path)

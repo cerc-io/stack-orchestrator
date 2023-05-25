@@ -126,25 +126,28 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
                 print(f"Excluding: {repo}")
 
     def host_and_path_for_repo(fully_qualified_repo):
-        repo_split = fully_qualified_repo.split("/")
+        repo_branch_split = fully_qualified_repo.split("@")
+        repo_branch = repo_branch_split[-1] if len(repo_branch_split) > 1 else None
+        repo_host_split = repo_branch_split[0].split("/")
         # Legacy unqualified repo means github
-        if len(repo_split) == 2:
-            return "github.com", "/".join(repo_split)
+        if len(repo_host_split) == 2:
+            return "github.com", "/".join(repo_host_split), repo_branch
         else:
-            if len(repo_split) == 3:
+            if len(repo_host_split) == 3:
                 # First part is the host
-                return repo_split[0], "/".join(repo_split[1:])
+                return repo_host_split[0], "/".join(repo_host_split[1:]), repo_branch
 
     def process_repo(fully_qualified_repo):
-        repo_host, repo_path = host_and_path_for_repo(fully_qualified_repo)
+        repo_host, repo_path, repo_branch = host_and_path_for_repo(fully_qualified_repo)
         git_ssh_prefix = f"git@{repo_host}:"
         git_http_prefix = f"https://{repo_host}/"
         full_github_repo_path = f"{git_ssh_prefix if git_ssh else git_http_prefix}{repo_path}"
         repoName = repo_path.split("/")[-1]
         full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
         is_present = os.path.isdir(full_filesystem_repo_path)
+        current_repo_branch = git.Repo(full_filesystem_repo_path).active_branch.name if is_present else None
         if not quiet:
-            present_text = f"already exists active branch: {git.Repo(full_filesystem_repo_path).active_branch}" if is_present \
+            present_text = f"already exists active branch: {current_repo_branch}" if is_present \
                 else 'Needs to be fetched'
             print(f"Checking: {full_filesystem_repo_path}: {present_text}")
         # Quick check that it's actually a repo
@@ -173,6 +176,7 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
             else:
                 print("(git clone skipped)")
         # Checkout the requested branch, if one was specified
+        branch_to_checkout = None
         if branches:
             # Find the current repo in the branches list
             for repo_branch in branches:
@@ -180,10 +184,18 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches_file):
                 if repo_branch_tuple[0] == repo:
                     # checkout specified branch
                     branch_to_checkout = repo_branch_tuple[1]
-                    if verbose:
-                        print(f"checking out branch {branch_to_checkout} in repo {repo}")
-                        git_repo = git.Repo(full_filesystem_repo_path)
-                        git_repo.git.checkout(branch_to_checkout)
+        else:
+            branch_to_checkout = repo_branch
+
+        if branch_to_checkout:
+            if current_repo_branch and (current_repo_branch != branch_to_checkout):
+                if not quiet:
+                    print(f"switching to branch {branch_to_checkout} in repo {repo_path}")
+                git_repo = git.Repo(full_filesystem_repo_path)
+                git_repo.git.checkout(branch_to_checkout)
+            else:
+                if verbose:
+                    print(f"repo {repo_path} is already switched to branch {branch_to_checkout}")
 
     for repo in repos:
         try:

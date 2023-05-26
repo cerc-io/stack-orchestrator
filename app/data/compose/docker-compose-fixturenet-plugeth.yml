@@ -6,7 +6,7 @@ services:
       - ../config/fixturenet-eth/fixturenet-eth.env
     environment:
       RUN_BOOTNODE: "true"
-    image: cerc/fixturenet-eth-plugeth:local
+    image: cerc/fixturenet-plugeth-plugeth:local
     volumes:
       - fixturenet_plugeth_bootnode_geth_data:/root/ethdata
       - ../config/fixturenet-plugeth/plugins:/root/ethdata/plugins
@@ -26,7 +26,7 @@ services:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
-    image: cerc/fixturenet-eth-plugeth:local
+    image: cerc/fixturenet-plugeth-plugeth:local
     volumes:
       - fixturenet_plugeth_geth_1_data:/root/ethdata
       - ../config/fixturenet-plugeth/plugins:/root/ethdata/plugins
@@ -56,7 +56,7 @@ services:
       CERC_KEEP_RUNNING_AFTER_GETH_EXIT: "true"
     env_file:
       - ../config/fixturenet-eth/fixturenet-eth.env
-    image: cerc/fixturenet-eth-plugeth:local
+    image: cerc/fixturenet-plugeth-plugeth:local
     depends_on:
       - fixturenet-eth-bootnode-geth
     volumes:
@@ -68,7 +68,7 @@ services:
     hostname: fixturenet-eth-bootnode-lighthouse
     environment:
       RUN_BOOTNODE: "true"
-    image: cerc/fixturenet-eth-lighthouse:local
+    image: cerc/fixturenet-plugeth-lighthouse:local
 
   fixturenet-eth-lighthouse-1:
     restart: always
@@ -85,7 +85,7 @@ services:
       NODE_NUMBER: "1"
       ETH1_ENDPOINT: "http://fixturenet-eth-geth-1:8545"
       EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-1:8551"
-    image: cerc/fixturenet-eth-lighthouse:local
+    image: cerc/fixturenet-plugeth-lighthouse:local
     volumes:
       - fixturenet_plugeth_lighthouse_1_data:/opt/testnet/build/cl
     depends_on:
@@ -112,7 +112,7 @@ services:
       ETH1_ENDPOINT: "http://fixturenet-eth-geth-2:8545"
       EXECUTION_ENDPOINT: "http://fixturenet-eth-geth-2:8551"
       LIGHTHOUSE_GENESIS_STATE_URL: "http://fixturenet-eth-lighthouse-1:8001/eth/v2/debug/beacon/states/0"
-    image: cerc/fixturenet-eth-lighthouse:local
+    image: cerc/fixturenet-plugeth-lighthouse:local
     volumes:
       - fixturenet_plugeth_lighthouse_2_data:/opt/testnet/build/cl
     depends_on:

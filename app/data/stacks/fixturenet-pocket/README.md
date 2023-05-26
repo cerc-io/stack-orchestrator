@@ -20,15 +20,22 @@ It may take up to 10 minutes for the Eth Fixturenet to fully come online and sta
 **Eth Fixturenet:**
 ```
 $ laconic-so --stack fixturenet-pocket deploy exec fixturenet-eth-bootnode-lighthouse /scripts/status-internal.sh
+```
+Response:
+```
 Waiting for geth to generate DAG.... done
 Waiting for beacon phase0.... done
 Waiting for beacon altair.... done
 Waiting for beacon bellatrix pre-merge.... done
 Waiting for beacon bellatrix merge.... done
 ```
+
 **Pocket node:**
 ```
 $ laconic-so --stack fixturenet-pocket deploy exec pocket "pocket query height"
+```
+Response:
+```
 2023/04/20 08:07:46 Initializing Pocket Datadir
 2023/04/20 08:07:46 datadir = /home/app/.pocket
 http://localhost:8081/v1/query/height
@@ -36,17 +43,18 @@ http://localhost:8081/v1/query/height
     "height": 4
 }
 ```
-or
+or see the full logs:
 ```
 $ laconic-so --stack fixturenet-pocket deploy logs pocket
 ```
 ## 5. Send a relay request to Pocket node
 The Pocket node serves relay requests at `http://localhost:8081/v1/client/sim`  
-**Example request:**
+
+Example request:
 ```
 $ curl -X POST --data '{"relay_network_id":"0021","payload":{"data":"{\"jsonrpc\": \"2.0\",\"id\": 1,\"method\": \"eth_blockNumber\",\"params\": []}","method":"POST","path":"","headers":{}}}' http://localhost:8081/v1/client/sim
 ```
-**Response:**
+Response:
 ```
 "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x6fe\"}\n"
 ```

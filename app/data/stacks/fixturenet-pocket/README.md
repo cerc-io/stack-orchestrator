@@ -1,29 +1,22 @@
 # Pocket Fixturenet
 
-Instructions for deploying a local single-node Pocket chain alongside a geth + lighthouse blockchain "fixturenet" for development and testing purposes using laconic-stack-orchestrator.
+Instructions for deploying a local single-node Pocket chain alongside a geth + lighthouse blockchain "fixturenet" for development and testing purposes using Stack Orchestrator.
 
-## 1. Build Laconic Stack Orchestrator
-Build this fork of Laconic Stack Orchestrator which includes the fixturenet-pocket stack:
-```
-$ scripts/build_shiv_package.sh
-$ cd package
-$ mv laconic-so-{version} /usr/local/bin/laconic-so  # Or move laconic-so to ~/bin or your favorite on-path directory
-```
-
-## 2. Clone required repositories
+## 1. Clone required repositories
 ```
 $ laconic-so --stack fixturenet-pocket setup-repositories
 ```
-## 3. Build the stack's containers
+## 2. Build the stack's containers
 ```
 $ laconic-so --stack fixturenet-pocket build-containers
 ```
-## 4. Deploy the stack
+## 3. Deploy the stack
 ```
 $ laconic-so --stack fixturenet-pocket deploy up
 ```
 It may take up to 10 minutes for the Eth Fixturenet to fully come online and start producing blocks.
-## 5. Check status
+
+## 4. Check status
 **Eth Fixturenet:**
 ```
 $ laconic-so --stack fixturenet-pocket deploy exec fixturenet-eth-bootnode-lighthouse /scripts/status-internal.sh
@@ -47,7 +40,7 @@ or
 ```
 $ laconic-so --stack fixturenet-pocket deploy logs pocket
 ```
-## 6. Send a relay request to Pocket node
+## 5. Send a relay request to Pocket node
 The Pocket node serves relay requests at `http://localhost:8081/v1/client/sim`  
 **Example request:**
 ```

@@ -34,4 +34,3 @@ jobs:
           sleep 5
       - name: "Run fixturenet-eth tests"
         run: ./tests/fixturenet-eth-plugeth/run-test.sh
-

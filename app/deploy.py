@@ -24,9 +24,10 @@ from decouple import config
 import subprocess
 from python_on_whales import DockerClient, DockerException
 import click
-import importlib.resources
+from importlib import resources, util
 from pathlib import Path
 from .util import include_exclude_check, get_parsed_stack_config
+
 
 class DeployCommandContext(object):
     def __init__(self, cluster_context, docker):
@@ -225,7 +226,7 @@ def _make_cluster_context(ctx, include, exclude, cluster, env_file):
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from . import data
-    with importlib.resources.open_text(data, "pod-list.txt") as pod_list_file:
+    with resources.open_text(data, "pod-list.txt") as pod_list_file:
         all_pods = pod_list_file.read().splitlines()
 
     pods_in_scope = []
@@ -376,3 +377,13 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                         waiting_for_data = False
                     if ctx.debug:
                         print(f"destination output: {destination_output}")
+
+
+# TODO: figure out how to do this dynamically
+stack = "mainnet-laconic"
+module_name = "commands"
+spec = util.spec_from_file_location(module_name, "./app/data/stacks/" + stack + "/deploy/commands.py")
+imported_stack = util.module_from_spec(spec)
+spec.loader.exec_module(imported_stack)
+command.add_command(imported_stack.init)
+command.add_command(imported_stack.create)

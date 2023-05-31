@@ -1,6 +1,6 @@
 # fixturenet-eth
 
-Instructions for deploying a local a geth + lighthouse blockchain "fixturenet" for development and testing purposes using laconic-stack-orchestrator (the installation of which is covered [here](https://github.com/cerc-io/stack-orchestrator#user-mode)):
+Instructions for deploying a local a geth + lighthouse blockchain "fixturenet" for development and testing purposes using laconic-stack-orchestrator (the installation of which is covered [here](https://github.com/cerc-io/stack-orchestrator)):
 
 ## Clone required repositories
 

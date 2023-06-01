@@ -28,3 +28,4 @@ fixturenet-pocket
 watcher-azimuth
 watcher-gelato
 fixturenet-lotus
+mainnet-go-opera

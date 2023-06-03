@@ -21,6 +21,7 @@ from app import build_containers
 from app import build_npms
 from app import deploy
 from app import version
+from app import deployment
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -56,4 +57,5 @@ cli.add_command(build_containers.command, "build-containers")
 cli.add_command(build_npms.command, "build-npms")
 cli.add_command(deploy.command, "deploy")  # deploy is an alias for deploy-system
 cli.add_command(deploy.command, "deploy-system")
+cli.add_command(deployment.command, "deployment")
 cli.add_command(version.command, "version")

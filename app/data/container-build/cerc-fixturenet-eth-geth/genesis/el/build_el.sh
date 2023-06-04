@@ -34,5 +34,7 @@ python3 /apps/el-gen/genesis_geth.py $tmp_dir/genesis-config.yaml | \
   jq ".config.istanbulBlock=$istanbul_block" | \
   jq ".config.berlinBlock=$berlin_block" | \
   jq ".config.londonBlock=$london_block" | \
-  jq ".config.mergeForkBlock=$merge_fork_block" > ../build/el/geth.json
+  jq ".config.mergeForkBlock=$merge_fork_block" | \
+  jq ".config.mergeNetsplitBlock=$merge_fork_block" \
+  > ../build/el/geth.json
 python3 ../accounts/mnemonic_to_csv.py $tmp_dir/genesis-config.yaml > ../build/el/accounts.csv

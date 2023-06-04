@@ -31,7 +31,7 @@ lcli \
   --genesis-delay $GENESIS_DELAY \
   --genesis-fork-version $GENESIS_FORK_VERSION \
   --altair-fork-epoch $ALTAIR_FORK_EPOCH \
-  --merge-fork-epoch $MERGE_FORK_EPOCH \
+  --bellatrix-fork-epoch $MERGE_FORK_EPOCH \
   --eth1-id $ETH1_CHAIN_ID \
   --eth1-follow-distance 1 \
   --seconds-per-slot $SECONDS_PER_SLOT \

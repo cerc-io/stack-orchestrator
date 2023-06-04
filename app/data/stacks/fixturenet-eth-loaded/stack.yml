@@ -6,9 +6,11 @@ repos:
   - github.com/cerc-io/tx-spammer
   - github.com/cerc-io/ipld-eth-server
   - github.com/cerc-io/ipld-eth-db
+  - github.com/cerc-io/lighthouse
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse
+  - cerc/lighthouse-cli
   - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
   - cerc/ipld-eth-server

@@ -27,6 +27,7 @@ lcli \
   --deposit-contract-address $ETH1_DEPOSIT_CONTRACT_ADDRESS \
   --testnet-dir $TESTNET_DIR \
   --min-genesis-active-validator-count $GENESIS_VALIDATOR_COUNT \
+  --validator-count $VALIDATOR_COUNT
   --min-genesis-time $GENESIS_TIME \
   --genesis-delay $GENESIS_DELAY \
   --genesis-fork-version $GENESIS_FORK_VERSION \

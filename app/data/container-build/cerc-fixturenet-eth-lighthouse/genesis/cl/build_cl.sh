@@ -27,11 +27,12 @@ lcli \
   --deposit-contract-address $ETH1_DEPOSIT_CONTRACT_ADDRESS \
   --testnet-dir $TESTNET_DIR \
   --min-genesis-active-validator-count $GENESIS_VALIDATOR_COUNT \
+  --validator-count $VALIDATOR_COUNT \
   --min-genesis-time $GENESIS_TIME \
   --genesis-delay $GENESIS_DELAY \
   --genesis-fork-version $GENESIS_FORK_VERSION \
   --altair-fork-epoch $ALTAIR_FORK_EPOCH \
-  --merge-fork-epoch $MERGE_FORK_EPOCH \
+  --bellatrix-fork-epoch $MERGE_FORK_EPOCH \
   --eth1-id $ETH1_CHAIN_ID \
   --eth1-follow-distance 1 \
   --seconds-per-slot $SECONDS_PER_SLOT \

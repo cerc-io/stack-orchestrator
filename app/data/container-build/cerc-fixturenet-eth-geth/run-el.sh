@@ -92,6 +92,7 @@ else
       --statediff.db.logstatements=${CERC_STATEDIFF_DB_LOG_STATEMENTS:-false} \
       --statediff.db.copyfrom=${CERC_STATEDIFF_DB_COPY_FROM:-true} \
       --statediff.waitforsync=true \
+      --statediff.workers=${CERC_STATEDIFF_WORKERS:-1} \
       --statediff.writing=true"
     fi
 

@@ -6,7 +6,7 @@ RUN go install github.com/go-delve/delve/cmd/dlv@latest
 FROM ubuntu:22.04
 RUN apt-get update && \
       apt-get install -y --no-install-recommends \
-        python3 python3-dev python3-pip curl wget jq gettext gettext-base openssl bash dnsutils postgresql-client make iproute2 netcat && \
+        python3 python3-dev python3-pip curl wget jq gettext gettext-base openssl bash dnsutils postgresql-client make iproute2 netcat psmisc && \
       rm -rf /var/lib/apt/lists/*
 
 COPY --from=delve  /go/bin/dlv /usr/local/bin/
@@ -23,5 +23,18 @@ COPY run-el.sh /opt/testnet/run.sh
 RUN cd /opt/testnet && make genesis-el
 
 RUN geth --datadir ~/ethdata init /opt/testnet/build/el/geth.json && rm -f ~/ethdata/geth/nodekey
+
+# Snag the genesis block info.
+RUN geth --datadir ~/ethdata init /opt/testnet/build/el/geth.json && rm -f ~/ethdata/geth/nodekey
+RUN cp -rp ~/ethdata ~/tmpeth && \
+    geth --datadir ~/tmpeth init /opt/testnet/build/el/geth.json && \
+    geth --datadir ~/tmpeth --http & \
+    sleep 5 && \
+    curl -q --location 'localhost:8545' \
+        --header 'Content-Type: application/json' \
+        --data '{ "jsonrpc": "2.0", "id": 14, "method": "eth_getBlockByNumber", "params": ["0x0", false] }' \
+        -o /opt/testnet/build/el/genesis_block.json && \
+    killall -9 geth && \
+    rm -rf ~/tmpeth
 
 ENTRYPOINT ["/opt/testnet/run.sh"]

@@ -3,12 +3,14 @@ name: fixturenet-optimism
 decription: "Optimism Fixturenet"
 repos:
   - github.com/cerc-io/go-ethereum
+  - github.com/cerc-io/lighthouse
   - github.com/dboreham/foundry
-  - github.com/ethereum-optimism/optimism
-  - github.com/ethereum-optimism/op-geth
+  - github.com/ethereum-optimism/optimism@v1.0.4
+  - github.com/ethereum-optimism/op-geth@v1.101105.2
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse
+  - cerc/lighthouse-cli
   - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
   - cerc/foundry

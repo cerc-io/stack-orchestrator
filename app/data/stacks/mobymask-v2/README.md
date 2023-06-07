@@ -18,26 +18,6 @@ laconic-so --stack mobymask-v2 setup-repositories
 NOTE: If repositories already exist and are checked out to different versions, `setup-repositories` command will throw an error.
 For getting around this, the repositories mentioned below can be removed and then run the command.
 
-Checkout to the required versions and branches in repos
-
-```bash
-# watcher-ts
-cd ~/cerc/watcher-ts
-git checkout v0.2.41
-
-# mobymask-v2-watcher-ts
-cd ~/cerc/mobymask-v2-watcher-ts
-git checkout v0.1.1
-
-# MobyMask
-cd ~/cerc/MobyMask
-git checkout v0.1.2
-
-# Optimism
-cd ~/cerc/optimism
-git checkout v1.0.4
-```
-
 Build the container images:
 
 ```bash

@@ -14,14 +14,6 @@ laconic-so --stack fixturenet-optimism setup-repositories --exclude github.com/c
 # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```
 
-Checkout to the required versions and branches in repos:
-
-```bash
-# Optimism
-cd ~/cerc/optimism
-git checkout v1.0.4
-```
-
 Build the container images:
 
 ```bash

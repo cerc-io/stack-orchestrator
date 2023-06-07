@@ -1,8 +1,9 @@
 version: '3.2'
 
 services:
+  # Builds and serves the peer-test react-app
   peer-test-app:
-    # Builds and serves the peer-test react-app
+    restart: unless-stopped
     image: cerc/react-peer:local
     working_dir: /scripts
     env_file:

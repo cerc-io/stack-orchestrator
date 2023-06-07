@@ -2,21 +2,24 @@ version: "1.0"
 name: mobymask-v2
 repos:
   - github.com/cerc-io/go-ethereum
+  - github.com/cerc-io/lighthouse
   - github.com/dboreham/foundry
-  - github.com/ethereum-optimism/optimism
-  - github.com/ethereum-optimism/op-geth
-  - github.com/cerc-io/watcher-ts
-  - github.com/cerc-io/mobymask-v2-watcher-ts
-  - github.com/cerc-io/MobyMask
+  - github.com/ethereum-optimism/optimism@v1.0.4
+  - github.com/ethereum-optimism/op-geth@v1.101105.2
+  - github.com/cerc-io/watcher-ts@v0.2.43
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v0.1.1
+  - github.com/cerc-io/MobyMask@v0.1.2
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse
+  - cerc/lighthouse-cli
   - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
   - cerc/foundry
   - cerc/optimism-contracts
   - cerc/optimism-l2geth
   - cerc/optimism-op-batcher
+  - cerc/optimism-op-proposer
   - cerc/optimism-op-node
   - cerc/watcher-ts
   - cerc/watcher-mobymask-v2

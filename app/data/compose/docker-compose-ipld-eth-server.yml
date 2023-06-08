@@ -26,7 +26,7 @@ services:
       PROM_HTTP_ADDR: "0.0.0.0"
       PROM_HTTP_PORT: "8090"
       LOGRUS_LEVEL: "debug"
-      CERC_REMOTE_DEBUG: "true"
+      CERC_REMOTE_DEBUG: ${CERC_REMOTE_DEBUG:-true}
     volumes:
       - type: bind
         source: ../config/ipld-eth-server/chain.json

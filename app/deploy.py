@@ -228,7 +228,7 @@ def _make_runtime_env(ctx):
         "CERC_HOST_UID": f"{os.getuid()}",
         "CERC_HOST_GID": f"{os.getgid()}"
     }
-    container_exec_env.update({"CERC_SCRIPT_DEBUG": "true"} if ctx.debug else {})
+    container_exec_env.update({"CERC_SCRIPT_DEBUG": "true", "CERC_REMOTE_DEBUG": "true"} if ctx.debug else {})
     return container_exec_env
 
 

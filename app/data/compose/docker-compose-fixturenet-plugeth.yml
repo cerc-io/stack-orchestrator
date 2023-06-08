@@ -20,7 +20,7 @@ services:
     cap_add:
       - SYS_PTRACE
     environment:
-      CERC_REMOTE_DEBUG: "true"
+      CERC_REMOTE_DEBUG: ${CERC_REMOTE_DEBUG:-true}
       CERC_RUN_STATEDIFF: "detect"
       CERC_STATEDIFF_DB_NODE_ID: 1
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}

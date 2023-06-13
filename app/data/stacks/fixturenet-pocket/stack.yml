@@ -10,6 +10,7 @@ containers:
   - cerc/go-ethereum
   - cerc/lighthouse
   - cerc/lighthouse-cli
+  - cerc/fixturenet-eth-genesis
   - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
   - cerc/pocket

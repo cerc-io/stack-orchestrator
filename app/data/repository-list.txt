@@ -37,3 +37,5 @@ git.vdb.to/cerc-io/test-project
 github.com/Fantom-foundation/go-opera
 github.com/cerc-io/lasso
 github.com/paradigmxyz/reth
+git.vdb.to/cerc-io/plugeth
+git.vdb.to/cerc-io/plugeth-statediff

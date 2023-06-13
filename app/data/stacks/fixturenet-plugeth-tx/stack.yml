@@ -8,14 +8,15 @@ repos:
   - github.com/cerc-io/ipld-eth-db@v5
   - github.com/cerc-io/ipld-eth-server@v5
   - git.vdb.to/cerc-io/plugeth@statediff-wip
-  - git.vdb.to/cerc-io/plugeth-statediff@dev-local-build
+  - git.vdb.to/cerc-io/plugeth-statediff@wip
 containers:
   - cerc/lighthouse
   - cerc/lighthouse-cli
   - cerc/plugeth-statediff
   - cerc/plugeth
+  - cerc/fixturenet-eth-genesis
   - cerc/fixturenet-plugeth-plugeth
-  - cerc/fixturenet-plugeth-lighthouse
+  - cerc/fixturenet-eth-lighthouse
   - cerc/tx-spammer
   - cerc/foundry
   - cerc/ipld-eth-db

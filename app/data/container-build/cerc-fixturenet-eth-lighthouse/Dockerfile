@@ -1,6 +1,6 @@
 FROM cerc/lighthouse-cli:local AS lcli
 FROM skylenet/ethereum-genesis-generator@sha256:210353ce7c898686bc5092f16c61220a76d357f51eff9c451e9ad1b9ad03d4d3 AS ethgen
-FROM cerc/fixturenet-eth-geth:local AS fnetgeth
+FROM cerc/fixturenet-eth-genesis:local AS fnetgen
 
 FROM cerc/lighthouse:local
 
@@ -19,8 +19,8 @@ COPY --from=lcli /usr/local/bin/lcli /usr/local/bin/lcli
 COPY --from=ethgen /usr/local/bin/eth2-testnet-genesis /usr/local/bin/eth2-testnet-genesis
 COPY --from=ethgen /usr/local/bin/eth2-val-tools /usr/local/bin/eth2-val-tools
 COPY --from=ethgen /apps /apps
-COPY --from=fnetgeth /opt/testnet/el /opt/testnet/el
-COPY --from=fnetgeth /opt/testnet/build/el /opt/testnet/build/el
+COPY --from=fnetgen /opt/genesis/el /opt/testnet/el
+COPY --from=fnetgen /opt/genesis/build/el /opt/testnet/build/el
 
 RUN cd /opt/testnet && make genesis-cl
 

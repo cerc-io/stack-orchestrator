@@ -3,6 +3,14 @@
 # Used for easily testing stacks-in-development on cloud platforms
 # Assumes Ubuntu, edit the last line if targeting a different OS
 
+# Once SSH'd into the server, run:
+# `$ cd stack-orchestrator`
+# `$ git checkout <branch>
+# `$ ./scripts/developer-mode-setup.sh`
+# `$ source ./venv/bin/activate`
+
+# Followed by the stack instructions.
+
 package_update: true
 package_upgrade: true
 

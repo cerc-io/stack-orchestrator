@@ -1,7 +1,7 @@
 #cloud-config
 
-# Used for installing Stack Orchestrator on platforms that support `cloud-init`
-# Tested on Ubuntu
+# Used for easily testing stacks-in-development on cloud platforms
+# Assumes Ubuntu, edit the last line if targeting a different OS
 
 package_update: true
 package_upgrade: true
@@ -22,6 +22,8 @@ packages:
   - gnupg
   - lsb-release
   - unattended-upgrades
+  - python3.10-venv
+  - pip
 
 runcmd:
   - mkdir -p /etc/apt/keyrings
@@ -31,5 +33,4 @@ runcmd:
   - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   - systemctl enable docker
   - systemctl start docker
-  - curl -L -o /usr/local/bin/laconic-so https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so
-  - chmod +x /usr/local/bin/laconic-so
+  - git clone https://github.com/cerc-io/stack-orchestrator.git /home/ubuntu/stack-orchestrator

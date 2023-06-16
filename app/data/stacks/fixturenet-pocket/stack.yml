@@ -3,11 +3,13 @@ name: fixturenet-pocket
 description: "A single node pocket chain that can serve relays from the geth-1 node in eth-fixturenet"
 repos:
   - github.com/cerc-io/go-ethereum
+  - github.com/cerc-io/lighthouse
   - github.com/pokt-network/pocket-core
   - github.com/pokt-network/pocket-core-deployments # contains the dockerfile
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse
+  - cerc/lighthouse-cli
   - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
   - cerc/pocket

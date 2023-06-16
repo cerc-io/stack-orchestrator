@@ -1,4 +1,4 @@
-FROM sigp/lcli:v4.1.0 AS lcli
+FROM cerc/lighthouse-cli:local AS lcli
 FROM skylenet/ethereum-genesis-generator@sha256:210353ce7c898686bc5092f16c61220a76d357f51eff9c451e9ad1b9ad03d4d3 AS ethgen
 FROM cerc/fixturenet-eth-geth:local AS fnetgeth
 

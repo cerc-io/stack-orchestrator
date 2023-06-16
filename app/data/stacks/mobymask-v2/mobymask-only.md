@@ -14,22 +14,6 @@ laconic-so --stack mobymask-v2 setup-repositories --include github.com/cerc-io/M
 # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```
 
-Checkout to the required versions and branches in repos:
-
-```bash
-# watcher-ts
-cd ~/cerc/watcher-ts
-git checkout v0.2.41
-
-# mobymask-v2-watcher-ts
-cd ~/cerc/mobymask-v2-watcher-ts
-git checkout v0.1.1
-
-# MobyMask
-cd ~/cerc/MobyMask
-git checkout v0.1.2
-```
-
 Build the container images:
 
 ```bash

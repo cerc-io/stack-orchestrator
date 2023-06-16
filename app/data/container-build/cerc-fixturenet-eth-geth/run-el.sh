@@ -64,8 +64,8 @@ else
     STATEDIFF_OPTS=""
     if [ "$CERC_RUN_STATEDIFF" == "true" ]; then
       ready=0
+      echo "Waiting for statediff DB..."
       while [ $ready -eq 0 ]; do
-        echo "Waiting for statediff DB..."
         sleep 1
         export PGPASSWORD="$CERC_STATEDIFF_DB_PASSWORD"
         result=$(psql -h "$CERC_STATEDIFF_DB_HOST" \
@@ -73,9 +73,13 @@ else
           -U "$CERC_STATEDIFF_DB_USER" \
           -d "$CERC_STATEDIFF_DB_NAME" \
           -t -c 'select max(version_id) from goose_db_version;' 2>/dev/null | awk '{ print $1 }')
-        if [ -n "$result" ] && [ $result -ge $CERC_STATEDIFF_DB_GOOSE_MIN_VER ]; then
+        if [ -n "$result" ]; then
           echo "DB ready..."
-          ready=1
+          if [ $result -ge $CERC_STATEDIFF_DB_GOOSE_MIN_VER ]; then
+            ready=1
+          else
+            echo "DB not at required version (want $CERC_STATEDIFF_DB_GOOSE_MIN_VER, have $result)"
+          fi
         fi
       done
       STATEDIFF_OPTS="--statediff=true \
@@ -88,6 +92,7 @@ else
       --statediff.db.logstatements=${CERC_STATEDIFF_DB_LOG_STATEMENTS:-false} \
       --statediff.db.copyfrom=${CERC_STATEDIFF_DB_COPY_FROM:-true} \
       --statediff.waitforsync=true \
+      --statediff.workers=${CERC_STATEDIFF_WORKERS:-1} \
       --statediff.writing=true"
     fi
 

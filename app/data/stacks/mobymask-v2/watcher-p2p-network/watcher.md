@@ -30,22 +30,6 @@ Clone required repositories:
   # 100%|##############################################################################################################################################| 1.41k/1.41k [00:18<00:00, 76.4B/s]
   ```
 
-Checkout to the required versions and branches in repos:
-
-  ```bash
-  # watcher-ts
-  cd ~/cerc/watcher-ts
-  git checkout v0.2.41
-
-  # mobymask-v2-watcher-ts
-  cd ~/cerc/mobymask-v2-watcher-ts
-  git checkout v0.1.1
-
-  # MobyMask
-  cd ~/cerc/MobyMask
-  git checkout v0.1.2
-  ```
-
 Build the container images:
 
   ```bash

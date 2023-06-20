@@ -15,9 +15,10 @@
 
 import click
 import os
+from pathlib import Path
 from shutil import copyfile
 import sys
-from .util import get_stack_config_filename, get_parsed_deployment_spec
+from .util import get_stack_config_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options
 
 default_spec_file_content = """stack: mainnet-laconic
 data_dir: /my/path
@@ -43,7 +44,9 @@ def init(ctx, output):
 def create(ctx, spec_file, deployment_dir):
     # This function fails with a useful error message if the file doens't exist
     parsed_spec = get_parsed_deployment_spec(spec_file)
-    if ctx.debug:
+    stack_file = get_stack_config_path(parsed_spec['stack'])
+    parsed_stack = get_parsed_stack_config(stack_file)
+    if global_options(ctx).debug:
         print(f"parsed spec: {parsed_spec}")
     if deployment_dir is None:
         deployment_dir = make_default_deployment_dir()
@@ -53,5 +56,12 @@ def create(ctx, spec_file, deployment_dir):
     os.mkdir(deployment_dir)
     # Copy spec file and the stack file into the deployment dir
     copyfile(spec_file, os.path.join(deployment_dir, os.path.basename(spec_file)))
-    stack_file = get_stack_config_filename(parsed_spec.stack)
     copyfile(stack_file, os.path.join(deployment_dir, os.path.basename(stack_file)))
+    # Copy the pod files into the deployment dir
+    pods = parsed_stack['pods']
+    # TODO: refactor to use common code with deploy command
+        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+    compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
+    for pod in pods:
+        pod_file_path = os.path.join(compose_dir, f"docker-compose-{pod}.yml")
+        copyfile(pod_file_path, os.path.join(deployment_dir, os.path.basename(pod_file_path)))

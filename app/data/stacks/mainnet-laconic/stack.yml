@@ -24,9 +24,8 @@ containers:
   - cerc/laconic-console-host
 pods:
   - mainnet-laconicd
-  - laconic-console
+  - fixturenet-laconic-console
 config:
   cli:
     key: laconicd.mykey
     address: laconicd.myaddress
-

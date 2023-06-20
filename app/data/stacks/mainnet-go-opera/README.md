@@ -1,6 +1,6 @@
 # Opera (Fantom)
 
-Deploy and Fantom API.
+Deploy a Fantom API node.
 
 ## Clone required repositories
 

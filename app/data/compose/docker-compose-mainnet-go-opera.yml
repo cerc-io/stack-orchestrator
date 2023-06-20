@@ -7,7 +7,6 @@ services:
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/start-node.sh"]
     volumes:
       - ../config/mainnet-go-opera/start-node.sh:/docker-entrypoint-scripts.d/start-node.sh
-    # network_mode: "host"
     # TODO: ports taken from dockerfile, determine which are needed
     ports:
       - "5050:5050" # p2p port, needed

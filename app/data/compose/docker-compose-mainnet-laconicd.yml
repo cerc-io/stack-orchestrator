@@ -27,4 +27,4 @@ services:
       - ../config/fixturenet-laconicd/registry-cli-config-template.yml:/registry-cli-config-template.yml
 
 volumes:
-  laconicd-data
+  laconicd-data:

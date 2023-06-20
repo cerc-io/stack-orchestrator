@@ -78,6 +78,18 @@ def up_operation(ctx, services_list):
         _orchestrate_cluster_config(global_context, cluster_context.config, deploy_context.docker, container_exec_env)
 
 
+def down_operation(ctx, delete_volumes, extra_args_list):
+    global_context = ctx.parent.parent.obj
+    if not global_context.dry_run:
+        if global_context.verbose:
+            print("Running compose down")
+        timeout_arg = None
+        if extra_args_list:
+            timeout_arg = extra_args_list[0]
+        # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
+        ctx.obj.docker.compose.down(timeout=timeout_arg, volumes=delete_volumes)
+
+
 @command.command()
 @click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
@@ -91,16 +103,8 @@ def up(ctx, extra_args):
 @click.argument('extra_args', nargs=-1)  # help: command: down<service1> <service2>
 @click.pass_context
 def down(ctx, delete_volumes, extra_args):
-    global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
-    if not global_context.dry_run:
-        if global_context.verbose:
-            print("Running compose down")
-        timeout_arg = None
-        if extra_args_list:
-            timeout_arg = extra_args_list[0]
-        # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
-        ctx.obj.docker.compose.down(timeout=timeout_arg, volumes=delete_volumes)
+    down_operation(ctx, delete_volumes, extra_args_list)
 
 
 @command.command()

@@ -17,7 +17,7 @@ import click
 from dataclasses import dataclass
 from pathlib import Path
 import sys
-from .deploy import up_operation, create_deploy_context
+from .deploy import up_operation, down_operation, create_deploy_context
 from .util import global_options
 
 @dataclass
@@ -48,7 +48,6 @@ def command(ctx, dir):
 @click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
 def up(ctx, extra_args):
-    print(f"Context: {global_options(ctx)}")
     # Get the stack config file name
     stack_file_path = ctx.obj.dir.joinpath("stack.yml")
     # TODO: add cluster name and env file here
@@ -58,9 +57,14 @@ def up(ctx, extra_args):
 
 
 @command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: down <service1> <service2>
 @click.pass_context
-def down(ctx):
-    print(f"Context: {ctx.parent.obj}")
+def down(ctx, extra_args):
+    # Get the stack config file name
+    stack_file_path = ctx.obj.dir.joinpath("stack.yml")
+    # TODO: add cluster name and env file here
+    ctx.obj = create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, None, None)
+    down_operation(ctx, extra_args, None)
 
 
 @command.command()
@@ -85,6 +89,12 @@ def task(ctx):
 @click.pass_context
 def status(ctx):
     print(f"Context: {ctx.parent.obj}")
+
+
+@command.command()
+@click.pass_context
+def reset(ctx):
+    ctx.obj = create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, None, None)
 
 
 #from importlib import resources, util

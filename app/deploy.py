@@ -365,6 +365,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                           f" = {pd.source_container}.{pd.source_variable}")
                 # TODO: add a timeout
                 waiting_for_data = True
+                destination_output = "*** no output received yet ***"
                 while waiting_for_data:
                     # TODO: fix the script paths so they're consistent between containers
                     source_value = None

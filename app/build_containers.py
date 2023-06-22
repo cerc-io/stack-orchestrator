@@ -28,6 +28,7 @@ import click
 import importlib.resources
 from pathlib import Path
 from .util import include_exclude_check, get_parsed_stack_config
+from .base import get_npm_registry_url
 
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
@@ -84,7 +85,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
 
     # TODO: make this configurable
     container_build_env = {
-        "CERC_NPM_REGISTRY_URL": config("CERC_NPM_REGISTRY_URL", default="http://gitea.local:3000/api/packages/cerc-io/npm/"),
+        "CERC_NPM_REGISTRY_URL": get_npm_registry_url(),
         "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default=""),
         "CERC_REPO_BASE_DIR": dev_root_path,
         "CERC_CONTAINER_BASE_DIR": container_build_dir,

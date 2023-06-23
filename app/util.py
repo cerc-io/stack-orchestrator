@@ -30,7 +30,7 @@ def include_exclude_check(s, include, exclude):
         return s not in exclude_list
 
 
-def get_stack_config_path(stack):
+def get_stack_file_path(stack):
     # In order to be compatible with Python 3.8 we need to use this hack to get the path:
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
@@ -39,7 +39,7 @@ def get_stack_config_path(stack):
 
 # Caller can pass either the name of a stack, or a path to a stack file
 def get_parsed_stack_config(stack):
-    stack_file_path = stack if isinstance(stack, os.PathLike) else get_stack_config_path(stack)
+    stack_file_path = stack if isinstance(stack, os.PathLike) else get_stack_file_path(stack)
     try:
         with stack_file_path:
             stack_config = yaml.safe_load(open(stack_file_path, "r"))

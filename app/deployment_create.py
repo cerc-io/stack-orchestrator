@@ -16,9 +16,9 @@
 import click
 import os
 from pathlib import Path
-from shutil import copyfile
+from shutil import copyfile, copytree
 import sys
-from .util import get_stack_config_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options
+from .util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options
 
 default_spec_file_content = """stack: mainnet-laconic
 data_dir: /my/path
@@ -44,8 +44,9 @@ def init(ctx, output):
 def create(ctx, spec_file, deployment_dir):
     # This function fails with a useful error message if the file doens't exist
     parsed_spec = get_parsed_deployment_spec(spec_file)
-    stack_file = get_stack_config_path(parsed_spec['stack'])
-    parsed_stack = get_parsed_stack_config(stack_file)
+    stack_name = parsed_spec['stack']
+    stack_file = get_stack_file_path(stack_name)
+    parsed_stack = get_parsed_stack_config(stack_name)
     if global_options(ctx).debug:
         print(f"parsed spec: {parsed_spec}")
     if deployment_dir is None:
@@ -60,8 +61,13 @@ def create(ctx, spec_file, deployment_dir):
     # Copy the pod files into the deployment dir
     pods = parsed_stack['pods']
     # TODO: refactor to use common code with deploy command
-        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-    compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
+    # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+    data_dir = Path(__file__).absolute().parent.joinpath("data")
+    compose_dir = data_dir.joinpath("compose")
     for pod in pods:
         pod_file_path = os.path.join(compose_dir, f"docker-compose-{pod}.yml")
         copyfile(pod_file_path, os.path.join(deployment_dir, os.path.basename(pod_file_path)))
+        # Copy the config files for the pod, if any
+        source_config_dir = data_dir.joinpath("config", pod)
+        if os.path.exists(source_config_dir):
+            copytree(source_config_dir, os.path.join(deployment_dir, "config", pod))

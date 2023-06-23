@@ -35,3 +35,4 @@ github.com/cerc-io/gelato-watcher-ts
 github.com/filecoin-project/lotus
 git.vdb.to/cerc-io/test-project
 github.com/Fantom-foundation/go-opera
+github.com/cerc-io/lasso

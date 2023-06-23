@@ -90,26 +90,7 @@ def down_operation(ctx, delete_volumes, extra_args_list):
         ctx.obj.docker.compose.down(timeout=timeout_arg, volumes=delete_volumes)
 
 
-@command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
-@click.pass_context
-def up(ctx, extra_args):
-    extra_args_list = list(extra_args) or None
-    up_operation(ctx, extra_args_list)
-
-
-@command.command()
-@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
-@click.argument('extra_args', nargs=-1)  # help: command: down<service1> <service2>
-@click.pass_context
-def down(ctx, delete_volumes, extra_args):
-    extra_args_list = list(extra_args) or None
-    down_operation(ctx, delete_volumes, extra_args_list)
-
-
-@command.command()
-@click.pass_context
-def ps(ctx):
+def ps_operation(ctx):
     global_context = ctx.parent.parent.obj
     if not global_context.dry_run:
         if global_context.verbose:
@@ -134,10 +115,7 @@ def ps(ctx):
             print("No containers running")
 
 
-@command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: port <service1> <service2>
-@click.pass_context
-def port(ctx, extra_args):
+def port_operation(ctx, extra_args):
     global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
@@ -152,10 +130,7 @@ def port(ctx, extra_args):
         print(f"{mapped_port_data[0]}:{mapped_port_data[1]}")
 
 
-@command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: exec <service> <command>
-@click.pass_context
-def exec(ctx, extra_args):
+def exec_operation(ctx, extra_args):
     global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
@@ -173,10 +148,7 @@ def exec(ctx, extra_args):
             print(f"container command returned error exit status")
 
 
-@command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
-@click.pass_context
-def logs(ctx, extra_args):
+def logs_operation(ctx, extra_args):
     global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
@@ -184,6 +156,50 @@ def logs(ctx, extra_args):
             print("Running compose logs")
         logs_output = ctx.obj.docker.compose.logs(services=extra_args_list if extra_args_list is not None else [])
         print(logs_output)
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
+@click.pass_context
+def up(ctx, extra_args):
+    extra_args_list = list(extra_args) or None
+    up_operation(ctx, extra_args_list)
+
+
+@command.command()
+@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
+@click.argument('extra_args', nargs=-1)  # help: command: down<service1> <service2>
+@click.pass_context
+def down(ctx, delete_volumes, extra_args):
+    extra_args_list = list(extra_args) or None
+    down_operation(ctx, delete_volumes, extra_args_list)
+
+
+@command.command()
+@click.pass_context
+def ps(ctx):
+    ps_operation(ctx)
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: port <service1> <service2>
+@click.pass_context
+def port(ctx, extra_args):
+    port_operation(ctx, extra_args)
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: exec <service> <command>
+@click.pass_context
+def exec(ctx, extra_args):
+    exec_operation(ctx, extra_args)
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
+@click.pass_context
+def logs(ctx, extra_args):
+    logs_operation(ctx, extra_args)
 
 
 def get_stack_status(ctx, stack):

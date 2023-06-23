@@ -17,7 +17,7 @@ import click
 from dataclasses import dataclass
 from pathlib import Path
 import sys
-from .deploy import up_operation, down_operation, create_deploy_context
+from .deploy import up_operation, down_operation, ps_operation, port_operation, exec_operation, logs_operation, create_deploy_context
 from .util import global_options
 
 @dataclass
@@ -70,13 +70,34 @@ def down(ctx, extra_args):
 @command.command()
 @click.pass_context
 def ps(ctx):
-    print(f"Context: {ctx.parent.obj}")
+    ps_operation(ctx)
 
 
 @command.command()
 @click.pass_context
 def logs(ctx):
     print(f"Context: {ctx.parent.obj}")
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: port <service1> <service2>
+@click.pass_context
+def port(ctx, extra_args):
+    port_operation(ctx, extra_args)
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: exec <service> <command>
+@click.pass_context
+def exec(ctx, extra_args):
+    exec_operation(ctx, extra_args)
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
+@click.pass_context
+def logs(ctx, extra_args):
+    logs_operation(ctx, extra_args)
 
 
 @command.command()

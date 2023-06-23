@@ -1,0 +1,8 @@
+version: "0.1"
+name: lasso
+repos:
+  - github.com/cerc-io/lasso
+containers:
+  - cerc/lasso
+pods:
+  - lasso

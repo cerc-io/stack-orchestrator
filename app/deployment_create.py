@@ -63,10 +63,12 @@ def create(ctx, spec_file, deployment_dir):
     # TODO: refactor to use common code with deploy command
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     data_dir = Path(__file__).absolute().parent.joinpath("data")
-    compose_dir = data_dir.joinpath("compose")
+    source_compose_dir = data_dir.joinpath("compose")
+    destination_compose_dir = os.path.join(deployment_dir, "compose")
+    os.mkdir(destination_compose_dir)
     for pod in pods:
-        pod_file_path = os.path.join(compose_dir, f"docker-compose-{pod}.yml")
-        copyfile(pod_file_path, os.path.join(deployment_dir, os.path.basename(pod_file_path)))
+        pod_file_path = os.path.join(source_compose_dir, f"docker-compose-{pod}.yml")
+        copyfile(pod_file_path, os.path.join(destination_compose_dir, os.path.basename(pod_file_path)))
         # Copy the config files for the pod, if any
         source_config_dir = data_dir.joinpath("config", pod)
         if os.path.exists(source_config_dir):

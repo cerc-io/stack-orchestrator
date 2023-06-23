@@ -245,7 +245,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
     # If the caller passed a path for the stack file, then we know that we can get the compose files
     # from the same directory
     if isinstance(stack, os.PathLike):
-        compose_dir = stack.parent
+        compose_dir = stack.parent.joinpath("compose")
     else:
         # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
         compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")

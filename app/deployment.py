@@ -44,14 +44,17 @@ def command(ctx, dir):
     ctx.obj = DeploymentContext(dir_path)
 
 
+def make_deploy_context(ctx):
+    # Get the stack config file name
+    stack_file_path = ctx.obj.dir.joinpath("stack.yml")
+    # TODO: add cluster name and env file here
+    return create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, None, None)
+
 @command.command()
 @click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
 def up(ctx, extra_args):
-    # Get the stack config file name
-    stack_file_path = ctx.obj.dir.joinpath("stack.yml")
-    # TODO: add cluster name and env file here
-    ctx.obj = create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, None, None)
+    ctx.obj = make_deploy_context(ctx)
     services_list = list(extra_args) or None
     up_operation(ctx, services_list)
 
@@ -63,19 +66,21 @@ def down(ctx, extra_args):
     # Get the stack config file name
     stack_file_path = ctx.obj.dir.joinpath("stack.yml")
     # TODO: add cluster name and env file here
-    ctx.obj = create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, None, None)
+    ctx.obj = make_deploy_context(ctx)
     down_operation(ctx, extra_args, None)
 
 
 @command.command()
 @click.pass_context
 def ps(ctx):
+    ctx.obj = make_deploy_context(ctx)
     ps_operation(ctx)
 
 
 @command.command()
 @click.pass_context
 def logs(ctx):
+    ctx.obj = make_deploy_context(ctx)
     print(f"Context: {ctx.parent.obj}")
 
 
@@ -90,6 +95,7 @@ def port(ctx, extra_args):
 @click.argument('extra_args', nargs=-1)  # help: command: exec <service> <command>
 @click.pass_context
 def exec(ctx, extra_args):
+    ctx.obj = make_deploy_context(ctx)
     exec_operation(ctx, extra_args)
 
 
@@ -97,6 +103,7 @@ def exec(ctx, extra_args):
 @click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
 @click.pass_context
 def logs(ctx, extra_args):
+    ctx.obj = make_deploy_context(ctx)
     logs_operation(ctx, extra_args)
 
 

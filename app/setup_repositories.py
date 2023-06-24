@@ -96,7 +96,7 @@ def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_pa
     repoName = repo_path.split("/")[-1]
     full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
     is_present = os.path.isdir(full_filesystem_repo_path)
-    (current_repo_branch_or_tag, is_branch) = _get_repo_current_branch_or_tag(full_filesystem_repo_path) if is_present else None
+    (current_repo_branch_or_tag, is_branch) = _get_repo_current_branch_or_tag(full_filesystem_repo_path) if is_present else (None, None)
     if not quiet:
         present_text = f"already exists active {'branch' if is_branch else 'tag'}: {current_repo_branch_or_tag}" if is_present \
             else 'Needs to be fetched'

@@ -69,8 +69,26 @@ def host_and_path_for_repo(fully_qualified_repo):
             return repo_host_split[0], "/".join(repo_host_split[1:]), repo_branch
 
 
+# See: https://stackoverflow.com/questions/18659425/get-git-current-branch-tag-name
+def _get_repo_current_branch_or_tag(full_filesystem_repo_path):
+    current_repo_branch_or_tag = "***UNDETERMINED***"
+    is_branch = False
+    try:
+        current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).active_branch.name
+        is_branch = True
+    except TypeError as error:
+        # This means that the current ref is not a branch, so possibly a tag
+        # Let's try to get the tag
+        current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).git.describe("--tags", "--exact-match")
+        # Note that git is assymetric -- the tag you told it to check out may not be the one
+        # you get back here (if there are multiple tags associated with the same commit)
+    return current_repo_branch_or_tag, is_branch
+
+
 # TODO: fix the messy arg list here
 def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_path, branches_array, fully_qualified_repo):
+    if verbose:
+        print(f"Processing repo: {fully_qualified_repo}")
     repo_host, repo_path, repo_branch = host_and_path_for_repo(fully_qualified_repo)
     git_ssh_prefix = f"git@{repo_host}:"
     git_http_prefix = f"https://{repo_host}/"
@@ -78,9 +96,9 @@ def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_pa
     repoName = repo_path.split("/")[-1]
     full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
     is_present = os.path.isdir(full_filesystem_repo_path)
-    current_repo_branch = git.Repo(full_filesystem_repo_path).active_branch.name if is_present else None
+    (current_repo_branch_or_tag, is_branch) = _get_repo_current_branch_or_tag(full_filesystem_repo_path) if is_present else (None, None)
     if not quiet:
-        present_text = f"already exists active branch: {current_repo_branch}" if is_present \
+        present_text = f"already exists active {'branch' if is_branch else 'tag'}: {current_repo_branch_or_tag}" if is_present \
             else 'Needs to be fetched'
         print(f"Checking: {full_filesystem_repo_path}: {present_text}")
     # Quick check that it's actually a repo
@@ -93,9 +111,12 @@ def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_pa
                 if verbose:
                     print(f"Running git pull for {full_filesystem_repo_path}")
                 if not check_only:
-                    git_repo = git.Repo(full_filesystem_repo_path)
-                    origin = git_repo.remotes.origin
-                    origin.pull(progress=None if quiet else GitProgress())
+                    if is_branch:
+                        git_repo = git.Repo(full_filesystem_repo_path)
+                        origin = git_repo.remotes.origin
+                        origin.pull(progress=None if quiet else GitProgress())
+                    else:
+                        print(f"skipping pull because this repo checked out a tag")
                 else:
                     print("(git pull skipped)")
     if not is_present:
@@ -122,14 +143,15 @@ def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_pa
         branch_to_checkout = repo_branch
 
     if branch_to_checkout:
-        if current_repo_branch is None or (current_repo_branch and (current_repo_branch != branch_to_checkout)):
+        if current_repo_branch_or_tag is None or (current_repo_branch_or_tag and (current_repo_branch_or_tag != branch_to_checkout)):
             if not quiet:
                 print(f"switching to branch {branch_to_checkout} in repo {repo_path}")
             git_repo = git.Repo(full_filesystem_repo_path)
+            # git checkout works for both branches and tags
             git_repo.git.checkout(branch_to_checkout)
         else:
             if verbose:
-                print(f"repo {repo_path} is already switched to branch {branch_to_checkout}")
+                print(f"repo {repo_path} is already on branch/tag {branch_to_checkout}")
 
 
 def parse_branches(branches_string):

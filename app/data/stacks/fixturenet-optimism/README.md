@@ -42,12 +42,11 @@ Deploy the stack:
 laconic-so --stack fixturenet-optimism deploy up
 ```
 
-If you get the error `service "fixturenet-optimism-contracts" didn't complete successfully: exit 1` with ~25 lines of Traceback, wait 15-20 mins then re-run the command.
-
 The `fixturenet-optimism-contracts` service takes a while to complete running as it:
 1. waits for the 'Merge' to happen on L1
 2. waits for a finalized block to exist on L1 (so that it can be taken as a starting block for roll ups)
 3. deploys the L1 contracts
+It may restart a few times after running into errors.
 
 To list and monitor the running containers:
 
@@ -115,6 +114,5 @@ docker volume rm $(docker volume ls -q --filter "name=.*l1_deployment|.*l2_accou
 
 ## Known Issues
 
-* `fixturenet-eth` currently starts fresh on a restart
 * Resource requirements (memory + time) for building the `cerc/foundry` image are on the higher side
   * `cerc/optimism-contracts` image is currently based on `cerc/foundry` (Optimism requires foundry installation)

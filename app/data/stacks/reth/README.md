@@ -7,7 +7,7 @@ Deploy a Reth API node alongside Lighthouse.
 $ laconic-so --stack reth setup-repositories
 ```
 
-## Build the fixturenet-eth containers
+## Build the Reth stack containers
 
 ```
 $ laconic-so --stack reth build-containers

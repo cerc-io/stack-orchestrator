@@ -18,8 +18,16 @@ import os
 from pathlib import Path
 from shutil import copyfile, copytree
 import sys
-import yaml
+import ruamel.yaml
 from .util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options
+
+
+def _get_yaml():
+    # See: https://stackoverflow.com/a/45701840/1701505
+    yaml = ruamel.yaml.YAML()
+    yaml.preserve_quotes = True
+    yaml.indent(sequence=3, offset=1)
+    return yaml
 
 
 def _make_default_deployment_dir():
@@ -39,9 +47,10 @@ def _get_named_volumes(stack):
     named_volumes = []
     parsed_stack = get_parsed_stack_config(stack)
     pods = parsed_stack["pods"]
+    yaml = _get_yaml()
     for pod in pods:
         pod_file_path = os.path.join(_get_compose_file_dir(), f"docker-compose-{pod}.yml")
-        parsed_pod_file = yaml.safe_load(open(pod_file_path, "r"))
+        parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
             for volume in volumes.keys():
@@ -51,6 +60,7 @@ def _get_named_volumes(stack):
     return named_volumes
 
 
+# See: https://stackoverflow.com/questions/45699189/editing-docker-compose-yml-with-pyyaml
 def _fixup_pod_file(pod, spec):
     # Fix up volumes
     if "volumes" in spec:
@@ -75,6 +85,7 @@ def _fixup_pod_file(pod, spec):
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.pass_context
 def init(ctx, output):
+    yaml = _get_yaml()
     stack = global_options(ctx).stack
     verbose = global_options(ctx).verbose
     spec_file_content = {"stack": stack}
@@ -116,9 +127,10 @@ def create(ctx, spec_file, deployment_dir):
     destination_compose_dir = os.path.join(deployment_dir, "compose")
     os.mkdir(destination_compose_dir)
     data_dir = Path(__file__).absolute().parent.joinpath("data")
+    yaml = _get_yaml()
     for pod in pods:
         pod_file_path = os.path.join(_get_compose_file_dir(), f"docker-compose-{pod}.yml")
-        parsed_pod_file = yaml.safe_load(open(pod_file_path, "r"))
+        parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         _fixup_pod_file(parsed_pod_file, parsed_spec)
         with open(os.path.join(destination_compose_dir, os.path.basename(pod_file_path)), "w") as output_file:
             yaml.dump(parsed_pod_file, output_file)

@@ -51,6 +51,26 @@ def _get_named_volumes(stack):
     return named_volumes
 
 
+def _fixup_pod_file(pod, spec):
+    # Fix up volumes
+    if "volumes" in spec:
+        spec_volumes = spec["volumes"]
+        if "volumes" in pod:
+            pod_volumes = pod["volumes"]
+            for volume in pod_volumes.keys():
+                if volume in spec_volumes:
+                    volume_spec = spec_volumes[volume]
+                    print(f"mapping: {volume} -> {volume_spec}")
+                    new_volume_spec = {"driver": "local",
+                                       "driver_opts": {
+                                           "type": "none",
+                                           "device": volume_spec,
+                                           "o": "bind"
+                                        }
+                                       }
+                    pod["volumes"][volume] = new_volume_spec
+
+
 @click.command()
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.pass_context
@@ -91,14 +111,17 @@ def create(ctx, spec_file, deployment_dir):
     # Copy spec file and the stack file into the deployment dir
     copyfile(spec_file, os.path.join(deployment_dir, os.path.basename(spec_file)))
     copyfile(stack_file, os.path.join(deployment_dir, os.path.basename(stack_file)))
-    # Copy the pod files into the deployment dir
+    # Copy the pod files into the deployment dir, fixing up content
     pods = parsed_stack['pods']
     destination_compose_dir = os.path.join(deployment_dir, "compose")
     os.mkdir(destination_compose_dir)
     data_dir = Path(__file__).absolute().parent.joinpath("data")
     for pod in pods:
         pod_file_path = os.path.join(_get_compose_file_dir(), f"docker-compose-{pod}.yml")
-        copyfile(pod_file_path, os.path.join(destination_compose_dir, os.path.basename(pod_file_path)))
+        parsed_pod_file = yaml.safe_load(open(pod_file_path, "r"))
+        _fixup_pod_file(parsed_pod_file, parsed_spec)
+        with open(os.path.join(destination_compose_dir, os.path.basename(pod_file_path)), "w") as output_file:
+            yaml.dump(parsed_pod_file, output_file)
         # Copy the config files for the pod, if any
         source_config_dir = data_dir.joinpath("config", pod)
         if os.path.exists(source_config_dir):

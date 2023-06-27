@@ -30,10 +30,16 @@ def include_exclude_check(s, include, exclude):
         return s not in exclude_list
 
 
-def get_parsed_stack_config(stack):
+def get_stack_file_path(stack):
     # In order to be compatible with Python 3.8 we need to use this hack to get the path:
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
+    return stack_file_path
+
+
+# Caller can pass either the name of a stack, or a path to a stack file
+def get_parsed_stack_config(stack):
+    stack_file_path = stack if isinstance(stack, os.PathLike) else get_stack_file_path(stack)
     try:
         with stack_file_path:
             stack_config = yaml.safe_load(open(stack_file_path, "r"))
@@ -48,3 +54,27 @@ def get_parsed_stack_config(stack):
             print(f"Error: stack: {stack} does not exist")
         print(f"Exiting, error: {error}")
         sys.exit(1)
+
+
+def get_parsed_deployment_spec(spec_file):
+    spec_file_path = Path(spec_file)
+    try:
+        with spec_file_path:
+            deploy_spec = yaml.safe_load(open(spec_file_path, "r"))
+            return deploy_spec
+    except FileNotFoundError as error:
+        # We try here to generate a useful diagnostic error
+        print(f"Error: spec file: {spec_file_path} does not exist")
+        print(f"Exiting, error: {error}")
+        sys.exit(1)
+
+
+# TODO: this is fragile wrt to the subcommand depth
+# See also: https://github.com/pallets/click/issues/108
+def global_options(ctx):
+    return ctx.parent.parent.obj
+
+
+# TODO: hack
+def global_options2(ctx):
+    return ctx.parent.obj

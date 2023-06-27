@@ -1,15 +1,15 @@
 services:
   laconicd:
-    restart: unless-stopped
+    restart: no
     image: cerc/laconicd:local
     command: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
     volumes:
       # The cosmos-sdk node's database directory:
       - laconicd-data:/root/.laconicd/data
       # TODO: look at folding these scripts into the container
-      - ../config/fixturenet-laconicd/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
-      - ../config/fixturenet-laconicd/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
-      - ../config/fixturenet-laconicd/export-myaddress.sh:/docker-entrypoint-scripts.d/export-myaddress.sh
+      - ../config/mainnet-laconicd/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
+      - ../config/mainnet-laconicd/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
+      - ../config/mainnet-laconicd/export-myaddress.sh:/docker-entrypoint-scripts.d/export-myaddress.sh
     # TODO: determine which of the ports below is really needed
     ports:
       - "6060"
@@ -24,7 +24,7 @@ services:
   cli:
     image: cerc/laconic-registry-cli:local
     volumes:
-      - ../config/fixturenet-laconicd/registry-cli-config-template.yml:/registry-cli-config-template.yml
+      - ../config/mainnet-laconicd/registry-cli-config-template.yml:/registry-cli-config-template.yml
 
 volumes:
   laconicd-data:

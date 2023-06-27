@@ -5,7 +5,6 @@ go-ethereum-foundry
 ipld-eth-beacon-db
 ipld-eth-beacon-indexer
 ipld-eth-server
-lighthouse
 laconicd
 fixturenet-laconicd
 fixturenet-eth

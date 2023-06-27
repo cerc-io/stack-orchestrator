@@ -21,12 +21,15 @@ import os
 import sys
 from dataclasses import dataclass
 from decouple import config
+from importlib import resources
 import subprocess
 from python_on_whales import DockerClient, DockerException
 import click
-import importlib.resources
 from pathlib import Path
-from .util import include_exclude_check, get_parsed_stack_config
+from .util import include_exclude_check, get_parsed_stack_config, global_options2
+from .deployment_create import create as deployment_create
+from .deployment_create import init as deployment_init
+
 
 class DeployCommandContext(object):
     def __init__(self, cluster_context, docker):
@@ -43,44 +46,40 @@ class DeployCommandContext(object):
 def command(ctx, include, exclude, env_file, cluster):
     '''deploy a stack'''
 
-    cluster_context = _make_cluster_context(ctx.obj, include, exclude, cluster, env_file)
-
-    # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
-                          compose_env_file=cluster_context.env_file)
-
-    ctx.obj = DeployCommandContext(cluster_context, docker)
+    if ctx.parent.obj.debug:
+        print(f"ctx.parent.obj: {ctx.parent.obj}")
+    ctx.obj = create_deploy_context(global_options2(ctx), global_options2(ctx).stack, include, exclude, cluster, env_file)
     # Subcommand is executed now, by the magic of click
 
 
-@command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
-@click.pass_context
-def up(ctx, extra_args):
+def create_deploy_context(global_context, stack, include, exclude, cluster, env_file):
+    cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
+    # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
+    docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
+                          compose_env_file=cluster_context.env_file)
+    return DeployCommandContext(cluster_context, docker)
+
+
+def up_operation(ctx, services_list):
     global_context = ctx.parent.parent.obj
-    extra_args_list = list(extra_args) or None
+    deploy_context = ctx.obj
     if not global_context.dry_run:
-        cluster_context = ctx.obj.cluster_context
+        cluster_context = deploy_context.cluster_context
         container_exec_env = _make_runtime_env(global_context)
         for attr, value in container_exec_env.items():
             os.environ[attr] = value
         if global_context.verbose:
-            print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {extra_args_list}")
+            print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {services_list}")
         for pre_start_command in cluster_context.pre_start_commands:
             _run_command(global_context, cluster_context.cluster, pre_start_command)
-        ctx.obj.docker.compose.up(detach=True, services=extra_args_list)
+        deploy_context.docker.compose.up(detach=True, services=services_list)
         for post_start_command in cluster_context.post_start_commands:
             _run_command(global_context, cluster_context.cluster, post_start_command)
-        _orchestrate_cluster_config(global_context, cluster_context.config, ctx.obj.docker, container_exec_env)
+        _orchestrate_cluster_config(global_context, cluster_context.config, deploy_context.docker, container_exec_env)
 
 
-@command.command()
-@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
-@click.argument('extra_args', nargs=-1)  # help: command: down<service1> <service2>
-@click.pass_context
-def down(ctx, delete_volumes, extra_args):
+def down_operation(ctx, delete_volumes, extra_args_list):
     global_context = ctx.parent.parent.obj
-    extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
         if global_context.verbose:
             print("Running compose down")
@@ -91,9 +90,7 @@ def down(ctx, delete_volumes, extra_args):
         ctx.obj.docker.compose.down(timeout=timeout_arg, volumes=delete_volumes)
 
 
-@command.command()
-@click.pass_context
-def ps(ctx):
+def ps_operation(ctx):
     global_context = ctx.parent.parent.obj
     if not global_context.dry_run:
         if global_context.verbose:
@@ -118,10 +115,7 @@ def ps(ctx):
             print("No containers running")
 
 
-@command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: port <service1> <service2>
-@click.pass_context
-def port(ctx, extra_args):
+def port_operation(ctx, extra_args):
     global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
@@ -136,10 +130,7 @@ def port(ctx, extra_args):
         print(f"{mapped_port_data[0]}:{mapped_port_data[1]}")
 
 
-@command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: exec <service> <command>
-@click.pass_context
-def exec(ctx, extra_args):
+def exec_operation(ctx, extra_args):
     global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
@@ -157,10 +148,7 @@ def exec(ctx, extra_args):
             print(f"container command returned error exit status")
 
 
-@command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
-@click.pass_context
-def logs(ctx, extra_args):
+def logs_operation(ctx, extra_args):
     global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
@@ -170,12 +158,56 @@ def logs(ctx, extra_args):
         print(logs_output)
 
 
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
+@click.pass_context
+def up(ctx, extra_args):
+    extra_args_list = list(extra_args) or None
+    up_operation(ctx, extra_args_list)
+
+
+@command.command()
+@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
+@click.argument('extra_args', nargs=-1)  # help: command: down<service1> <service2>
+@click.pass_context
+def down(ctx, delete_volumes, extra_args):
+    extra_args_list = list(extra_args) or None
+    down_operation(ctx, delete_volumes, extra_args_list)
+
+
+@command.command()
+@click.pass_context
+def ps(ctx):
+    ps_operation(ctx)
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: port <service1> <service2>
+@click.pass_context
+def port(ctx, extra_args):
+    port_operation(ctx, extra_args)
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: exec <service> <command>
+@click.pass_context
+def exec(ctx, extra_args):
+    exec_operation(ctx, extra_args)
+
+
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
+@click.pass_context
+def logs(ctx, extra_args):
+    logs_operation(ctx, extra_args)
+
+
 def get_stack_status(ctx, stack):
 
     ctx_copy = copy.copy(ctx)
     ctx_copy.stack = stack
 
-    cluster_context = _make_cluster_context(ctx_copy, None, None, None, None)
+    cluster_context = _make_cluster_context(ctx_copy, stack, None, None, None, None)
     docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster)
     # TODO: refactor to avoid duplicating this code above
     if ctx.verbose:
@@ -200,7 +232,8 @@ def _make_runtime_env(ctx):
     return container_exec_env
 
 
-def _make_cluster_context(ctx, include, exclude, cluster, env_file):
+# stack has to be either PathLike pointing to a stack yml file, or a string with the name of a known stack
+def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
 
     if ctx.local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
@@ -208,14 +241,20 @@ def _make_cluster_context(ctx, include, exclude, cluster, env_file):
     else:
         dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
-    # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-    compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
+    # TODO: huge hack, fix this
+    # If the caller passed a path for the stack file, then we know that we can get the compose files
+    # from the same directory
+    if isinstance(stack, os.PathLike):
+        compose_dir = stack.parent.joinpath("compose")
+    else:
+        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+        compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
 
     if cluster is None:
         # Create default unique, stable cluster name from confile file path and stack name if provided
         # TODO: change this to the config file path
         path = os.path.realpath(sys.argv[0])
-        unique_cluster_descriptor = f"{path},{ctx.stack},{include},{exclude}"
+        unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
         if ctx.debug:
             print(f"pre-hash descriptor: {unique_cluster_descriptor}")
         hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()
@@ -225,12 +264,12 @@ def _make_cluster_context(ctx, include, exclude, cluster, env_file):
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from . import data
-    with importlib.resources.open_text(data, "pod-list.txt") as pod_list_file:
+    with resources.open_text(data, "pod-list.txt") as pod_list_file:
         all_pods = pod_list_file.read().splitlines()
 
     pods_in_scope = []
-    if ctx.stack:
-        stack_config = get_parsed_stack_config(ctx.stack)
+    if stack:
+        stack_config = get_parsed_stack_config(stack)
         # TODO: syntax check the input here
         pods_in_scope = stack_config['pods']
         cluster_config = stack_config['config'] if 'config' in stack_config else None
@@ -342,6 +381,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                           f" = {pd.source_container}.{pd.source_variable}")
                 # TODO: add a timeout
                 waiting_for_data = True
+                destination_output = "*** no output received yet ***"
                 while waiting_for_data:
                     # TODO: fix the script paths so they're consistent between containers
                     source_value = None
@@ -376,3 +416,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                         waiting_for_data = False
                     if ctx.debug:
                         print(f"destination output: {destination_output}")
+
+
+command.add_command(deployment_init)
+command.add_command(deployment_create)

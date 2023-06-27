@@ -20,9 +20,11 @@ import sys
 from .deploy import up_operation, down_operation, ps_operation, port_operation, exec_operation, logs_operation, create_deploy_context
 from .util import global_options
 
+
 @dataclass
 class DeploymentContext:
     dir: Path
+
 
 @click.group()
 @click.option("--dir", required=True, help="path to deployment directory")
@@ -50,10 +52,21 @@ def make_deploy_context(ctx):
     # TODO: add cluster name and env file here
     return create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, None, None)
 
+
 @command.command()
 @click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
 def up(ctx, extra_args):
+    ctx.obj = make_deploy_context(ctx)
+    services_list = list(extra_args) or None
+    up_operation(ctx, services_list)
+
+
+# start is the preferred alias for up
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
+@click.pass_context
+def start(ctx, extra_args):
     ctx.obj = make_deploy_context(ctx)
     services_list = list(extra_args) or None
     up_operation(ctx, services_list)
@@ -64,7 +77,16 @@ def up(ctx, extra_args):
 @click.pass_context
 def down(ctx, extra_args):
     # Get the stack config file name
-    stack_file_path = ctx.obj.dir.joinpath("stack.yml")
+    # TODO: add cluster name and env file here
+    ctx.obj = make_deploy_context(ctx)
+    down_operation(ctx, extra_args, None)
+
+
+# stop is the preferred alias for down
+@command.command()
+@click.argument('extra_args', nargs=-1)  # help: command: down <service1> <service2>
+@click.pass_context
+def stop(ctx, extra_args):
     # TODO: add cluster name and env file here
     ctx.obj = make_deploy_context(ctx)
     down_operation(ctx, extra_args, None)
@@ -75,13 +97,6 @@ def down(ctx, extra_args):
 def ps(ctx):
     ctx.obj = make_deploy_context(ctx)
     ps_operation(ctx)
-
-
-@command.command()
-@click.pass_context
-def logs(ctx):
-    ctx.obj = make_deploy_context(ctx)
-    print(f"Context: {ctx.parent.obj}")
 
 
 @command.command()
@@ -109,20 +124,9 @@ def logs(ctx, extra_args):
 
 @command.command()
 @click.pass_context
-def task(ctx):
-    print(f"Context: {ctx.parent.obj}")
-
-
-@command.command()
-@click.pass_context
 def status(ctx):
     print(f"Context: {ctx.parent.obj}")
 
-
-@command.command()
-@click.pass_context
-def reset(ctx):
-    ctx.obj = create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, None, None)
 
 
 #from importlib import resources, util

@@ -23,7 +23,7 @@ services:
       - peers_ids:/peers
       - mobymask_deployment:/server
     ports:
-      - "0.0.0.0:3002:80"
+      - "127.0.0.1:3002:80"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "80"]
       interval: 20s
@@ -55,7 +55,7 @@ services:
       - peers_ids:/peers
       - mobymask_deployment:/server
     ports:
-      - "0.0.0.0:3004:80"
+      - "127.0.0.1:3004:80"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "80"]
       interval: 20s

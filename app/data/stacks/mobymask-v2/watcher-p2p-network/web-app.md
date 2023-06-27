@@ -78,7 +78,7 @@ To monitor the running container:
   # Expected output:
 
   # CONTAINER ID   IMAGE                    COMMAND                  CREATED         STATUS                   PORTS                  NAMES
-  # f1369dbae1c9   cerc/mobymask-ui:local   "docker-entrypoint.s…"   2 minutes ago   Up 2 minutes (healthy)   0.0.0.0:3004->80/tcp   mm_v2-lxdao-mobymask-app-1
+  # f1369dbae1c9   cerc/mobymask-ui:local   "docker-entrypoint.s…"   2 minutes ago   Up 2 minutes (healthy)   127.0.0.1:3004->80/tcp   mm_v2-lxdao-mobymask-app-1
 
   # Check logs for a container
   docker logs -f mm_v2-lxdao-mobymask-app-1

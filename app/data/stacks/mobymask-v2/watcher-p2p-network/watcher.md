@@ -110,8 +110,8 @@ To list down and monitor the running containers:
   # Expected output:
 
   # Running containers:
-  # id: 25cc3a1cbda27fcd9c2ad4c772bd753ccef1e178f901a70e6ff4191d4a8684e9, name: mobymask_v2-mobymask-watcher-db-1, ports: 0.0.0.0:15432->5432/tcp
-  # id: c9806f78680d68292ffe942222af2003aa3ed5d5c69d7121b573f5028444391d, name: mobymask_v2-mobymask-watcher-server-1, ports: 0.0.0.0:3001->3001/tcp, 0.0.0.0:9001->9001/tcp, 0.0.0.0:9090->9090/tcp
+  # id: 25cc3a1cbda27fcd9c2ad4c772bd753ccef1e178f901a70e6ff4191d4a8684e9, name: mobymask_v2-mobymask-watcher-db-1, ports: 127.0.0.1:15432->5432/tcp
+  # id: c9806f78680d68292ffe942222af2003aa3ed5d5c69d7121b573f5028444391d, name: mobymask_v2-mobymask-watcher-server-1, ports: 127.0.0.1:3001->3001/tcp, 127.0.0.1:9001->9001/tcp, 127.0.0.1:9090->9090/tcp
   # id: 6b30a1d313a88fb86f8a3b37a1b1a3bc053f238664e4b2d196c3ec74e04faf13, name: mobymask_v2-peer-tests-1, ports:
 
 
@@ -122,8 +122,8 @@ To list down and monitor the running containers:
 
   # CONTAINER ID   IMAGE                            COMMAND                  CREATED         STATUS                   PORTS                                                                    NAMES
   # 6b30a1d313a8   cerc/watcher-ts:local            "docker-entrypoint.s…"   5 minutes ago   Up 4 minutes                                                                                      mobymask_v2-peer-tests-1
-  # c9806f78680d   cerc/watcher-mobymask-v2:local   "sh start-server.sh"     5 minutes ago   Up 5 minutes (healthy)   0.0.0.0:3001->3001/tcp, 0.0.0.0:9001->9001/tcp, 0.0.0.0:9090->9090/tcp   mobymask_v2-mobymask-watcher-server-1
-  # 25cc3a1cbda2   postgres:14-alpine               "docker-entrypoint.s…"   5 minutes ago   Up 5 minutes (healthy)   0.0.0.0:15432->5432/tcp                                                  mobymask_v2-mobymask-watcher-db-1
+  # c9806f78680d   cerc/watcher-mobymask-v2:local   "sh start-server.sh"     5 minutes ago   Up 5 minutes (healthy)   127.0.0.1:3001->3001/tcp, 127.0.0.1:9001->9001/tcp, 127.0.0.1:9090->9090/tcp   mobymask_v2-mobymask-watcher-server-1
+  # 25cc3a1cbda2   postgres:14-alpine               "docker-entrypoint.s…"   5 minutes ago   Up 5 minutes (healthy)   127.0.0.1:15432->5432/tcp                                                  mobymask_v2-mobymask-watcher-db-1
 
 
   # Check logs for a container

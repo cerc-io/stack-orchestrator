@@ -70,8 +70,7 @@ def _fixup_pod_file(pod, spec):
             for volume in pod_volumes.keys():
                 if volume in spec_volumes:
                     volume_spec = spec_volumes[volume]
-                    print(f"mapping: {volume} -> {volume_spec}")
-                    new_volume_spec = {"driver": "local",
+                    new_volume_spec = {"name": volume,
                                        "driver_opts": {
                                            "type": "none",
                                            "device": volume_spec,

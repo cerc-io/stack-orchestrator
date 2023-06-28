@@ -96,7 +96,7 @@ else
       --statediff.workers=${CERC_STATEDIFF_WORKERS:-1} \
       --statediff.writing=true"
 
-      if [ -f "/usr/local/lib/statediff.so" ]; then
+      if [ -f "/usr/local/lib/plugeth/statediff.so" ]; then
         # With plugeth, we separate the statediff options by prefixing with ' -- '
         STATEDIFF_OPTS=" -- ${STATEDIFF_OPTS}"
 
@@ -107,7 +107,7 @@ else
 
         # And copy our plugin into place (if needed).
         if [ ! -f "${PLUGINS_DIR}/statediff.so" ]; then
-          cp -f "/usr/local/lib/statediff.so" "${PLUGINS_DIR}/statediff.so"
+          cp -f "/usr/local/lib/plugeth/statediff.so" "${PLUGINS_DIR}/statediff.so"
         fi
       fi
     fi

@@ -18,6 +18,8 @@ containers:
   - cerc/fixturenet-plugeth-lighthouse
   - cerc/tx-spammer
   - cerc/foundry
+  - cerc/ipld-eth-db
+  - cerc/ipld-eth-server
 pods:
   - ipld-eth-db
   - ipld-eth-server

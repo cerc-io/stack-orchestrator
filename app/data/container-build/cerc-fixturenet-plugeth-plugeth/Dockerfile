@@ -22,7 +22,9 @@ COPY run-el.sh /opt/testnet/run.sh
 RUN cd /opt/testnet && make genesis-el
 
 COPY --from=geth  /usr/local/bin/geth /usr/local/bin/
-COPY --from=statediff  /usr/local/lib/statediff.so /usr/local/lib/
+
+RUN mkdir -p /usr/local/lib/plugeth/
+COPY --from=statediff  /usr/local/lib/statediff.so /usr/local/lib/plugeth/
 
 # Snag the genesis block info.
 RUN geth --datadir ~/ethdata init /opt/testnet/build/el/geth.json && rm -f ~/ethdata/geth/nodekey

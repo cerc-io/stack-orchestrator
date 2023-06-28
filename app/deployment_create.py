@@ -60,8 +60,22 @@ def _get_named_volumes(stack):
     return named_volumes
 
 
+# If we're mounting a volume from a relatie path, then we
+# assume the directory doesn't exist yet and create it
+# so the deployment will start
+# Also warn if the path is absolute and doesn't exist
+def _create_bind_dir_if_relative(volume, path_string, compose_dir):
+    path = Path(path_string)
+    if not path.is_absolute():
+        absolute_path = Path(compose_dir).parent.joinpath(path)
+        absolute_path.mkdir(parents=True, exist_ok=True)
+    else:
+        if not path.exists():
+            print(f"WARNING: mount path for volume {volume} does not exist: {path_string}")
+
+
 # See: https://stackoverflow.com/questions/45699189/editing-docker-compose-yml-with-pyyaml
-def _fixup_pod_file(pod, spec):
+def _fixup_pod_file(pod, spec, compose_dir):
     # Fix up volumes
     if "volumes" in spec:
         spec_volumes = spec["volumes"]
@@ -70,10 +84,12 @@ def _fixup_pod_file(pod, spec):
             for volume in pod_volumes.keys():
                 if volume in spec_volumes:
                     volume_spec = spec_volumes[volume]
-                    new_volume_spec = {"name": volume,
+                    volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
+                    _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
+                    new_volume_spec = {"driver": "local",
                                        "driver_opts": {
                                            "type": "none",
-                                           "device": volume_spec,
+                                           "device": volume_spec_fixedup,
                                            "o": "bind"
                                         }
                                        }
@@ -94,7 +110,7 @@ def init(ctx, output):
     if named_volumes:
         volume_descriptors = {}
         for named_volume in named_volumes:
-            volume_descriptors[named_volume] = f"./data/{named_volume}"
+            volume_descriptors[named_volume] = f"../data/{named_volume}"
         spec_file_content["volumes"] = volume_descriptors
     with open(output, "w") as output_file:
         yaml.dump(spec_file_content, output_file)
@@ -130,7 +146,7 @@ def create(ctx, spec_file, deployment_dir):
     for pod in pods:
         pod_file_path = os.path.join(_get_compose_file_dir(), f"docker-compose-{pod}.yml")
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
-        _fixup_pod_file(parsed_pod_file, parsed_spec)
+        _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
         with open(os.path.join(destination_compose_dir, os.path.basename(pod_file_path)), "w") as output_file:
             yaml.dump(parsed_pod_file, output_file)
         # Copy the config files for the pod, if any

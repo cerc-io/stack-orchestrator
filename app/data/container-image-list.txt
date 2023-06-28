@@ -42,4 +42,5 @@ cerc/ipld-eth-state-snapshot
 cerc/watcher-gelato
 cerc/lotus
 cerc/go-opera
+cerc/lasso
 cerc/reth

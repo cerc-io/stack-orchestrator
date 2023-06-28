@@ -49,7 +49,7 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   # Base URI for mobymask-app
   # (used for generating a root invite link after deploying the contract)
-  CERC_MOBYMASK_APP_BASE_URI="http://127.0.0.1:3002/#"
+  CERC_MOBYMASK_APP_BASE_URI="http://127.0.0.1:3004/#"
 
   # (Optional) Domain to be used in the relay node's announce address
   CERC_RELAY_ANNOUNCE_DOMAIN=
@@ -72,16 +72,16 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 ### Deploy the stack
 
 ```bash
-laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 --env-file <PATH_TO_ENV_FILE> up
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mobymask-v2 --env-file <PATH_TO_ENV_FILE> up
 ```
 
 To list down and monitor the running containers:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 ps
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mobymask-v2 ps
 
 # With status
-docker ps
+docker ps -a
 
 # Check logs for a container
 docker logs -f <CONTAINER_ID>
@@ -108,15 +108,15 @@ For deploying the web-app(s) separately after deploying the watcher, follow [web
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy --include watcher-mobymask-v2 down
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include watcher-mobymask-v2 down
 ```
 
 Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment"
+docker volume ls -q --filter "name=mobymask_v2"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment")
+docker volume rm $(docker volume ls -q --filter "name=mobymask_v2")
 ```

@@ -47,14 +47,14 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
 For running mobymask-app
 ```bash
-laconic-so --stack mobymask-v2 deploy --include mobymask-app --env-file <PATH_TO_ENV_FILE> up
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include mobymask-app --env-file <PATH_TO_ENV_FILE> up
 
 # Runs mobymask-app on host port 3002 and lxdao-mobymask-app on host port 3004
 ```
 
 For running peer-test-app
 ```bash
-laconic-so --stack mobymask-v2 deploy --include peer-test-app --env-file <PATH_TO_ENV_FILE> up
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include peer-test-app --env-file <PATH_TO_ENV_FILE> up
 
 # Runs on host port 3003
 ```
@@ -62,9 +62,10 @@ laconic-so --stack mobymask-v2 deploy --include peer-test-app --env-file <PATH_T
 To list down and monitor the running containers:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy --include [mobymask-app | peer-test-app] ps
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include [mobymask-app | peer-test-app] ps
 
-docker ps
+# With status
+docker ps -a
 
 # Check logs for a container
 docker logs -f <CONTAINER_ID>
@@ -80,20 +81,20 @@ Stop all services running in the background:
 
 For mobymask-app
 ```bash
-laconic-so --stack mobymask-v2 deploy --include mobymask-app down
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include mobymask-app down
 ```
 
 For peer-test-app
 ```bash
-laconic-so --stack mobymask-v2 deploy --include peer-test-app down
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 --include peer-test-app down
 ```
 
 Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_deployment|.*peers_ids"
+docker volume ls -q --filter "name=mobymask_v2"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_deployment|.*peers_ids")
+docker volume rm $(docker volume ls -q --filter "name=mobymask_v2")
 ```

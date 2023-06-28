@@ -14,7 +14,7 @@ services:
       - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
       - mobymask_watcher_db_data:/var/lib/postgresql/data
     ports:
-      - "0.0.0.0:15432:5432"
+      - "127.0.0.1:15432:5432"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "5432"]
       interval: 20s
@@ -95,9 +95,9 @@ services:
       - mobymask_deployment:/server
     # Expose GQL, metrics and relay node ports
     ports:
-      - "0.0.0.0:3001:3001"
-      - "0.0.0.0:9001:9001"
-      - "0.0.0.0:9090:9090"
+      - "127.0.0.1:3001:3001"
+      - "127.0.0.1:9001:9001"
+      - "127.0.0.1:9090:9090"
     healthcheck:
       test: ["CMD", "busybox", "nc", "localhost", "9090"]
       interval: 20s

@@ -4,7 +4,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 # Test if the container's filesystem is old (run previously) or new
-EXISTSFILENAME=/var/exists
+EXISTSFILENAME=/data/exists
 echo "Test container starting"
 if [[ -f "$EXISTSFILENAME" ]];
 then

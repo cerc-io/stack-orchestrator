@@ -7,11 +7,12 @@ fi
 ETHERBASE=`cat /opt/testnet/build/el/accounts.csv | head -1 | cut -d',' -f2`
 NETWORK_ID=`cat /opt/testnet/el/el-config.yaml | grep 'chain_id' | awk '{ print $2 }'`
 NETRESTRICT=`ip addr | grep inet | grep -v '127.0' | awk '{print $2}'`
+CERC_ETH_DATADIR="${CERC_ETH_DATADIR:-$HOME/ethdata}"
+CERC_PLUGINS_DIR="${CERC_PLUGINS_DIR:-/usr/local/lib/plugeth}"
 
-HOME_DIR=`pwd`
 cd /opt/testnet/build/el
 python3 -m http.server 9898 &
-cd $HOME_DIR
+cd $HOME
 
 START_CMD="geth"
 if [ "true" == "$CERC_REMOTE_DEBUG" ] && [ -x "/usr/local/bin/dlv" ]; then
@@ -34,7 +35,7 @@ trap 'cleanup' SIGINT SIGTERM
 
 if [ "true" == "$RUN_BOOTNODE" ]; then
     $START_CMD \
-       --datadir=~/ethdata \
+      --datadir="${CERC_ETH_DATADIR}" \
       --nodekeyhex="${BOOTNODE_KEY}" \
       --nodiscover \
       --ipcdisable \
@@ -82,7 +83,7 @@ else
           fi
         fi
       done
-      STATEDIFF_OPTS="--statediff=true \
+      STATEDIFF_OPTS="--statediff \
       --statediff.db.host=$CERC_STATEDIFF_DB_HOST \
       --statediff.db.name=$CERC_STATEDIFF_DB_NAME \
       --statediff.db.nodeid=$CERC_STATEDIFF_DB_NODE_ID \
@@ -94,10 +95,15 @@ else
       --statediff.waitforsync=true \
       --statediff.workers=${CERC_STATEDIFF_WORKERS:-1} \
       --statediff.writing=true"
+
+      if [ -d "${CERC_PLUGINS_DIR}" ]; then
+        # With plugeth, we separate the statediff options by prefixing with ' -- '
+        STATEDIFF_OPTS="--pluginsdir "${CERC_PLUGINS_DIR}" -- ${STATEDIFF_OPTS}"
+      fi
     fi
 
     $START_CMD \
-      --datadir=~/ethdata \
+      --datadir="${CERC_ETH_DATADIR}" \
       --bootnodes="${ENODE}" \
       --allow-insecure-unlock \
       --http \
@@ -124,8 +130,9 @@ else
       --metrics \
       --metrics.addr="0.0.0.0" \
       --verbosity=${CERC_GETH_VERBOSITY:-3} \
-      --vmodule="${CERC_GETH_VMODULE:-statediff/*=5}" \
-      --miner.etherbase="${ETHERBASE}" ${STATEDIFF_OPTS} \
+      --log.vmodule="${CERC_GETH_VMODULE:-statediff/*=5}" \
+      --miner.etherbase="${ETHERBASE}" \
+      ${STATEDIFF_OPTS} \
       &
 
     geth_pid=$!

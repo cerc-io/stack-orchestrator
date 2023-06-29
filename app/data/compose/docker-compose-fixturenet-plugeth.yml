@@ -29,7 +29,6 @@ services:
     image: cerc/fixturenet-plugeth-plugeth:local
     volumes:
       - fixturenet_plugeth_geth_1_data:/root/ethdata
-      - ../config/fixturenet-plugeth/plugins:/root/ethdata/plugins
     healthcheck:
       test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8545/"]
       interval: 30s
@@ -61,7 +60,6 @@ services:
       - fixturenet-eth-bootnode-geth
     volumes:
       - fixturenet_plugeth_geth_2_data:/root/ethdata
-      - ../config/fixturenet-plugeth/plugins:/root/ethdata/plugins
 
   fixturenet-eth-bootnode-lighthouse:
     restart: always

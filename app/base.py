@@ -15,8 +15,9 @@
 
 import os
 from abc import ABC, abstractmethod
-from .deploy import get_stack_status
 from decouple import config
+from .deploy import get_stack_status
+from .util import _log
 
 
 def get_stack(config, stack):
@@ -49,7 +50,7 @@ class package_registry_stack(base_stack):
         url_from_environment = os.environ.get("CERC_NPM_REGISTRY_URL")
         if url_from_environment:
             if self.config.verbose:
-                print(f"Using package registry url from CERC_NPM_REGISTRY_URL: {url_from_environment}")
+                _log(f"Using package registry url from CERC_NPM_REGISTRY_URL: {url_from_environment}")
             self.url = url_from_environment
         else:
             # Otherwise we expect to use the local package-registry stack
@@ -58,13 +59,13 @@ class package_registry_stack(base_stack):
             if registry_running:
                 # If it is available, get its mapped port and construct its URL
                 if self.config.debug:
-                    print("Found local package registry stack is up")
+                    _log("Found local package registry stack is up")
                 # TODO: get url from deploy-stack
                 self.url = "http://gitea.local:3000/api/packages/cerc-io/npm/"
             else:
                 # If not, print a message about how to start it and return fail to the caller
-                print("ERROR: The package-registry stack is not running, and no external registry specified with CERC_NPM_REGISTRY_URL")
-                print("ERROR: Start the local package registry with: laconic-so --stack package-registry deploy-system up")
+                _log("ERROR: The package-registry stack is not running, and no external registry specified with CERC_NPM_REGISTRY_URL")
+                _log("ERROR: Start the local package registry with: laconic-so --stack package-registry deploy-system up")
                 return False
         return True
 

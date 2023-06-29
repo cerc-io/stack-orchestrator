@@ -26,7 +26,7 @@ import subprocess
 from python_on_whales import DockerClient, DockerException
 import click
 from pathlib import Path
-from .util import include_exclude_check, get_parsed_stack_config, global_options2
+from .util import _log, include_exclude_check, get_parsed_stack_config, global_options2
 from .deployment_create import create as deployment_create
 from .deployment_create import init as deployment_init
 
@@ -69,7 +69,7 @@ def up_operation(ctx, services_list):
         for attr, value in container_exec_env.items():
             os.environ[attr] = value
         if global_context.verbose:
-            print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {services_list}")
+            _log(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {services_list}")
         for pre_start_command in cluster_context.pre_start_commands:
             _run_command(global_context, cluster_context.cluster, pre_start_command)
         deploy_context.docker.compose.up(detach=True, services=services_list)
@@ -82,7 +82,7 @@ def down_operation(ctx, delete_volumes, extra_args_list):
     global_context = ctx.parent.parent.obj
     if not global_context.dry_run:
         if global_context.verbose:
-            print("Running compose down")
+            _log("Running compose down")
         timeout_arg = None
         if extra_args_list:
             timeout_arg = extra_args_list[0]
@@ -94,7 +94,7 @@ def ps_operation(ctx):
     global_context = ctx.parent.parent.obj
     if not global_context.dry_run:
         if global_context.verbose:
-            print("Running compose ps")
+            _log("Running compose ps")
         container_list = ctx.obj.docker.compose.ps()
         if len(container_list) > 0:
             print("Running containers:")
@@ -120,12 +120,12 @@ def port_operation(ctx, extra_args):
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
         if extra_args_list is None or len(extra_args_list) < 2:
-            print("Usage: port <service> <exposed-port>")
+            _log("Usage: port <service> <exposed-port>")
             sys.exit(1)
         service_name = extra_args_list[0]
         exposed_port = extra_args_list[1]
         if global_context.verbose:
-            print(f"Running compose port {service_name} {exposed_port}")
+            _log(f"Running compose port {service_name} {exposed_port}")
         mapped_port_data = ctx.obj.docker.compose.port(service_name, exposed_port)
         print(f"{mapped_port_data[0]}:{mapped_port_data[1]}")
 
@@ -135,17 +135,17 @@ def exec_operation(ctx, extra_args):
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
         if extra_args_list is None or len(extra_args_list) < 2:
-            print("Usage: exec <service> <cmd>")
+            _log("Usage: exec <service> <cmd>")
             sys.exit(1)
         service_name = extra_args_list[0]
         command_to_exec = ["sh", "-c"] + extra_args_list[1:]
         container_exec_env = _make_runtime_env(global_context)
         if global_context.verbose:
-            print(f"Running compose exec {service_name} {command_to_exec}")
+            _log(f"Running compose exec {service_name} {command_to_exec}")
         try:
             ctx.obj.docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
         except DockerException as error:
-            print(f"container command returned error exit status")
+            _log(f"container command returned error exit status")
 
 
 def logs_operation(ctx, extra_args):
@@ -153,7 +153,7 @@ def logs_operation(ctx, extra_args):
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
         if global_context.verbose:
-            print("Running compose logs")
+            _log("Running compose logs")
         logs_output = ctx.obj.docker.compose.logs(services=extra_args_list if extra_args_list is not None else [])
         print(logs_output)
 
@@ -211,15 +211,15 @@ def get_stack_status(ctx, stack):
     docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster)
     # TODO: refactor to avoid duplicating this code above
     if ctx.verbose:
-        print("Running compose ps")
+        _log("Running compose ps")
     container_list = docker.compose.ps()
     if len(container_list) > 0:
         if ctx.debug:
-            print(f"Container list from compose ps: {container_list}")
+            _log(f"Container list from compose ps: {container_list}")
         return True
     else:
         if ctx.debug:
-            print("No containers found from compose ps")
+            _log("No containers found from compose ps")
         False
 
 
@@ -237,7 +237,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
 
     if ctx.local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
-        print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
+        _log(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
     else:
         dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
@@ -256,11 +256,11 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         path = os.path.realpath(sys.argv[0])
         unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
         if ctx.debug:
-            print(f"pre-hash descriptor: {unique_cluster_descriptor}")
+            _log(f"pre-hash descriptor: {unique_cluster_descriptor}")
         hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()
         cluster = f"laconic-{hash}"
         if ctx.verbose:
-            print(f"Using cluster name: {cluster}")
+            _log(f"Using cluster name: {cluster}")
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from . import data
@@ -281,7 +281,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
     pods_in_scope = _convert_to_new_format(pods_in_scope)
 
     if ctx.verbose:
-        print(f"Pods: {pods_in_scope}")
+        _log(f"Pods: {pods_in_scope}")
 
     # Construct a docker compose command suitable for our purpose
 
@@ -307,10 +307,10 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
             compose_files.append(compose_file_name)
         else:
             if ctx.verbose:
-                print(f"Excluding: {pod_name}")
+                _log(f"Excluding: {pod_name}")
 
     if ctx.verbose:
-        print(f"files: {compose_files}")
+        _log(f"files: {compose_files}")
 
     return cluster_context(cluster, compose_files, pre_start_commands, post_start_commands, cluster_config, env_file)
 
@@ -342,7 +342,7 @@ def _convert_to_new_format(old_pod_array):
 
 def _run_command(ctx, cluster_name, command):
     if ctx.verbose:
-        print(f"Running command: {command}")
+        _log(f"Running command: {command}")
     command_dir = os.path.dirname(command)
     command_file = os.path.join(".", os.path.basename(command))
     command_env = os.environ.copy()
@@ -351,7 +351,7 @@ def _run_command(ctx, cluster_name, command):
         command_env["CERC_SCRIPT_DEBUG"] = "true"
     command_result = subprocess.run(command_file, shell=True, env=command_env, cwd=command_dir)
     if command_result.returncode != 0:
-        print(f"FATAL Error running command: {command}")
+        _log(f"FATAL Error running command: {command}")
         sys.exit(1)
 
 
@@ -368,7 +368,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
         for container in cluster_config:
             container_config = cluster_config[container]
             if ctx.verbose:
-                print(f"{container} config: {container_config}")
+                _log(f"{container} config: {container_config}")
             for directive in container_config:
                 pd = ConfigDirective(
                     container_config[directive].split(".")[0],
@@ -377,7 +377,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                     directive
                 )
                 if ctx.verbose:
-                    print(f"Setting {pd.destination_container}.{pd.destination_variable}"
+                    _log(f"Setting {pd.destination_container}.{pd.destination_variable}"
                           f" = {pd.source_container}.{pd.source_variable}")
                 # TODO: add a timeout
                 waiting_for_data = True
@@ -394,19 +394,19 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                                                               envs=container_exec_env)
                     except DockerException as error:
                         if ctx.debug:
-                            print(f"Docker exception reading config source: {error}")
+                            _log(f"Docker exception reading config source: {error}")
                         # If the script executed failed for some reason, we get:
                         # "It returned with code 1"
                         if "It returned with code 1" in str(error):
                             if ctx.verbose:
-                                print("Config export script returned an error, re-trying")
+                                _log("Config export script returned an error, re-trying")
                         # If the script failed to execute (e.g. the file is not there) then we get:
                         # "It returned with code 2"
                         if "It returned with code 2" in str(error):
-                            print(f"Fatal error reading config source: {error}")
+                            _log(f"Fatal error reading config source: {error}")
                     if source_value:
                         if ctx.debug:
-                            print(f"fetched source value: {source_value}")
+                            _log(f"fetched source value: {source_value}")
                         destination_output = docker.compose.execute(pd.destination_container,
                                                                     ["sh", "-c",
                                                                         f"sh /scripts/import-{pd.destination_variable}.sh"
@@ -415,7 +415,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                                                                     envs=container_exec_env)
                         waiting_for_data = False
                     if ctx.debug:
-                        print(f"destination output: {destination_output}")
+                        _log(f"destination output: {destination_output}")
 
 
 command.add_command(deployment_init)

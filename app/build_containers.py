@@ -27,7 +27,7 @@ import subprocess
 import click
 import importlib.resources
 from pathlib import Path
-from .util import include_exclude_check, get_parsed_stack_config
+from .util import _log, include_exclude_check, get_parsed_stack_config
 from .base import get_npm_registry_url
 
 # TODO: find a place for this
@@ -56,15 +56,15 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
-        print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
+        _log(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
     else:
         dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
     if not quiet:
-        print(f'Dev Root is: {dev_root_path}')
+        _log(f'Dev Root is: {dev_root_path}')
 
     if not os.path.isdir(dev_root_path):
-        print('Dev root directory doesn\'t exist, creating')
+        _log('Dev root directory doesn\'t exist, creating')
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from . import data
@@ -79,9 +79,9 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         containers_in_scope = all_containers
 
     if verbose:
-        print(f'Containers: {containers_in_scope}')
+        _log(f'Containers: {containers_in_scope}')
         if stack:
-            print(f"Stack: {stack}")
+            _log(f"Stack: {stack}")
 
     # TODO: make this configurable
     container_build_env = {
@@ -102,16 +102,16 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
 
     def process_container(container):
         if not quiet:
-            print(f"Building: {container}")
+            _log(f"Building: {container}")
         build_dir = os.path.join(container_build_dir, container.replace("/", "-"))
         build_script_filename = os.path.join(build_dir, "build.sh")
         if verbose:
-            print(f"Build script filename: {build_script_filename}")
+            _log(f"Build script filename: {build_script_filename}")
         if os.path.exists(build_script_filename):
             build_command = build_script_filename
         else:
             if verbose:
-                print(f"No script file found: {build_script_filename}, using default build script")
+                _log(f"No script file found: {build_script_filename}, using default build script")
             repo_dir = container.split('/')[1]
             # TODO: make this less of a hack -- should be specified in some metadata somewhere
             # Check if we have a repo for this container. If not, set the context dir to the container-build subdir
@@ -120,23 +120,23 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
             build_command = os.path.join(container_build_dir, "default-build.sh") + f" {container}:local {repo_dir_or_build_dir}"
         if not dry_run:
             if verbose:
-                print(f"Executing: {build_command} with environment: {container_build_env}")
+                _log(f"Executing: {build_command} with environment: {container_build_env}")
             build_result = subprocess.run(build_command, shell=True, env=container_build_env)
             if verbose:
-                print(f"Return code is: {build_result.returncode}")
+                _log(f"Return code is: {build_result.returncode}")
             if build_result.returncode != 0:
-                print(f"Error running build for {container}")
+                _log(f"Error running build for {container}")
                 if not continue_on_error:
-                    print("FATAL Error: container build failed and --continue-on-error not set, exiting")
+                    _log("FATAL Error: container build failed and --continue-on-error not set, exiting")
                     sys.exit(1)
                 else:
-                    print("****** Container Build Error, continuing because --continue-on-error is set")
+                    _log("****** Container Build Error, continuing because --continue-on-error is set")
         else:
-            print("Skipped")
+            _log("Skipped")
 
     for container in containers_in_scope:
         if include_exclude_check(container, include, exclude):
             process_container(container)
         else:
             if verbose:
-                print(f"Excluding: {container}")
+                _log(f"Excluding: {container}")

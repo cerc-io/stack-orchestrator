@@ -7,8 +7,8 @@ fi
 ETHERBASE=`cat /opt/testnet/build/el/accounts.csv | head -1 | cut -d',' -f2`
 NETWORK_ID=`cat /opt/testnet/el/el-config.yaml | grep 'chain_id' | awk '{ print $2 }'`
 NETRESTRICT=`ip addr | grep inet | grep -v '127.0' | awk '{print $2}'`
-ETH_DATADIR="${ETH_DATADIR:-$HOME/ethdata}"
-PLUGINS_DIR="${PLUGINS_DIR:-$ETH_DATADIR/plugins}"
+CERC_ETH_DATADIR="${CERC_ETH_DATADIR:-$HOME/ethdata}"
+CERC_PLUGINS_DIR="${CERC_PLUGINS_DIR:-/usr/local/lib/plugeth}"
 
 cd /opt/testnet/build/el
 python3 -m http.server 9898 &
@@ -35,7 +35,7 @@ trap 'cleanup' SIGINT SIGTERM
 
 if [ "true" == "$RUN_BOOTNODE" ]; then
     $START_CMD \
-       --datadir="$ETH_DATADIR" \
+      --datadir="${CERC_ETH_DATADIR}" \
       --nodekeyhex="${BOOTNODE_KEY}" \
       --nodiscover \
       --ipcdisable \
@@ -96,24 +96,14 @@ else
       --statediff.workers=${CERC_STATEDIFF_WORKERS:-1} \
       --statediff.writing=true"
 
-      if [ -f "/usr/local/lib/plugeth/statediff.so" ]; then
+      if [ -d "${CERC_PLUGINS_DIR}" ]; then
         # With plugeth, we separate the statediff options by prefixing with ' -- '
-        STATEDIFF_OPTS=" -- ${STATEDIFF_OPTS}"
-
-        # Check if the plugins directory exists
-        if [ ! -d "${PLUGINS_DIR}" ]; then
-          mkdir -p "${PLUGINS_DIR}"
-        fi
-
-        # And copy our plugin into place (if needed).
-        if [ ! -f "${PLUGINS_DIR}/statediff.so" ]; then
-          cp -f "/usr/local/lib/plugeth/statediff.so" "${PLUGINS_DIR}/statediff.so"
-        fi
+        STATEDIFF_OPTS="--pluginsdir "${CERC_PLUGINS_DIR}" -- ${STATEDIFF_OPTS}"
       fi
     fi
 
     $START_CMD \
-      --datadir="${ETH_DATADIR}" \
+      --datadir="${CERC_ETH_DATADIR}" \
       --bootnodes="${ENODE}" \
       --allow-insecure-unlock \
       --http \

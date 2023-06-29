@@ -5,7 +5,6 @@ go-ethereum-foundry
 ipld-eth-beacon-db
 ipld-eth-beacon-indexer
 ipld-eth-server
-lighthouse
 laconicd
 fixturenet-laconicd
 fixturenet-eth
@@ -28,3 +27,6 @@ fixturenet-pocket
 watcher-azimuth
 watcher-gelato
 fixturenet-lotus
+mainnet-go-opera
+lasso
+reth

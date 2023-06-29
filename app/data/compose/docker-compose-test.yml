@@ -5,7 +5,7 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     volumes:
-      - test-data:/var
+      - test-data:/data
     ports:
       - "80"
 

@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  go-opera:
+    restart: unless-stopped
+    image: cerc/go-opera:local
+    entrypoint: ["sh", "/docker-entrypoint-scripts.d/start-node.sh"]
+    volumes:
+      - ../config/mainnet-go-opera/start-node.sh:/docker-entrypoint-scripts.d/start-node.sh
+    # TODO: ports taken from dockerfile, determine which are needed
+    ports:
+      - "5050:5050" # p2p port, needed
+      - "5050:5050/udp"
+      - "18545:18545" # http rpc port
+      - "18546:18546" # websockets rpc port
+      #- "18547" # unknown
+      #- "19090" # unknown

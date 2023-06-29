@@ -3,14 +3,26 @@ name: fixturenet-plugeth-tx
 decription: "plugeth Ethereum Fixturenet w/ tx-spammer"
 repos:
   - github.com/cerc-io/tx-spammer
-  - dboreham/foundry
+  - github.com/dboreham/foundry
+  - github.com/cerc-io/lighthouse
+  - github.com/cerc-io/ipld-eth-db@v5
+  - github.com/cerc-io/ipld-eth-server@v5
+  - git.vdb.to/cerc-io/plugeth@statediff-wip
+  - git.vdb.to/cerc-io/plugeth-statediff@dev-local-build
 containers:
   - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/plugeth-statediff
+  - cerc/plugeth
   - cerc/fixturenet-plugeth-plugeth
   - cerc/fixturenet-plugeth-lighthouse
   - cerc/tx-spammer
   - cerc/foundry
+  - cerc/ipld-eth-db
+  - cerc/ipld-eth-server
 pods:
+  - ipld-eth-db
+  - ipld-eth-server
   - fixturenet-plugeth
   - foundry
   - tx-spammer

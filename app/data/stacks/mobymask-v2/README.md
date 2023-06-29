@@ -18,26 +18,6 @@ laconic-so --stack mobymask-v2 setup-repositories
 NOTE: If repositories already exist and are checked out to different versions, `setup-repositories` command will throw an error.
 For getting around this, the repositories mentioned below can be removed and then run the command.
 
-Checkout to the required versions and branches in repos
-
-```bash
-# watcher-ts
-cd ~/cerc/watcher-ts
-git checkout v0.2.41
-
-# mobymask-v2-watcher-ts
-cd ~/cerc/mobymask-v2-watcher-ts
-git checkout v0.1.1
-
-# MobyMask
-cd ~/cerc/MobyMask
-git checkout v0.1.2
-
-# Optimism
-cd ~/cerc/optimism
-git checkout v1.0.4
-```
-
 Build the container images:
 
 ```bash
@@ -51,17 +31,21 @@ Deploy the stack:
 * Deploy the containers:
 
   ```bash
-  laconic-so --stack mobymask-v2 deploy-system up
+  laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 up
   ```
 
-* List and check the health status of all the containers using `docker ps` and wait for them to be `healthy`
+  NOTE: The `fixturenet-optimism-contracts` service takes a while to run to completion and it may restart a few times after running into errors.
 
-  NOTE: The `mobymask-app` container might not start; if the app is not running at http://localhost:3002, restart the container using it's id:
+* To list down and monitor the running containers:
 
   ```bash
-  docker ps -a | grep "mobymask-app"
+  laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 ps
 
-  docker restart <CONTAINER_ID>
+  # With status
+  docker ps -a
+
+  # Check logs for a container
+  docker logs -f <CONTAINER_ID>
   ```
 
 ## Tests
@@ -88,11 +72,12 @@ docker ps | grep -E 'mobymask-app|peer-test-app'
 
 ### mobymask-app
 
-The mobymask-app should be running at http://localhost:3002
+* The mobymask-app should be running at http://localhost:3002
+* The lxdao-mobymask-app should be running at http://localhost:3004
 
 ### peer-test-app
 
-The peer-test-app should be running at http://localhost:3003
+* The peer-test-app should be running at http://localhost:3003
 
 ## Details
 
@@ -111,15 +96,15 @@ Follow the [demo](./demo.md) to try out the MobyMask app with L2 chain
 Stop all the services running in background run:
 
 ```bash
-laconic-so --stack mobymask-v2 deploy-system down 30
+laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 down 30
 ```
 
 Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data"
+docker volume ls -q --filter "name=mobymask_v2"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=.*mobymask_watcher_db_data|.*peers_ids|.*mobymask_deployment|.*l1_deployment|.*l2_accounts|.*l2_config|.*l2_geth_data")
+docker volume rm $(docker volume ls -q --filter "name=mobymask_v2")
 ```

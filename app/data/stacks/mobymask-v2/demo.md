@@ -9,23 +9,23 @@
   The invite link is seen at the end of the logs. Example log:
 
   ```bash
-  laconic-bfb01caf98b1b8f7c8db4d33f11b905a-mobymask-1  | http://127.0.0.1:3002/#/members?invitation=%7B%22v%22%3A1%2C%22signedDelegations%22%3A%5B%7B%22signature%22%3A%220x7559bd412f02677d60820e38243acf61547f79339395a34f7d4e1630e645aeb30535fc219f79b6fbd3af0ce3bd05132ad46d2b274a9fbc4c36bc71edd09850891b%22%2C%22delegation%22%3A%7B%22delegate%22%3A%220xc0838c92B2b71756E0eAD5B3C1e1F186baeEAAac%22%2C%22authority%22%3A%220x0000000000000000000000000000000000000000000000000000000000000000%22%2C%22caveats%22%3A%5B%7B%22enforcer%22%3A%220x558024C7d593B840E1BfD83E9B287a5CDad4db15%22%2C%22terms%22%3A%220x0000000000000000000000000000000000000000000000000000000000000000%22%7D%5D%7D%7D%5D%2C%22key%22%3A%220x98da9805821f1802196443e578fd32af567bababa0a249c07c82df01ecaa7d8d%22%7D
+  http://127.0.0.1:3004/#/members?invitation=%7B%22v%22%3A1%2C%22signedDelegations%22%3A%5B%7B%22signature%22%3A%220x7559bd412f02677d60820e38243acf61547f79339395a34f7d4e1630e645aeb30535fc219f79b6fbd3af0ce3bd05132ad46d2b274a9fbc4c36bc71edd09850891b%22%2C%22delegation%22%3A%7B%22delegate%22%3A%220xc0838c92B2b71756E0eAD5B3C1e1F186baeEAAac%22%2C%22authority%22%3A%220x0000000000000000000000000000000000000000000000000000000000000000%22%2C%22caveats%22%3A%5B%7B%22enforcer%22%3A%220x558024C7d593B840E1BfD83E9B287a5CDad4db15%22%2C%22terms%22%3A%220x0000000000000000000000000000000000000000000000000000000000000000%22%7D%5D%7D%7D%5D%2C%22key%22%3A%220x98da9805821f1802196443e578fd32af567bababa0a249c07c82df01ecaa7d8d%22%7D
   ```
 
 * Open the invite link in a browser to use the mobymask-app.
 
-  NOTE: Before opening the invite link, clear the browser cache (local storage) for http://127.0.0.1:3002 to remove old invitations
+  NOTE: Before opening the invite link, clear the browser cache (local storage) for http://127.0.0.1:3004 to remove old invitations
 
 * In the debug panel, check if it is connected to the p2p network (it should be connected to at least one other peer for pubsub to work).
 
-* Create an invite link in the app by clicking on `Create new invite link` button.
+* Create an invite link in the app by clicking on `Create new invite link` button in the `My invitees` section.
 
 * Switch to the `MESSAGES` tab in debug panel for viewing incoming messages later.
 
 * Open the invite link in a new browser with different profile (to simulate remote browser)
-  * Check that it is connected to any other peer in the network.
+  * Check that it is connected to a peer in the network.
 
-* In `Report a phishing attempt` section, report multiple phishers using the `Submit` button. Click on the `Submit batch to p2p network` button. This broadcasts signed invocations to the connected peers.
+* In the `Pending reports` section, enter multiple phisher records and click on the `Submit batch to p2p network` button. This broadcasts signed invocations to the connected peers.
 
 * In the `MESSAGES` tab of other browsers, a message can be seen with the signed invocations.
 
@@ -66,7 +66,7 @@
   * Get the deployed contract address:
 
     ```bash
-    docker exec -it $(docker ps -aq --filter name="mobymask-app") cat /config/config.yml
+    docker exec -it $(docker ps -aq --filter name="lxdao-mobymask-app") cat /config/config.yml
     ```
 
     The value of `address` field is the deployed contract address
@@ -91,15 +91,14 @@
   * Watcher internally is using L2 chain `eth_getStorageAt` method.
 
 * Check the phisher name in mobymask app in `Check Phisher Status` section.
-    * Watcher GQL API is used for checking phisher.
+  * Watcher GQL API is used for checking phisher.
 
-* Manage the invitations by clicking on the `Outstanding Invitations in p2p network`.
-
-* Revoke the created invitation by clicking on `Revoke (p2p network)`
+* Manage invitations in the `Outstanding invitations (p2p network)` tab in `My Invitations` section.
+  * Revoke the created invitation by clicking on the `Revoke` button.
 
 * Revocation messages can be seen in the debug panel `MESSAGES` tab of other browsers.
 
-* Check the watcher peer logs. It should receive a message and log the transaction receipt for a `revoke` message.
+* Also, check the watcher peer logs. It should receive a message and log the transaction receipt for a `revoke` message.
 
 * Try reporting a phisher from the revoked invitee's browser.
 

@@ -1,8 +1,9 @@
 version: '3.2'
 
 services:
+  # Builds and serves the peer-test react-app
   peer-test-app:
-    # Builds and serves the peer-test react-app
+    restart: unless-stopped
     image: cerc/react-peer:local
     working_dir: /scripts
     env_file:
@@ -17,7 +18,7 @@ services:
       - ../config/watcher-mobymask-v2/test-app-start.sh:/scripts/test-app-start.sh
       - peers_ids:/peers
     ports:
-      - "0.0.0.0:3003:80"
+      - "127.0.0.1:3003:80"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "80"]
       interval: 20s

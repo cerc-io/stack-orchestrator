@@ -15,7 +15,8 @@
 
 import os
 from abc import ABC, abstractmethod
-from .deploy_system import get_stack_status
+from .deploy import get_stack_status
+from decouple import config
 
 
 def get_stack(config, stack):
@@ -69,3 +70,10 @@ class package_registry_stack(base_stack):
 
     def get_url(self):
         return self.url
+
+
+def get_npm_registry_url():
+    # If an auth token is not defined, we assume the default should be the cerc registry
+    # If an auth token is defined, we assume the local gitea should be used.
+    default_npm_registry_url = "http://gitea.local:3000/api/packages/cerc-io/npm/" if config("CERC_NPM_AUTH_TOKEN", default=None) else "https://git.vdb.to/api/packages/cerc-io/npm/"
+    return config("CERC_NPM_REGISTRY_URL", default=default_npm_registry_url)

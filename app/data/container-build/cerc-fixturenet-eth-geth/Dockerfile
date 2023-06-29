@@ -22,6 +22,18 @@ COPY run-el.sh /opt/testnet/run.sh
 RUN cd /opt/testnet && make genesis-el
 
 COPY --from=geth  /usr/local/bin/geth /usr/local/bin/
+
+# Snag the genesis block info.
 RUN geth --datadir ~/ethdata init /opt/testnet/build/el/geth.json && rm -f ~/ethdata/geth/nodekey
+RUN cp -rp ~/ethdata ~/tmpeth && \
+    geth --datadir ~/tmpeth init /opt/testnet/build/el/geth.json && \
+    geth --datadir ~/tmpeth --http & \
+    sleep 5 && \
+    curl -q --location 'localhost:8545' \
+        --header 'Content-Type: application/json' \
+        --data '{ "jsonrpc": "2.0", "id": 14, "method": "eth_getBlockByNumber", "params": ["0x0", false] }' \
+        -o /opt/testnet/build/el/genesis_block.json && \
+    killall -9 geth && \
+    rm -rf ~/tmpeth
 
 ENTRYPOINT ["/opt/testnet/run.sh"]

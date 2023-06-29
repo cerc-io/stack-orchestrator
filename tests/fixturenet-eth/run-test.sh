@@ -3,7 +3,7 @@ set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
-set -e
+
 echo "Running stack-orchestrator Ethereum fixturenet test"
 # Bit of a hack, test the most recent package
 TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
@@ -14,12 +14,8 @@ echo "Test version command"
 reported_version_string=$( $TEST_TARGET_SO version )
 echo "Version reported is: ${reported_version_string}"
 echo "Cloning repositories into: $CERC_REPO_BASE_DIR"
-$TEST_TARGET_SO --stack fixturenet-eth setup-repositories
-echo "Building containers"
-$TEST_TARGET_SO  --stack fixturenet-eth build-containers
-echo "Images in registry:"
-docker image ls
-echo "Deploying the cluster"
+$TEST_TARGET_SO --stack fixturenet-eth setup-repositories 
+$TEST_TARGET_SO --stack fixturenet-eth build-containers
 $TEST_TARGET_SO --stack fixturenet-eth deploy up
 # Verify that the fixturenet is up and running
 $TEST_TARGET_SO --stack fixturenet-eth deploy ps

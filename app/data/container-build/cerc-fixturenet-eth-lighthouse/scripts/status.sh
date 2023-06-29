@@ -4,7 +4,14 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
 fi
 
 MIN_BLOCK_NUM=${1:-${MIN_BLOCK_NUM:-3}}
-STATUSES=("geth to generate DAG" "beacon phase0" "beacon altair" "beacon bellatrix pre-merge" "beacon bellatrix merge" "block number $MIN_BLOCK_NUM")
+STATUSES=(
+  "geth to generate DAG"
+  "beacon phase0"
+  "beacon altair"
+  "beacon bellatrix pre-merge"
+  "beacon bellatrix merge"
+  "block number $MIN_BLOCK_NUM"
+)
 STATUS=0
 
 LIGHTHOUSE_BASE_URL=${LIGHTHOUSE_BASE_URL}
@@ -36,7 +43,6 @@ MARKER="."
 
 function inc_status() {
   echo " done"
-  MARKEr="."
   STATUS=$((STATUS + 1))
   if [ $STATUS -lt ${#STATUSES[@]} ]; then
     echo -n "Waiting for ${STATUSES[$STATUS]}..."
@@ -55,7 +61,7 @@ while [ $STATUS -lt ${#STATUSES[@]} ]; do
         inc_status
       fi
       ;;
-    1) 
+    1)
       result=`wget --no-check-certificate --quiet -O - "$LIGHTHOUSE_BASE_URL/eth/v2/beacon/blocks/head" | jq -r '.data.message.slot'`
       if [ ! -z "$result" ] && [ $result -gt 0 ]; then
         inc_status

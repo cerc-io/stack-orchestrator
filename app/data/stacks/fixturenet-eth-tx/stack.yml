@@ -4,10 +4,12 @@ decription: "Ethereum Fixturenet w/ tx-spammer"
 repos:
   - github.com/cerc-io/go-ethereum
   - github.com/cerc-io/tx-spammer
-  - dboreham/foundry
+  - github.com/dboreham/foundry
+  - github.com/cerc-io/lighthouse
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse
+  - cerc/lighthouse-cli
   - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
   - cerc/tx-spammer

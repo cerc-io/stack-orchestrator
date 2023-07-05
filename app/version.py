@@ -22,7 +22,7 @@ def command(ctx):
     '''print tool version'''
 
     # See: https://stackoverflow.com/a/20885799/1701505
-    from . import data
+    from app import data
     with importlib.resources.open_text(data, "build_tag.txt") as version_file:
         # TODO: code better version that skips comment lines
         version_string = version_file.read().splitlines()[1]

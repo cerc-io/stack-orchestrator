@@ -96,7 +96,7 @@ def call_stack_deploy_init(stack):
     spec = util.spec_from_file_location("commands", python_file_path)
     imported_stack = util.module_from_spec(spec)
     spec.loader.exec_module(imported_stack)
-    return imported_stack.init()
+    return imported_stack.init(None)
 
 
 @click.command()

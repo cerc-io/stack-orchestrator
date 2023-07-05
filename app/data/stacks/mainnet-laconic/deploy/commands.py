@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from util import get_yaml
+from app.util import get_yaml
 
 default_spec_file_content = """config:
     node_moniker: my-node-name

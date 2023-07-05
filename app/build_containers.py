@@ -27,8 +27,8 @@ import subprocess
 import click
 import importlib.resources
 from pathlib import Path
-from .util import include_exclude_check, get_parsed_stack_config
-from .base import get_npm_registry_url
+from app.util import include_exclude_check, get_parsed_stack_config
+from app.base import get_npm_registry_url
 
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"

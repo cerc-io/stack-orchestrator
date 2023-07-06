@@ -1,4 +1,4 @@
-# Copyright © 2022, 2023 Cerc
+# Copyright © 2023 Cerc
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -13,24 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from app.util import get_yaml
-from app.stack_state import State
+from enum import Enum
 
-default_spec_file_content = """config:
-    node_moniker: my-node-name
-    chain_id: my-chain-id
-"""
-
-init_help_text = """Add helpful text here on setting config variables.
-"""
-
-
-def init(command_context):
-    print(init_help_text)
-    yaml = get_yaml()
-    return yaml.load(default_spec_file_content)
-
-
-def get_state(command_context):
-    print("Here we get state")
-    return State.CONFIGURED
+class State(Enum):
+    CREATED = 1
+    CONFIGURED = 2
+    STARTED = 3
+    STOPPED = 4

@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 from shutil import copyfile, copytree
 import sys
-from .util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
+from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
 
 
 def _make_default_deployment_dir():

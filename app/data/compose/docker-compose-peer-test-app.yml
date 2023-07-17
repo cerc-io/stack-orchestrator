@@ -14,7 +14,7 @@ services:
       CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
     command: ["sh", "test-app-start.sh"]
     volumes:
-      - ../config/wait-for-it.sh:/scripts/wait-for-it.sh
+      - ../config/network/wait-for-it.sh:/scripts/wait-for-it.sh
       - ../config/watcher-mobymask-v2/test-app-start.sh:/scripts/test-app-start.sh
       - peers_ids:/peers
     ports:

@@ -23,7 +23,7 @@ services:
     command: |
       "./wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- ./run.sh"
     volumes:
-      - ../config/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
+      - ../config/network/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
       - ../container-build/cerc-optimism-contracts/hardhat-tasks/verify-contract-deployment.ts:/app/packages/contracts-bedrock/tasks/verify-contract-deployment.ts
       - ../container-build/cerc-optimism-contracts/hardhat-tasks/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
       - ../container-build/cerc-optimism-contracts/hardhat-tasks/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
@@ -120,7 +120,7 @@ services:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_L1_RPC: ${CERC_L1_RPC}
     volumes:
-      - ../config/wait-for-it.sh:/wait-for-it.sh
+      - ../config/network/wait-for-it.sh:/wait-for-it.sh
       - ../config/fixturenet-optimism/run-op-batcher.sh:/run-op-batcher.sh
       - l2_accounts:/l2-accounts:ro
     entrypoint: ["sh", "-c"]
@@ -145,7 +145,7 @@ services:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_L1_RPC: ${CERC_L1_RPC}
     volumes:
-      - ../config/wait-for-it.sh:/wait-for-it.sh
+      - ../config/network/wait-for-it.sh:/wait-for-it.sh
       - ../config/fixturenet-optimism/run-op-proposer.sh:/run-op-proposer.sh
       - l1_deployment:/contracts-bedrock:ro
       - l2_accounts:/l2-accounts:ro

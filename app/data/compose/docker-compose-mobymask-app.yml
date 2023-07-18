@@ -18,7 +18,7 @@ services:
     working_dir: /scripts
     command: ["sh", "mobymask-app-start.sh"]
     volumes:
-      - ../config/wait-for-it.sh:/scripts/wait-for-it.sh
+      - ../config/network/wait-for-it.sh:/scripts/wait-for-it.sh
       - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/scripts/mobymask-app-start.sh
       - peers_ids:/peers
       - mobymask_deployment:/server
@@ -50,7 +50,7 @@ services:
     working_dir: /scripts
     command: ["sh", "mobymask-app-start.sh"]
     volumes:
-      - ../config/wait-for-it.sh:/scripts/wait-for-it.sh
+      - ../config/network/wait-for-it.sh:/scripts/wait-for-it.sh
       - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/scripts/mobymask-app-start.sh
       - peers_ids:/peers
       - mobymask_deployment:/server

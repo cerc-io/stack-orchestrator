@@ -44,7 +44,7 @@ services:
       CERC_L2_NODE_PORT: ${CERC_L2_NODE_PORT}
     command: ["sh", "deploy-and-generate-invite.sh"]
     volumes:
-      - ../config/wait-for-it.sh:/app/packages/server/wait-for-it.sh
+      - ../config/network/wait-for-it.sh:/app/packages/server/wait-for-it.sh
       - ../config/watcher-mobymask-v2/secrets-template.json:/app/packages/server/secrets-template.json
       - ../config/watcher-mobymask-v2/deploy-and-generate-invite.sh:/app/packages/server/deploy-and-generate-invite.sh
       - mobymask_deployment:/app/packages/server

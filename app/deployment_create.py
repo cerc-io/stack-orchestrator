@@ -111,6 +111,24 @@ def call_stack_deploy_setup(stack):
     return imported_stack.setup(None)
 
 
+# Inspect the pod yaml to find config files referenced in subdirectories
+# other than the one associated with the pod
+def _find_extra_config_dirs(parsed_pod_file, pod):
+    config_dirs = set()
+    services = parsed_pod_file["services"]
+    for service in services:
+        service_info = services[service]
+        if "volumes" in service_info:
+            for volume in service_info["volumes"]:
+                if ":" in volume:
+                    host_path = volume.split(":")[0]
+                    if host_path.startswith("../config"):
+                        config_dir = host_path.split("/")[2]
+                        if config_dir != pod:
+                            config_dirs.add(config_dir)
+    return config_dirs
+
+
 @click.command()
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.pass_context
@@ -163,13 +181,22 @@ def create(ctx, spec_file, deployment_dir):
     for pod in pods:
         pod_file_path = os.path.join(_get_compose_file_dir(), f"docker-compose-{pod}.yml")
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
+        extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
+        if global_options(ctx).debug:
+            print(f"extra config dirs: {extra_config_dirs}")
         _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
         with open(os.path.join(destination_compose_dir, os.path.basename(pod_file_path)), "w") as output_file:
             yaml.dump(parsed_pod_file, output_file)
         # Copy the config files for the pod, if any
-        source_config_dir = data_dir.joinpath("config", pod)
-        if os.path.exists(source_config_dir):
-            copytree(source_config_dir, os.path.join(deployment_dir, "config", pod))
+        config_dirs = {pod}
+        config_dirs = config_dirs.union(extra_config_dirs)
+        for config_dir in config_dirs:
+            source_config_dir = data_dir.joinpath("config", config_dir)
+            if os.path.exists(source_config_dir):
+                destination_config_dir = os.path.join(deployment_dir, "config", config_dir)
+                # If the same config dir appears in multiple pods, it may already have been copied
+                if not os.path.exists(destination_config_dir):
+                    copytree(source_config_dir, destination_config_dir)
 
 
 @click.command()
@@ -182,3 +209,4 @@ def create(ctx, spec_file, deployment_dir):
 def setup(ctx, node_moniker, key_name, initialize_network, join_network, create_network):
     stack = global_options(ctx).stack
     call_stack_deploy_setup(stack)
+

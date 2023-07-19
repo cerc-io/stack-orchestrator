@@ -73,13 +73,14 @@ def start(ctx, extra_args):
 
 
 @command.command()
+@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
 @click.argument('extra_args', nargs=-1)  # help: command: down <service1> <service2>
 @click.pass_context
-def down(ctx, extra_args):
+def down(ctx, delete_volumes, extra_args):
     # Get the stack config file name
     # TODO: add cluster name and env file here
     ctx.obj = make_deploy_context(ctx)
-    down_operation(ctx, extra_args, None)
+    down_operation(ctx, delete_volumes, extra_args)
 
 
 # stop is the preferred alias for down

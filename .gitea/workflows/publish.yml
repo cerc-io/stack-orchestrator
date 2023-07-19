@@ -37,7 +37,7 @@ jobs:
         run: |
           cp ${{ steps.build.outputs.package-file }} ./laconic-so
       - name: "Create release"
-        uses: https://gitea.com/cerc-io/action-gh-release@gitea-v1
+        uses: https://gitea.com/cerc-io/action-gh-release@gitea-v2
         with:
           tag_name: ${{ steps.build-info.outputs.build-tag }}
           # On the publish test branch, mark our release as a draft

@@ -29,6 +29,7 @@ from pathlib import Path
 from app.util import include_exclude_check, get_parsed_stack_config, global_options2
 from app.deployment_create import create as deployment_create
 from app.deployment_create import init as deployment_init
+from app.deployment_create import setup as deployment_setup
 
 
 class DeployCommandContext(object):
@@ -420,3 +421,4 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
 
 command.add_command(deployment_init)
 command.add_command(deployment_create)
+command.add_command(deployment_setup)

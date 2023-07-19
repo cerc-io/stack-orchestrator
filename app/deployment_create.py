@@ -99,6 +99,18 @@ def call_stack_deploy_init(stack):
     return imported_stack.init(None)
 
 
+# TODO: fold this with function above
+def call_stack_deploy_setup(stack):
+    # Link with the python file in the stack
+    # Call a function in it
+    # If no function found, return None
+    python_file_path = get_stack_file_path(stack).parent.joinpath("deploy", "commands.py")
+    spec = util.spec_from_file_location("commands", python_file_path)
+    imported_stack = util.module_from_spec(spec)
+    spec.loader.exec_module(imported_stack)
+    return imported_stack.setup(None)
+
+
 @click.command()
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.pass_context
@@ -158,3 +170,15 @@ def create(ctx, spec_file, deployment_dir):
         source_config_dir = data_dir.joinpath("config", pod)
         if os.path.exists(source_config_dir):
             copytree(source_config_dir, os.path.join(deployment_dir, "config", pod))
+
+
+@click.command()
+@click.option("--node-moniker", help="Help goes here")
+@click.option("--key-name", help="Help goes here")
+@click.option("--initialize-network", is_flag=True, default=False, help="Help goes here")
+@click.option("--join-network", is_flag=True, default=False, help="Help goes here")
+@click.option("--create-network", is_flag=True, default=False, help="Help goes here")
+@click.pass_context
+def setup(ctx, node_moniker, key_name, initialize_network, join_network, create_network):
+    stack = global_options(ctx).stack
+    call_stack_deploy_setup(stack)

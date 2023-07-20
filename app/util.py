@@ -19,6 +19,10 @@ import yaml
 from pathlib import Path
 
 
+def _log(*args):
+    print(*args, file=sys.stderr)
+
+
 def include_exclude_check(s, include, exclude):
     if include is None and exclude is None:
         return True

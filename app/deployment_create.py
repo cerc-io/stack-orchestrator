@@ -67,7 +67,8 @@ def _get_named_volumes(stack):
 def _create_bind_dir_if_relative(volume, path_string, compose_dir):
     path = Path(path_string)
     if not path.is_absolute():
-        absolute_path = Path(compose_dir).parent.joinpath(path)
+        absolute_path = Path(compose_dir).joinpath(path)
+        print(f"Creating this directory: {absolute_path}")
         absolute_path.mkdir(parents=True, exist_ok=True)
     else:
         if not path.exists():
@@ -84,7 +85,7 @@ def _fixup_pod_file(pod, spec, compose_dir):
             for volume in pod_volumes.keys():
                 if volume in spec_volumes:
                     volume_spec = spec_volumes[volume]
-                    volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
+                    volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f"{volume_spec}"
                     _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
                     new_volume_spec = {"driver": "local",
                                        "driver_opts": {

@@ -1,0 +1,56 @@
+
+services:
+
+  mainnet-eth-geth-1:
+    restart: always
+    hostname: mainnet-eth-geth-1
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      CERC_REMOTE_DEBUG: "true"
+      CERC_RUN_STATEDIFF: ${CERC_RUN_STATEDIFF:-detect}
+      CERC_STATEDIFF_DB_NODE_ID: 1
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    image: cerc/go-ethereum:local
+    volumes:
+      - mainnet_eth_geth_1_data:/root/ethdata
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+    ports:
+      - "8545"
+      - "40000"
+      - "6060"
+
+  mainnet-eth-lighthouse-1:
+    restart: always
+    hostname: mainnet-eth-lighthouse-1
+    healthcheck:
+      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8001/eth/v2/beacon/blocks/head"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    env_file:
+      - ../config/fixturenet-eth/fixturenet-eth.env
+    environment:
+      NODE_NUMBER: "1"
+      ETH1_ENDPOINT: "http://mainnet-eth-geth-1:8545"
+      EXECUTION_ENDPOINT: "http://mainnet-eth-geth-1:8551"
+    image: cerc/lighthouse:local
+    volumes:
+      - mainnet_eth_lighthouse_1_data:/opt/testnet/build/cl
+    depends_on:
+      mainnet-eth-geth-1:
+        condition: service_healthy
+    ports:
+      - "8001"
+
+volumes:
+  mainnet_eth_geth_1_data:
+  mainnet_eth_lighthouse_1_data:

@@ -25,34 +25,19 @@ cleanup() {
 
 $START_CMD \
     --datadir="${CERC_ETH_DATADIR}" \
-    --allow-insecure-unlock \
-    --http \
-    --http.addr="0.0.0.0" \
-    --http.vhosts="*" \
-    --http.api="${CERC_GETH_HTTP_APIS:-eth,web3,net,admin,personal,debug,statediff}" \
-    --http.corsdomain="*" \
     --authrpc.addr="0.0.0.0" \
+    --authrpc.port 8551 \
     --authrpc.vhosts="*" \
-    --authrpc.jwtsecret="/opt/testnet/build/el/jwtsecret" \
+    --authrpc.jwtsecret="/etc/mainnet-eth/jwtsecret" \
     --ws \
     --ws.addr="0.0.0.0" \
     --ws.origins="*" \
     --ws.api="${CERC_GETH_WS_APIS:-eth,web3,net,admin,personal,debug,statediff}" \
     --http.corsdomain="*" \
-    --networkid="${NETWORK_ID}" \
-    --netrestrict="${NETRESTRICT}" \
-    --gcmode archive \
+    --gcmode full \
     --txlookuplimit=0 \
     --cache.preimages \
-    --syncmode=full \
-    --mine \
-    --miner.threads=1 \
-    --metrics \
-    --metrics.addr="0.0.0.0" \
-    --verbosity=${CERC_GETH_VERBOSITY:-3} \
-    --log.vmodule="${CERC_GETH_VMODULE:-statediff/*=5}" \
-    --miner.etherbase="${ETHERBASE}" \
-    ${STATEDIFF_OPTS} \
+    --syncmode=snap \
     &
 
 geth_pid=$!

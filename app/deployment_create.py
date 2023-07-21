@@ -68,7 +68,6 @@ def _create_bind_dir_if_relative(volume, path_string, compose_dir):
     path = Path(path_string)
     if not path.is_absolute():
         absolute_path = Path(compose_dir).joinpath(path)
-        print(f"Creating this directory: {absolute_path}")
         absolute_path.mkdir(parents=True, exist_ok=True)
     else:
         if not path.exists():

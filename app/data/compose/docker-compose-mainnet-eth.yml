@@ -11,11 +11,13 @@ services:
       CERC_RUN_STATEDIFF: ${CERC_RUN_STATEDIFF:-detect}
       CERC_STATEDIFF_DB_NODE_ID: 1
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-    env_file:
-      - ../config/fixturenet-eth/fixturenet-eth.env
     image: cerc/go-ethereum:local
+    entrypoint: /bin/sh
+    command: -c "/opt/run-geth.sh"
     volumes:
       - mainnet_eth_geth_1_data:/root/ethdata
+      - mainnet_eth_config_data:/etc/mainnet-eth
+      - ../config/mainnet-eth/scripts/run-geth.sh:/opt/run-geth.sh
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8545"]
       interval: 30s
@@ -36,15 +38,15 @@ services:
       timeout: 10s
       retries: 10
       start_period: 30s
-    env_file:
-      - ../config/fixturenet-eth/fixturenet-eth.env
     environment:
-      NODE_NUMBER: "1"
-      ETH1_ENDPOINT: "http://mainnet-eth-geth-1:8545"
       EXECUTION_ENDPOINT: "http://mainnet-eth-geth-1:8551"
     image: cerc/lighthouse:local
+    entrypoint: /bin/sh
+    command: -c "/opt/run-lighthouse.sh"
     volumes:
-      - mainnet_eth_lighthouse_1_data:/opt/testnet/build/cl
+      - mainnet_eth_lighthouse_1_data:/var/lighthouse-data-dir
+      - mainnet_eth_config_data:/etc/mainnet-eth
+      - ../config/mainnet-eth/scripts/run-lighthouse.sh:/opt/run-lighthouse.sh
     depends_on:
       mainnet-eth-geth-1:
         condition: service_healthy
@@ -52,5 +54,6 @@ services:
       - "8001"
 
 volumes:
+  mainnet_eth_config_data:
   mainnet_eth_geth_1_data:
   mainnet_eth_lighthouse_1_data:

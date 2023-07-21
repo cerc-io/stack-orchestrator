@@ -91,7 +91,7 @@ def down(ctx, delete_volumes, extra_args):
 def stop(ctx, delete_volumes, extra_args):
     # TODO: add cluster name and env file here
     ctx.obj = make_deploy_context(ctx)
-    down_operation(ctx, delete_volumes, extra_args, None)
+    down_operation(ctx, delete_volumes, extra_args)
 
 
 @command.command()

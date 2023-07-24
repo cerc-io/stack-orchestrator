@@ -59,7 +59,7 @@ def _get_named_volumes(stack):
 def _create_bind_dir_if_relative(volume, path_string, compose_dir):
     path = Path(path_string)
     if not path.is_absolute():
-        absolute_path = Path(compose_dir).joinpath(path)
+        absolute_path = Path(compose_dir).parent.joinpath(path)
         absolute_path.mkdir(parents=True, exist_ok=True)
     else:
         if not path.exists():
@@ -76,7 +76,7 @@ def _fixup_pod_file(pod, spec, compose_dir):
             for volume in pod_volumes.keys():
                 if volume in spec_volumes:
                     volume_spec = spec_volumes[volume]
-                    volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f"{volume_spec}"
+                    volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
                     _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
                     new_volume_spec = {"driver": "local",
                                        "driver_opts": {
@@ -111,6 +111,18 @@ def call_stack_deploy_setup(stack):
     return imported_stack.setup(None)
 
 
+# TODO: fold this with function above
+def call_stack_deploy_create(stack):
+    # Link with the python file in the stack
+    # Call a function in it
+    # If no function found, return None
+    python_file_path = get_stack_file_path(stack).parent.joinpath("deploy", "commands.py")
+    spec = util.spec_from_file_location("commands", python_file_path)
+    imported_stack = util.module_from_spec(spec)
+    spec.loader.exec_module(imported_stack)
+    return imported_stack.create(None)
+
+
 # Inspect the pod yaml to find config files referenced in subdirectories
 # other than the one associated with the pod
 def _find_extra_config_dirs(parsed_pod_file, pod):
@@ -138,7 +150,8 @@ def init(ctx, output):
     verbose = global_options(ctx).verbose
     default_spec_file_content = call_stack_deploy_init(stack)
     spec_file_content = {"stack": stack}
-    spec_file_content.update(default_spec_file_content)
+    if default_spec_file_content:
+        spec_file_content.update(default_spec_file_content)
     if verbose:
         print(f"Creating spec file for stack: {stack}")
     named_volumes = _get_named_volumes(stack)

@@ -13,18 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import click
-import importlib.resources
+from enum import Enum
 
-@click.command()
-@click.pass_context
-def command(ctx):
-    '''print tool version'''
-
-    # See: https://stackoverflow.com/a/20885799/1701505
-    from app import data
-    with importlib.resources.open_text(data, "build_tag.txt") as version_file:
-        # TODO: code better version that skips comment lines
-        version_string = version_file.read().splitlines()[1]
-
-    print(f"Version: {version_string}")
+class State(Enum):
+    CREATED = 1
+    CONFIGURED = 2
+    STARTED = 3
+    STOPPED = 4

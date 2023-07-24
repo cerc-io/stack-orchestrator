@@ -13,45 +13,50 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import click
-import os
-from shutil import copyfile
-import sys
-from .util import get_stack_config_filename, get_parsed_deployment_spec
+from dataclasses import dataclass
+from app.util import get_yaml
+from app.stack_state import State
 
-default_spec_file_content = """stack: mainnet-laconic
-data_dir: /my/path
-node_name: my-node-name
+default_spec_file_content = """config:
+    node_moniker: my-node-name
+    chain_id: my-chain-id
 """
 
+init_help_text = """Add helpful text here on setting config variables.
+"""
 
-def make_default_deployment_dir():
-    return "deployment-001"
-
-@click.command()
-@click.option("--output", required=True, help="Write yaml spec file here")
-@click.pass_context
-def init(ctx, output):
-    with open(output, "w") as output_file:
-        output_file.write(default_spec_file_content)
+@dataclass
+class VolumeMapping:
+    host_path: str
+    container_path: str
 
 
-@click.command()
-@click.option("--spec-file", required=True, help="Spec file to use to create this deployment")
-@click.option("--deployment-dir", help="Create deployment files in this directory")
-@click.pass_context
-def create(ctx, spec_file, deployment_dir):
-    # This function fails with a useful error message if the file doens't exist
-    parsed_spec = get_parsed_deployment_spec(spec_file)
-    if ctx.debug:
-        print(f"parsed spec: {parsed_spec}")
-    if deployment_dir is None:
-        deployment_dir = make_default_deployment_dir()
-    if os.path.exists(deployment_dir):
-        print(f"Error: {deployment_dir} already exists")
-        sys.exit(1)
-    os.mkdir(deployment_dir)
-    # Copy spec file and the stack file into the deployment dir
-    copyfile(spec_file, os.path.join(deployment_dir, os.path.basename(spec_file)))
-    stack_file = get_stack_config_filename(parsed_spec.stack)
-    copyfile(stack_file, os.path.join(deployment_dir, os.path.basename(stack_file)))
+# In order to make this, we need the ability to run the stack
+# In theory we can make this same way as we would run deploy up
+def run_container_command(ctx, ontainer, command, mounts):
+    deploy_context = ctx.obj
+    pass
+
+
+def setup(ctx):
+    node_moniker = "dbdb-node"
+    chain_id = "laconic_81337-1"
+    mounts = [
+        VolumeMapping("./path", "~/.laconicd")
+    ]
+    output, status = run_container_command(ctx, "laconicd", f"laconicd init {node_moniker} --chain-id {chain_id}", mounts)
+
+
+def init(command_context):
+    print(init_help_text)
+    yaml = get_yaml()
+    return yaml.load(default_spec_file_content)
+
+
+def get_state(command_context):
+    print("Here we get state")
+    return State.CONFIGURED
+
+
+def change_state(command_context):
+    pass

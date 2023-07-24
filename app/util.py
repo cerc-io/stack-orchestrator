@@ -15,7 +15,7 @@
 
 import os.path
 import sys
-import yaml
+import ruamel.yaml
 from pathlib import Path
 
 
@@ -42,7 +42,7 @@ def get_parsed_stack_config(stack):
     stack_file_path = stack if isinstance(stack, os.PathLike) else get_stack_file_path(stack)
     try:
         with stack_file_path:
-            stack_config = yaml.safe_load(open(stack_file_path, "r"))
+            stack_config = get_yaml().load(open(stack_file_path, "r"))
             return stack_config
     except FileNotFoundError as error:
         # We try here to generate a useful diagnostic error
@@ -60,13 +60,21 @@ def get_parsed_deployment_spec(spec_file):
     spec_file_path = Path(spec_file)
     try:
         with spec_file_path:
-            deploy_spec = yaml.safe_load(open(spec_file_path, "r"))
+            deploy_spec = get_yaml().load(open(spec_file_path, "r"))
             return deploy_spec
     except FileNotFoundError as error:
         # We try here to generate a useful diagnostic error
         print(f"Error: spec file: {spec_file_path} does not exist")
         print(f"Exiting, error: {error}")
         sys.exit(1)
+
+
+def get_yaml():
+    # See: https://stackoverflow.com/a/45701840/1701505
+    yaml = ruamel.yaml.YAML()
+    yaml.preserve_quotes = True
+    yaml.indent(sequence=3, offset=1)
+    return yaml
 
 
 # TODO: this is fragile wrt to the subcommand depth

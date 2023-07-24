@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+from secrets import token_hex
+
 def init(ctx):
     return None
 
@@ -22,4 +24,8 @@ def setup(ctx):
 
 
 def create(ctx):
-    print("Yay it worked")
+    # Generate the JWT secret and save to its config file
+    secret = token_hex(16)
+    jwt_file_path = ctx.deployment_dir.joinpath("data", "mainnet_eth_config_data", "jwtsecret")
+    with open(jwt_file_path, 'w+') as jwt_file:
+        jwt_file.write(secret)

@@ -14,12 +14,18 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
+from dataclasses import dataclass
 from importlib import util
 import os
 from pathlib import Path
 from shutil import copyfile, copytree
 import sys
 from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
+
+@dataclass
+class DeploymentContext:
+    stack: str
+    deployment_dir: Path
 
 
 def _make_default_deployment_dir():
@@ -112,15 +118,15 @@ def call_stack_deploy_setup(stack):
 
 
 # TODO: fold this with function above
-def call_stack_deploy_create(stack):
+def call_stack_deploy_create(deployment_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = get_stack_file_path(deployment_context.stack).parent.joinpath("deploy", "commands.py")
     spec = util.spec_from_file_location("commands", python_file_path)
     imported_stack = util.module_from_spec(spec)
     spec.loader.exec_module(imported_stack)
-    return imported_stack.create(None)
+    return imported_stack.create(deployment_context)
 
 
 # Inspect the pod yaml to find config files referenced in subdirectories
@@ -210,6 +216,9 @@ def create(ctx, spec_file, deployment_dir):
                 # If the same config dir appears in multiple pods, it may already have been copied
                 if not os.path.exists(destination_config_dir):
                     copytree(source_config_dir, destination_config_dir)
+    # Delegate to the stack's Python code
+    deployment_context = DeploymentContext(stack_name, Path(deployment_dir))
+    call_stack_deploy_create(deployment_context)
 
 
 @click.command()
@@ -222,4 +231,3 @@ def create(ctx, spec_file, deployment_dir):
 def setup(ctx, node_moniker, key_name, initialize_network, join_network, create_network):
     stack = global_options(ctx).stack
     call_stack_deploy_setup(stack)
-

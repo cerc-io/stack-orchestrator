@@ -47,9 +47,6 @@ services:
       - mainnet_eth_lighthouse_1_data:/var/lighthouse-data-dir
       - mainnet_eth_config_data:/etc/mainnet-eth
       - ../config/mainnet-eth/scripts/run-lighthouse.sh:/opt/run-lighthouse.sh
-    depends_on:
-      mainnet-eth-geth-1:
-        condition: service_healthy
     ports:
       - "8001"
 

@@ -61,7 +61,7 @@ def create_deploy_context(global_context, stack, include, exclude, cluster, env_
     return DeployCommandContext(cluster_context, docker)
 
 
-def up_operation(ctx, services_list):
+def up_operation(ctx, services_list, stay_attached=False):
     global_context = ctx.parent.parent.obj
     deploy_context = ctx.obj
     if not global_context.dry_run:
@@ -73,7 +73,7 @@ def up_operation(ctx, services_list):
             print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {services_list}")
         for pre_start_command in cluster_context.pre_start_commands:
             _run_command(global_context, cluster_context.cluster, pre_start_command)
-        deploy_context.docker.compose.up(detach=True, services=services_list)
+        deploy_context.docker.compose.up(detach=not stay_attached, services=services_list)
         for post_start_command in cluster_context.post_start_commands:
             _run_command(global_context, cluster_context.cluster, post_start_command)
         _orchestrate_cluster_config(global_context, cluster_context.config, deploy_context.docker, container_exec_env)

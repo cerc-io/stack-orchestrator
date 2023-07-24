@@ -54,22 +54,24 @@ def make_deploy_context(ctx):
 
 
 @command.command()
+@click.option("--stay-attached/--detatch-terminal", default=False, help="detatch or not to see container stdout")
 @click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
-def up(ctx, extra_args):
+def up(ctx, stay_attached, extra_args):
     ctx.obj = make_deploy_context(ctx)
     services_list = list(extra_args) or None
-    up_operation(ctx, services_list)
+    up_operation(ctx, services_list, stay_attached)
 
 
 # start is the preferred alias for up
 @command.command()
+@click.option("--stay-attached/--detatch-terminal", default=False, help="detatch or not to see container stdout")
 @click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
-def start(ctx, extra_args):
+def start(ctx, stay_attached, extra_args):
     ctx.obj = make_deploy_context(ctx)
     services_list = list(extra_args) or None
-    up_operation(ctx, services_list)
+    up_operation(ctx, services_list, stay_attached)
 
 
 @command.command()

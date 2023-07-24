@@ -15,7 +15,7 @@
 
 import os
 from abc import ABC, abstractmethod
-from .deploy import get_stack_status
+from app.deploy import get_stack_status
 from decouple import config
 
 

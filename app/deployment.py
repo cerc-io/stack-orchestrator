@@ -17,8 +17,8 @@ import click
 from dataclasses import dataclass
 from pathlib import Path
 import sys
-from .deploy import up_operation, down_operation, ps_operation, port_operation, exec_operation, logs_operation, create_deploy_context
-from .util import global_options
+from app.deploy import up_operation, down_operation, ps_operation, port_operation, exec_operation, logs_operation, create_deploy_context
+from app.util import global_options
 
 
 @dataclass
@@ -128,15 +128,3 @@ def logs(ctx, extra_args):
 @click.pass_context
 def status(ctx):
     print(f"Context: {ctx.parent.obj}")
-
-
-
-#from importlib import resources, util
-# TODO: figure out how to do this dynamically
-#stack = "mainnet-laconic"
-#module_name = "commands"
-#spec = util.spec_from_file_location(module_name, "./app/data/stacks/" + stack + "/deploy/commands.py")
-#imported_stack = util.module_from_spec(spec)
-#spec.loader.exec_module(imported_stack)
-#command.add_command(imported_stack.init)
-#command.add_command(imported_stack.create)

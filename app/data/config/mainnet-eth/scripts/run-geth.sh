@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
     set -x
 fi

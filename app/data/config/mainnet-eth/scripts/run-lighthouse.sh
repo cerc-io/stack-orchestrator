@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
     set -x
 fi
@@ -19,4 +19,4 @@ exec lighthouse \
   --execution-endpoint $EXECUTION_ENDPOINT \
   --execution-jwt /etc/mainnet-eth/jwtsecret \
   --disable-deposit-contract-sync \
-  --checkpoint-sync-url https://mainnet.checkpoint.sigp.io
+  --checkpoint-sync-url https://beaconstate.ethstaker.cc

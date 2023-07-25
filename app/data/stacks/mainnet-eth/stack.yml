@@ -1,0 +1,15 @@
+version: "1.1"
+name: mainnet-eth
+decription: "Ethereum Mainnet"
+repos:
+  - github.com/cerc-io/go-ethereum
+  - github.com/cerc-io/lighthouse
+  - github.com/dboreham/foundry
+containers:
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/foundry
+pods:
+  - mainnet-eth
+  - foundry

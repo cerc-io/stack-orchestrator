@@ -75,6 +75,8 @@ services:
   uni-watcher-server:
     restart: unless-stopped
     depends_on:
+      ipld-eth-server:
+        condition: service_healthy
       uniswap-watcher-db:
         condition: service_healthy
       uni-watcher-job-runner:

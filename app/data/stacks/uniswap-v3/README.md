@@ -22,13 +22,13 @@ Instructions to deploy Uniswap v3 watcher stack (watcher + uniswap-v3-info front
 * Clone / pull required repositories:
 
   ```bash
-  $ laconic-so setup-repositories --include vulcanize/uniswap-watcher-ts,vulcanize/uniswap-v3-info --git-ssh --pull
+  $ laconic-so --stack uniswap-v3 setup-repositories
   ```
 
 * Build watcher and info app container images:
 
   ```bash
-  $ laconic-so build-containers --include cerc/watcher-uniswap-v3,cerc/uniswap-v3-info
+  $ laconic-so --stack uniswap-v3 build-containers
   ```
 
   This should create the required docker images in the local image registry.

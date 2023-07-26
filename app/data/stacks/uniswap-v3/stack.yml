@@ -3,8 +3,14 @@ name: uniswap-v3
 repos:
   - github.com/vulcanize/uniswap-watcher-ts
   - github.com/vulcanize/uniswap-v3-info
+  - github.com/cerc-io/ipld-eth-db
+  - github.com/cerc-io/ipld-eth-server
 containers:
   - cerc/watcher-uniswap-v3
   - cerc/uniswap-v3-info
+  - cerc/ipld-eth-db
+    cerc/ipld-eth-server
 pods:
   - watcher-uniswap-v3
+  - ipld-eth-db
+  - ipld-eth-server

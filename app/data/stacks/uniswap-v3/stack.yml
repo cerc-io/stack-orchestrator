@@ -9,7 +9,7 @@ containers:
   - cerc/watcher-uniswap-v3
   - cerc/uniswap-v3-info
   - cerc/ipld-eth-db
-    cerc/ipld-eth-server
+  - cerc/ipld-eth-server
 pods:
   - watcher-uniswap-v3
   - ipld-eth-db

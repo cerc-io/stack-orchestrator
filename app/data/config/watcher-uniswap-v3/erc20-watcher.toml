@@ -23,8 +23,8 @@
 
 [upstream]
   [upstream.ethServer]
-    gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
-    rpcProviderEndpoint = "http://ipld-eth-server:8082"
+    gqlApiEndpoint = "http://ipld-eth-server:8082/graphql"
+    rpcProviderEndpoint = "http://ipld-eth-server:8081"
 
   [upstream.cache]
     name = "requests"

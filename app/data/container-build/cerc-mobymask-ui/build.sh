@@ -8,5 +8,4 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 CERC_NPM_REGISTRY_URL="https://git.vdb.to/api/packages/cerc-io/npm/"
 
-docker build -t cerc/mobymask-ui:local  ${build_command_args} -f ${SCRIPT_DIR}/Dockerfile \
-  --build-arg CERC_NPM_REGISTRY_URL ${SCRIPT_DIR}
+docker build -t cerc/mobymask-ui:local  ${build_command_args} -f ${SCRIPT_DIR}/Dockerfile ${CERC_REPO_BASE_DIR}/mobymask-ui

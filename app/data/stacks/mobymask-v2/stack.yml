@@ -9,6 +9,7 @@ repos:
   - github.com/cerc-io/watcher-ts@v0.2.43
   - github.com/cerc-io/mobymask-v2-watcher-ts@v0.1.1
   - github.com/cerc-io/MobyMask@v0.1.2
+  - github.com/cerc-io/mobymask-ui
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse

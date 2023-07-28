@@ -25,7 +25,4 @@ containers:
 pods:
   - mainnet-laconicd
   - fixturenet-laconic-console
-config:
-  cli:
-    key: laconicd.mykey
-    address: laconicd.myaddress
+

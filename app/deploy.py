@@ -26,9 +26,10 @@ import subprocess
 from python_on_whales import DockerClient, DockerException
 import click
 from pathlib import Path
-from .util import include_exclude_check, get_parsed_stack_config, global_options2
-from .deployment_create import create as deployment_create
-from .deployment_create import init as deployment_init
+from app.util import include_exclude_check, get_parsed_stack_config, global_options2
+from app.deployment_create import create as deployment_create
+from app.deployment_create import init as deployment_init
+from app.deployment_create import setup as deployment_setup
 
 
 class DeployCommandContext(object):
@@ -60,7 +61,7 @@ def create_deploy_context(global_context, stack, include, exclude, cluster, env_
     return DeployCommandContext(cluster_context, docker)
 
 
-def up_operation(ctx, services_list):
+def up_operation(ctx, services_list, stay_attached=False):
     global_context = ctx.parent.parent.obj
     deploy_context = ctx.obj
     if not global_context.dry_run:
@@ -72,7 +73,7 @@ def up_operation(ctx, services_list):
             print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {services_list}")
         for pre_start_command in cluster_context.pre_start_commands:
             _run_command(global_context, cluster_context.cluster, pre_start_command)
-        deploy_context.docker.compose.up(detach=True, services=services_list)
+        deploy_context.docker.compose.up(detach=not stay_attached, services=services_list)
         for post_start_command in cluster_context.post_start_commands:
             _run_command(global_context, cluster_context.cluster, post_start_command)
         _orchestrate_cluster_config(global_context, cluster_context.config, deploy_context.docker, container_exec_env)
@@ -263,7 +264,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
             print(f"Using cluster name: {cluster}")
 
     # See: https://stackoverflow.com/a/20885799/1701505
-    from . import data
+    from app import data
     with resources.open_text(data, "pod-list.txt") as pod_list_file:
         all_pods = pod_list_file.read().splitlines()
 
@@ -420,3 +421,4 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
 
 command.add_command(deployment_init)
 command.add_command(deployment_create)
+command.add_command(deployment_setup)

@@ -13,18 +13,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import click
-import importlib.resources
+from secrets import token_hex
 
-@click.command()
-@click.pass_context
-def command(ctx):
-    '''print tool version'''
+def init(ctx):
+    return None
 
-    # See: https://stackoverflow.com/a/20885799/1701505
-    from app import data
-    with importlib.resources.open_text(data, "build_tag.txt") as version_file:
-        # TODO: code better version that skips comment lines
-        version_string = version_file.read().splitlines()[1]
 
-    print(f"Version: {version_string}")
+def setup(ctx):
+    return None
+
+
+def create(ctx):
+    # Generate the JWT secret and save to its config file
+    secret = token_hex(32)
+    jwt_file_path = ctx.deployment_dir.joinpath("data", "mainnet_eth_config_data", "jwtsecret")
+    with open(jwt_file_path, 'w+') as jwt_file:
+        jwt_file.write(secret)

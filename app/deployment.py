@@ -17,8 +17,8 @@ import click
 from dataclasses import dataclass
 from pathlib import Path
 import sys
-from .deploy import up_operation, down_operation, ps_operation, port_operation, exec_operation, logs_operation, create_deploy_context
-from .util import global_options
+from app.deploy import up_operation, down_operation, ps_operation, port_operation, exec_operation, logs_operation, create_deploy_context
+from app.util import global_options
 
 
 @dataclass
@@ -54,22 +54,24 @@ def make_deploy_context(ctx):
 
 
 @command.command()
+@click.option("--stay-attached/--detatch-terminal", default=False, help="detatch or not to see container stdout")
 @click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
-def up(ctx, extra_args):
+def up(ctx, stay_attached, extra_args):
     ctx.obj = make_deploy_context(ctx)
     services_list = list(extra_args) or None
-    up_operation(ctx, services_list)
+    up_operation(ctx, services_list, stay_attached)
 
 
 # start is the preferred alias for up
 @command.command()
+@click.option("--stay-attached/--detatch-terminal", default=False, help="detatch or not to see container stdout")
 @click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
-def start(ctx, extra_args):
+def start(ctx, stay_attached, extra_args):
     ctx.obj = make_deploy_context(ctx)
     services_list = list(extra_args) or None
-    up_operation(ctx, services_list)
+    up_operation(ctx, services_list, stay_attached)
 
 
 @command.command()
@@ -85,12 +87,13 @@ def down(ctx, delete_volumes, extra_args):
 
 # stop is the preferred alias for down
 @command.command()
+@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
 @click.argument('extra_args', nargs=-1)  # help: command: down <service1> <service2>
 @click.pass_context
-def stop(ctx, extra_args):
+def stop(ctx, delete_volumes, extra_args):
     # TODO: add cluster name and env file here
     ctx.obj = make_deploy_context(ctx)
-    down_operation(ctx, extra_args, None)
+    down_operation(ctx, delete_volumes, extra_args)
 
 
 @command.command()
@@ -127,15 +130,3 @@ def logs(ctx, extra_args):
 @click.pass_context
 def status(ctx):
     print(f"Context: {ctx.parent.obj}")
-
-
-
-#from importlib import resources, util
-# TODO: figure out how to do this dynamically
-#stack = "mainnet-laconic"
-#module_name = "commands"
-#spec = util.spec_from_file_location(module_name, "./app/data/stacks/" + stack + "/deploy/commands.py")
-#imported_stack = util.module_from_spec(spec)
-#spec.loader.exec_module(imported_stack)
-#command.add_command(imported_stack.init)
-#command.add_command(imported_stack.create)

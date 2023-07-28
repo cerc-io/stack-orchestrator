@@ -24,9 +24,9 @@ services:
       "./wait-for-it.sh -h ${CERC_L1_HOST:-$${DEFAULT_CERC_L1_HOST}} -p ${CERC_L1_PORT:-$${DEFAULT_CERC_L1_PORT}} -s -t 60 -- ./run.sh"
     volumes:
       - ../config/network/wait-for-it.sh:/app/packages/contracts-bedrock/wait-for-it.sh
-      - ../container-build/cerc-optimism-contracts/hardhat-tasks/verify-contract-deployment.ts:/app/packages/contracts-bedrock/tasks/verify-contract-deployment.ts
-      - ../container-build/cerc-optimism-contracts/hardhat-tasks/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
-      - ../container-build/cerc-optimism-contracts/hardhat-tasks/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
+      - ../config/optimism-contracts/hardhat-tasks/verify-contract-deployment.ts:/app/packages/contracts-bedrock/tasks/verify-contract-deployment.ts
+      - ../config/optimism-contracts/hardhat-tasks/rekey-json.ts:/app/packages/contracts-bedrock/tasks/rekey-json.ts
+      - ../config/optimism-contracts/hardhat-tasks/send-balance.ts:/app/packages/contracts-bedrock/tasks/send-balance.ts
       - ../config/fixturenet-optimism/optimism-contracts/update-config.js:/app/packages/contracts-bedrock/update-config.js
       - ../config/fixturenet-optimism/optimism-contracts/run.sh:/app/packages/contracts-bedrock/run.sh
       - l2_accounts:/l2-accounts

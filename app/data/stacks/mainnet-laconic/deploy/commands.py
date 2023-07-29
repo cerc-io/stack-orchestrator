@@ -13,9 +13,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from dataclasses import dataclass
 from app.util import get_yaml
+from app.deploy_types import DeployCommandContext, DeploymentContext
 from app.stack_state import State
+from app.deploy_util import VolumeMapping, run_container_command
 
 default_spec_file_content = """config:
     node_moniker: my-node-name
@@ -25,38 +26,26 @@ default_spec_file_content = """config:
 init_help_text = """Add helpful text here on setting config variables.
 """
 
-@dataclass
-class VolumeMapping:
-    host_path: str
-    container_path: str
 
-
-# In order to make this, we need the ability to run the stack
-# In theory we can make this same way as we would run deploy up
-def run_container_command(ctx, ontainer, command, mounts):
-    deploy_context = ctx.obj
-    pass
-
-
-def setup(ctx):
+def setup(command_context: DeployCommandContext):
     node_moniker = "dbdb-node"
     chain_id = "laconic_81337-1"
     mounts = [
         VolumeMapping("./path", "~/.laconicd")
     ]
-    output, status = run_container_command(ctx, "laconicd", f"laconicd init {node_moniker} --chain-id {chain_id}", mounts)
+    output, status = run_container_command(command_context.cluster_context, "laconicd", f"laconicd init {node_moniker} --chain-id {chain_id}", mounts)
 
 
-def init(command_context):
+def init(command_context: DeployCommandContext):
     print(init_help_text)
     yaml = get_yaml()
     return yaml.load(default_spec_file_content)
 
 
-def get_state(command_context):
+def get_state(command_context: DeployCommandContext):
     print("Here we get state")
     return State.CONFIGURED
 
 
-def change_state(command_context):
+def change_state(command_context: DeployCommandContext):
     pass

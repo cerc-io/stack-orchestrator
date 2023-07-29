@@ -21,11 +21,7 @@ from pathlib import Path
 from shutil import copyfile, copytree
 import sys
 from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
-
-@dataclass
-class DeploymentContext:
-    stack: str
-    deployment_dir: Path
+import app.deploy_types
 
 
 def _make_default_deployment_dir():
@@ -94,7 +90,7 @@ def _fixup_pod_file(pod, spec, compose_dir):
                     pod["volumes"][volume] = new_volume_spec
 
 
-def call_stack_deploy_init(stack):
+def call_stack_deploy_init(deployment_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
@@ -102,19 +98,19 @@ def call_stack_deploy_init(stack):
     spec = util.spec_from_file_location("commands", python_file_path)
     imported_stack = util.module_from_spec(spec)
     spec.loader.exec_module(imported_stack)
-    return imported_stack.init(None)
+    return imported_stack.init(deployment_context)
 
 
 # TODO: fold this with function above
-def call_stack_deploy_setup(stack):
+def call_stack_deploy_setup(deployment_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = get_stack_file_path(deployment_context.stack).parent.joinpath("deploy", "commands.py")
     spec = util.spec_from_file_location("commands", python_file_path)
     imported_stack = util.module_from_spec(spec)
     spec.loader.exec_module(imported_stack)
-    return imported_stack.setup(None)
+    return imported_stack.setup(deployment_context)
 
 
 # TODO: fold this with function above
@@ -229,5 +225,6 @@ def create(ctx, spec_file, deployment_dir):
 @click.option("--create-network", is_flag=True, default=False, help="Help goes here")
 @click.pass_context
 def setup(ctx, node_moniker, key_name, initialize_network, join_network, create_network):
-    stack = global_options(ctx).stack
-    call_stack_deploy_setup(stack)
+    stack_name = global_options(ctx).stack
+    deployment_context = DeploymentContext(stack_name, Path(deployment_dir))
+    call_stack_deploy_setup(deployment_context)

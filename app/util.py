@@ -56,6 +56,14 @@ def get_parsed_stack_config(stack):
         sys.exit(1)
 
 
+def get_compose_file_dir():
+    # TODO: refactor to use common code with deploy command
+    # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+    data_dir = Path(__file__).absolute().parent.joinpath("data")
+    source_compose_dir = data_dir.joinpath("compose")
+    return source_compose_dir
+
+
 def get_parsed_deployment_spec(spec_file):
     spec_file_path = Path(spec_file)
     try:

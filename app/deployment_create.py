@@ -20,24 +20,12 @@ import os
 from pathlib import Path
 from shutil import copyfile, copytree
 import sys
-from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
-
-@dataclass
-class DeploymentContext:
-    stack: str
-    deployment_dir: Path
+from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml, get_compose_file_dir
+from app.deploy_types import DeploymentContext, DeployCommandContext
 
 
 def _make_default_deployment_dir():
     return "deployment-001"
-
-
-def _get_compose_file_dir():
-    # TODO: refactor to use common code with deploy command
-    # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-    data_dir = Path(__file__).absolute().parent.joinpath("data")
-    source_compose_dir = data_dir.joinpath("compose")
-    return source_compose_dir
 
 
 def _get_named_volumes(stack):
@@ -47,7 +35,7 @@ def _get_named_volumes(stack):
     pods = parsed_stack["pods"]
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(_get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
@@ -94,27 +82,27 @@ def _fixup_pod_file(pod, spec, compose_dir):
                     pod["volumes"][volume] = new_volume_spec
 
 
-def call_stack_deploy_init(stack):
+def call_stack_deploy_init(deploy_command_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = get_stack_file_path(deploy_command_context.stack).parent.joinpath("deploy", "commands.py")
     spec = util.spec_from_file_location("commands", python_file_path)
     imported_stack = util.module_from_spec(spec)
     spec.loader.exec_module(imported_stack)
-    return imported_stack.init(None)
+    return imported_stack.init(deploy_command_context)
 
 
 # TODO: fold this with function above
-def call_stack_deploy_setup(stack):
+def call_stack_deploy_setup(deploy_command_context, extra_args):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = get_stack_file_path(deploy_command_context.stack).parent.joinpath("deploy", "commands.py")
     spec = util.spec_from_file_location("commands", python_file_path)
     imported_stack = util.module_from_spec(spec)
     spec.loader.exec_module(imported_stack)
-    return imported_stack.setup(None)
+    return imported_stack.setup(deploy_command_context, extra_args)
 
 
 # TODO: fold this with function above
@@ -154,7 +142,7 @@ def init(ctx, output):
     yaml = get_yaml()
     stack = global_options(ctx).stack
     verbose = global_options(ctx).verbose
-    default_spec_file_content = call_stack_deploy_init(stack)
+    default_spec_file_content = call_stack_deploy_init(ctx.obj)
     spec_file_content = {"stack": stack}
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
@@ -217,7 +205,7 @@ def create(ctx, spec_file, deployment_dir):
                 if not os.path.exists(destination_config_dir):
                     copytree(source_config_dir, destination_config_dir)
     # Delegate to the stack's Python code
-    deployment_context = DeploymentContext(stack_name, Path(deployment_dir))
+    deployment_context = DeploymentContext(Path(deployment_dir), ctx.obj)
     call_stack_deploy_create(deployment_context)
 
 
@@ -227,7 +215,7 @@ def create(ctx, spec_file, deployment_dir):
 @click.option("--initialize-network", is_flag=True, default=False, help="Help goes here")
 @click.option("--join-network", is_flag=True, default=False, help="Help goes here")
 @click.option("--create-network", is_flag=True, default=False, help="Help goes here")
+@click.argument('extra_args', nargs=-1)
 @click.pass_context
-def setup(ctx, node_moniker, key_name, initialize_network, join_network, create_network):
-    stack = global_options(ctx).stack
-    call_stack_deploy_setup(stack)
+def setup(ctx, node_moniker, key_name, initialize_network, join_network, create_network, extra_args):
+    call_stack_deploy_setup(ctx.obj, extra_args)

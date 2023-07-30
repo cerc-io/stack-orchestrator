@@ -26,7 +26,19 @@ $TEST_TARGET_SO --stack test build-containers
 # Test deploy command execution
 $TEST_TARGET_SO --stack test deploy setup $CERC_REPO_BASE_DIR
 # Check that we now have the expected output directory
-if []; then
+if [ ! -d "$CERC_REPO_BASE_DIR/container-output-dir" ]; then
+    echo "deploy setup test: output directory not present"
+    echo "deploy setup test: FAILED"
+    exit 1
+fi
+if [ ! -f "$CERC_REPO_BASE_DIR/container-output-dir/output-file" ]; then
+    echo "deploy setup test: output file not present"
+    echo "deploy setup test: FAILED"
+    exit 1
+fi
+output_file_content=$(<$CERC_REPO_BASE_DIR/container-output-dir/output-file)
+if [ ! "$output_file_content" == "output-data"  ]; then
+    echo "deploy setup test: output file contents not correct"
     echo "deploy setup test: FAILED"
     exit 1
 fi

@@ -20,20 +20,12 @@ import os
 from pathlib import Path
 from shutil import copyfile, copytree
 import sys
-from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
+from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml, get_compose_file_dir
 from app.deploy_types import DeploymentContext, DeployCommandContext
 
 
 def _make_default_deployment_dir():
     return "deployment-001"
-
-
-def _get_compose_file_dir():
-    # TODO: refactor to use common code with deploy command
-    # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-    data_dir = Path(__file__).absolute().parent.joinpath("data")
-    source_compose_dir = data_dir.joinpath("compose")
-    return source_compose_dir
 
 
 def _get_named_volumes(stack):
@@ -43,7 +35,7 @@ def _get_named_volumes(stack):
     pods = parsed_stack["pods"]
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(_get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]

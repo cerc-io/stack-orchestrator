@@ -53,7 +53,7 @@ def create_deploy_context(global_context, stack, include, exclude, cluster, env_
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
     docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
                           compose_env_file=cluster_context.env_file)
-    return DeployCommandContext(cluster_context, docker)
+    return DeployCommandContext(stack, cluster_context, docker)
 
 
 def up_operation(ctx, services_list, stay_attached=False):

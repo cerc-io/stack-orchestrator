@@ -30,13 +30,13 @@ class ClusterContext:
 
 @dataclass
 class DeployCommandContext:
+    stack: str
     cluster_context: ClusterContext
     docker: DockerClient
 
 
 @dataclass
 class DeploymentContext:
-    stack: str
     deployment_dir: Path
     command_context: DeployCommandContext
 

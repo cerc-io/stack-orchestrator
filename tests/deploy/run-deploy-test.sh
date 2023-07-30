@@ -23,6 +23,14 @@ mkdir -p $CERC_REPO_BASE_DIR
 # with and without volume removal
 $TEST_TARGET_SO --stack test setup-repositories
 $TEST_TARGET_SO --stack test build-containers
+# Test deploy command execution
+$TEST_TARGET_SO --stack test deploy setup $CERC_REPO_BASE_DIR
+# Check that we now have the expected output directory
+if []; then
+    echo "deploy setup test: FAILED"
+    exit 1
+fi
+# Check that we now have the expected output file
 $TEST_TARGET_SO --stack test deploy up
 # Test deploy port command
 deploy_port_output=$( $TEST_TARGET_SO --stack test deploy port test 80 )

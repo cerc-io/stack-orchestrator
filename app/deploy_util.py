@@ -13,8 +13,28 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+from typing import List
 from dataclasses import dataclass
-from app.deploy_types import DeploymentContext, VolumeMapping
+from app.deploy_types import DeployCommandContext, VolumeMapping
 
-def run_container_command(ctx: DeploymentContext, container, command, mounts):
-    print("Write some code!")
+
+def _container_image_from_service(service: str):
+    return "cerc/test-container:local"
+
+
+def _volumes_to_docker(mounts: List[VolumeMapping]):
+# Example from doc: [("/", "/host"), ("/etc/hosts", "/etc/hosts", "rw")]
+    result = []
+    for mount in mounts:
+        docker_volume = (mount.host_path, mount.container_path)
+        result.append(docker_volume)
+    return result
+
+
+def run_container_command(ctx: DeployCommandContext, service: str, command: str, mounts: List[VolumeMapping]):
+    docker = ctx.docker
+    container_image = _container_image_from_service(service)
+    docker_volumes = _volumes_to_docker(mounts)
+    docker_output = docker.run(container_image, ["-c", command], entrypoint="bash", volumes=docker_volumes)
+    # There doesn't seem to be a way to get an exit code from docker.run()
+    return (docker_output, 0)

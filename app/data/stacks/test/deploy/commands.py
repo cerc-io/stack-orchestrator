@@ -45,6 +45,13 @@ def init(command_context: DeployCommandContext):
     return yaml.load(default_spec_file_content)
 
 
+def create(command_context: DeployCommandContext):
+    data = "create-command-output-data"
+    output_file_path = command_context.deployment_dir.joinpath("create-file")
+    with open(output_file_path, 'w+') as output_file:
+        output_file.write(data)
+
+
 def get_state(command_context: DeployCommandContext):
     print("Here we get state")
     return State.CONFIGURED

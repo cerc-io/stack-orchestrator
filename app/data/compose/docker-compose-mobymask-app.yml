@@ -14,12 +14,14 @@ services:
       CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
       CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
-      CERC_BUILD_DIR: "@cerc-io/mobymask-ui/build"
+      CERC_RELEASE: "v0.1.5"
+      CERC_USE_NPM: true
+      CERC_CONFIG_FILE: "src/config.json"
     working_dir: /scripts
     command: ["sh", "mobymask-app-start.sh"]
     volumes:
-      - ../config/network/wait-for-it.sh:/scripts/wait-for-it.sh
       - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/scripts/mobymask-app-start.sh
+      - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
       - peers_ids:/peers
       - mobymask_deployment:/server
     ports:
@@ -46,12 +48,14 @@ services:
       CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
       CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
-      CERC_BUILD_DIR: "@cerc-io/mobymask-ui-lxdao/build"
+      CERC_RELEASE: "v0.1.5-lxdao-0.1.1"
+      CERC_USE_NPM: false
+      CERC_CONFIG_FILE: "src/utils/config.json"
     working_dir: /scripts
     command: ["sh", "mobymask-app-start.sh"]
     volumes:
-      - ../config/network/wait-for-it.sh:/scripts/wait-for-it.sh
       - ../config/watcher-mobymask-v2/mobymask-app-start.sh:/scripts/mobymask-app-start.sh
+      - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
       - peers_ids:/peers
       - mobymask_deployment:/server
     ports:

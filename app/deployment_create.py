@@ -110,7 +110,7 @@ def call_stack_deploy_create(deployment_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(deployment_context.stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = get_stack_file_path(deployment_context.command_context.stack).parent.joinpath("deploy", "commands.py")
     spec = util.spec_from_file_location("commands", python_file_path)
     imported_stack = util.module_from_spec(spec)
     spec.loader.exec_module(imported_stack)
@@ -186,7 +186,7 @@ def create(ctx, spec_file, deployment_dir):
     data_dir = Path(__file__).absolute().parent.joinpath("data")
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(_get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
         if global_options(ctx).debug:

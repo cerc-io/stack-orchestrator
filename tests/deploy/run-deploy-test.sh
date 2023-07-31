@@ -106,7 +106,7 @@ if [ ! "$create_file_content" == "create-command-output-data"  ]; then
     echo "deploy create test: FAILED"
     exit 1
 fi
-"deploy create output file test: passed"
+echo "deploy create output file test: passed"
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 # Stop and clean up

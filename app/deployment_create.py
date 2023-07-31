@@ -205,6 +205,10 @@ def create(ctx, spec_file, deployment_dir):
                 if not os.path.exists(destination_config_dir):
                     copytree(source_config_dir, destination_config_dir)
     # Delegate to the stack's Python code
+    # The deploy create command doesn't require a --stack argument so we need to insert the
+    # stack member here.
+    deployment_command_context = ctx.obj
+    deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext(Path(deployment_dir), ctx.obj)
     call_stack_deploy_create(deployment_context)
 

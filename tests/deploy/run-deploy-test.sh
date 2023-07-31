@@ -91,6 +91,19 @@ if [ ! -d "$test_deployment_dir" ]; then
     echo "deploy create test: FAILED"
     exit 1
 fi
+# Check the file writted by the create command in the stack now exists
+if [ ! -f "$test_deployment_dir/create-file" ]; then
+    echo "deploy create test: create output file not present"
+    echo "deploy create test: FAILED"
+    exit 1
+fi
+# And has the right content
+create_file_content=$(<$test_deployment_dir/create-file)
+if [ ! "$create_file_content" == "create-command-output-data"  ]; then
+    echo "deploy create test: create output file contents not correct"
+    echo "deploy create test: FAILED"
+    exit 1
+fi
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 # Stop and clean up

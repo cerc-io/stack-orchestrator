@@ -84,6 +84,7 @@ if [ ! -f "$test_deployment_spec" ]; then
     echo "deploy init test: FAILED"
     exit 1
 fi
+echo "deploy init test: passed"
 $TEST_TARGET_SO deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir
 # Check the deployment dir exists
 if [ ! -d "$test_deployment_dir" ]; then
@@ -91,6 +92,7 @@ if [ ! -d "$test_deployment_dir" ]; then
     echo "deploy create test: FAILED"
     exit 1
 fi
+echo "deploy create test: passed"
 # Check the file writted by the create command in the stack now exists
 if [ ! -f "$test_deployment_dir/create-file" ]; then
     echo "deploy create test: create output file not present"
@@ -104,6 +106,7 @@ if [ ! "$create_file_content" == "create-command-output-data"  ]; then
     echo "deploy create test: FAILED"
     exit 1
 fi
+"deploy create output file test: passed"
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 # Stop and clean up

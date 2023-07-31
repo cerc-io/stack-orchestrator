@@ -209,7 +209,7 @@ def create(ctx, spec_file, deployment_dir):
     # stack member here.
     deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
-    deployment_context = DeploymentContext(Path(deployment_dir), ctx.obj)
+    deployment_context = DeploymentContext(Path(deployment_dir), deployment_command_context)
     call_stack_deploy_create(deployment_context)
 
 

@@ -26,17 +26,18 @@ $TEST_TARGET_SO --stack test build-containers
 # Test deploy command execution
 $TEST_TARGET_SO --stack test deploy setup $CERC_REPO_BASE_DIR
 # Check that we now have the expected output directory
-if [ ! -d "$CERC_REPO_BASE_DIR/container-output-dir" ]; then
+container_output_dir=$CERC_REPO_BASE_DIR/container-output-dir
+if [ ! -d "$container_output_dir" ]; then
     echo "deploy setup test: output directory not present"
     echo "deploy setup test: FAILED"
     exit 1
 fi
-if [ ! -f "$CERC_REPO_BASE_DIR/container-output-dir/output-file" ]; then
+if [ ! -f "$container_output_dir/output-file" ]; then
     echo "deploy setup test: output file not present"
     echo "deploy setup test: FAILED"
     exit 1
 fi
-output_file_content=$(<$CERC_REPO_BASE_DIR/container-output-dir/output-file)
+output_file_content=$(<$container_output_dir/output-file)
 if [ ! "$output_file_content" == "output-data"  ]; then
     echo "deploy setup test: output file contents not correct"
     echo "deploy setup test: FAILED"
@@ -73,4 +74,25 @@ else
     exit 1
 fi
 $TEST_TARGET_SO --stack test deploy down --delete-volumes
+# Basic test of creating a deployment
+test_deployment_dir=$CERC_REPO_BASE_DIR/test-deployment-dir
+test_deployment_spec=$CERC_REPO_BASE_DIR/test-deployment-spec.yml
+$TEST_TARGET_SO --stack test deploy init --output $test_deployment_spec
+# Check the file now exists
+if [ ! -f "$test_deployment_spec" ]; then
+    echo "deploy init test: spec file not present"
+    echo "deploy init test: FAILED"
+    exit 1
+fi
+$TEST_TARGET_SO deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir
+# Check the deployment dir exists
+if [ ! -d "$test_deployment_dir" ]; then
+    echo "deploy create test: deployment directory not present"
+    echo "deploy create test: FAILED"
+    exit 1
+fi
+# Try to start the deployment
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+# Stop and clean up
+$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
 echo "Test passed"

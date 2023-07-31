@@ -84,7 +84,7 @@ if [ ! -f "$test_deployment_spec" ]; then
     echo "deploy init test: FAILED"
     exit 1
 fi
-$TEST_TARGET_SO deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir
+$TEST_TARGET_SO deploy deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir
 # Check the deployment dir exists
 if [ ! -d "$test_deployment_dir" ]; then
     echo "deploy create test: deployment directory not present"

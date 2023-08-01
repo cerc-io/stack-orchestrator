@@ -119,11 +119,13 @@ def exec(ctx, extra_args):
 
 
 @command.command()
+@click.option("--tail", "-n", default=None, help="number of lines to display")
+@click.option("--follow", "-f", is_flag=True, default=False, help="follow log output")
 @click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
 @click.pass_context
-def logs(ctx, extra_args):
+def logs(ctx, tail, follow, extra_args):
     ctx.obj = make_deploy_context(ctx)
-    logs_operation(ctx, extra_args)
+    logs_operation(ctx, tail, follow, extra_args)
 
 
 @command.command()

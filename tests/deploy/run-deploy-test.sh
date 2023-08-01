@@ -109,6 +109,14 @@ fi
 echo "deploy create output file test: passed"
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
+# Check logs command works
+log_output_2=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_2" == *"Filesystem is fresh"* ]]; then
+    echo "deployment logs test: passed"
+else
+    echo "deployment logs test: FAILED"
+    exit 1
+fi
 # Stop and clean up
 $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
 echo "Test passed"

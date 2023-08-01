@@ -144,14 +144,16 @@ def exec_operation(ctx, extra_args):
             print(f"container command returned error exit status")
 
 
-def logs_operation(ctx, extra_args):
+def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
     global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
         if global_context.verbose:
             print("Running compose logs")
-        logs_output = ctx.obj.docker.compose.logs(services=extra_args_list if extra_args_list is not None else [])
-        print(logs_output)
+        services_list = extra_args_list if extra_args_list is not None else []
+        logs_stream = ctx.obj.docker.compose.logs(services=services_list, tail=tail, follow=follow, stream=True)
+        for stream_type, stream_content in logs_stream:
+            print(f"Stream type: {stream_type}, stream content: {stream_content}")
 
 
 @command.command()
@@ -192,10 +194,12 @@ def exec(ctx, extra_args):
 
 
 @command.command()
+@click.option("--tail", "-n", default=None, help="number of lines to display")
+@click.option("--follow", "-f", is_flag=True, default=False, help="follow log output")
 @click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
 @click.pass_context
-def logs(ctx, extra_args):
-    logs_operation(ctx, extra_args)
+def logs(ctx, tail, follow, extra_args):
+    logs_operation(ctx, tail, follow, extra_args)
 
 
 def get_stack_status(ctx, stack):

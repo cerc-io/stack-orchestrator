@@ -153,7 +153,7 @@ def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
         services_list = extra_args_list if extra_args_list is not None else []
         logs_stream = ctx.obj.docker.compose.logs(services=services_list, tail=tail, follow=follow, stream=True)
         for stream_type, stream_content in logs_stream:
-            print(f"Stream type: {stream_type}, stream content: {stream_content}")
+            print(stream_content.decode("utf-8"), end="")
 
 
 @command.command()

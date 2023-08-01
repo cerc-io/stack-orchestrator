@@ -110,8 +110,8 @@ echo "deploy create output file test: passed"
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 # Check logs command works
-log_output_2=$( $TEST_TARGET_SO --dir $test_deployment_dir logs )
-if [[ "$log_output_1" == *"Filesystem is old"* ]]; then
+log_output_2=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_2" == *"Filesystem is old"* ]]; then
     echo "deployment logs test: passed"
 else
     echo "deployment logs test: FAILED"

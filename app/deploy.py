@@ -27,15 +27,10 @@ from python_on_whales import DockerClient, DockerException
 import click
 from pathlib import Path
 from app.util import include_exclude_check, get_parsed_stack_config, global_options2
+from app.deploy_types import ClusterContext, DeployCommandContext
 from app.deployment_create import create as deployment_create
 from app.deployment_create import init as deployment_init
 from app.deployment_create import setup as deployment_setup
-
-
-class DeployCommandContext(object):
-    def __init__(self, cluster_context, docker):
-        self.cluster_context = cluster_context
-        self.docker = docker
 
 
 @click.group()
@@ -58,7 +53,7 @@ def create_deploy_context(global_context, stack, include, exclude, cluster, env_
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
     docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
                           compose_env_file=cluster_context.env_file)
-    return DeployCommandContext(cluster_context, docker)
+    return DeployCommandContext(stack, cluster_context, docker)
 
 
 def up_operation(ctx, services_list, stay_attached=False):
@@ -149,14 +144,16 @@ def exec_operation(ctx, extra_args):
             print(f"container command returned error exit status")
 
 
-def logs_operation(ctx, extra_args):
+def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
     global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
     if not global_context.dry_run:
         if global_context.verbose:
             print("Running compose logs")
-        logs_output = ctx.obj.docker.compose.logs(services=extra_args_list if extra_args_list is not None else [])
-        print(logs_output)
+        services_list = extra_args_list if extra_args_list is not None else []
+        logs_stream = ctx.obj.docker.compose.logs(services=services_list, tail=tail, follow=follow, stream=True)
+        for stream_type, stream_content in logs_stream:
+            print(stream_content.decode("utf-8"), end="")
 
 
 @command.command()
@@ -197,10 +194,12 @@ def exec(ctx, extra_args):
 
 
 @command.command()
+@click.option("--tail", "-n", default=None, help="number of lines to display")
+@click.option("--follow", "-f", is_flag=True, default=False, help="follow log output")
 @click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
 @click.pass_context
-def logs(ctx, extra_args):
-    logs_operation(ctx, extra_args)
+def logs(ctx, tail, follow, extra_args):
+    logs_operation(ctx, tail, follow, extra_args)
 
 
 def get_stack_status(ctx, stack):
@@ -313,17 +312,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
     if ctx.verbose:
         print(f"files: {compose_files}")
 
-    return cluster_context(cluster, compose_files, pre_start_commands, post_start_commands, cluster_config, env_file)
-
-
-class cluster_context:
-    def __init__(self, cluster, compose_files, pre_start_commands, post_start_commands, config, env_file) -> None:
-        self.cluster = cluster
-        self.compose_files = compose_files
-        self.pre_start_commands = pre_start_commands
-        self.post_start_commands = post_start_commands
-        self.config = config
-        self.env_file = env_file
+    return ClusterContext(cluster, compose_files, pre_start_commands, post_start_commands, cluster_config, env_file)
 
 
 def _convert_to_new_format(old_pod_array):

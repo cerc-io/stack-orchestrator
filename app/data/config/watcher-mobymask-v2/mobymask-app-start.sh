@@ -33,11 +33,23 @@ else
   echo "Taking deployed contract details from env"
 fi
 
-# Use yq to create config.yml with environment variables
-yq -n ".address = env(CERC_DEPLOYED_CONTRACT)" > /config/config.yml
-yq ".watcherUrl = env(CERC_APP_WATCHER_URL)" -i /config/config.yml
-yq ".chainId = env(CERC_CHAIN_ID)" -i /config/config.yml
-yq ".relayNodes = strenv(CERC_RELAY_NODES)" -i /config/config.yml
-yq ".denyMultiaddrs = strenv(CERC_DENY_MULTIADDRS)" -i /config/config.yml
+cd /app
+git checkout $CERC_RELEASE
 
-/scripts/start-serving-app.sh
+# Export config values in a json file
+jq --arg address "$CERC_DEPLOYED_CONTRACT" \
+  --argjson chainId "$CERC_CHAIN_ID" \
+  --argjson relayNodes "$CERC_RELAY_NODES" \
+  --argjson denyMultiaddrs "$CERC_DENY_MULTIADDRS" \
+  '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes | .peer.denyMultiaddrs = $denyMultiaddrs' \
+  /app/src/mobymask-app-config.json > /app/${CERC_CONFIG_FILE}
+
+if [ "${CERC_USE_NPM}" = "true" ]; then
+  npm install
+  REACT_APP_WATCHER_URI="$CERC_APP_WATCHER_URL/graphql" npm run build
+else
+  yarn install
+  REACT_APP_WATCHER_URI="$CERC_APP_WATCHER_URL/graphql" yarn build
+fi
+
+http-server -p 80 /app/build

@@ -17,29 +17,39 @@ from app.util import get_yaml
 from app.deploy_types import DeployCommandContext, DeploymentContext
 from app.stack_state import State
 from app.deploy_util import VolumeMapping, run_container_command
+import os
+from pathlib import Path
 
 default_spec_file_content = """config:
-    node_moniker: my-node-name
-    chain_id: my-chain-id
+    config_variable: test-value
 """
 
 init_help_text = """Add helpful text here on setting config variables.
 """
 
-
-def setup(command_context: DeployCommandContext):
-    node_moniker = "dbdb-node"
-    chain_id = "laconic_81337-1"
+# Output a known string to a know file in the bind mounted directory ./container-output-dir
+# for test purposes -- test checks that the file was written.
+def setup(command_context: DeployCommandContext, extra_args):
+    host_directory = "./container-output-dir"
+    host_directory_absolute = Path(extra_args[0]).absolute().joinpath(host_directory)
+    host_directory_absolute.mkdir(parents=True, exist_ok=True)
     mounts = [
-        VolumeMapping("./path", "~/.laconicd")
+        VolumeMapping(host_directory_absolute, "/data")
     ]
-    output, status = run_container_command(command_context.cluster_context, "laconicd", f"laconicd init {node_moniker} --chain-id {chain_id}", mounts)
+    output, status = run_container_command(command_context, "test", "echo output-data > /data/output-file && echo success", mounts)
 
 
 def init(command_context: DeployCommandContext):
     print(init_help_text)
     yaml = get_yaml()
     return yaml.load(default_spec_file_content)
+
+
+def create(command_context: DeployCommandContext):
+    data = "create-command-output-data"
+    output_file_path = command_context.deployment_dir.joinpath("create-file")
+    with open(output_file_path, 'w+') as output_file:
+        output_file.write(data)
 
 
 def get_state(command_context: DeployCommandContext):

@@ -39,7 +39,7 @@ def _container_image_from_service(stack:str, service: str):
 
 
 def _volumes_to_docker(mounts: List[VolumeMapping]):
-# Example from doc: [("/", "/host"), ("/etc/hosts", "/etc/hosts", "rw")]
+    # Example from doc: [("/", "/host"), ("/etc/hosts", "/etc/hosts", "rw")]
     result = []
     for mount in mounts:
         docker_volume = (mount.host_path, mount.container_path)
@@ -51,6 +51,6 @@ def run_container_command(ctx: DeployCommandContext, service: str, command: str,
     docker = ctx.docker
     container_image = _container_image_from_service(ctx.stack, service)
     docker_volumes = _volumes_to_docker(mounts)
-    docker_output = docker.run(container_image, ["-c", command], entrypoint="bash", volumes=docker_volumes)
+    docker_output = docker.run(container_image, ["-c", command], entrypoint="sh", volumes=docker_volumes)
     # There doesn't seem to be a way to get an exit code from docker.run()
     return (docker_output, 0)

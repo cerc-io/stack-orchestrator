@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from app.util import get_yaml
-from app.deploy_types import DeployCommandContext, DeploymentContext
+from app.deploy_types import DeployCommandContext
 from app.stack_state import State
 from app.deploy_util import VolumeMapping, run_container_command
 
@@ -27,13 +27,15 @@ init_help_text = """Add helpful text here on setting config variables.
 """
 
 
-def setup(command_context: DeployCommandContext):
+def setup(command_context: DeployCommandContext, extra_args):
     node_moniker = "dbdb-node"
     chain_id = "laconic_81337-1"
     mounts = [
-        VolumeMapping("./path", "~/.laconicd")
+        VolumeMapping("./path", "/root/.laconicd")
     ]
-    output, status = run_container_command(command_context.cluster_context, "laconicd", f"laconicd init {node_moniker} --chain-id {chain_id}", mounts)
+    output, status = run_container_command(
+        command_context, "laconicd", f"laconicd init {node_moniker} --chain-id {chain_id}", mounts)
+    print(f"Command output: {output}")
 
 
 def init(command_context: DeployCommandContext):

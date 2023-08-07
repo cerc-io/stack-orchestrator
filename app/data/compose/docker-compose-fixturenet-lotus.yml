@@ -21,6 +21,9 @@ services:
     hostname: lotus-node-1
     env_file:
       - ../config/fixturenet-lotus/lotus-env.env
+    environment:
+      # Use 0.0.0.0 so that calls can be made from outside the container
+      - LOTUS_API_LISTENADDRESS=/ip4/0.0.0.0/tcp/1234/http
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
@@ -39,6 +42,9 @@ services:
     hostname: lotus-node-2
     env_file:
       - ../config/fixturenet-lotus/lotus-env.env
+    environment:
+      # Use 0.0.0.0 so that calls can be made from outside the container
+      - LOTUS_API_LISTENADDRESS=/ip4/0.0.0.0/tcp/1234/http
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh

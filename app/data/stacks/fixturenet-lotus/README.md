@@ -12,7 +12,7 @@ $ laconic-so --stack fixturenet-lotus build-containers
 ```
 ## 3. Deploy the stack
 ```
-$ laconic-so --stack fixturenet-lotus deploy up
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus up
 ```
 Correct operation should be verified by checking the container logs with:
 ```

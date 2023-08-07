@@ -7,7 +7,14 @@ if [ -f /root/.lotus-shared/miner.addr ]; then
   rm /root/.lotus-shared/miner.addr
 fi
 
-lotus fetch-params 2048
+# Check if filecoin-proof-parameters exist; avoid fetching if they do
+if [ -z "$(find "/var/tmp/filecoin-proof-parameters" -maxdepth 1 -type f)" ]; then
+  echo "Proof params not found, fetching..."
+  lotus fetch-params 2048
+else
+  echo "Existing proof params found"
+fi
+
 lotus-seed pre-seal --sector-size 2KiB --num-sectors 2
 lotus-seed genesis new localnet.json
 lotus-seed genesis add-miner localnet.json ~/.genesis-sectors/pre-seal-t01000.json

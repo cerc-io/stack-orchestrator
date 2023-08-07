@@ -8,6 +8,7 @@ services:
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-miner.sh:/docker-entrypoint-scripts.d/setup-miner.sh
+      - lotus_miner_params:/var/tmp/filecoin-proof-parameters
       - lotus-shared:/root/.lotus-shared
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-miner.sh"]
     ports:
@@ -23,6 +24,7 @@ services:
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
+      - lotus_node_1_params:/var/tmp/filecoin-proof-parameters
       - lotus-shared:/root/.lotus-shared
     depends_on:
       - lotus-miner
@@ -40,6 +42,7 @@ services:
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
+      - lotus_node_2_params:/var/tmp/filecoin-proof-parameters
       - lotus-shared:/root/.lotus-shared
     depends_on:
       - lotus-miner
@@ -51,4 +54,7 @@ services:
       - "1777"
 
 volumes:
+  lotus_miner_params:
+  lotus_node_1_params:
+  lotus_node_2_params:
   lotus-shared:

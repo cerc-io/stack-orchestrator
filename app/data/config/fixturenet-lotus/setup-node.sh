@@ -5,7 +5,7 @@ lotus --version
 # Loop until the daemon is started
 echo "Waiting for miner to share peering info..."
 while [ ! -f /root/.lotus-shared/miner.addr ]; do
-    sleep 5
+  sleep 5
 done
 echo "Resuming..."
 

@@ -25,7 +25,7 @@ nohup lotus daemon --lotus-make-genesis=devgen.car --profile=bootstrapper --gene
 # Loop until the daemon is started
 echo "Waiting for daemon to start..."
 while ! grep -q "started ChainNotify channel" /var/log/lotus.log ; do
-    sleep 5
+  sleep 5
 done
 echo "Daemon started."
 
@@ -39,6 +39,10 @@ lotus net listen | awk 'NR==2{print}' > /root/.lotus-shared/miner.addr
 if [ ! -d $LOTUS_MINER_PATH ]; then
   # initialize miner
   lotus wallet import --as-default ~/.genesis-sectors/pre-seal-t01000.key
+
+  # fund a known account for usage
+  /fund-account.sh
+
   lotus-miner init --genesis-miner --actor=t01000 --sector-size=2KiB --pre-sealed-sectors=~/.genesis-sectors --pre-sealed-metadata=~/.genesis-sectors/pre-seal-t01000.json --nosync
 fi
 

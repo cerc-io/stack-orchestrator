@@ -1,0 +1,14 @@
+version: '3.2'
+
+services:
+  # Deploys the core (UniswapV3Factory) contract
+  sushiswap-v3-core:
+    image: cerc/sushiswap-v3-core:local
+    env_file:
+      - ../config/watcher-sushiswap/contract-deployment.env
+
+  # Deploys the periphery (NFPM, token, etc.) contracts
+  sushiswap-v3-periphery:
+    image: cerc/sushiswap-v3-periphery:local
+    env_file:
+      - ../config/watcher-sushiswap/contract-deployment.env

@@ -1,20 +1,12 @@
 [server]
   host = "0.0.0.0"
-  port = 3001
-  mode = "eth_call"
-  kind = "lazy"
-
-[metrics]
-  host = "127.0.0.1"
-  port = 9000
-    [metrics.gql]
-    port = 9001
+  port = 3003
 
 [database]
   type = "postgres"
   host = "sushiswap-watcher-db"
   port = 5432
-  database = "erc20-watcher"
+  database = "sushi-watcher"
   username = "vdbm"
   password = "password"
   synchronize = true
@@ -32,8 +24,11 @@
     deleteOnStart = false
 
 [jobQueue]
-  dbConnectionString = "postgres://vdbm:password@sushiswap-watcher-db:5432/erc20-watcher-job-queue"
+  dbConnectionString = "postgres://vdbm:password@sushiswap-watcher-db:5432/sushi-watcher-job-queue"
   maxCompletionLagInSecs = 300
-  jobDelayInMilliSecs = 100
+  jobDelayInMilliSecs = 0
   eventsInBatch = 50
+  lazyUpdateBlockProgress = true
   blockDelayInMilliSecs = 2000
+  prefetchBlocksInMem = false
+  prefetchBlockCount = 10

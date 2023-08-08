@@ -59,6 +59,7 @@ services:
     command: ["node", "--enable-source-maps", "dist/job-runner.js"]
     volumes:
       - ../config/watcher-sushiswap/sushi-watcher.toml:/app/packages/uni-watcher/environments/local.toml
+      - ../config/watcher-sushiswap/sushi-watcher-test.toml:/app/packages/uni-watcher/environments/test.toml
     ports:
       - "0.0.0.0:9004:9000"
     healthcheck:
@@ -78,12 +79,15 @@ services:
       sushi-watcher-job-runner:
         condition: service_healthy
     image: cerc/watcher-sushiswap:local
+    env_file:
+      - ../config/watcher-sushiswap/lotus-params.env
     environment:
       - DEBUG=vulcanize:*
     working_dir: /app/packages/uni-watcher
     command: ["node", "--enable-source-maps", "dist/server.js"]
     volumes:
       - ../config/watcher-sushiswap/sushi-watcher.toml:/app/packages/uni-watcher/environments/local.toml
+      - ../config/watcher-sushiswap/sushi-watcher-test.toml:/app/packages/uni-watcher/environments/test.toml
     ports:
       - "0.0.0.0:3003:3003"
       - "0.0.0.0:9005:9001"
@@ -112,6 +116,7 @@ services:
     command: ["node", "--enable-source-maps", "dist/job-runner.js"]
     volumes:
       - ../config/watcher-sushiswap/sushi-info-watcher.toml:/app/packages/uni-info-watcher/environments/local.toml
+      - ../config/watcher-sushiswap/sushi-info-watcher-test.toml:/app/packages/uni-info-watcher/environments/test.toml
     ports:
       - "0.0.0.0:9006:9002"
     healthcheck:
@@ -135,10 +140,13 @@ services:
       sushi-info-watcher-job-runner:
         condition: service_healthy
     image: cerc/watcher-sushiswap:local
+    env_file:
+      - ../config/watcher-sushiswap/lotus-params.env
     working_dir: /app/packages/uni-info-watcher
     command: ["node", "--enable-source-maps", "dist/server.js"]
     volumes:
       - ../config/watcher-sushiswap/sushi-info-watcher.toml:/app/packages/uni-info-watcher/environments/local.toml
+      - ../config/watcher-sushiswap/sushi-info-watcher-test.toml:/app/packages/uni-info-watcher/environments/test.toml
     ports:
       - "0.0.0.0:3004:3004"
       - "0.0.0.0:9007:9003"
@@ -163,13 +171,13 @@ services:
   sushiswap-v3-core:
     image: cerc/sushiswap-v3-core:local
     env_file:
-      - ../config/watcher-sushiswap/contract-deployment.env
+      - ../config/watcher-sushiswap/lotus-params.env
 
   # Deploys the periphery (NFPM, token, etc.) contracts
   sushiswap-v3-periphery:
     image: cerc/sushiswap-v3-periphery:local
     env_file:
-      - ../config/watcher-sushiswap/contract-deployment.env
+      - ../config/watcher-sushiswap/lotus-params.env
 
 volumes:
   uniswap_watcher_db_data:

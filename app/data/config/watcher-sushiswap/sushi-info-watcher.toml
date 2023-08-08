@@ -61,11 +61,10 @@
     # maximum number of clients the pool should contain
     max = 20
 
-# TODO: Update to use rpc-eth-client
 [upstream]
   [upstream.ethServer]
-    gqlApiEndpoint = "http://ipld-eth-server.example.com:8083/graphql"
-    rpcProviderEndpoint = "http://ipld-eth-server.example.com:8082"
+    rpcProviderEndpoint = "http://lotus-node-1:1234/rpc/v1"
+    rpcClient = true
 
   [upstream.cache]
     name = "requests"

@@ -2,14 +2,16 @@ services:
   laconicd:
     restart: no
     image: cerc/laconicd:local
-    command: ["/bin/sh", "-c", "while :; do sleep 600; done"]
+    command: ["/bin/sh", "-c", "/opt/run-laconicd.sh"]
     volumes:
       # The cosmos-sdk node's database directory:
       - laconicd-data:/root/.laconicd/data
+      - laconicd-config:/root/.laconicd/config
+      - laconicd-keyring:/root/.laconicd/keyring-test
       # TODO: look at folding these scripts into the container
-      - ../config/mainnet-laconicd/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
-      - ../config/mainnet-laconicd/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
-      - ../config/mainnet-laconicd/export-myaddress.sh:/docker-entrypoint-scripts.d/export-myaddress.sh
+      - ../config/mainnet-laconicd/scripts/run-laconicd.sh:/opt/run-laconicd.sh
+      - ../config/mainnet-laconicd/scripts/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
+      - ../config/mainnet-laconicd/scripts/export-myaddress.sh:/docker-entrypoint-scripts.d/export-myaddress.sh
     # TODO: determine which of the ports below is really needed
     ports:
       - "6060"
@@ -28,3 +30,5 @@ services:
 
 volumes:
   laconicd-data:
+  laconicd-config:
+  laconicd-keyring:

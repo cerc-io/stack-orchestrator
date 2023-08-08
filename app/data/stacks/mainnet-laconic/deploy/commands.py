@@ -14,9 +14,13 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from app.util import get_yaml
-from app.deploy_types import DeployCommandContext
+from app.deploy_types import DeployCommandContext, LaconicStackSetupCommand
 from app.stack_state import State
 from app.deploy_util import VolumeMapping, run_container_command
+from enum import Enum
+from pathlib import Path
+import os
+import sys
 
 default_spec_file_content = """config:
     node_moniker: my-node-name
@@ -27,15 +31,99 @@ init_help_text = """Add helpful text here on setting config variables.
 """
 
 
-def setup(command_context: DeployCommandContext, extra_args):
-    node_moniker = "dbdb-node"
-    chain_id = "laconic_81337-1"
-    mounts = [
-        VolumeMapping("./path", "/root/.laconicd")
-    ]
-    output, status = run_container_command(
-        command_context, "laconicd", f"laconicd init {node_moniker} --chain-id {chain_id}", mounts)
-    print(f"Command output: {output}")
+class SetupPhase(Enum):
+    INITIALIZE = 1
+    JOIN = 2
+    CREATE = 3
+    ILLEGAL = 3
+
+
+def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCommand, extra_args):
+
+    print(f"parameters: {parameters}")
+
+    phase = SetupPhase.ILLEGAL
+
+    if parameters.initialize_network:
+        if parameters.join_network or parameters.create_network:
+            print("Can't supply --join-network or --create-network with --initialize-network")
+            sys.exit(1)
+        if not parameters.chain_id:
+            print("--chain-id is required")
+            sys.exit(1)
+        phase = SetupPhase.INITIALIZE
+    elif parameters.join_network:
+        if parameters.initialize_network or parameters.create_network:
+            print("Can't supply --initialize-network or --create-network with --join-network")
+            sys.exit(1)
+        phase = SetupPhase.JOIN
+    elif parameters.create_network:
+        if parameters.initialize_network or parameters.join_network:
+            print("Can't supply --initialize-network or --join-network with --create-network")
+            sys.exit(1)
+        phase = SetupPhase.CREATE
+
+    if phase == SetupPhase.INITIALIZE:
+        network_dir = Path(parameters.network_dir).absolute()
+        # We want to create the directory so if it exists that's an error
+        if os.path.exists(network_dir):
+            print(f"Error: network directory {network_dir} already exists")
+            sys.exit(1)
+        os.mkdir(network_dir)
+        mounts = [
+            VolumeMapping(network_dir, "/root/.laconicd")
+        ]
+        output, status = run_container_command(
+            command_context, "laconicd", f"laconicd init {parameters.node_moniker} --chain-id {parameters.chain_id}", mounts)
+        print(f"Command output: {output}")
+
+    elif phase == SetupPhase.JOIN:
+        network_dir = Path(parameters.network_dir).absolute()
+        # We want to create the directory so if it exists that's an error
+        if not os.path.exists(network_dir):
+            print(f"Error: network directory {network_dir} doesn't exist")
+            sys.exit(1)
+        mounts = [
+            VolumeMapping(network_dir, "/root/.laconicd")
+        ]
+        output1, status1 = run_container_command(
+            command_context, "laconicd", f"laconicd keys add {parameters.key_name} --keyring-backend test", mounts)
+        print(f"Command output: {output1}")
+        output2, status2 = run_container_command(
+            command_context, 
+            "laconicd",
+            f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000achk --keyring-backend test",
+            mounts)
+        print(f"Command output: {output2}")        
+        output3, status3 = run_container_command(
+            command_context, 
+            "laconicd",
+            f"laconicd gentx  {parameters.key_name} 90000000000achk --chain-id {parameters.chain_id} --keyring-backend test",
+            mounts)
+        print(f"Command output: {output3}")
+
+    elif phase == SetupPhase.CREATE:
+        network_dir = Path(parameters.network_dir).absolute()
+        # We want to create the directory so if it exists that's an error
+        if not os.path.exists(network_dir):
+            print(f"Error: network directory {network_dir} doesn't exist")
+            sys.exit(1)
+        mounts = [
+            VolumeMapping(network_dir, "/root/.laconicd")
+        ]
+        output1, status1 = run_container_command(
+            command_context, "laconicd", "laconicd collect-gentxs", mounts)
+        print(f"Command output: {output1}")        
+        output2, status1 = run_container_command(
+            command_context, "laconicd", "laconicd validate-genesis", mounts)
+        print(f"Command output: {output2}")
+    else:
+        print("Illegal parameters supplied")
+        sys.exit(1)
+
+
+def create(command_context: DeployCommandContext):
+    print("Copy the network files here")
 
 
 def init(command_context: DeployCommandContext):

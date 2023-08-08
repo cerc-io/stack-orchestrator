@@ -45,3 +45,14 @@ class DeploymentContext:
 class VolumeMapping:
     host_path: str
     container_path: str
+
+
+@dataclass
+class LaconicStackSetupCommand:
+    chain_id: str
+    node_moniker: str
+    key_name: str
+    initialize_network: bool
+    join_network: bool
+    create_network: bool
+    network_dir: str

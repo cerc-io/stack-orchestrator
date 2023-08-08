@@ -15,6 +15,7 @@
 
 from enum import Enum
 
+
 class State(Enum):
     CREATED = 1
     CONFIGURED = 2

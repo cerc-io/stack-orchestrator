@@ -151,6 +151,14 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  sushiswap-v3-info:
+    depends_on:
+      sushi-info-watcher-server:
+        condition: service_healthy
+    image: cerc/uniswap-v3-info:local
+    ports:
+      - "0.0.0.0:3006:3000"
+
   # Deploys the core (UniswapV3Factory) contract
   sushiswap-v3-core:
     image: cerc/sushiswap-v3-core:local

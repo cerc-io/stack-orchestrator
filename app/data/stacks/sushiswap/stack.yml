@@ -7,6 +7,8 @@ repos:
   ## sushiswap repos
   - github.com/cerc-io/sushiswap-v3-core
   - github.com/cerc-io/sushiswap-v3-periphery
+  - github.com/vulcanize/uniswap-watcher-ts
+  - github.com/vulcanize/uniswap-v3-info
 containers:
   ## fixturenet-lotus image
   - cerc/lotus
@@ -14,6 +16,7 @@ containers:
   - cerc/sushiswap-v3-core
   - cerc/sushiswap-v3-periphery
   - cerc/watcher-sushiswap
+  - cerc/uniswap-v3-info
 pods:
   - fixturenet-lotus
   - watcher-sushiswap

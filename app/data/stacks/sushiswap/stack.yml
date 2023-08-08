@@ -13,6 +13,7 @@ containers:
   ## sushiswap images
   - cerc/sushiswap-v3-core
   - cerc/sushiswap-v3-periphery
+  - cerc/watcher-sushiswap
 pods:
   - fixturenet-lotus
   - watcher-sushiswap

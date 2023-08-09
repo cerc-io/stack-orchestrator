@@ -8,17 +8,9 @@ services:
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-miner.sh:/docker-entrypoint-scripts.d/setup-miner.sh
-      - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
-      - $HOME/stack-orchestrator/app/data/config/fixturenet-lotus/genesis/.genesis-sectors:/root/.genesis-sectors
+      - ../config/fixturenet-lotus/fund-account.sh:/fund-account.sh
+      - lotus_miner_params:/var/tmp/filecoin-proof-parameters
       - lotus-shared:/root/.lotus-shared
-    healthcheck:
-#      test: ["CMD-SHELL", "grep 'started ChainNotify channel' /var/log/lotus.log"]
-#      test: ["CMD-SHELL", "[ -f /root/.lotus-shared/miner.addr ]"]
-      test: ["CMD-SHELL", "[ -d /root/.lotus-miner-local-net ]"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-miner.sh"]
     ports:
       - "1234"
@@ -30,14 +22,16 @@ services:
     hostname: lotus-node-1
     env_file:
       - ../config/fixturenet-lotus/lotus-env.env
+    environment:
+      # Use 0.0.0.0 so that calls can be made from outside the container
+      - LOTUS_API_LISTENADDRESS=/ip4/0.0.0.0/tcp/1234/http
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
-      - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
+      - lotus_node_1_params:/var/tmp/filecoin-proof-parameters
       - lotus-shared:/root/.lotus-shared
     depends_on:
-      lotus-miner:
-        condition: service_healthy
+      - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
     ports:
       - "1234"
@@ -49,14 +43,16 @@ services:
     hostname: lotus-node-2
     env_file:
       - ../config/fixturenet-lotus/lotus-env.env
+    environment:
+      # Use 0.0.0.0 so that calls can be made from outside the container
+      - LOTUS_API_LISTENADDRESS=/ip4/0.0.0.0/tcp/1234/http
     image: cerc/lotus:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
-      - ../config/fixturenet-lotus/genesis/devgen.car:/devgen.car
+      - lotus_node_2_params:/var/tmp/filecoin-proof-parameters
       - lotus-shared:/root/.lotus-shared
     depends_on:
-      lotus-miner:
-        condition: service_healthy
+      - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
     ports:
       - "1234"
@@ -65,4 +61,7 @@ services:
       - "1777"
 
 volumes:
+  lotus_miner_params:
+  lotus_node_1_params:
+  lotus_node_2_params:
   lotus-shared:

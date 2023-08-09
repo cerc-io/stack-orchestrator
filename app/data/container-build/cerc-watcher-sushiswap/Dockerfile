@@ -7,5 +7,4 @@ WORKDIR /app
 COPY . .
 
 RUN echo "Building uniswap-watcher-ts" && \
-    git checkout sushiswap && \
-    yarn && yarn build && yarn build:contracts
+  yarn && yarn build && yarn build:contracts

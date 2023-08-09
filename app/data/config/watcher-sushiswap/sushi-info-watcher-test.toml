@@ -41,5 +41,5 @@
   eventsInBatch = 50
   subgraphEventsOrder = true
   blockDelayInMilliSecs = 2000
-  prefetchBlocksInMem = true
+  prefetchBlocksInMem = false
   prefetchBlockCount = 10

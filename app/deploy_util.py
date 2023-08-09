@@ -52,6 +52,11 @@ def run_container_command(ctx: DeployCommandContext, service: str, command: str,
     docker_volumes = _volumes_to_docker(mounts)
     if ctx.cluster_context.options.debug:
         print(f"Running this command in {service} container: {command}")
-    docker_output = docker.run(container_image, ["-c", command], entrypoint="sh", volumes=docker_volumes)
+    docker_output = docker.run(
+        container_image,
+        ["-c", command], entrypoint="sh",
+        user=f"{os.getuid()}:{os.getgid()}",
+        volumes=docker_volumes
+        )
     # There doesn't seem to be a way to get an exit code from docker.run()
     return (docker_output, 0)

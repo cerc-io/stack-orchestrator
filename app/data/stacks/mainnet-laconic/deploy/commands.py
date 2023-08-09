@@ -84,62 +84,61 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             sys.exit(1)
         phase = SetupPhase.CREATE
 
+    network_dir = Path(parameters.network_dir).absolute()
+    laconicd_home_path_in_container = "/laconicd-home"
+    mounts = [
+        VolumeMapping(network_dir, laconicd_home_path_in_container)
+    ]
+
     if phase == SetupPhase.INITIALIZE:
-        network_dir = Path(parameters.network_dir).absolute()
+
         # We want to create the directory so if it exists that's an error
         if os.path.exists(network_dir):
             print(f"Error: network directory {network_dir} already exists")
             sys.exit(1)
 
         os.mkdir(network_dir)
-        mounts = [
-            VolumeMapping(network_dir, "/root/.laconicd")
-        ]
+
         output, status = run_container_command(
-            command_context, "laconicd", f"laconicd init {parameters.node_moniker} --chain-id {parameters.chain_id}", mounts)
+            command_context,
+            "laconicd", f"laconicd init {parameters.node_moniker} --home {laconicd_home_path_in_container} --chain-id {parameters.chain_id}", mounts)
         print(f"Command output: {output}")
 
     elif phase == SetupPhase.JOIN:
-        network_dir = Path(parameters.network_dir).absolute()
         # We want to create the directory so if it exists that's an error
         if not os.path.exists(network_dir):
             print(f"Error: network directory {network_dir} doesn't exist")
             sys.exit(1)
         # Get the chain_id from the config file created in the INITIALIZE phase
         chain_id = _get_chain_id_from_config()
-        mounts = [
-            VolumeMapping(network_dir, "/root/.laconicd")
-        ]
+
         output1, status1 = run_container_command(
-            command_context, "laconicd", f"laconicd keys add {parameters.key_name} --keyring-backend test", mounts)
+            command_context, "laconicd", f"laconicd keys add {parameters.key_name} --home {laconicd_home_path_in_container} --keyring-backend test", mounts)
         print(f"Command output: {output1}")
         output2, status2 = run_container_command(
             command_context, 
             "laconicd",
-            f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000achk --keyring-backend test",
+            f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000achk --home {laconicd_home_path_in_container} --keyring-backend test",
             mounts)
         print(f"Command output: {output2}")        
         output3, status3 = run_container_command(
             command_context, 
             "laconicd",
-            f"laconicd gentx  {parameters.key_name} 90000000000achk --chain-id {chain_id} --keyring-backend test",
+            f"laconicd gentx  {parameters.key_name} 90000000000achk --home {laconicd_home_path_in_container} --chain-id {chain_id} --keyring-backend test",
             mounts)
         print(f"Command output: {output3}")
 
     elif phase == SetupPhase.CREATE:
-        network_dir = Path(parameters.network_dir).absolute()
         # We want to create the directory so if it exists that's an error
         if not os.path.exists(network_dir):
             print(f"Error: network directory {network_dir} doesn't exist")
             sys.exit(1)
-        mounts = [
-            VolumeMapping(network_dir, "/root/.laconicd")
-        ]
+
         output1, status1 = run_container_command(
-            command_context, "laconicd", "laconicd collect-gentxs", mounts)
+            command_context, "laconicd", f"laconicd collect-gentxs --home {laconicd_home_path_in_container}", mounts)
         print(f"Command output: {output1}")        
         output2, status1 = run_container_command(
-            command_context, "laconicd", "laconicd validate-genesis", mounts)
+            command_context, "laconicd", f"laconicd validate-genesis --home {laconicd_home_path_in_container}", mounts)
         print(f"Command output: {output2}")
     else:
         print("Illegal parameters supplied")

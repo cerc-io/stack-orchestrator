@@ -43,7 +43,7 @@ def _get_chain_id_from_config():
     chain_id = None
     with open("laconic-network-dir/config/client.toml", "rb") as f:
         toml_dict = tomli.load(f)
-        chain_id = toml_dict["chain_id"]
+        chain_id = toml_dict["chain-id"]
     return chain_id
 
 

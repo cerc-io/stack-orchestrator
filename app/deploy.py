@@ -312,7 +312,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
     if ctx.verbose:
         print(f"files: {compose_files}")
 
-    return ClusterContext(cluster, compose_files, pre_start_commands, post_start_commands, cluster_config, env_file)
+    return ClusterContext(ctx, cluster, compose_files, pre_start_commands, post_start_commands, cluster_config, env_file)
 
 
 def _convert_to_new_format(old_pod_array):

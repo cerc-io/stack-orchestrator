@@ -21,6 +21,7 @@ from enum import Enum
 from pathlib import Path
 import os
 import sys
+import tomli
 
 default_spec_file_content = """config:
     node_moniker: my-node-name
@@ -38,6 +39,22 @@ class SetupPhase(Enum):
     ILLEGAL = 3
 
 
+def _get_chain_id_from_config():
+    chain_id = None
+    with open("laconic-network-dir/config/client.toml", "rb") as f:
+        toml_dict = tomli.load(f)
+        chain_id = toml_dict["chain_id"]
+    return chain_id
+
+
+def _get_node_moniker_from_config():
+    moniker = None
+    with open("laconic-network-dir/config/config.toml", "rb") as f:
+        toml_dict = tomli.load(f)
+        moniker = toml_dict["moniker"]
+    return moniker
+
+
 def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCommand, extra_args):
 
     print(f"parameters: {parameters}")
@@ -50,6 +67,10 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             sys.exit(1)
         if not parameters.chain_id:
             print("--chain-id is required")
+            sys.exit(1)
+        # node_moniker must be supplied
+        if not parameters.node_moniker:
+            print("Error: --node-moniker is required")
             sys.exit(1)
         phase = SetupPhase.INITIALIZE
     elif parameters.join_network:
@@ -69,6 +90,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         if os.path.exists(network_dir):
             print(f"Error: network directory {network_dir} already exists")
             sys.exit(1)
+
         os.mkdir(network_dir)
         mounts = [
             VolumeMapping(network_dir, "/root/.laconicd")
@@ -83,6 +105,8 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         if not os.path.exists(network_dir):
             print(f"Error: network directory {network_dir} doesn't exist")
             sys.exit(1)
+        # Get the chain_id from the config file created in the INITIALIZE phase
+        chain_id = _get_chain_id_from_config()
         mounts = [
             VolumeMapping(network_dir, "/root/.laconicd")
         ]
@@ -98,7 +122,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         output3, status3 = run_container_command(
             command_context, 
             "laconicd",
-            f"laconicd gentx  {parameters.key_name} 90000000000achk --chain-id {parameters.chain_id} --keyring-backend test",
+            f"laconicd gentx  {parameters.key_name} 90000000000achk --chain-id {chain_id} --keyring-backend test",
             mounts)
         print(f"Command output: {output3}")
 

@@ -33,7 +33,8 @@ echo "Daemon started."
 cp /devgen.car /root/.lotus-shared
 
 # publish bootnode peer info to shared volume
-lotus net listen | awk 'NR==2{print}' > /root/.lotus-shared/miner.addr
+# TODO: Improve exporting public address to shared volume
+lotus net listen | awk 'NR==4{print}' > /root/.lotus-shared/miner.addr
 
 # if miner not already initialized
 if [ ! -d $LOTUS_MINER_PATH ]; then

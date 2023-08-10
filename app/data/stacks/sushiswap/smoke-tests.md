@@ -36,18 +36,18 @@ Watch the contracts:
 
 ```bash
 # Watch factory contract
-docker exec -it sushiswap-sushiswap-watcher-server-1 bash -c "yarn watch:contract --address $FACTORY_ADDRESS --kind factory --startingBlock 100 --checkpoint false"
-docker exec -it sushiswap-sushiswap-info-watcher-server-1 bash -c "yarn watch:contract --address $FACTORY_ADDRESS --kind factory --startingBlock 100 --checkpoint false"
+docker exec -it sushiswap-sushi-watcher-server-1 bash -c "yarn watch:contract --address $FACTORY_ADDRESS --kind factory --startingBlock 100 --checkpoint false"
+docker exec -it sushiswap-sushi-info-watcher-server-1 bash -c "yarn watch:contract --address $FACTORY_ADDRESS --kind factory --startingBlock 100 --checkpoint false"
 
 # Watch NFPM contract
-docker exec -it sushiswap-sushiswap-watcher-server-1 bash -c "yarn watch:contract --address $POSITION_MANAGER_ADDRESS --kind nfpm --startingBlock 100 --checkpoint false"
-docker exec -it sushiswap-sushiswap-info-watcher-server-1 bash -c "yarn watch:contract --address $POSITION_MANAGER_ADDRESS --kind nfpm --startingBlock 100 --checkpoint false"
+docker exec -it sushiswap-sushi-watcher-server-1 bash -c "yarn watch:contract --address $POSITION_MANAGER_ADDRESS --kind nfpm --startingBlock 100 --checkpoint false"
+docker exec -it sushiswap-sushi-info-watcher-server-1 bash -c "yarn watch:contract --address $POSITION_MANAGER_ADDRESS --kind nfpm --startingBlock 100 --checkpoint false"
 ```
 
 Run the smoke test:
 
 ```bash
-docker exec -it sushiswap-sushiswap-watcher-server-1 bash -c "export TOKEN0_ADDRESS=$TOKEN0_ADDRESS && export TOKEN1_ADDRESS=$TOKEN1_ADDRESS && export UNISWAP_CALLEE_ADDRESS=$UNISWAP_CALLEE_ADDRESS && yarn smoke-test"
+docker exec -it sushiswap-sushi-watcher-server-1 bash -c "export TOKEN0_ADDRESS=$TOKEN0_ADDRESS && export TOKEN1_ADDRESS=$TOKEN1_ADDRESS && export UNISWAP_CALLEE_ADDRESS=$UNISWAP_CALLEE_ADDRESS && yarn smoke-test"
 ```
 
 ## sushi-info-watcher
@@ -73,5 +73,5 @@ export TOKEN1_ADDRESS=<TOKEN1_ADDRESS>
 Run the smoke test:
 
 ```bash
-docker exec -it sushiswap-sushiswap-info-watcher-server-1 bash -c "export TOKEN0_ADDRESS=$TOKEN0_ADDRESS && export TOKEN1_ADDRESS=$TOKEN1_ADDRESS && export UNISWAP_CALLEE_ADDRESS=$UNISWAP_CALLEE_ADDRESS && yarn smoke-test"
+docker exec -it sushiswap-sushi-info-watcher-server-1 bash -c "export TOKEN0_ADDRESS=$TOKEN0_ADDRESS && export TOKEN1_ADDRESS=$TOKEN1_ADDRESS && export UNISWAP_CALLEE_ADDRESS=$UNISWAP_CALLEE_ADDRESS && yarn smoke-test"
 ```

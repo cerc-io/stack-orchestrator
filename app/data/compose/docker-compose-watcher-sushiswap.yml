@@ -180,4 +180,4 @@ services:
       - ../config/watcher-sushiswap/lotus-params.env
 
 volumes:
-  uniswap_watcher_db_data:
+  sushiswap_watcher_db_data:

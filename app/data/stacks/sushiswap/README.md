@@ -18,8 +18,10 @@ laconic-so --stack sushiswap build-containers
 
 Deploy the stack:
 
+<!-- TODO: Add healthcheck dependency on Lotus endpoint in sushiswap watchers -->
 ```bash
-laconic-so --stack sushiswap deploy --cluster sushiswap up
+laconic-so --stack sushiswap deploy --include fixturenet-lotus --cluster sushiswap up
+laconic-so --stack sushiswap deploy --include watcher-sushiswap --cluster sushiswap up
 ```
 
 ## Tests

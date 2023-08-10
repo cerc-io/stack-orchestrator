@@ -55,12 +55,6 @@ docker exec -it sushiswap-sushi-watcher-server-1 bash -c "export TOKEN0_ADDRESS=
 Deploy required contracts and set the addresses to variables:
 
 ```bash
-# Deploy TestUniswapV3Callee
-docker exec -it sushiswap-sushiswap-v3-core-1 pnpm hardhat --network docker deploy --tags TestUniswapV3Callee
-
-# Set the returned address to a variable
-export UNISWAP_CALLEE_ADDRESS=<UNISWAP_CALLEE_ADDRESS>
-
 # Deploy two test tokens
 docker exec -it sushiswap-sushiswap-v3-periphery-1 yarn hardhat --network docker deploy --tags TestERC20
 docker exec -it sushiswap-sushiswap-v3-periphery-1 yarn hardhat --network docker deploy --tags TestERC20

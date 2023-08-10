@@ -52,6 +52,8 @@ services:
     depends_on:
       sushiswap-watcher-db:
         condition: service_healthy
+      lotus-node-1:
+        condition: service_healthy
     image: cerc/watcher-sushiswap:local
     working_dir: /app/packages/uni-watcher
     environment:
@@ -106,6 +108,8 @@ services:
       sushiswap-watcher-db:
         condition: service_healthy
       erc20-watcher-server:
+        condition: service_healthy
+      lotus-node-1:
         condition: service_healthy
       sushi-watcher-server:
         condition: service_healthy

@@ -30,6 +30,12 @@ services:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
       - lotus_node_1_params:/var/tmp/filecoin-proof-parameters
       - lotus-shared:/root/.lotus-shared
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "1234"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
     depends_on:
       - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
@@ -51,6 +57,12 @@ services:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
       - lotus_node_2_params:/var/tmp/filecoin-proof-parameters
       - lotus-shared:/root/.lotus-shared
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "1234"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
     depends_on:
       - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]

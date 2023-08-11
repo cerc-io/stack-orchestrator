@@ -1,0 +1,10 @@
+version: "1.0"
+name: fixturenet-graph-node
+description: "A graph-node fixturenet"
+repos:
+  - github.com/graphprotocol/graph-node
+containers:
+  - cerc/graph-node
+pods:
+  - fixturenet-graph-node
+

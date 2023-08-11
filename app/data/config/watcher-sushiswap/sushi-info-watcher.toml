@@ -1,0 +1,90 @@
+[server]
+  host = "0.0.0.0"
+  port = 3004
+  mode = "demo"
+  kind = "active"
+
+  # Checkpointing state.
+  checkpointing = true
+
+  # Checkpoint interval in number of blocks.
+  checkpointInterval = 50000
+
+  # Enable state creation
+  enableState = false
+
+  # Max block range for which to return events in eventsInRange GQL query.
+  # Use -1 for skipping check on block range.
+  maxEventsBlockRange = 1000
+
+  # Interval in number of blocks at which to clear entities cache.
+  clearEntitiesCacheInterval = 1000
+
+  # Boolean to skip updating entity fields required in state creation and not required in the frontend.
+  skipStateFieldsUpdate = false
+
+  # Boolean to load GQL query nested entity relations sequentially.
+  loadRelationsSequential = false
+
+  # Max GQL API requests to process simultaneously (defaults to 1).
+  maxSimultaneousRequests = 1
+
+  # GQL cache settings
+  [server.gqlCache]
+    enabled = true
+
+    # Max in-memory cache size (in bytes) (default 8 MB)
+    # maxCacheSize
+
+    # GQL cache-control max-age settings (in seconds)
+    maxAge = 15
+    timeTravelMaxAge = 86400 # 1 day
+
+[metrics]
+  host = "0.0.0.0"
+  port = 9002
+  [metrics.gql]
+    port = 9003
+
+[database]
+  type = "postgres"
+  host = "sushiswap-watcher-db"
+  port = 5432
+  database = "sushi-info-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+  maxQueryExecutionTime = 100
+
+  [database.extra]
+    # maximum number of clients the pool should contain
+    max = 20
+
+[upstream]
+  [upstream.ethServer]
+    rpcProviderEndpoint = "http://lotus-node-1:1234/rpc/v1"
+    rpcClient = true
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+  [upstream.uniWatcher]
+    gqlEndpoint = "http://sushi-watcher-server:3003/graphql"
+    gqlSubscriptionEndpoint = "ws://sushi-watcher-server:3003/graphql"
+
+  [upstream.tokenWatcher]
+    gqlEndpoint = "http://erc20-watcher-server:3001/graphql"
+    gqlSubscriptionEndpoint = "ws://erc20-watcher-server:3001/graphql"
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@sushiswap-watcher-db:5432/sushi-info-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 1000
+  eventsInBatch = 50
+  subgraphEventsOrder = true
+  blockDelayInMilliSecs = 2000
+  prefetchBlocksInMem = false
+  prefetchBlockCount = 10

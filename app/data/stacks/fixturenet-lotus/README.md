@@ -16,13 +16,13 @@ $ laconic-so --stack fixturenet-lotus deploy --cluster lotus up
 ```
 Correct operation should be verified by checking the container logs with:
 ```
-$ laconic-so --stack fixturenet-lotus deploy logs lotus-miner
-$ laconic-so --stack fixturenet-lotus deploy logs lotus-node-1
-$ laconic-so --stack fixturenet-lotus deploy logs lotus-node-2
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus logs lotus-miner
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus logs lotus-node-1
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus logs lotus-node-2
 ```
 or by checking the chain status on each node:
 ```
-$ laconic-so --stack fixturenet-lotus deploy exec lotus-miner "lotus status"
-$ laconic-so --stack fixturenet-lotus deploy exec lotus-node-1 "lotus status"
-$ laconic-so --stack fixturenet-lotus deploy exec lotus-node-2 "lotus status"
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus exec lotus-miner "lotus status"
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus exec lotus-node-1 "lotus status"
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus exec lotus-node-2 "lotus status"
 ```

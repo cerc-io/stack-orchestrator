@@ -79,9 +79,10 @@ $ cat mainnet-eth-spec.yml
 stack: mainnet-eth
 ports:
   mainnet-eth-geth-1:
+   - '127.0.0.1:8545:8545'
    - '10.10.10.10:8545:8545'
   mainnet-eth-lighthouse-1:
-   - '10.10.10.10:5052:5052'
+   - '5052'
 volumes:
   mainnet_eth_config_data: ./data/mainnet_eth_config_data
   mainnet_eth_geth_1_data: ./data/mainnet_eth_geth_1_data
@@ -96,9 +97,10 @@ $ cat mainnet-eth-spec.yml
 stack: mainnet-eth
 ports:
   mainnet-eth-geth-1:
+   - '127.0.0.1:8545:8545'
    - '10.10.10.10:8545:8545'
   mainnet-eth-lighthouse-1:
-   - '10.10.10.10:5052:5052'
+   - '5052'
 volumes:
   mainnet_eth_config_data: ./data/mainnet_eth_config_data
   mainnet_eth_geth_1_data: ./data/mainnet_eth_geth_1_data

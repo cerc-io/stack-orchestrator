@@ -5,13 +5,13 @@
 Clone required repositories:
 
 ```bash
-laconic-so --stack sushiswap-graph setup-repositories
+laconic-so --stack sushiswap-subgraph setup-repositories
 ```
 
 Build the container images:
 
 ```bash
-laconic-so --stack sushiswap-graph build-containers
+laconic-so --stack sushiswap-subgraph build-containers
 ```
 
 ## Deploy
@@ -19,7 +19,7 @@ laconic-so --stack sushiswap-graph build-containers
 Deploy the stack:
 
 ```bash
-laconic-so --stack sushiswap-graph deploy --cluster sushigraph up
+laconic-so --stack sushiswap-subgraph deploy --cluster sushigraph up
 ```
 
 ## Clean up
@@ -27,7 +27,7 @@ laconic-so --stack sushiswap-graph deploy --cluster sushigraph up
 Stop all the services running in background run:
 
 ```bash
-laconic-so --stack sushiswap-graph deploy --cluster sushigraph down
+laconic-so --stack sushiswap-subgraph deploy --cluster sushigraph down
 ```
 
 Clear volumes created by this stack:

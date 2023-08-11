@@ -1,5 +1,5 @@
 version: "1.0"
-name: sushiswap-graph
+name: sushiswap-subgraph
 description: "An end-to-end SushiSwap Graph stack"
 repos:
   ## fixturenet-lotus repo

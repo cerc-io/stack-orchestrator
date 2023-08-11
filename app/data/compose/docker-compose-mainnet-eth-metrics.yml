@@ -1,0 +1,23 @@
+version: "3.2"
+services:
+  prometheus:
+    restart: always
+    image: prom/prometheus
+    depends_on:
+      mainnet-eth-geth-1:
+        condition: service_healthy
+    volumes:
+      - ../config/mainnet-eth-metrics/prometheus/etc:/etc/prometheus
+    ports:
+      - "9090"
+  grafana:
+    restart: always
+    image: grafana/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=changeme6325
+    volumes:
+      - ../config/mainnet-eth-metrics/grafana/etc/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ../config/mainnet-eth-metrics/grafana/etc/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ../config/mainnet-eth-metrics/grafana/etc/dashboards:/etc/grafana/dashboards
+    ports:
+      - "3000"

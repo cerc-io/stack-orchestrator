@@ -10,6 +10,9 @@ containers:
   - cerc/lighthouse
   - cerc/lighthouse-cli
   - cerc/foundry
+  - cerc/keycloak
 pods:
   - mainnet-eth
+  - mainnet-eth-keycloak
+  - mainnet-eth-metrics
   - foundry

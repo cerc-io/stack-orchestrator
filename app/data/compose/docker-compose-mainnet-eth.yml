@@ -6,16 +6,13 @@ services:
     hostname: mainnet-eth-geth-1
     cap_add:
       - SYS_PTRACE
-    environment:
-      CERC_REMOTE_DEBUG: "true"
-      CERC_RUN_STATEDIFF: ${CERC_RUN_STATEDIFF:-detect}
-      CERC_STATEDIFF_DB_NODE_ID: 1
-      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     image: cerc/go-ethereum:local
     entrypoint: /bin/sh
     command: -c "/opt/run-geth.sh"
+    env_file:
+      - ../config/mainnet-eth/geth.env
     volumes:
-      - mainnet_eth_geth_1_data:/root/ethdata
+      - mainnet_eth_geth_1_data:/data
       - mainnet_eth_config_data:/etc/mainnet-eth
       - ../config/mainnet-eth/scripts/run-geth.sh:/opt/run-geth.sh
     healthcheck:
@@ -26,6 +23,7 @@ services:
       start_period: 3s
     ports:
       - "8545"
+      - "8551"
       - "40000"
       - "6060"
 
@@ -39,16 +37,19 @@ services:
       retries: 10
       start_period: 30s
     environment:
-      EXECUTION_ENDPOINT: "http://mainnet-eth-geth-1:8551"
+      LIGHTHOUSE_EXECUTION_ENDPOINT: "http://mainnet-eth-geth-1:8551"
+    env_file:
+      - ../config/mainnet-eth/lighthouse.env
     image: cerc/lighthouse:local
     entrypoint: /bin/sh
     command: -c "/opt/run-lighthouse.sh"
     volumes:
-      - mainnet_eth_lighthouse_1_data:/var/lighthouse-data-dir
+      - mainnet_eth_lighthouse_1_data:/data
       - mainnet_eth_config_data:/etc/mainnet-eth
       - ../config/mainnet-eth/scripts/run-lighthouse.sh:/opt/run-lighthouse.sh
     ports:
-      - "8001"
+      - "5052"
+      - "9000"
 
 volumes:
   mainnet_eth_config_data:

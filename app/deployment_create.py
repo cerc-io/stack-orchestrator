@@ -169,6 +169,8 @@ def init(ctx, output):
     if verbose:
         print(f"Creating spec file for stack: {stack}")
 
+    spec_file_content["ports"] = _get_ports(stack)
+
     named_volumes = _get_named_volumes(stack)
     if named_volumes:
         volume_descriptors = {}
@@ -176,7 +178,6 @@ def init(ctx, output):
             volume_descriptors[named_volume] = f"./data/{named_volume}"
         spec_file_content["volumes"] = volume_descriptors
 
-    spec_file_content["ports"] = _get_ports(stack)
     with open(output, "w") as output_file:
         yaml.dump(spec_file_content, output_file)
 

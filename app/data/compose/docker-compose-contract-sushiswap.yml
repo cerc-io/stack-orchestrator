@@ -5,10 +5,39 @@ services:
   sushiswap-v3-core:
     image: cerc/sushiswap-v3-core:local
     env_file:
-      - ../config/watcher-sushiswap/lotus-params.env
+      - ../config/contract-sushiswap/deployment-params.env
+    environment:
+      ETH_RPC_ENDPOINT: ${ETH_RPC_ENDPOINT}
+      CHAIN_ID: ${CHAIN_ID}
+      ACCOUNT_PRIVATE_KEY: ${ACCOUNT_PRIVATE_KEY}
+      DEPLOY: ${DEPLOY}
+    volumes:
+      - ../config/network/wait-for-it.sh:/app/wait-for-it.sh
+      - ../config/contract-sushiswap/deploy-core-contracts.sh:/app/deploy-core-contracts.sh
+      - sushiswap_core_deployment:/app/deployments/docker
+    command: ["bash", "-c", "/app/deploy-core-contracts.sh && tail -f"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Deploys the periphery (NFPM, token, etc.) contracts
   sushiswap-v3-periphery:
     image: cerc/sushiswap-v3-periphery:local
     env_file:
-      - ../config/watcher-sushiswap/lotus-params.env
+      - ../config/contract-sushiswap/deployment-params.env
+    environment:
+      ETH_RPC_ENDPOINT: ${ETH_RPC_ENDPOINT}
+      CHAIN_ID: ${CHAIN_ID}
+      ACCOUNT_PRIVATE_KEY: ${ACCOUNT_PRIVATE_KEY}
+      DEPLOY: ${DEPLOY}
+    volumes:
+      - ../config/network/wait-for-it.sh:/app/wait-for-it.sh
+      - ../config/contract-sushiswap/deploy-periphery-contracts.sh:/app/deploy-periphery-contracts.sh
+      - sushiswap_core_deployment:/app/core-deployments/docker
+      - sushiswap_periphery_deployment:/app/deployments/docker
+    command: ["bash", "-c", "/app/deploy-periphery-contracts.sh && tail -f"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  sushiswap_core_deployment:
+  sushiswap_periphery_deployment:

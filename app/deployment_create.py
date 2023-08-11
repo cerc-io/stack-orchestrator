@@ -38,16 +38,13 @@ def _get_ports(stack):
         if "services" in parsed_pod_file:
             for svc_name, svc in parsed_pod_file["services"].items():
                 if "ports" in svc:
-                    normalized = [ str(x) for x in svc["ports"] ]
-                    if pod in ports:
-                        ports[pod][svc_name] = normalized
-                    else:
-                        ports[pod] = { svc_name: normalized }
+                    # Ports can appear as strings or numbers.  We normalize them as strings.
+                    ports[svc_name] = [ str(x) for x in svc["ports"] ]
     return ports
 
 def _get_named_volumes(stack):
     # Parse the compose files looking for named volumes
-    named_volumes = {}
+    named_volumes = []
     parsed_stack = get_parsed_stack_config(stack)
     pods = parsed_stack["pods"]
     yaml = get_yaml()
@@ -56,9 +53,10 @@ def _get_named_volumes(stack):
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
-            # Volume definition looks like:
-            # 'laconicd-data': None
-            named_volumes[pod] = list(volumes.keys())
+            for volume in volumes.keys():
+                # Volume definition looks like:
+                # 'laconicd-data': None
+                named_volumes.append(volume)
     return named_volumes
 
 
@@ -77,30 +75,31 @@ def _create_bind_dir_if_relative(volume, path_string, compose_dir):
 
 
 # See: https://stackoverflow.com/questions/45699189/editing-docker-compose-yml-with-pyyaml
-def _fixup_pod_file(pod_name, pod, spec, compose_dir):
-    if pod_name in spec["pods"]:
-        # Fix up volumes
-        if "volumes" in spec["pods"][pod_name]:
-            spec_volumes = spec["pods"][pod_name]["volumes"]
-            if "volumes" in pod:
-                pod_volumes = pod["volumes"]
-                for volume in pod_volumes.keys():
-                    if volume in spec_volumes:
-                        volume_spec = spec_volumes[volume]
-                        volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
-                        _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
-                        new_volume_spec = {"driver": "local",
-                                           "driver_opts": {
-                                               "type": "none",
-                                               "device": volume_spec_fixedup,
-                                               "o": "bind"
-                                            }
-                                           }
-                        pod["volumes"][volume] = new_volume_spec
-        # Fix up ports
-        if "ports" in spec["pods"][pod_name]:
-            for container_name, container_ports in spec["pods"][pod_name]["ports"].items():
-                pod["services"][container_name]["ports"] = container_ports
+def _fixup_pod_file(pod, spec, compose_dir):
+   # Fix up volumes
+   if "volumes" in spec:
+       spec_volumes = spec["volumes"]
+       if "volumes" in pod:
+           pod_volumes = pod["volumes"]
+           for volume in pod_volumes.keys():
+               if volume in spec_volumes:
+                   volume_spec = spec_volumes[volume]
+                   volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
+                   _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
+                   new_volume_spec = {"driver": "local",
+                                      "driver_opts": {
+                                          "type": "none",
+                                          "device": volume_spec_fixedup,
+                                          "o": "bind"
+                                       }
+                                      }
+                   pod["volumes"][volume] = new_volume_spec
+   # Fix up ports
+   if "ports" in spec:
+       spec_ports = spec["ports"]
+       for container_name, container_ports in spec_ports.items():
+           if container_name in pod["services"]:
+               pod["services"][container_name]["ports"] = container_ports
 
 
 def call_stack_deploy_init(deploy_command_context):
@@ -170,23 +169,14 @@ def init(ctx, output):
     if verbose:
         print(f"Creating spec file for stack: {stack}")
 
-    parsed_stack = get_parsed_stack_config(stack)
-    pods = dict([ (p, {}) for p in parsed_stack["pods"]])
+    named_volumes = _get_named_volumes(stack)
+    if named_volumes:
+        volume_descriptors = {}
+        for named_volume in named_volumes:
+            volume_descriptors[named_volume] = f"./data/{named_volume}"
+        spec_file_content["volumes"] = volume_descriptors
 
-    named_volumes_by_pod = _get_named_volumes(stack)
-    if named_volumes_by_pod:
-        for pod_name in named_volumes_by_pod:
-            volume_descriptors = {}
-            for named_volume in named_volumes_by_pod[pod_name]:
-                volume_descriptors[named_volume] = f"./data/{named_volume}"
-            pods[pod_name]["volumes"] = volume_descriptors
-
-    ports_by_pod = _get_ports(stack)
-    if ports_by_pod:
-        for pod_name in ports_by_pod:
-            pods[pod_name]["ports"] = ports_by_pod[pod_name]
-
-    spec_file_content["pods"] = pods
+    spec_file_content["ports"] = _get_ports(stack)
     with open(output, "w") as output_file:
         yaml.dump(spec_file_content, output_file)
 
@@ -224,7 +214,7 @@ def create(ctx, spec_file, deployment_dir):
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
         if global_options(ctx).debug:
             print(f"extra config dirs: {extra_config_dirs}")
-        _fixup_pod_file(pod, parsed_pod_file, parsed_spec, destination_compose_dir)
+        _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
         with open(os.path.join(destination_compose_dir, os.path.basename(pod_file_path)), "w") as output_file:
             yaml.dump(parsed_pod_file, output_file)
         # Copy the config files for the pod, if any

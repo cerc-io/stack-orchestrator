@@ -24,7 +24,7 @@ RPC_HOST=$(echo "$endpoint" | awk -F'[:/]' '{print $1}')
 RPC_PORT=$(echo "$endpoint" | awk -F'[:/]' '{print $2}')
 ./wait-for-it.sh -h "${RPC_HOST}" -p "${RPC_PORT}" -s -t 0
 
-if [ "$DEPLOY" ]; then
+if [ "$DEPLOY" = true ] && [ ! -e "/app/deployments/docker/UniswapV3Factory.json" ]; then
   echo "Performing core contract deployments..."
   pnpm hardhat --network docker deploy --tags UniswapV3Factory
 else

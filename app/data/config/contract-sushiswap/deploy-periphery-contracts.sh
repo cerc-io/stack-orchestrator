@@ -15,7 +15,6 @@ echo "ETH_RPC_ENDPOINT=$ETH_RPC_ENDPOINT" > .env
 echo "CHAIN_ID=$CHAIN_ID" >> .env
 echo "ACCOUNT_PRIVATE_KEY=$ACCOUNT_PRIVATE_KEY" >> .env
 
-
 echo "Using RPC endpoint $ETH_RPC_ENDPOINT"
 
 # Wait for the RPC endpoint to be up
@@ -25,7 +24,7 @@ RPC_HOST=$(echo "$endpoint" | awk -F'[:/]' '{print $1}')
 RPC_PORT=$(echo "$endpoint" | awk -F'[:/]' '{print $2}')
 ./wait-for-it.sh -h "${RPC_HOST}" -p "${RPC_PORT}" -s -t 0
 
-if [ "$DEPLOY" ]; then
+if [ "$DEPLOY" = true ] && [ ! -e "/app/deployments/docker/NonfungiblePositionManager.json" ]; then
   # Loop until the factory deployment is detected
   echo "Waiting for core deployments to occur"
   while [ ! -f /app/core-deployments/docker/UniswapV3Factory.json ]; do

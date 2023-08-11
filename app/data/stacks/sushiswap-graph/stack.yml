@@ -1,0 +1,18 @@
+version: "1.0"
+name: sushiswap-graph
+description: "An end-to-end SushiSwap Graph stack"
+repos:
+  ## fixturenet-lotus repo
+  - github.com/filecoin-project/lotus
+  ## sushiswap repos
+  - github.com/cerc-io/sushiswap-v3-core@watcher-ts
+  - github.com/cerc-io/sushiswap-v3-periphery@watcher-ts
+containers:
+  ## fixturenet-lotus image
+  - cerc/lotus
+  ## sushiswap contract deployment images
+  - cerc/sushiswap-v3-core
+  - cerc/sushiswap-v3-periphery
+pods:
+  - fixturenet-lotus
+  - contract-sushiswap

@@ -169,7 +169,9 @@ def init(ctx, output):
     if verbose:
         print(f"Creating spec file for stack: {stack}")
 
-    spec_file_content["ports"] = _get_ports(stack)
+    ports = _get_named_volumes(stack)
+    if ports:
+        spec_file_content["ports"] = _get_ports(stack)
 
     named_volumes = _get_named_volumes(stack)
     if named_volumes:

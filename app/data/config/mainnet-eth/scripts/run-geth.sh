@@ -26,7 +26,7 @@ MODE_FLAGS=""
 if [[ "$CERC_GETH_MODE_QUICK_SET" = "archive" ]]; then
   MODE_FLAGS="--syncmode=${GETH_SYNC_MODE:-full} --gcmode=${GETH_GC_MODE:-archive} --snapshot=${GETH_SNAPSHOT:-false}"
 else
-  MODE_FLAGS="--syncmode=${GETH_SYNC_MODE:-snap} --gcmode=${GETH_GC_MODE:-snap} --snapshot=${GETH_SNAPSHOT:-true}"
+  MODE_FLAGS="--syncmode=${GETH_SYNC_MODE:-snap} --gcmode=${GETH_GC_MODE:-full} --snapshot=${GETH_SNAPSHOT:-true}"
 fi
 
 $START_CMD \

@@ -1,5 +1,5 @@
 #!/bin/sh
-if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
+if [[ "true" == "$CERC_SCRIPT_DEBUG" ]]; then
     set -x
 fi
 
@@ -37,7 +37,7 @@ $START_CMD \
   --cache=${GETH_CACHE} \
   --cache.gc=${GETH_CACHE_GC} \
   --cache.database=${GETH_CACHE_DB} \
-  --cache.trie=${GETH_CACHE_TRIE}
+  --cache.trie=${GETH_CACHE_TRIE} \
   --authrpc.addr='0.0.0.0' \
   --authrpc.vhosts='*'  \
   --authrpc.jwtsecret="${GETH_JWTSECRET}" \

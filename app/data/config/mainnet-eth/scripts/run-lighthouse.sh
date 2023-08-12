@@ -1,5 +1,5 @@
 #!/bin/bash
-if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
+if [[ "true" == "$CERC_SCRIPT_DEBUG" ]]; then
     set -x
 fi
 
@@ -10,13 +10,14 @@ fi
 
 exec lighthouse bn \
   --checkpoint-sync-url "$LIGHTHOUSE_CHECKPOINT_SYNC_URL" \
+  --checkpoint-sync-url-timeout ${LIGHTHOUSE_CHECKPOINT_SYNC_URL_TIMEOUT} \
   --datadir "$LIGHTHOUSE_DATADIR" \
   --debug-level $LIGHTHOUSE_DEBUG_LEVEL \
   --disable-deposit-contract-sync \
   --disable-upnp \
   --enr-tcp-port $LIGHTHOUSE_NETWORK_PORT \
   --enr-udp-port $LIGHTHOUSE_NETWORK_PORT \
-  --execution-endpoint "$EXECUTION_ENDPOINT" \
+  --execution-endpoint "$LIGHTHOUSE_EXECUTION_ENDPOINT" \
   --execution-jwt /etc/mainnet-eth/jwtsecret \
   --http \
   --http-address 0.0.0.0 \

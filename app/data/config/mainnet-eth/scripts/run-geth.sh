@@ -52,7 +52,7 @@ $START_CMD \
   --ws.api="${GETH_WS_API}" \
   --rpc.gascap=${GETH_RPC_GASCAP} \
   --rpc.evmtimeout=${GETH_RPC_EVMTIMEOUT} \
-  --txlookuplimit=${GETH_TXLOOKUPLIMIT}
+  --txlookuplimit=${GETH_TXLOOKUPLIMIT} \
   --verbosity=${GETH_VERBOSITY} \
   --log.vmodule="${GETH_VMODULE}" \
   ${GETH_OPTS} &

@@ -31,7 +31,7 @@ fi
 
 $START_CMD \
   $MODE_FLAGS \
-  --datadir="${GETH_DATA}"\
+  --datadir="${GETH_DATADIR}"\
   --identity="${GETH_NODE_NAME}" \
   --maxpeers=${GETH_MAX_PEERS} \
   --cache=${GETH_CACHE} \

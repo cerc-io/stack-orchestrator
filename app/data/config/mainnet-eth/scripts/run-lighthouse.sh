@@ -13,12 +13,17 @@ exec lighthouse bn \
   --datadir "$LIGHTHOUSE_DATADIR" \
   --debug-level $LIGHTHOUSE_DEBUG_LEVEL \
   --disable-deposit-contract-sync \
+  --disable-upnp \
   --enr-tcp-port $LIGHTHOUSE_NETWORK_PORT \
   --enr-udp-port $LIGHTHOUSE_NETWORK_PORT \
   --execution-endpoint "$EXECUTION_ENDPOINT" \
   --execution-jwt /etc/mainnet-eth/jwtsecret \
+  --http \
   --http-address 0.0.0.0 \
   --http-port $LIGHTHOUSE_HTTP_PORT \
+  --metrics \
+  --metrics-address=0.0.0.0 \
+  --metrics-port $LIGHTHOUSE_METRICS_PORT \
   --network mainnet \
   --port $LIGHTHOUSE_NETWORK_PORT \
   $ENR_OPTS $LIGHTHOUSE_OPTS

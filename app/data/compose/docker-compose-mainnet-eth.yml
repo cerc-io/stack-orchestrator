@@ -22,9 +22,18 @@ services:
       retries: 10
       start_period: 3s
     ports:
+      # http api
       - "8545"
+      # ws api
+      - "8546"
+      # ws el
       - "8551"
+      # p2p
+      - "30303"
+      - "30303/udp"
+      # debugging
       - "40000"
+      # metrics
       - "6060"
 
   mainnet-eth-lighthouse-1:
@@ -48,8 +57,13 @@ services:
       - mainnet_eth_config_data:/etc/mainnet-eth
       - ../config/mainnet-eth/scripts/run-lighthouse.sh:/opt/run-lighthouse.sh
     ports:
+      # api
       - "5052"
+      # metrics
+      - "5054"
+      # p2p
       - "9000"
+      - "9000/udp"
 
 volumes:
   mainnet_eth_config_data:

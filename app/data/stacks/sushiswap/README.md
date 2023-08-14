@@ -22,13 +22,15 @@ Deploy the stack:
 laconic-so --stack sushiswap deploy --cluster sushiswap up
 ```
 
+Note: When running for the first time (or after clean up), the services will take some time to start as Lotus nodes in the fixturenet download the proof params
+
 ## Tests
 
 Follow [smoke-tests.md](./smoke-tests.md) to run smoke tests
 
 ## Clean up
 
-Stop all the services running in background run:
+Stop all the services running in background:
 
 ```bash
 laconic-so --stack sushiswap deploy --cluster sushiswap down

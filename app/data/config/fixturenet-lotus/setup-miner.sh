@@ -33,8 +33,8 @@ while ! grep -q "started ChainNotify channel" /var/log/lotus.log ; do
 done
 echo "Daemon started."
 
-# publish bootnode peer info to shared volume
-lotus net listen | grep "$(ip addr | grep inet | grep -v '127.0.0.1' | sort | head -1 | awk '{print $2}' | cut -d '/' -f1)" | head -1 > /root/.lotus-shared/miner.addr
+# copy genesis file to shared volume
+cp /devgen.car /root/.lotus-shared
 
 # if miner not already initialized
 if [ ! -d $LOTUS_MINER_PATH ]; then
@@ -46,6 +46,9 @@ if [ ! -d $LOTUS_MINER_PATH ]; then
 
   lotus-miner init --genesis-miner --actor=t01000 --sector-size=2KiB --pre-sealed-sectors=/root/data/.genesis-sectors --pre-sealed-metadata=/root/data/.genesis-sectors/pre-seal-t01000.json --nosync
 fi
+
+# publish bootnode peer info to shared volume
+lotus net listen | grep "$(ip addr | grep inet | grep -v '127.0.0.1' | sort | head -1 | awk '{print $2}' | cut -d '/' -f1)" | head -1 > /root/.lotus-shared/miner.addr
 
 # start miner
 nohup lotus-miner run --nosync &

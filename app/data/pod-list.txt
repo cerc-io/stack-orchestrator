@@ -31,3 +31,4 @@ mainnet-go-opera
 lasso
 reth
 watcher-sushiswap
+contract-sushiswap

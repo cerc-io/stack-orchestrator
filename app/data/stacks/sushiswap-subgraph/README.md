@@ -86,11 +86,6 @@ Trigger pool burn event:
 docker exec -it sushigraph-sushiswap-v3-core-1 pnpm run pool:burn:docker --pool $POOL_ADDRESS --amount 10
 ```
 
-Trigger pool swap event:
-```bash
-docker exec -it sushigraph-sushiswap-v3-core-1 pnpm run pool:swap:docker --pool $POOL_ADDRESS --recipient $RECIPIENT --sqrt-price 4295128939
-```
-
 ## Clean up
 
 Stop all the services running in background run:

@@ -18,8 +18,8 @@ fi
 # if genesis is not already setup
 if [ ! -f /root/data/localnet.json ]; then
   lotus-seed --sector-dir /root/data/.genesis-sectors pre-seal --sector-size 2KiB --num-sectors 2
-  lotus-seed --sector-dir /root/data/ genesis new /root/data/localnet.json
-  lotus-seed --sector-dir /root/data/ genesis add-miner /root/data/localnet.json /root/data/.genesis-sectors/pre-seal-t01000.json
+  lotus-seed --sector-dir /root/data/.genesis-sectors genesis new /root/data/localnet.json
+  lotus-seed --sector-dir /root/data/.genesis-sectors genesis add-miner /root/data/localnet.json /root/data/.genesis-sectors/pre-seal-t01000.json
 fi
 
 # start daemon

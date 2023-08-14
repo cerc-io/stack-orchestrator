@@ -55,7 +55,7 @@ This should create the required docker images in the local image registry.
 
 ## Clean up
 
-Stop all the services running in background run:
+Stop all the services running in background:
 
 ```bash
 laconic-so --stack azimuth deploy-system down

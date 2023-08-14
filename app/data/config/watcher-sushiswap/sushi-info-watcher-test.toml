@@ -1,0 +1,45 @@
+[server]
+  host = "0.0.0.0"
+  port = 3004
+  # Use mode demo when running watcher locally.
+  # Mode demo whitelists all tokens so that entity values get updated.
+  mode = "demo"
+
+[database]
+  type = "postgres"
+  host = "sushiswap-watcher-db"
+  port = 5432
+  database = "sushi-info-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+  maxQueryExecutionTime = 100
+
+[upstream]
+  [upstream.ethServer]
+    rpcProviderEndpoint = "http://lotus-node-1:1234/rpc/v1"
+    rpcClient = true
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+  [upstream.uniWatcher]
+    gqlEndpoint = "http://sushi-watcher-server:3003/graphql"
+    gqlSubscriptionEndpoint = "ws://sushi-watcher-server:3003/graphql"
+
+  [upstream.tokenWatcher]
+    gqlEndpoint = "http://erc20-watcher-server:3001/graphql"
+    gqlSubscriptionEndpoint = "ws://erc20-watcher-server:3001/graphql"
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@sushiswap-watcher-db:5432/sushi-info-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 1000
+  eventsInBatch = 50
+  subgraphEventsOrder = true
+  blockDelayInMilliSecs = 2000
+  prefetchBlocksInMem = false
+  prefetchBlockCount = 10

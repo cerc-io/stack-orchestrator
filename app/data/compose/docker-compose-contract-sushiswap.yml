@@ -10,10 +10,10 @@ services:
       - ../config/contract-sushiswap/deployment-params.env
     environment:
       # Overrides
-      ETH_RPC_ENDPOINT: ${ETH_RPC_ENDPOINT}
-      CHAIN_ID: ${CHAIN_ID}
-      ACCOUNT_PRIVATE_KEY: ${ACCOUNT_PRIVATE_KEY}
-      DEPLOY: ${DEPLOY}
+      CERC_ETH_RPC_ENDPOINT: ${ETH_RPC_ENDPOINT}
+      CERC_CHAIN_ID: ${CHAIN_ID}
+      CERC_ACCOUNT_PRIVATE_KEY: ${ACCOUNT_PRIVATE_KEY}
+      CERC_DEPLOY: ${DEPLOY}
     volumes:
       - ../config/network/wait-for-it.sh:/app/wait-for-it.sh
       - ../config/contract-sushiswap/deploy-core-contracts.sh:/app/deploy-core-contracts.sh
@@ -31,10 +31,10 @@ services:
       - ../config/contract-sushiswap/deployment-params.env
     environment:
       # Overrides
-      ETH_RPC_ENDPOINT: ${ETH_RPC_ENDPOINT}
-      CHAIN_ID: ${CHAIN_ID}
-      ACCOUNT_PRIVATE_KEY: ${ACCOUNT_PRIVATE_KEY}
-      DEPLOY: ${DEPLOY}
+      CERC_ETH_RPC_ENDPOINT: ${ETH_RPC_ENDPOINT}
+      CERC_CHAIN_ID: ${CHAIN_ID}
+      CERC_ACCOUNT_PRIVATE_KEY: ${ACCOUNT_PRIVATE_KEY}
+      CERC_DEPLOY: ${DEPLOY}
     volumes:
       - ../config/network/wait-for-it.sh:/app/wait-for-it.sh
       - ../config/contract-sushiswap/deploy-periphery-contracts.sh:/app/deploy-periphery-contracts.sh

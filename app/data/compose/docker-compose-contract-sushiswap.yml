@@ -5,8 +5,10 @@ services:
   sushiswap-v3-core:
     image: cerc/sushiswap-v3-core:local
     env_file:
+      # Defaults
       - ../config/contract-sushiswap/deployment-params.env
     environment:
+      # Overrides
       ETH_RPC_ENDPOINT: ${ETH_RPC_ENDPOINT}
       CHAIN_ID: ${CHAIN_ID}
       ACCOUNT_PRIVATE_KEY: ${ACCOUNT_PRIVATE_KEY}
@@ -23,8 +25,10 @@ services:
   sushiswap-v3-periphery:
     image: cerc/sushiswap-v3-periphery:local
     env_file:
+      # Defaults
       - ../config/contract-sushiswap/deployment-params.env
     environment:
+      # Overrides
       ETH_RPC_ENDPOINT: ${ETH_RPC_ENDPOINT}
       CHAIN_ID: ${CHAIN_ID}
       ACCOUNT_PRIVATE_KEY: ${ACCOUNT_PRIVATE_KEY}

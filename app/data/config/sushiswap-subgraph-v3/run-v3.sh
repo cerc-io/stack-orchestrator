@@ -4,19 +4,19 @@ set -e
 
 # Loop until the NFPM deployment is detected
 echo "Waiting for sushiswap-periphery deployments to occur"
-while [ ! -f /app/deployments/docker/NonfungiblePositionManager.json ]; do
+while [ ! -f ./deployments/docker/NonfungiblePositionManager.json ]; do
   sleep 5
 done
 
 echo "Reading contract addresses and block numbers from deployments"
-FACTORY_ADDRESS=$(jq -r '.address' /app/core-deployments/docker/UniswapV3Factory.json)
-FACTORY_BLOCK=$(jq -r '.receipt.blockNumber' /app/core-deployments/docker/UniswapV3Factory.json)
-NATIVE_ADDRESS=$(jq -r '.address' /app/deployments/docker/WFIL.json)
-NFPM_ADDRESS=$(jq -r '.address' /app/deployments/docker/NonfungiblePositionManager.json)
-NFPM_BLOCK=$(jq -r '.receipt.blockNumber' /app/deployments/docker/NonfungiblePositionManager.json)
+FACTORY_ADDRESS=$(jq -r '.address' ./core-deployments/docker/UniswapV3Factory.json)
+FACTORY_BLOCK=$(jq -r '.receipt.blockNumber' ./core-deployments/docker/UniswapV3Factory.json)
+NATIVE_ADDRESS=$(jq -r '.address' ./deployments/docker/WFIL.json)
+NFPM_ADDRESS=$(jq -r '.address' ./deployments/docker/NonfungiblePositionManager.json)
+NFPM_BLOCK=$(jq -r '.receipt.blockNumber' ./deployments/docker/NonfungiblePositionManager.json)
 
 # Read the JavaScript file content
-file_content=$(</app/config/lotus-fixturenet.js)
+file_content=$(</app/config/lotus-fixturenet.js.template)
 
 # Replace uppercase words with environment variables
 echo "Reading values in lotus-fixturenet config"

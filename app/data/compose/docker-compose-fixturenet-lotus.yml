@@ -36,7 +36,7 @@ services:
       test: ["CMD", "nc", "-vz", "localhost", "1234"]
       interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 60
       start_period: 3s
     depends_on:
       - lotus-miner
@@ -64,7 +64,7 @@ services:
       test: ["CMD", "nc", "-vz", "localhost", "1234"]
       interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 60
       start_period: 3s
     depends_on:
       - lotus-miner

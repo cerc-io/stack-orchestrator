@@ -6,14 +6,15 @@ services:
     image: cerc/sushiswap-subgraphs:local
     restart: on-failure
     depends_on:
-      graph-node
+      graph-node:
+        condition: service_healthy
     environment:
       - APP=v3
       - NETWORK=lotus-fixturenet
-    command: ["./run-v3.sh"]
+    command: ["bash", "-c", "./run-v3.sh"]
     working_dir: /app/subgraphs/v3
     volumes:
-      - ../config/sushiswap-subgraph-v3/lotus-fixturenet.js:/app/config/lotus-fixturenet.js
+      - ../config/sushiswap-subgraph-v3/lotus-fixturenet.js.template:/app/config/lotus-fixturenet.js.template
       - ../config/sushiswap-subgraph-v3/run-v3.sh:/app/subgraphs/v3/run-v3.sh
       - sushiswap_core_deployment:/app/subgraphs/v3/core-deployments/docker
       - sushiswap_periphery_deployment:/app/subgraphs/v3/deployments/docker

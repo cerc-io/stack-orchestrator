@@ -47,6 +47,7 @@ esac
 export DEBIAN_FRONTEND=noninteractive
 
 ## https://docs.docker.com/engine/install/ubuntu/
+## https://docs.docker.com/engine/install/debian/
 ## https://superuser.com/questions/518859/ignore-packages-that-are-not-currently-installed-when-using-apt-get-remove1
 packages_to_remove="docker docker-engine docker.io containerd runc docker-compose docker-doc podman-docker"
 installed_packages_to_remove=""

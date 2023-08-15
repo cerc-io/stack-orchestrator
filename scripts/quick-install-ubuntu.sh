@@ -28,12 +28,27 @@ fi
 #   Check python3 is available
 #   Check machine resources are sufficient
 
+# Determine if we are on Debian or Ubuntu
+linux_distro=$(lsb_release -a 2>/dev/null | grep "^Distributor ID:" | cut -f 2)
+case $linux_distro in
+  Debian)
+    echo "Installing docker for Debian"
+    ;;
+  Ubuntu)
+    echo "Installing docker for Ubuntu"
+    ;;
+  *)
+    echo "ERROR: Detected unknown distribution $linux_distro, can't install docker"
+    exit 1
+    ;;
+esac
+
 # dismiss the popups
 export DEBIAN_FRONTEND=noninteractive
 
 ## https://docs.docker.com/engine/install/ubuntu/
 ## https://superuser.com/questions/518859/ignore-packages-that-are-not-currently-installed-when-using-apt-get-remove1
-packages_to_remove="docker docker-engine docker.io containerd runc"
+packages_to_remove="docker docker-engine docker.io containerd runc docker-compose docker-doc podman-docker"
 installed_packages_to_remove=""
 for package_to_remove in $(echo $packages_to_remove); do
   $(dpkg --info $package_to_remove &> /dev/null)
@@ -65,10 +80,25 @@ sudo apt -y install curl
 sudo apt -y install ca-certificates gnupg
 
 # Add dockerco package repository
-sudo mkdir -m 0755 -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+# For reasons not obvious, the dockerco instructions for installation on
+# Debian and Ubuntu are slightly different here
+case $linux_distro in
+  Debian)
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    ;;
+  Ubuntu)
+    sudo mkdir -m 0755 -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    ;;
+  *)
+    echo "ERROR: Detected unknown distribution $linux_distro, can't install docker"
+    exit 1
+    ;;
+esac
 echo \
-  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${linux_distro,,} \
   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 

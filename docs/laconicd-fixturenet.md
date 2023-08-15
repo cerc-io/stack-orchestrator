@@ -23,7 +23,7 @@ ssh root@IP
 2. Get the install script, give it executable permissions, and run it:
 
 ```
-curl -o install.sh https://raw.githubusercontent.com/cerc-io/stack-orchestrator/main/scripts/quick-install-ubuntu.sh
+curl -o install.sh https://raw.githubusercontent.com/cerc-io/stack-orchestrator/main/scripts/quick-install-linux.sh
 ```
 ```
 chmod +x install.sh

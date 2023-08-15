@@ -39,17 +39,20 @@ class SetupPhase(Enum):
     ILLEGAL = 3
 
 
-def _get_chain_id_from_config():
+def _config_toml_path(network_dir: Path):
+    return network_dir.joinpath("config","client.toml")
+
+def _get_chain_id_from_config(network_dir: Path):
     chain_id = None
-    with open("laconic-network-dir/config/client.toml", "rb") as f:
+    with open(_config_toml_path(network_dir), "rb") as f:
         toml_dict = tomli.load(f)
         chain_id = toml_dict["chain-id"]
     return chain_id
 
 
-def _get_node_moniker_from_config():
+def _get_node_moniker_from_config(network_dir: Path):
     moniker = None
-    with open("laconic-network-dir/config/config.toml", "rb") as f:
+    with open(_config_toml_path(network_dir), "rb") as f:
         toml_dict = tomli.load(f)
         moniker = toml_dict["moniker"]
     return moniker
@@ -110,7 +113,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             print(f"Error: network directory {network_dir} doesn't exist")
             sys.exit(1)
         # Get the chain_id from the config file created in the INITIALIZE phase
-        chain_id = _get_chain_id_from_config()
+        chain_id = _get_chain_id_from_config(network_dir)
 
         output1, status1 = run_container_command(
             command_context, "laconicd", f"laconicd keys add {parameters.key_name} --home {laconicd_home_path_in_container} --keyring-backend test", mounts)

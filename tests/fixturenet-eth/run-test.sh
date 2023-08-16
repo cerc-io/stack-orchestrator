@@ -22,8 +22,8 @@ $TEST_TARGET_SO --stack fixturenet-eth deploy up
 echo "$(date +"%Y-%m-%d %T"): Stack started"
 # Verify that the fixturenet is up and running
 $TEST_TARGET_SO --stack fixturenet-eth deploy ps
-echo "$(date +"%Y-%m-%d %T"): Getting stack status"
-$TEST_TARGET_SO --stack fixturenet-eth deploy exec fixturenet-eth-bootnode-lighthouse /scripts/status-internal.sh
+# echo "$(date +"%Y-%m-%d %T"): Getting stack status"
+# $TEST_TARGET_SO --stack fixturenet-eth deploy exec fixturenet-eth-bootnode-lighthouse /scripts/status-internal.sh
 echo "$(date +"%Y-%m-%d %T"): Getting initial block number"
 initial_block_number=$($TEST_TARGET_SO --stack fixturenet-eth deploy exec foundry "cast block-number")
 # Check that the block number increases some time later

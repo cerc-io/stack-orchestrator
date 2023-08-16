@@ -27,6 +27,20 @@ from app.deploy_types import DeploymentContext, DeployCommandContext
 def _make_default_deployment_dir():
     return "deployment-001"
 
+def _get_ports(stack):
+    ports = {}
+    parsed_stack = get_parsed_stack_config(stack)
+    pods = parsed_stack["pods"]
+    yaml = get_yaml()
+    for pod in pods:
+        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        parsed_pod_file = yaml.load(open(pod_file_path, "r"))
+        if "services" in parsed_pod_file:
+            for svc_name, svc in parsed_pod_file["services"].items():
+                if "ports" in svc:
+                    # Ports can appear as strings or numbers.  We normalize them as strings.
+                    ports[svc_name] = [ str(x) for x in svc["ports"] ]
+    return ports
 
 def _get_named_volumes(stack):
     # Parse the compose files looking for named volumes
@@ -62,24 +76,30 @@ def _create_bind_dir_if_relative(volume, path_string, compose_dir):
 
 # See: https://stackoverflow.com/questions/45699189/editing-docker-compose-yml-with-pyyaml
 def _fixup_pod_file(pod, spec, compose_dir):
-    # Fix up volumes
-    if "volumes" in spec:
-        spec_volumes = spec["volumes"]
-        if "volumes" in pod:
-            pod_volumes = pod["volumes"]
-            for volume in pod_volumes.keys():
-                if volume in spec_volumes:
-                    volume_spec = spec_volumes[volume]
-                    volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
-                    _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
-                    new_volume_spec = {"driver": "local",
-                                       "driver_opts": {
-                                           "type": "none",
-                                           "device": volume_spec_fixedup,
-                                           "o": "bind"
-                                        }
+   # Fix up volumes
+   if "volumes" in spec:
+       spec_volumes = spec["volumes"]
+       if "volumes" in pod:
+           pod_volumes = pod["volumes"]
+           for volume in pod_volumes.keys():
+               if volume in spec_volumes:
+                   volume_spec = spec_volumes[volume]
+                   volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
+                   _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
+                   new_volume_spec = {"driver": "local",
+                                      "driver_opts": {
+                                          "type": "none",
+                                          "device": volume_spec_fixedup,
+                                          "o": "bind"
                                        }
-                    pod["volumes"][volume] = new_volume_spec
+                                      }
+                   pod["volumes"][volume] = new_volume_spec
+   # Fix up ports
+   if "ports" in spec:
+       spec_ports = spec["ports"]
+       for container_name, container_ports in spec_ports.items():
+           if container_name in pod["services"]:
+               pod["services"][container_name]["ports"] = container_ports
 
 
 def call_stack_deploy_init(deploy_command_context):
@@ -148,12 +168,18 @@ def init(ctx, output):
         spec_file_content.update(default_spec_file_content)
     if verbose:
         print(f"Creating spec file for stack: {stack}")
+
+    ports = _get_ports(stack)
+    if ports:
+        spec_file_content["ports"] = ports
+
     named_volumes = _get_named_volumes(stack)
     if named_volumes:
         volume_descriptors = {}
         for named_volume in named_volumes:
             volume_descriptors[named_volume] = f"./data/{named_volume}"
         spec_file_content["volumes"] = volume_descriptors
+
     with open(output, "w") as output_file:
         yaml.dump(spec_file_content, output_file)
 

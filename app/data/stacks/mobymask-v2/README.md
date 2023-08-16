@@ -93,7 +93,7 @@ Follow the [demo](./demo.md) to try out the MobyMask app with L2 chain
 
 ## Clean up
 
-Stop all the services running in background run:
+Stop all the services running in background:
 
 ```bash
 laconic-so --stack mobymask-v2 deploy --cluster mobymask_v2 down 30

@@ -23,7 +23,7 @@ ssh root@IP
 2. Get the install script, give it executable permissions, and run it:
 
 ```
-curl -o install.sh https://raw.githubusercontent.com/cerc-io/stack-orchestrator/main/scripts/quick-install-ubuntu.sh
+curl -o install.sh https://raw.githubusercontent.com/cerc-io/stack-orchestrator/main/scripts/quick-install-linux.sh
 ```
 ```
 chmod +x install.sh
@@ -52,7 +52,7 @@ laconic-so version
 1. Get the repositories
 
 ```
-laconic-so --stack fixturenet-laconic-loaded setup-repositories --include cerc-io/laconicd,cerc-io/laconic-sdk,cerc-io/laconic-registry-cli,cerc-io/laconic-console
+laconic-so --stack fixturenet-laconic-loaded setup-repositories --include github.com/cerc-io/laconicd,github.com/cerc-io/laconic-sdk,github.com/cerc-io/laconic-registry-cli,github.com/cerc-io/laconic-console
 ```
 
 2. Set this environment variable to the Laconic self-hosted Gitea instance:
@@ -106,6 +106,37 @@ laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF indexed
 
 ```
 laconic-so --stack fixturenet-laconic-loaded deploy exec cli "laconic cns status"
+```
+
+```
+{
+  "version": "0.3.0",
+  "node": {
+    "id": "4216af2ac9f68bda33a38803fc1b5c9559312c1d",
+    "network": "laconic_9000-1",
+    "moniker": "localtestnet"
+  },
+  "sync": {
+    "latest_block_hash": "1BDF4CB9AE2390DA65BCF997C83133C18014FCDDCAE03708488F0B56FCEEA429",
+    "latest_block_height": "5",
+    "latest_block_time": "2023-08-09 16:00:30.386903172 +0000 UTC",
+    "catching_up": false
+  },
+  "validator": {
+    "address": "651FBC700B747C76E90ACFC18CC9508C3D0905B9",
+    "voting_power": "1000000000000000"
+  },
+  "validators": [
+    {
+      "address": "651FBC700B747C76E90ACFC18CC9508C3D0905B9",
+      "voting_power": "1000000000000000",
+      "proposer_priority": "0"
+    }
+  ],
+  "num_peers": "0",
+  "peers": [],
+  "disk_usage": "292.0K"
+}
 ```
 
 ## Configure Digital Ocean firewall

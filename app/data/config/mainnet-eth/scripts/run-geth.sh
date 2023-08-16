@@ -23,6 +23,8 @@ cleanup() {
     echo "Done"
 }
 
+trap 'cleanup' SIGINT SIGTERM
+
 $START_CMD \
     --datadir="${CERC_ETH_DATADIR}" \
     --authrpc.addr="0.0.0.0" \

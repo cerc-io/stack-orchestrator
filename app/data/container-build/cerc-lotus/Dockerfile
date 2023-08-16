@@ -1,5 +1,5 @@
 #####################################
-FROM golang:1.19.7-buster AS lotus-builder
+FROM golang:1.19.12-bullseye AS lotus-builder
 MAINTAINER Lotus Development Team
 
 RUN apt-get update && apt-get install -y ca-certificates build-essential clang ocl-icd-opencl-dev ocl-icd-libopencl1 jq libhwloc-dev
@@ -59,7 +59,7 @@ COPY --from=lotus-builder /lib/*/libgcc_s.so.1      /lib/
 COPY --from=lotus-builder /lib/*/libutil.so.1       /lib/
 COPY --from=lotus-builder /usr/lib/*/libltdl.so.7   /lib/
 COPY --from=lotus-builder /usr/lib/*/libnuma.so.1   /lib/
-COPY --from=lotus-builder /usr/lib/*/libhwloc.so.5  /lib/
+COPY --from=lotus-builder /usr/lib/*/libhwloc.so.*  /lib/
 COPY --from=lotus-builder /usr/lib/*/libOpenCL.so.1 /lib/
 
 RUN useradd -r -u 532 -U fc \
@@ -97,6 +97,9 @@ CMD ["-help"]
 
 #####################################
 FROM lotus-base AS lotus-all-in-one
+
+# Install netcat for healthcheck
+RUN apt-get update && apt-get install -y netcat && apt-get install -y iproute2
 
 ENV FILECOIN_PARAMETER_CACHE /var/tmp/filecoin-proof-parameters
 ENV LOTUS_MINER_PATH /var/lib/lotus-miner

@@ -42,4 +42,5 @@ fi
 $TEST_TARGET_SO --stack fixturenet-eth deploy down
 echo "$(date +"%Y-%m-%d %T"): Removing cloned repositories"
 rm -rf $CERC_REPO_BASE_DIR
+echo "$(date +"%Y-%m-%d %T"): Test finished"
 exit $test_result

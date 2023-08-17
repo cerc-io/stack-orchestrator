@@ -37,6 +37,8 @@ if [[ $block_number_difference -gt 1 && $block_number_difference -lt 10 ]]; then
   test_result=0
 else
   echo "Test failed: block numbers were ${initial_block_number} and ${subsequent_block_number}"
+  echo "Logs from stack:"
+  $TEST_TARGET_SO --stack fixturenet-eth deploy logs
   test_result=1
 fi
 $TEST_TARGET_SO --stack fixturenet-eth deploy down

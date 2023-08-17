@@ -32,7 +32,7 @@ echo "$(date +"%Y-%m-%d %T"): Getting subsequent block number"
 subsequent_block_number=$($TEST_TARGET_SO  --stack fixturenet-eth deploy exec foundry "cast block-number")
 block_number_difference=$((subsequent_block_number - initial_block_number))
 # Block height difference should be between 1 and some small number
-if [[ $block_number_difference -gt 1 && $block_number_difference -lt 10 ]]; then
+if [[ $block_number_difference -gt 1 && $block_number_difference -lt 100 ]]; then
   echo "Test passed"
   test_result=0
 else

@@ -30,6 +30,21 @@ fi
 
 # Determine if we are on Debian or Ubuntu
 linux_distro=$(lsb_release -a 2>/dev/null | grep "^Distributor ID:" | cut -f 2)
+# Some systems don't have lsb_release installed (e.g. ChromeOS) and so we try to
+# use /etc/os-release instead
+if [[ -z "$linux_distro" ]]; then
+  if [[ -f "/etc/os-release" ]]; then
+    distro_name_string=$(grep "^NAME=" /etc/os-release | cut -d '=' -f 2)
+    if [[ $distro_name_string =~ Debian ]]; then
+      linux_distro="Debian"
+    elif [[ $distro_name_string =~ Ubuntu ]]; then
+      linux_distro="Ubuntu"
+    fi
+  else
+    echo "Failed to identify distro: /etc/os-release doesn't exist"
+    exit 1
+  fi
+fi
 case $linux_distro in
   Debian)
     echo "Installing docker for Debian"

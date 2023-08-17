@@ -27,7 +27,7 @@ $TEST_TARGET_SO --stack fixturenet-eth deploy ps
 echo "$(date +"%Y-%m-%d %T"): Getting initial block number"
 initial_block_number=$($TEST_TARGET_SO --stack fixturenet-eth deploy exec foundry "cast block-number")
 # Check that the block number increases some time later
-sleep 24
+sleep 120
 echo "$(date +"%Y-%m-%d %T"): Getting subsequent block number"
 subsequent_block_number=$($TEST_TARGET_SO  --stack fixturenet-eth deploy exec foundry "cast block-number")
 block_number_difference=$((subsequent_block_number - initial_block_number))

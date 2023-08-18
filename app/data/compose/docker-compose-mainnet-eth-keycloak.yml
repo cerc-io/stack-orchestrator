@@ -31,5 +31,21 @@ services:
       keycloak-db:
         condition: service_healthy
 
+  keycloak-reg-ui:
+    image: cerc/keycloak-reg-ui:local
+    env_file:
+      - ../config/mainnet-eth-keycloak/keycloak.env
+    volumes:
+      - ../config/mainnet-eth-keycloak/ui:/config
+    ports:
+      - 80
+
+  keycloak-reg-api:
+    image: cerc/keycloak-reg-api:local
+    env_file:
+      - ../config/mainnet-eth-keycloak/keycloak.env
+    ports:
+      - 9292
+
 volumes:
   mainnet_eth_keycloak_db:

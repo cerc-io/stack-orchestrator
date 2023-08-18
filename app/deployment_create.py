@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
-from dataclasses import dataclass
 from importlib import util
 import os
 from pathlib import Path
@@ -26,6 +25,7 @@ from app.deploy_types import DeploymentContext, DeployCommandContext
 
 def _make_default_deployment_dir():
     return "deployment-001"
+
 
 def _get_ports(stack):
     ports = {}
@@ -41,6 +41,7 @@ def _get_ports(stack):
                     # Ports can appear as strings or numbers.  We normalize them as strings.
                     ports[svc_name] = [ str(x) for x in svc["ports"] ]
     return ports
+
 
 def _get_named_volumes(stack):
     # Parse the compose files looking for named volumes
@@ -76,30 +77,30 @@ def _create_bind_dir_if_relative(volume, path_string, compose_dir):
 
 # See: https://stackoverflow.com/questions/45699189/editing-docker-compose-yml-with-pyyaml
 def _fixup_pod_file(pod, spec, compose_dir):
-   # Fix up volumes
-   if "volumes" in spec:
-       spec_volumes = spec["volumes"]
-       if "volumes" in pod:
-           pod_volumes = pod["volumes"]
-           for volume in pod_volumes.keys():
-               if volume in spec_volumes:
-                   volume_spec = spec_volumes[volume]
-                   volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
-                   _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
-                   new_volume_spec = {"driver": "local",
-                                      "driver_opts": {
+    # Fix up volumes
+    if "volumes" in spec:
+        spec_volumes = spec["volumes"]
+        if "volumes" in pod:
+            pod_volumes = pod["volumes"]
+            for volume in pod_volumes.keys():
+                if volume in spec_volumes:
+                    volume_spec = spec_volumes[volume]
+                    volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
+                    _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
+                    new_volume_spec = {"driver": "local",
+                                       "driver_opts": {
                                           "type": "none",
                                           "device": volume_spec_fixedup,
                                           "o": "bind"
                                        }
-                                      }
-                   pod["volumes"][volume] = new_volume_spec
-   # Fix up ports
-   if "ports" in spec:
-       spec_ports = spec["ports"]
-       for container_name, container_ports in spec_ports.items():
-           if container_name in pod["services"]:
-               pod["services"][container_name]["ports"] = container_ports
+                                       }
+                    pod["volumes"][volume] = new_volume_spec
+    # Fix up ports
+    if "ports" in spec:
+        spec_ports = spec["ports"]
+        for container_name, container_ports in spec_ports.items():
+            if container_name in pod["services"]:
+                pod["services"][container_name]["ports"] = container_ports
 
 
 def call_stack_deploy_init(deploy_command_context):
@@ -107,10 +108,13 @@ def call_stack_deploy_init(deploy_command_context):
     # Call a function in it
     # If no function found, return None
     python_file_path = get_stack_file_path(deploy_command_context.stack).parent.joinpath("deploy", "commands.py")
-    spec = util.spec_from_file_location("commands", python_file_path)
-    imported_stack = util.module_from_spec(spec)
-    spec.loader.exec_module(imported_stack)
-    return imported_stack.init(deploy_command_context)
+    if python_file_path.exists():
+        spec = util.spec_from_file_location("commands", python_file_path)
+        imported_stack = util.module_from_spec(spec)
+        spec.loader.exec_module(imported_stack)
+        return imported_stack.init(deploy_command_context)
+    else:
+        return None
 
 
 # TODO: fold this with function above
@@ -119,10 +123,13 @@ def call_stack_deploy_setup(deploy_command_context, extra_args):
     # Call a function in it
     # If no function found, return None
     python_file_path = get_stack_file_path(deploy_command_context.stack).parent.joinpath("deploy", "commands.py")
-    spec = util.spec_from_file_location("commands", python_file_path)
-    imported_stack = util.module_from_spec(spec)
-    spec.loader.exec_module(imported_stack)
-    return imported_stack.setup(deploy_command_context, extra_args)
+    if python_file_path.exists():
+        spec = util.spec_from_file_location("commands", python_file_path)
+        imported_stack = util.module_from_spec(spec)
+        spec.loader.exec_module(imported_stack)
+        return imported_stack.setup(deploy_command_context, extra_args)
+    else:
+        return None
 
 
 # TODO: fold this with function above
@@ -131,10 +138,13 @@ def call_stack_deploy_create(deployment_context):
     # Call a function in it
     # If no function found, return None
     python_file_path = get_stack_file_path(deployment_context.command_context.stack).parent.joinpath("deploy", "commands.py")
-    spec = util.spec_from_file_location("commands", python_file_path)
-    imported_stack = util.module_from_spec(spec)
-    spec.loader.exec_module(imported_stack)
-    return imported_stack.create(deployment_context)
+    if python_file_path.exists():
+        spec = util.spec_from_file_location("commands", python_file_path)
+        imported_stack = util.module_from_spec(spec)
+        spec.loader.exec_module(imported_stack)
+        return imported_stack.create(deployment_context)
+    else:
+        return None
 
 
 # Inspect the pod yaml to find config files referenced in subdirectories

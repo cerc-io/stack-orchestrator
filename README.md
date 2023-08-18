@@ -6,7 +6,7 @@ Stack Orchestrator allows building and deployment of a Laconic Stack on a single
 
 ## Install
 
-**To get started quickly** on a fresh Ubuntu instance (e.g, Digital Ocean); [try this script](./scripts/quick-install-ubuntu.sh). **WARNING:** always review scripts prior to running them so that you know what is happening on your machine.
+**To get started quickly** on a fresh Ubuntu instance (e.g, Digital Ocean); [try this script](./scripts/quick-install-linux.sh). **WARNING:** always review scripts prior to running them so that you know what is happening on your machine.
 
 For any other installation, follow along below and **adapt these instructions based on the specifics of your system.**
 

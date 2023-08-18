@@ -2,9 +2,11 @@ version: "1.0"
 name: fixturenet-graph-node
 description: "A graph-node fixturenet"
 repos:
+  - github.com/filecoin-project/lotus
   - github.com/graphprotocol/graph-node
 containers:
+  - cerc/lotus
   - cerc/graph-node
 pods:
+  - fixturenet-lotus
   - fixturenet-graph-node
-

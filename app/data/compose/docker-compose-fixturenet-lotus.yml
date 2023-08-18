@@ -10,7 +10,8 @@ services:
       - ../config/fixturenet-lotus/setup-miner.sh:/docker-entrypoint-scripts.d/setup-miner.sh
       - ../config/fixturenet-lotus/fund-account.sh:/fund-account.sh
       - lotus_miner_params:/var/tmp/filecoin-proof-parameters
-      - lotus-shared:/root/.lotus-shared
+      - lotus_shared:/root/.lotus-shared
+      - lotus_miner_data:/root/data
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-miner.sh"]
     ports:
       - "1234"
@@ -29,12 +30,13 @@ services:
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
       - lotus_node_1_params:/var/tmp/filecoin-proof-parameters
-      - lotus-shared:/root/.lotus-shared
+      - lotus_shared:/root/.lotus-shared
+      - lotus_node_1_data:/root/data
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "1234"]
       interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 60
       start_period: 3s
     depends_on:
       - lotus-miner
@@ -56,12 +58,13 @@ services:
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
       - lotus_node_2_params:/var/tmp/filecoin-proof-parameters
-      - lotus-shared:/root/.lotus-shared
+      - lotus_shared:/root/.lotus-shared
+      - lotus_node_2_data:/root/data
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "1234"]
       interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 60
       start_period: 3s
     depends_on:
       - lotus-miner
@@ -76,4 +79,7 @@ volumes:
   lotus_miner_params:
   lotus_node_1_params:
   lotus_node_2_params:
-  lotus-shared:
+  lotus_shared:
+  lotus_miner_data:
+  lotus_node_1_data:
+  lotus_node_2_data:

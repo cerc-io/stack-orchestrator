@@ -8,6 +8,17 @@ Clone required repositories:
 laconic-so --stack sushiswap-subgraph setup-repositories
 ```
 
+Checkout to a non-default branch in the cloned repos if required:
+
+```bash
+# Default repo base dir
+cd ~/cerc
+
+# Example
+cd graph-node
+git checkout <your-branch>
+```
+
 Build the container images:
 
 ```bash

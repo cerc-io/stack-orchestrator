@@ -1,26 +1,23 @@
-name: Smoke Test
+name: Fixturenet-Eth-Plugeth-Test
 
 on:
-  pull_request:
-    branches: '*'
   push:
-    branches:
-      - main
-      - ci-test
+    branches: 'ci-test'
 
 # Needed until we can incorporate docker startup into the executor container
 env:
   DOCKER_HOST: unix:///var/run/dind.sock
 
+
 jobs:
   test:
-    name: "Run basic test suite"
+    name: "Run an Ethereum plugeth fixturenet test"
     runs-on: ubuntu-latest
     steps:
       - name: "Clone project repository"
         uses: actions/checkout@v3
       - name: "Install Python"
-        uses: actions/setup-python@v4
+        uses: cerc-io/setup-python@v4
         with:
           python-version: '3.8'
       - name: "Print Python version"
@@ -35,6 +32,5 @@ jobs:
         run: |
           dockerd -H $DOCKER_HOST --userland-proxy=false &
           sleep 5
-      - name: "Run smoke tests"
-        run: ./tests/smoke-test/run-smoke-test.sh
-
+      - name: "Run fixturenet-eth tests"
+        run: ./tests/fixturenet-eth-plugeth/run-test.sh

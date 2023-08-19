@@ -40,7 +40,7 @@ services:
     restart: always
     hostname: mainnet-eth-lighthouse-1
     healthcheck:
-      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8001/eth/v2/beacon/blocks/head"]
+      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:5052/eth/v2/beacon/blocks/head"]
       interval: 30s
       timeout: 10s
       retries: 10

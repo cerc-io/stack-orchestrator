@@ -29,7 +29,10 @@ set -e
 # Write the replaced content back to the JavaScript file
 # echo "$replaced_content" > /app/config/lotus-fixturenet.js
 
-echo "Building subgraph and deploying to graph-node..."
+echo "Building v3 subgraph and deploying to graph-node..."
+
+cd v3
+
 pnpm run generate
 pnpm run build
 

@@ -20,5 +20,10 @@ module.exports = {
     ],
     // TODO: Check value
     minimumEthLocked: 1.5
-  }
+  },
+  blocks: {
+    // https://github.com/sushiswap/subgraphs/blob/master/config/filecoin.js
+    address: '0x719e14fcb364bb05649bd525eb6c4a2d0d4ea2b7',
+    startBlock: 2867000,
+  },
 }

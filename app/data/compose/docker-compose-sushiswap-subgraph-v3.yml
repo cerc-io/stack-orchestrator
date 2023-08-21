@@ -12,12 +12,13 @@ services:
       - APP=v3
       # - NETWORK=lotus-fixturenet
       - NETWORK=filecoin
-    command: ["bash", "-c", "./run-v3.sh"]
-    working_dir: /app/subgraphs/v3
+    command: ["bash", "-c", "./v3/run-v3.sh && ./blocks/run-blocks.sh"]
+    working_dir: /app/subgraphs
     volumes:
       - ../config/sushiswap-subgraph-v3/filecoin.js:/app/config/filecoin.js
       # - ../config/sushiswap-subgraph-v3/lotus-fixturenet.js.template:/app/config/lotus-fixturenet.js.template
       - ../config/sushiswap-subgraph-v3/run-v3.sh:/app/subgraphs/v3/run-v3.sh
+      - ../config/sushiswap-subgraph-v3/run-blocks.sh:/app/subgraphs/blocks/run-blocks.sh
       # - sushiswap_core_deployment:/app/subgraphs/v3/core-deployments/docker
       # - sushiswap_periphery_deployment:/app/subgraphs/v3/deployments/docker
     extra_hosts:

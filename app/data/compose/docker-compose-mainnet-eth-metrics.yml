@@ -6,6 +6,8 @@ services:
     depends_on:
       mainnet-eth-geth-1:
         condition: service_healthy
+    env_file:
+      - ../config/mainnet-eth-metrics/metrics.env
     volumes:
       - ../config/mainnet-eth-metrics/prometheus/etc:/etc/prometheus
     ports:
@@ -13,8 +15,8 @@ services:
   grafana:
     restart: always
     image: grafana/grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=changeme6325
+    env_file:
+      - ../config/mainnet-eth-metrics/metrics.env
     volumes:
       - ../config/mainnet-eth-metrics/grafana/etc/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ../config/mainnet-eth-metrics/grafana/etc/provisioning/datasources:/etc/grafana/provisioning/datasources

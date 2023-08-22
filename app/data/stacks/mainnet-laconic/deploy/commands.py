@@ -143,7 +143,8 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
 
         output, status = run_container_command(
             command_context,
-            "laconicd", f"laconicd init {parameters.node_moniker} --home {laconicd_home_path_in_container} --chain-id {parameters.chain_id}", mounts)
+            "laconicd", f"laconicd init {parameters.node_moniker} --home {laconicd_home_path_in_container}\
+                --chain-id {parameters.chain_id}", mounts)
         print(f"Command output: {output}")
 
     elif phase == SetupPhase.JOIN:
@@ -154,18 +155,21 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         chain_id = _get_chain_id_from_config(network_dir)
 
         output1, status1 = run_container_command(
-            command_context, "laconicd", f"laconicd keys add {parameters.key_name} --home {laconicd_home_path_in_container} --keyring-backend test", mounts)
+            command_context, "laconicd", f"laconicd keys add {parameters.key_name} --home {laconicd_home_path_in_container}\
+                --keyring-backend test", mounts)
         print(f"Command output: {output1}")
         output2, status2 = run_container_command(
             command_context, 
             "laconicd",
-            f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000achk --home {laconicd_home_path_in_container} --keyring-backend test",
+            f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000achk\
+                --home {laconicd_home_path_in_container} --keyring-backend test",
             mounts)
         print(f"Command output: {output2}")
         output3, status3 = run_container_command(
             command_context, 
             "laconicd",
-            f"laconicd gentx  {parameters.key_name} 90000000000achk --home {laconicd_home_path_in_container} --chain-id {chain_id} --keyring-backend test",
+            f"laconicd gentx  {parameters.key_name} 90000000000achk --home {laconicd_home_path_in_container}\
+                --chain-id {chain_id} --keyring-backend test",
             mounts)
         print(f"Command output: {output3}")
         output4, status4 = run_container_command(

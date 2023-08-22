@@ -46,4 +46,13 @@ do
     gentx_files+=${delimeter}${node_gentx_file}
     delimeter=","
 done
+# Generate the genesis file on node 1
 laconic-so --stack mainnet-laconic deploy setup --network-dir ${node_dir_prefix}1 --create-network --gentx-files ${gentx_files}
+genesis_file=${node_dir_prefix}1/config/genesis.json
+# Now import the genesis file to the other nodes
+for (( i=2 ; i<=$node_count ; i++ ));
+do
+    echo "Importing genesis.json into node ${i}"
+    node_network_dir=${node_dir_prefix}${i}
+    laconic-so --stack mainnet-laconic deploy setup --network-dir ${node_network_dir} --create-network --genesis-file ${genesis_file}
+done

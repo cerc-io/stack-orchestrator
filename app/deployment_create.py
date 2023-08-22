@@ -258,14 +258,15 @@ def create(ctx, spec_file, deployment_dir):
 @click.option("--chain-id", help="The new chain id")
 @click.option("--key-name", help="Name for new node key")
 @click.option("--gentx-files", help="List of comma-delimited gentx filenames from other nodes")
+@click.option("--genesis-file", help="Genesis file for the network")
 @click.option("--initialize-network", is_flag=True, default=False, help="Initialize phase")
 @click.option("--join-network", is_flag=True, default=False, help="Join phase")
 @click.option("--create-network", is_flag=True, default=False, help="Create phase")
 @click.option("--network-dir", required=True, help="Directory for network files")
 @click.argument('extra_args', nargs=-1)
 @click.pass_context
-def setup(ctx, node_moniker, chain_id, key_name, gentx_files, initialize_network, join_network, create_network, network_dir,
-          extra_args):
+def setup(ctx, node_moniker, chain_id, key_name, gentx_files, genesis_file, initialize_network, join_network, create_network,
+          network_dir, extra_args):
     parmeters = LaconicStackSetupCommand(chain_id, node_moniker, key_name, initialize_network, join_network, create_network,
-                                         gentx_files, network_dir)
+                                         gentx_files, genesis_file, network_dir)
     call_stack_deploy_setup(ctx.obj, parmeters, extra_args)

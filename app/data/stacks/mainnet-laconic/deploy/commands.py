@@ -180,21 +180,33 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             print(f"Error: network directory {network_dir} doesn't exist")
             sys.exit(1)
 
-        # First look in the supplied gentx files for the other nodes' keys
-        other_node_keys = _get_node_keys_from_gentx_files(options, parameters.gentx_file_list)
-        # Add those keys to our genesis, with balances we determine here (why?)
-        for other_node_key in other_node_keys:
-            outputk, statusk = run_container_command(
-                command_context, "laconicd", f"laconicd add-genesis-account {other_node_key} 12900000000000000000000achk\
-                    --home {laconicd_home_path_in_container} --keyring-backend test", mounts)
-        print(f"Command output: {outputk}")
-        # Copy the gentx json files into our network dir
-        _copy_gentx_files(options, network_dir, parameters.gentx_file_list)
-        # Now we can run collect-gentxs
-
-        output1, status1 = run_container_command(
-            command_context, "laconicd", f"laconicd collect-gentxs --home {laconicd_home_path_in_container}", mounts)
-        print(f"Command output: {output1}")
+        # In the CREATE phase, we are either a "coordinator" node, generating the genesis.json file ourselves
+        # OR we are a "not-coordinator" node, consuming a genesis file we got from the coordinator node.
+        if parameters.genesis_file:
+            # We got the genesis file from elsewhere
+            # Copy it into our network dir
+            genesis_file_path = Path(parameters.genesis_file)
+            if not os.path.exists(genesis_file_path):
+                print(f"Error: supplied genesis file: {parameters.genesis_file} does not exist.")
+                sys.exit(1)
+            copyfile(genesis_file_path, os.path.join(network_dir, "config", os.path.basename(genesis_file_path)))
+        else:
+            # We're generating the genesis file
+            # First look in the supplied gentx files for the other nodes' keys
+            other_node_keys = _get_node_keys_from_gentx_files(options, parameters.gentx_file_list)
+            # Add those keys to our genesis, with balances we determine here (why?)
+            for other_node_key in other_node_keys:
+                outputk, statusk = run_container_command(
+                    command_context, "laconicd", f"laconicd add-genesis-account {other_node_key} 12900000000000000000000achk\
+                        --home {laconicd_home_path_in_container} --keyring-backend test", mounts)
+            print(f"Command output: {outputk}")
+            # Copy the gentx json files into our network dir
+            _copy_gentx_files(options, network_dir, parameters.gentx_file_list)
+            # Now we can run collect-gentxs
+            output1, status1 = run_container_command(
+                command_context, "laconicd", f"laconicd collect-gentxs --home {laconicd_home_path_in_container}", mounts)
+            print(f"Command output: {output1}")
+        # In both cases we validate the genesis file now
         output2, status1 = run_container_command(
             command_context, "laconicd", f"laconicd validate-genesis --home {laconicd_home_path_in_container}", mounts)
         print(f"Command output: {output2}")

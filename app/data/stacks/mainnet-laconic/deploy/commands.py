@@ -20,7 +20,7 @@ from app.deploy_util import VolumeMapping, run_container_command
 from app.command_types import CommandOptions
 from enum import Enum
 from pathlib import Path
-from shutil import copyfile
+from shutil import copyfile, copytree
 import json
 import os
 import sys
@@ -145,7 +145,8 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             command_context,
             "laconicd", f"laconicd init {parameters.node_moniker} --home {laconicd_home_path_in_container}\
                 --chain-id {parameters.chain_id}", mounts)
-        print(f"Command output: {output}")
+        if options.debug:
+            print(f"Command output: {output}")
 
     elif phase == SetupPhase.JOIN:
         if not os.path.exists(network_dir):
@@ -157,16 +158,17 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         output1, status1 = run_container_command(
             command_context, "laconicd", f"laconicd keys add {parameters.key_name} --home {laconicd_home_path_in_container}\
                 --keyring-backend test", mounts)
-        print(f"Command output: {output1}")
+        if options.debug:
+            print(f"Command output: {output1}")
         output2, status2 = run_container_command(
-            command_context, 
+            command_context,
             "laconicd",
             f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000achk\
                 --home {laconicd_home_path_in_container} --keyring-backend test",
             mounts)
         print(f"Command output: {output2}")
         output3, status3 = run_container_command(
-            command_context, 
+            command_context,
             "laconicd",
             f"laconicd gentx  {parameters.key_name} 90000000000achk --home {laconicd_home_path_in_container}\
                 --chain-id {chain_id} --keyring-backend test",
@@ -210,17 +212,31 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             output1, status1 = run_container_command(
                 command_context, "laconicd", f"laconicd collect-gentxs --home {laconicd_home_path_in_container}", mounts)
             print(f"Command output: {output1}")
+            print(f"Generated genesis file, please copy to other nodes as required: \
+                {os.path.join(network_dir, 'config', 'genesis.json')}")
         # In both cases we validate the genesis file now
         output2, status1 = run_container_command(
             command_context, "laconicd", f"laconicd validate-genesis --home {laconicd_home_path_in_container}", mounts)
         print(f"Command output: {output2}")
+
     else:
         print("Illegal parameters supplied")
         sys.exit(1)
 
 
-def create(command_context: DeployCommandContext):
-    print("Copy the network files here")
+def create(command_context: DeployCommandContext, extra_args):
+    network_dir = extra_args
+    if network_dir is None:
+        print("Error: --network-dir must be supplied")
+        sys.exit(1)
+    network_dir_path = Path(network_dir)
+    if not (network_dir_path.exists() and network_dir_path.is_dir()):
+        print(f"Error: supplied network directory does not exist: {network_dir}")
+        sys.exit(1)
+    # Copy the network directory contents into our deployment
+    # TODO: change this to work with non local paths
+    deployment_config_dir = command_context.deployment_dir.joinpath("data", "laconicd-config")
+    copytree(network_dir_path, deployment_config_dir, dirs_exist_ok=True)
 
 
 def init(command_context: DeployCommandContext):

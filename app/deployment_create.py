@@ -134,7 +134,7 @@ def call_stack_deploy_setup(deploy_command_context, parameters: LaconicStackSetu
 
 
 # TODO: fold this with function above
-def call_stack_deploy_create(deployment_context):
+def call_stack_deploy_create(deployment_context, extra_args):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
@@ -143,7 +143,7 @@ def call_stack_deploy_create(deployment_context):
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
         spec.loader.exec_module(imported_stack)
-        return imported_stack.create(deployment_context)
+        return imported_stack.create(deployment_context, extra_args)
     else:
         return None
 
@@ -198,8 +198,10 @@ def init(ctx, output):
 @click.command()
 @click.option("--spec-file", required=True, help="Spec file to use to create this deployment")
 @click.option("--deployment-dir", help="Create deployment files in this directory")
+# TODO: Hack
+@click.option("--network-dir", help="Network configuration supplied in this directory")
 @click.pass_context
-def create(ctx, spec_file, deployment_dir):
+def create(ctx, spec_file, deployment_dir, network_dir):
     # This function fails with a useful error message if the file doens't exist
     parsed_spec = get_parsed_deployment_spec(spec_file)
     stack_name = parsed_spec['stack']
@@ -247,7 +249,7 @@ def create(ctx, spec_file, deployment_dir):
     deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext(Path(deployment_dir), deployment_command_context)
-    call_stack_deploy_create(deployment_context)
+    call_stack_deploy_create(deployment_context, network_dir)
 
 
 # TODO: this code should be in the stack .py files but

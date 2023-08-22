@@ -17,8 +17,11 @@ from app.util import get_yaml
 from app.deploy_types import DeployCommandContext, LaconicStackSetupCommand
 from app.stack_state import State
 from app.deploy_util import VolumeMapping, run_container_command
+from app.command_types import CommandOptions
 from enum import Enum
 from pathlib import Path
+from shutil import copyfile
+import json
 import os
 import sys
 import tomli
@@ -59,9 +62,44 @@ def _get_node_moniker_from_config(network_dir: Path):
     return moniker
 
 
+def _get_node_key_from_gentx(options: CommandOptions, gentx_file_name: str):
+    gentx_file_path = Path(gentx_file_name)
+    if gentx_file_path.exists():
+        with open(Path(gentx_file_name), "rb") as f:
+            parsed_json = json.load(f)
+            return parsed_json['body']['messages'][0]['delegator_address']
+    else:
+        print(f"Error: gentx file: {gentx_file_name} does not exist")
+        sys.exit(1)
+
+
+def _comma_delimited_to_list(list_str: str):
+    return list_str.split(",") if list_str else []
+
+
+def _get_node_keys_from_gentx_files(options: CommandOptions, gentx_file_list: str):
+    node_keys = []
+    gentx_files = _comma_delimited_to_list(gentx_file_list)
+    for gentx_file in gentx_files:
+        node_key = _get_node_key_from_gentx(options, gentx_file)
+        if node_key:
+            node_keys.append(node_key)
+    return node_keys
+
+
+def _copy_gentx_files(options: CommandOptions, network_dir: Path, gentx_file_list: str):
+    gentx_files = _comma_delimited_to_list(gentx_file_list)
+    for gentx_file in gentx_files:
+        gentx_file_path = Path(gentx_file)
+        copyfile(gentx_file_path, os.path.join(network_dir, "config", "gentx", os.path.basename(gentx_file_path)))
+
+
 def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCommand, extra_args):
 
-    print(f"parameters: {parameters}")
+    options = command_context.cluster_context.options
+
+    if options.debug:
+        print(f"parameters: {parameters}")
 
     phase = SetupPhase.ILLEGAL
 
@@ -141,6 +179,18 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         if not os.path.exists(network_dir):
             print(f"Error: network directory {network_dir} doesn't exist")
             sys.exit(1)
+
+        # First look in the supplied gentx files for the other nodes' keys
+        other_node_keys = _get_node_keys_from_gentx_files(options, parameters.gentx_file_list)
+        # Add those keys to our genesis, with balances we determine here (why?)
+        for other_node_key in other_node_keys:
+            outputk, statusk = run_container_command(
+                command_context, "laconicd", f"laconicd add-genesis-account {other_node_key} 12900000000000000000000achk\
+                    --home {laconicd_home_path_in_container} --keyring-backend test", mounts)
+        print(f"Command output: {outputk}")
+        # Copy the gentx json files into our network dir
+        _copy_gentx_files(options, network_dir, parameters.gentx_file_list)
+        # Now we can run collect-gentxs
 
         output1, status1 = run_container_command(
             command_context, "laconicd", f"laconicd collect-gentxs --home {laconicd_home_path_in_container}", mounts)

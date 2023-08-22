@@ -20,7 +20,7 @@ services:
       # TODO: Get endpoint from env
       # ethereum: 'lotus-fixturenet:http://lotus-node-1:1234/rpc/v1'
       ethereum: 'filecoin:https://archive.lotus.vdb.to/rpc/v1'
-      GRAPH_LOG: info
+      GRAPH_LOG: debug
     ports:
       - "8000"
       - "8001"

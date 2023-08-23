@@ -1,4 +1,4 @@
-# SushiSwap Graph
+# SushiSwap Subgraph
 
 ## Setup
 
@@ -75,7 +75,7 @@ After all services have started:
   # sushigraph-sushiswap-subgraph-v3-1  | Done
   ```
 
-After `graph-node` has fetched the latest blocks from upstream, use the subgraph (GQL) endpoints to for querying:
+After `graph-node` has fetched the latest blocks from upstream, use the subgraph (GQL) endpoints for querying:
 
 ```bash
 # Find out the mapped host port for the subgraph endpoint

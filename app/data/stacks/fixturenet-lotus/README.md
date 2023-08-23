@@ -19,13 +19,17 @@ Note: When running for the first time (or after clean up), the services will tak
 
 Correct operation should be verified by checking the container logs with:
 ```
-$ laconic-so --stack fixturenet-lotus deploy --cluster lotus logs lotus-miner
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus logs lotus-miner-1
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus logs lotus-miner-2
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus logs lotus-miner-3
 $ laconic-so --stack fixturenet-lotus deploy --cluster lotus logs lotus-node-1
 $ laconic-so --stack fixturenet-lotus deploy --cluster lotus logs lotus-node-2
 ```
 or by checking the chain status on each node:
 ```
-$ laconic-so --stack fixturenet-lotus deploy --cluster lotus exec lotus-miner "lotus status"
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus exec lotus-miner-1 "lotus status"
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus exec lotus-miner-2 "lotus status"
+$ laconic-so --stack fixturenet-lotus deploy --cluster lotus exec lotus-miner-3 "lotus status"
 $ laconic-so --stack fixturenet-lotus deploy --cluster lotus exec lotus-node-1 "lotus status"
 $ laconic-so --stack fixturenet-lotus deploy --cluster lotus exec lotus-node-2 "lotus status"
 ```

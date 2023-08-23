@@ -16,6 +16,7 @@
 import click
 from dataclasses import dataclass
 
+from app.command_types import CommandOptions
 from app import setup_repositories
 from app import build_containers
 from app import build_npms
@@ -24,17 +25,6 @@ from app import version
 from app import deployment
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
-
-@dataclass
-class Options:
-    stack: str
-    quiet: bool = False
-    verbose: bool = False
-    dry_run: bool = False
-    local_stack: bool = False
-    debug: bool = False
-    continue_on_error: bool = False
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -49,7 +39,7 @@ class Options:
 @click.pass_context
 def cli(ctx, stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error):
     """Laconic Stack Orchestrator"""
-    ctx.obj = Options(stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error)
+    ctx.obj = CommandOptions(stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error)
 
 
 cli.add_command(setup_repositories.command, "setup-repositories")

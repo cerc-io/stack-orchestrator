@@ -13,11 +13,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from enum import Enum
+from dataclasses import dataclass
 
 
-class State(Enum):
-    CREATED = 1
-    CONFIGURED = 2
-    STARTED = 3
-    STOPPED = 4
+@dataclass
+class CommandOptions:
+    stack: str
+    quiet: bool = False
+    verbose: bool = False
+    dry_run: bool = False
+    local_stack: bool = False
+    debug: bool = False
+    continue_on_error: bool = False

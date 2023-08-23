@@ -264,7 +264,7 @@ def create(ctx, spec_file, deployment_dir, network_dir):
 @click.option("--initialize-network", is_flag=True, default=False, help="Initialize phase")
 @click.option("--join-network", is_flag=True, default=False, help="Join phase")
 @click.option("--create-network", is_flag=True, default=False, help="Create phase")
-@click.option("--network-dir", required=True, help="Directory for network files")
+@click.option("--network-dir", help="Directory for network files")
 @click.argument('extra_args', nargs=-1)
 @click.pass_context
 def setup(ctx, node_moniker, chain_id, key_name, gentx_files, genesis_file, initialize_network, join_network, create_network,

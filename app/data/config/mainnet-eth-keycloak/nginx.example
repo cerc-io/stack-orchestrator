@@ -1,0 +1,107 @@
+server {
+    listen 80;
+    server_name my.example.com;
+
+    # See: https://github.com/acmesh-official/acme.sh/wiki/Stateless-Mode
+    # and  https://datatracker.ietf.org/doc/html/rfc8555
+    location ~ ^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$ {
+      default_type text/plain;
+      return 200 "$1.MY_ACCOUNT_THUMBPRINT_GOES_HERE";
+    }
+
+    location / {
+      return 301 https://$host$request_uri;
+    }
+}
+
+upstream geth-pool {
+  keepalive 100;
+  hash $user_id consistent;
+  server server-a:8545;
+  server server-b:8545;
+  server server-c:8545;
+}
+
+# self-reg happens on one server for clarity
+upstream reg-ui-pool {
+  keepalive 100;
+  server server-a:8085;
+}
+
+upstream reg-api-pool {
+  keepalive 100;
+  server server-a:8086;
+}
+
+# auth uses server-a if available
+upstream auth-pool {
+  keepalive 100;
+  server server-a:8080;
+  server server-b:8080 backup;
+  server server-c:8080 backup;
+}
+
+log_format upstreamlog '[$time_local] $remote_addr $user_id - $server_name $host to: $upstream_addr: $request $status upstream_response_time $upstream_response_time msec $msec request_time $request_time';
+proxy_cache_path                /var/cache/nginx/auth_cache levels=1 keys_zone=auth_cache:1m max_size=5m inactive=60m;
+server {
+    listen 443 ssl http2;
+    server_name my.example.com;
+    access_log /var/log/nginx/my.example.com-access.log upstreamlog;
+    error_log /var/log/nginx/my.example.com-error.log;
+
+    ssl_certificate /etc/nginx/ssl/my.example.com/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/my.example.com/key.pem;
+
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+
+    #rewrite ^/?$ /newuser/;
+    rewrite ^/?$ https://www.example.com/;
+
+
+    # geth-pool ETH API
+    location ~ ^/v1/eth/?([^/]*)$ {
+        set $apiKey $1;
+        if ($apiKey = '') {
+          set $apiKey $http_X_API_KEY;
+        }
+        auth_request /auth;
+        auth_request_set $user_id $sent_http_x_user_id;
+        rewrite /.*$ / break;
+
+        client_max_body_size 3m;
+        client_body_buffer_size 3m;
+        proxy_buffer_size          32k;
+        proxy_buffers              16 32k;
+        proxy_busy_buffers_size    96k;
+
+        proxy_pass  http://geth-pool;
+        proxy_set_header X-Original-Remote-Addr $remote_addr;
+        proxy_set_header X-User-Id $user_id;
+    }
+    
+    # keycloak
+    location = /auth {
+        internal;
+        proxy_cache auth_cache;
+        proxy_cache_key "$apiKey";
+        proxy_cache_valid 200 300s;
+        proxy_cache_valid 401 30s;
+        proxy_pass http://auth-pool/auth/realms/cerc/check?memberOf=eth&apiKey=$apiKey;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header X-Original-Remote-Addr $remote_addr;
+        proxy_set_header X-Original-Host $host;
+    }
+
+    location /newuser/ {
+        proxy_pass  http://reg-ui-pool/;
+    }
+
+    location /user-api/ {
+        proxy_pass  http://reg-api-pool/;
+    }
+}

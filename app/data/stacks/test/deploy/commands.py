@@ -45,7 +45,7 @@ def init(command_context: DeployCommandContext):
     return yaml.load(default_spec_file_content)
 
 
-def create(command_context: DeployCommandContext):
+def create(command_context: DeployCommandContext, extra_args):
     data = "create-command-output-data"
     output_file_path = command_context.deployment_dir.joinpath("create-file")
     with open(output_file_path, 'w+') as output_file:

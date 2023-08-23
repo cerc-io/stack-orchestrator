@@ -30,6 +30,8 @@ class DeploymentContext:
 @click.option("--dir", required=True, help="path to deployment directory")
 @click.pass_context
 def command(ctx, dir):
+    '''create a deployment'''
+
     # Check that --stack wasn't supplied
     if ctx.parent.obj.stack:
         print("Error: --stack can't be supplied with the deployment command")

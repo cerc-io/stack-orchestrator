@@ -233,10 +233,22 @@ def create(command_context: DeployCommandContext, extra_args):
     if not (network_dir_path.exists() and network_dir_path.is_dir()):
         print(f"Error: supplied network directory does not exist: {network_dir}")
         sys.exit(1)
+    config_dir_path = network_dir_path.joinpath("config")
+    if not (config_dir_path.exists() and config_dir_path.is_dir()):
+        print(f"Error: supplied network directory does not contain a config directory: {config_dir_path}")
+        sys.exit(1)
+    data_dir_path = network_dir_path.joinpath("data")
+    if not (data_dir_path.exists() and data_dir_path.is_dir()):
+        print(f"Error: supplied network directory does not contain a data directory: {data_dir_path}")
+        sys.exit(1)
     # Copy the network directory contents into our deployment
     # TODO: change this to work with non local paths
     deployment_config_dir = command_context.deployment_dir.joinpath("data", "laconicd-config")
-    copytree(network_dir_path, deployment_config_dir, dirs_exist_ok=True)
+    copytree(config_dir_path, deployment_config_dir, dirs_exist_ok=True)
+    # Copy the data directory contents into our deployment
+    # TODO: change this to work with non local paths
+    deployment_data_dir = command_context.deployment_dir.joinpath("data", "laconicd-data")
+    copytree(data_dir_path, deployment_data_dir, dirs_exist_ok=True)
 
 
 def init(command_context: DeployCommandContext):

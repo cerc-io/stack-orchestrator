@@ -17,9 +17,11 @@ from typing import List
 from dataclasses import dataclass
 from pathlib import Path
 from python_on_whales import DockerClient
+from app.command_types import CommandOptions
 
 @dataclass
 class ClusterContext:
+    options: CommandOptions  # TODO: this should be in its own object not stuffed in here
     cluster: str
     compose_files: List[str]
     pre_start_commands: List[str]
@@ -45,3 +47,21 @@ class DeploymentContext:
 class VolumeMapping:
     host_path: str
     container_path: str
+
+
+@dataclass
+class LaconicStackSetupCommand:
+    chain_id: str
+    node_moniker: str
+    key_name: str
+    initialize_network: bool
+    join_network: bool
+    create_network: bool
+    gentx_file_list: str
+    genesis_file: str
+    network_dir: str
+
+
+@dataclass
+class LaconicStackCreateCommand:
+    network_dir: str

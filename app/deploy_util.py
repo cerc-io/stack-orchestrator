@@ -15,12 +15,11 @@
 
 import os
 from typing import List
-from dataclasses import dataclass
 from app.deploy_types import DeployCommandContext, VolumeMapping
 from app.util import get_parsed_stack_config, get_yaml, get_compose_file_dir
 
 
-def _container_image_from_service(stack:str, service: str):
+def _container_image_from_service(stack :str, service: str):
     # Parse the compose files looking for the image name of the specified service
     image_name = None
     parsed_stack = get_parsed_stack_config(stack)
@@ -39,7 +38,7 @@ def _container_image_from_service(stack:str, service: str):
 
 
 def _volumes_to_docker(mounts: List[VolumeMapping]):
-# Example from doc: [("/", "/host"), ("/etc/hosts", "/etc/hosts", "rw")]
+    # Example from doc: [("/", "/host"), ("/etc/hosts", "/etc/hosts", "rw")]
     result = []
     for mount in mounts:
         docker_volume = (mount.host_path, mount.container_path)
@@ -51,6 +50,13 @@ def run_container_command(ctx: DeployCommandContext, service: str, command: str,
     docker = ctx.docker
     container_image = _container_image_from_service(ctx.stack, service)
     docker_volumes = _volumes_to_docker(mounts)
-    docker_output = docker.run(container_image, ["-c", command], entrypoint="bash", volumes=docker_volumes)
+    if ctx.cluster_context.options.debug:
+        print(f"Running this command in {service} container: {command}")
+    docker_output = docker.run(
+        container_image,
+        ["-c", command], entrypoint="sh",
+        user=f"{os.getuid()}:{os.getgid()}",
+        volumes=docker_volumes
+        )
     # There doesn't seem to be a way to get an exit code from docker.run()
     return (docker_output, 0)

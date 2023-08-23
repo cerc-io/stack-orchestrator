@@ -19,8 +19,9 @@ import os
 from pathlib import Path
 from shutil import copyfile, copytree
 import sys
-from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml, get_compose_file_dir
-from app.deploy_types import DeploymentContext, DeployCommandContext
+from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
+from app.util import get_compose_file_dir
+from app.deploy_types import DeploymentContext, LaconicStackSetupCommand
 
 
 def _make_default_deployment_dir():
@@ -118,7 +119,7 @@ def call_stack_deploy_init(deploy_command_context):
 
 
 # TODO: fold this with function above
-def call_stack_deploy_setup(deploy_command_context, extra_args):
+def call_stack_deploy_setup(deploy_command_context, parameters: LaconicStackSetupCommand, extra_args):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
@@ -127,13 +128,13 @@ def call_stack_deploy_setup(deploy_command_context, extra_args):
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
         spec.loader.exec_module(imported_stack)
-        return imported_stack.setup(deploy_command_context, extra_args)
+        return imported_stack.setup(deploy_command_context, parameters, extra_args)
     else:
         return None
 
 
 # TODO: fold this with function above
-def call_stack_deploy_create(deployment_context):
+def call_stack_deploy_create(deployment_context, extra_args):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
@@ -142,7 +143,7 @@ def call_stack_deploy_create(deployment_context):
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
         spec.loader.exec_module(imported_stack)
-        return imported_stack.create(deployment_context)
+        return imported_stack.create(deployment_context, extra_args)
     else:
         return None
 
@@ -197,8 +198,10 @@ def init(ctx, output):
 @click.command()
 @click.option("--spec-file", required=True, help="Spec file to use to create this deployment")
 @click.option("--deployment-dir", help="Create deployment files in this directory")
+# TODO: Hack
+@click.option("--network-dir", help="Network configuration supplied in this directory")
 @click.pass_context
-def create(ctx, spec_file, deployment_dir):
+def create(ctx, spec_file, deployment_dir, network_dir):
     # This function fails with a useful error message if the file doens't exist
     parsed_spec = get_parsed_deployment_spec(spec_file)
     stack_name = parsed_spec['stack']
@@ -246,16 +249,26 @@ def create(ctx, spec_file, deployment_dir):
     deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext(Path(deployment_dir), deployment_command_context)
-    call_stack_deploy_create(deployment_context)
+    call_stack_deploy_create(deployment_context, network_dir)
 
 
+# TODO: this code should be in the stack .py files but
+# we haven't yet figured out how to integrate click across
+# the plugin boundary
 @click.command()
-@click.option("--node-moniker", help="Help goes here")
-@click.option("--key-name", help="Help goes here")
-@click.option("--initialize-network", is_flag=True, default=False, help="Help goes here")
-@click.option("--join-network", is_flag=True, default=False, help="Help goes here")
-@click.option("--create-network", is_flag=True, default=False, help="Help goes here")
+@click.option("--node-moniker", help="Moniker for this node")
+@click.option("--chain-id", help="The new chain id")
+@click.option("--key-name", help="Name for new node key")
+@click.option("--gentx-files", help="List of comma-delimited gentx filenames from other nodes")
+@click.option("--genesis-file", help="Genesis file for the network")
+@click.option("--initialize-network", is_flag=True, default=False, help="Initialize phase")
+@click.option("--join-network", is_flag=True, default=False, help="Join phase")
+@click.option("--create-network", is_flag=True, default=False, help="Create phase")
+@click.option("--network-dir", help="Directory for network files")
 @click.argument('extra_args', nargs=-1)
 @click.pass_context
-def setup(ctx, node_moniker, key_name, initialize_network, join_network, create_network, extra_args):
-    call_stack_deploy_setup(ctx.obj, extra_args)
+def setup(ctx, node_moniker, chain_id, key_name, gentx_files, genesis_file, initialize_network, join_network, create_network,
+          network_dir, extra_args):
+    parmeters = LaconicStackSetupCommand(chain_id, node_moniker, key_name, initialize_network, join_network, create_network,
+                                         gentx_files, genesis_file, network_dir)
+    call_stack_deploy_setup(ctx.obj, parmeters, extra_args)

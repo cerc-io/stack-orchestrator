@@ -25,6 +25,7 @@ import json
 import os
 import sys
 import tomli
+import re
 
 default_spec_file_content = """config:
     node_moniker: my-node-name
@@ -42,13 +43,17 @@ class SetupPhase(Enum):
     ILLEGAL = 3
 
 
+def _client_toml_path(network_dir: Path):
+    return network_dir.joinpath("config", "client.toml")
+
+
 def _config_toml_path(network_dir: Path):
-    return network_dir.joinpath("config","client.toml")
+    return network_dir.joinpath("config", "config.toml")
 
 
 def _get_chain_id_from_config(network_dir: Path):
     chain_id = None
-    with open(_config_toml_path(network_dir), "rb") as f:
+    with open(_client_toml_path(network_dir), "rb") as f:
         toml_dict = tomli.load(f)
         chain_id = toml_dict["chain-id"]
     return chain_id
@@ -56,7 +61,7 @@ def _get_chain_id_from_config(network_dir: Path):
 
 def _get_node_moniker_from_config(network_dir: Path):
     moniker = None
-    with open(_config_toml_path(network_dir), "rb") as f:
+    with open(_client_toml_path(network_dir), "rb") as f:
         toml_dict = tomli.load(f)
         moniker = toml_dict["moniker"]
     return moniker
@@ -92,6 +97,20 @@ def _copy_gentx_files(options: CommandOptions, network_dir: Path, gentx_file_lis
     for gentx_file in gentx_files:
         gentx_file_path = Path(gentx_file)
         copyfile(gentx_file_path, os.path.join(network_dir, "config", "gentx", os.path.basename(gentx_file_path)))
+
+
+def _remove_persistent_peers(options: CommandOptions, network_dir: Path):
+    config_file_path = _config_toml_path(network_dir)
+    if not config_file_path.exists():
+        print("Error: config.toml not found")
+        sys.exit(1)
+    with open(config_file_path, "r") as input_file:
+        config_file_content = input_file.read()
+        persistent_peers_pattern = '^persistent_peers = "(.+?)"'
+        replace_with = "persistent_peers = \"\""
+        config_file_content = re.sub(persistent_peers_pattern, replace_with, config_file_content, flags=re.MULTILINE)
+    with open(config_file_path, "w") as output_file:
+        output_file.write(config_file_content)
 
 
 def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCommand, extra_args):
@@ -216,6 +235,8 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             print(f"Command output: {output1}")
             print(f"Generated genesis file, please copy to other nodes as required: \
                 {os.path.join(network_dir, 'config', 'genesis.json')}")
+            # Last thing, collect-gentxs puts a likely bogus set of persistent_peers in config.toml so we remove that now
+            _remove_persistent_peers(options, network_dir)
         # In both cases we validate the genesis file now
         output2, status1 = run_container_command(
             command_context, "laconicd", f"laconicd validate-genesis --home {laconicd_home_path_in_container}", mounts)

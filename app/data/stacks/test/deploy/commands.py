@@ -14,10 +14,9 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from app.util import get_yaml
-from app.deploy_types import DeployCommandContext, DeploymentContext
+from app.deploy_types import DeployCommandContext
 from app.stack_state import State
 from app.deploy_util import VolumeMapping, run_container_command
-import os
 from pathlib import Path
 
 default_spec_file_content = """config:

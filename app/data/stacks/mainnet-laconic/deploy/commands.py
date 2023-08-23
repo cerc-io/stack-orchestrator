@@ -98,6 +98,8 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
 
     options = command_context.cluster_context.options
 
+    currency = "stake"  # Does this need to be a parameter?
+
     if options.debug:
         print(f"parameters: {parameters}")
 
@@ -163,14 +165,14 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         output2, status2 = run_container_command(
             command_context,
             "laconicd",
-            f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000achk\
+            f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000{currency}\
                 --home {laconicd_home_path_in_container} --keyring-backend test",
             mounts)
         print(f"Command output: {output2}")
         output3, status3 = run_container_command(
             command_context,
             "laconicd",
-            f"laconicd gentx  {parameters.key_name} 90000000000achk --home {laconicd_home_path_in_container}\
+            f"laconicd gentx  {parameters.key_name} 90000000000{currency} --home {laconicd_home_path_in_container}\
                 --chain-id {chain_id} --keyring-backend test",
             mounts)
         print(f"Command output: {output3}")
@@ -203,7 +205,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             # Add those keys to our genesis, with balances we determine here (why?)
             for other_node_key in other_node_keys:
                 outputk, statusk = run_container_command(
-                    command_context, "laconicd", f"laconicd add-genesis-account {other_node_key} 12900000000000000000000achk\
+                    command_context, "laconicd", f"laconicd add-genesis-account {other_node_key} 12900000000000000000000{currency}\
                         --home {laconicd_home_path_in_container} --keyring-backend test", mounts)
             print(f"Command output: {outputk}")
             # Copy the gentx json files into our network dir

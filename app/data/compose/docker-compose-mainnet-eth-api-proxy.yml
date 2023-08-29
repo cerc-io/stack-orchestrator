@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  redis:
+    hostname: mainnet-eth-api-proxy-redis
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no --maxmemory-policy allkeys-lru --maxmemory 1G
+
+  eth-api-proxy:
+    hostname: mainnet-eth-api-proxy
+    image: cerc/eth-api-proxy:local
+    env_file:
+      - ../config/mainnet-eth-api-proxy/ethpxy.env
+    ports:
+      - 8547

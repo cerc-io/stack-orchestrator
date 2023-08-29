@@ -5,11 +5,19 @@ repos:
   - github.com/cerc-io/go-ethereum
   - github.com/cerc-io/lighthouse
   - github.com/dboreham/foundry
+  - git.vdb.to/cerc-io/keycloak-reg-api
+  - git.vdb.to/cerc-io/keycloak-reg-ui
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse
   - cerc/lighthouse-cli
   - cerc/foundry
+  - cerc/keycloak
+  - cerc/webapp-base
+  - cerc/keycloak-reg-api
+  - cerc/keycloak-reg-ui
 pods:
   - mainnet-eth
+  - mainnet-eth-keycloak
+  - mainnet-eth-metrics
   - foundry

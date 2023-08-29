@@ -1,22 +1,30 @@
 #!/bin/bash
-if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
+if [[ "true" == "$CERC_SCRIPT_DEBUG" ]]; then
     set -x
 fi
 
-DEBUG_LEVEL=${CERC_LIGHTHOUSE_DEBUG_LEVEL:-info}
+ENR_OPTS=""
+if [[ -n "$LIGHTHOUSE_ENR_ADDRESS" ]]; then
+  ENR_OPTS="--enr-address $LIGHTHOUSE_ENR_ADDRESS"
+fi
 
-data_dir=/var/lighthouse-data-dir
-
-network_port=9001
-http_port=8001
-authrpc_port=8551
-
-exec lighthouse \
-  bn \
-  --debug-level $DEBUG_LEVEL \
-  --datadir $data_dir \
-  --network mainnet \
-  --execution-endpoint $EXECUTION_ENDPOINT \
-  --execution-jwt /etc/mainnet-eth/jwtsecret \
+exec lighthouse bn \
+  --checkpoint-sync-url "$LIGHTHOUSE_CHECKPOINT_SYNC_URL" \
+  --checkpoint-sync-url-timeout ${LIGHTHOUSE_CHECKPOINT_SYNC_URL_TIMEOUT} \
+  --datadir "$LIGHTHOUSE_DATADIR" \
+  --debug-level $LIGHTHOUSE_DEBUG_LEVEL \
   --disable-deposit-contract-sync \
-  --checkpoint-sync-url https://beaconstate.ethstaker.cc
+  --disable-upnp \
+  --enr-tcp-port $LIGHTHOUSE_NETWORK_PORT \
+  --enr-udp-port $LIGHTHOUSE_NETWORK_PORT \
+  --execution-endpoint "$LIGHTHOUSE_EXECUTION_ENDPOINT" \
+  --execution-jwt /etc/mainnet-eth/jwtsecret \
+  --http \
+  --http-address 0.0.0.0 \
+  --http-port $LIGHTHOUSE_HTTP_PORT \
+  --metrics \
+  --metrics-address=0.0.0.0 \
+  --metrics-port $LIGHTHOUSE_METRICS_PORT \
+  --network mainnet \
+  --port $LIGHTHOUSE_NETWORK_PORT \
+  $ENR_OPTS $LIGHTHOUSE_OPTS

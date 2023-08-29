@@ -6,16 +6,13 @@ services:
     hostname: mainnet-eth-geth-1
     cap_add:
       - SYS_PTRACE
-    environment:
-      CERC_REMOTE_DEBUG: "true"
-      CERC_RUN_STATEDIFF: ${CERC_RUN_STATEDIFF:-detect}
-      CERC_STATEDIFF_DB_NODE_ID: 1
-      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     image: cerc/go-ethereum:local
     entrypoint: /bin/sh
     command: -c "/opt/run-geth.sh"
+    env_file:
+      - ../config/mainnet-eth/geth.env
     volumes:
-      - mainnet_eth_geth_1_data:/root/ethdata
+      - mainnet_eth_geth_1_data:/data
       - mainnet_eth_config_data:/etc/mainnet-eth
       - ../config/mainnet-eth/scripts/run-geth.sh:/opt/run-geth.sh
     healthcheck:
@@ -25,30 +22,48 @@ services:
       retries: 10
       start_period: 3s
     ports:
+      # http api
       - "8545"
+      # ws api
+      - "8546"
+      # ws el
+      - "8551"
+      # p2p
+      - "30303"
+      - "30303/udp"
+      # debugging
       - "40000"
+      # metrics
       - "6060"
 
   mainnet-eth-lighthouse-1:
     restart: always
     hostname: mainnet-eth-lighthouse-1
     healthcheck:
-      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:8001/eth/v2/beacon/blocks/head"]
+      test: ["CMD", "wget", "--tries=1", "--connect-timeout=1", "--quiet", "-O", "-", "http://localhost:5052/eth/v2/beacon/blocks/head"]
       interval: 30s
       timeout: 10s
       retries: 10
       start_period: 30s
     environment:
-      EXECUTION_ENDPOINT: "http://mainnet-eth-geth-1:8551"
+      LIGHTHOUSE_EXECUTION_ENDPOINT: "http://mainnet-eth-geth-1:8551"
+    env_file:
+      - ../config/mainnet-eth/lighthouse.env
     image: cerc/lighthouse:local
     entrypoint: /bin/sh
     command: -c "/opt/run-lighthouse.sh"
     volumes:
-      - mainnet_eth_lighthouse_1_data:/var/lighthouse-data-dir
+      - mainnet_eth_lighthouse_1_data:/data
       - mainnet_eth_config_data:/etc/mainnet-eth
       - ../config/mainnet-eth/scripts/run-lighthouse.sh:/opt/run-lighthouse.sh
     ports:
-      - "8001"
+      # api
+      - "5052"
+      # metrics
+      - "5054"
+      # p2p
+      - "9000"
+      - "9000/udp"
 
 volumes:
   mainnet_eth_config_data:

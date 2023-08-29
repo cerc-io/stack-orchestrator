@@ -24,15 +24,37 @@ services:
       retries: 15
       start_period: 10s
 
-  mobymask-watcher-server:
+  mobymask-watcher-job-runner:
     restart: unless-stopped
     depends_on:
       mobymask-watcher-db:
         condition: service_healthy
     image: cerc/watcher-mobymask:local
+    command: ["sh", "-c", "yarn job-runner"]
+    volumes:
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/environments/local.toml
+    ports:
+      - "0.0.0.0:9000:9000"
+    extra_hosts:
+      - "ipld-eth-server:host-gateway"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "9000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  mobymask-watcher-server:
+    restart: unless-stopped
+    depends_on:
+      mobymask-watcher-db:
+        condition: service_healthy
+      mobymask-watcher-job-runner:
+        condition: service_healthy
+    image: cerc/watcher-mobymask:local
     command: ["sh", "-c", "yarn server"]
     volumes:
-      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
+      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/environments/local.toml
     ports:
       - "0.0.0.0:3001:3001"
       - "0.0.0.0:9001:9001"
@@ -44,22 +66,6 @@ services:
       timeout: 5s
       retries: 15
       start_period: 5s
-
-  mobymask-watcher-job-runner:
-    restart: unless-stopped
-    depends_on:
-      mobymask-watcher-server:
-        condition: service_healthy
-      mobymask-watcher-db:
-        condition: service_healthy
-    image: cerc/watcher-mobymask:local
-    command: ["sh", "-c", "yarn job-runner"]
-    volumes:
-      - ../config/watcher-mobymask/mobymask-watcher.toml:/app/packages/mobymask-watcher/environments/local.toml
-    ports:
-      - "0.0.0.0:9000:9000"
-    extra_hosts:
-      - "ipld-eth-server:host-gateway"
 
 volumes:
   mobymask_watcher_db_data:

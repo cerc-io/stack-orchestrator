@@ -1,7 +1,7 @@
 version: "1.0"
 name: mobymask-watcher
 repos:
-  - github.com/cerc-io/watcher-ts/v0.2.19
+  - github.com/cerc-io/mobymask-watcher-ts
 containers:
   - cerc/watcher-mobymask
 pods:

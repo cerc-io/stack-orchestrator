@@ -1,6 +1,6 @@
 # MobyMask
 
-The MobyMask watcher is a Laconic Network component that provides efficient access to MobyMask contract data from Ethereum, along with evidence allowing users to verify the correctness of that data. The watcher source code is available in [this repository](https://github.com/cerc-io/watcher-ts/tree/main/packages/mobymask-watcher) and a developer-oriented Docker Compose setup for the watcher can be found [here](https://github.com/cerc-io/mobymask-watcher). The watcher can be deployed automatically using the Laconic Stack Orchestrator tool as detailed below:
+The MobyMask watcher is a Laconic Network component that provides efficient access to MobyMask contract data from Ethereum, along with evidence allowing users to verify the correctness of that data. The watcher source code is available in [this repository](https://github.com/cerc-io/mobymask-watcher-ts) and a developer-oriented Docker Compose setup for the watcher can be found [here](https://github.com/cerc-io/mobymask-watcher). The watcher can be deployed automatically using the Laconic Stack Orchestrator tool as detailed below:
 
 ## Deploy the MobyMask Watcher
 
@@ -11,13 +11,13 @@ This deployment expects that ipld-eth-server's endpoints are available on the lo
 ## Clone required repositories
 
 ```
-$ laconic-so setup-repositories --include github.com/cerc-io/watcher-ts
+$ laconic-so --stack mobymask setup-repositories
 ```
 
 ## Build the watcher container
 
 ```
-$ laconic-so build-containers --include cerc/watcher-mobymask
+$ laconic-so --stack mobymask build-containers
 ```
 
 This should create a container with tag `cerc/watcher-mobymask` in the local image registry.
@@ -27,7 +27,7 @@ This should create a container with tag `cerc/watcher-mobymask` in the local ima
 First the watcher database has to be initialized. Start only the mobymask-watcher-db service:
 
 ```
-$ laconic-so deploy-system --include watcher-mobymask up mobymask-watcher-db
+$ laconic-so --stack mobymask deploy-system up mobymask-watcher-db
 ```
 
 Next find the container's id using `docker ps` then run the following command to initialize the database:
@@ -39,7 +39,7 @@ $ docker exec -i <mobymask-watcher-db-container> psql -U vdbm mobymask-watcher <
 Finally start the remaining containers:
 
 ```
-$ laconic-so deploy-system --include watcher-mobymask up
+$ laconic-so --stack mobymask deploy-system up
 ```
 
 Correct operation should be verified by following the instructions [here](https://github.com/cerc-io/mobymask-watcher/tree/main/mainnet-watcher-only#run), checking GraphQL queries return valid results in the watcher's [playground](http://127.0.0.1:3001/graphql).
@@ -49,5 +49,5 @@ Correct operation should be verified by following the instructions [here](https:
 Stop all the services running in background:
 
 ```bash
-$ laconic-so deploy-system --include watcher-mobymask down
+$ laconic-so --stack mobymask deploy-system down
 ```

@@ -14,7 +14,7 @@ repos:
 containers:
   ## fixturenet-lotus image
   # - cerc/lotus
-  ## fixturenet-graph-node image
+  ## graph-node image
   - cerc/graph-node
   ## sushiswap contract deployment images
   # - cerc/sushiswap-v3-core
@@ -23,6 +23,6 @@ containers:
   - cerc/sushiswap-subgraphs
 pods:
   # - fixturenet-lotus
-  - fixturenet-graph-node
+  - graph-node
   # - contract-sushiswap
   - sushiswap-subgraph-v3

@@ -9,4 +9,4 @@ containers:
   - cerc/graph-node
 pods:
   - fixturenet-lotus
-  - fixturenet-graph-node
+  - graph-node

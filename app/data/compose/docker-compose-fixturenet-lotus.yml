@@ -1,8 +1,8 @@
 version: "3.8"
 services:
 
-  lotus-miner-1:
-    hostname: lotus-miner-1
+  lotus-miner:
+    hostname: lotus-miner
     env_file:
       - ../config/fixturenet-lotus/lotus-env.env
     image: cerc/lotus:local
@@ -11,50 +11,8 @@ services:
       - ../config/fixturenet-lotus/fund-account.sh:/fund-account.sh
       - lotus_miner_params:/var/tmp/filecoin-proof-parameters
       - lotus_shared:/root/.lotus-shared
-      - lotus_miner_1_data:/root/data
+      - lotus_miner_data:/root/data
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-miner.sh"]
-    ports:
-      - "1234"
-      - "2345"
-      - "3456"
-      - "1777"
-
-  lotus-miner-2:
-    hostname: lotus-miner-2
-    env_file:
-      - ../config/fixturenet-lotus/lotus-env.env
-    environment:
-      - MINER_INDEX=1
-    image: cerc/lotus:local
-    volumes:
-      - ../config/fixturenet-lotus/setup-secondary-miner.sh:/docker-entrypoint-scripts.d/setup-secondary-miner.sh
-      - lotus_miner_params:/var/tmp/filecoin-proof-parameters
-      - lotus_shared:/root/.lotus-shared
-      - lotus_miner_2_data:/root/data
-    depends_on:
-      - lotus-miner-1
-    entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-secondary-miner.sh"]
-    ports:
-      - "1234"
-      - "2345"
-      - "3456"
-      - "1777"
-
-  lotus-miner-3:
-    hostname: lotus-miner-3
-    env_file:
-      - ../config/fixturenet-lotus/lotus-env.env
-    environment:
-      - MINER_INDEX=2
-    image: cerc/lotus:local
-    volumes:
-      - ../config/fixturenet-lotus/setup-secondary-miner.sh:/docker-entrypoint-scripts.d/setup-secondary-miner.sh
-      - lotus_miner_params:/var/tmp/filecoin-proof-parameters
-      - lotus_shared:/root/.lotus-shared
-      - lotus_miner_3_data:/root/data
-    depends_on:
-      - lotus-miner-1
-    entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-secondary-miner.sh"]
     ports:
       - "1234"
       - "2345"
@@ -81,7 +39,7 @@ services:
       retries: 60
       start_period: 3s
     depends_on:
-      - lotus-miner-1
+      - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
     ports:
       - "1234"
@@ -109,7 +67,7 @@ services:
       retries: 60
       start_period: 3s
     depends_on:
-      - lotus-miner-1
+      - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
     ports:
       - "1234"
@@ -122,8 +80,6 @@ volumes:
   lotus_node_1_params:
   lotus_node_2_params:
   lotus_shared:
-  lotus_miner_1_data:
-  lotus_miner_2_data:
-  lotus_miner_3_data:
+  lotus_miner_data:
   lotus_node_1_data:
   lotus_node_2_data:

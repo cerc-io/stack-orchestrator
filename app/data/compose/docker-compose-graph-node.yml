@@ -6,8 +6,9 @@ services:
         condition: service_healthy
       ipfs:
         condition: service_healthy
-      lotus-node-1:
-        condition: service_healthy
+      # Uncomment when running against fixturenet-lotus to wait for the Lotus node to come up
+      # lotus-node-1:
+      #   condition: service_healthy
     extra_hosts:
       - host.docker.internal:host-gateway
     environment:
@@ -17,9 +18,9 @@ services:
       postgres_user: graph-node
       postgres_pass: password
       postgres_db: graph-node
-      # TODO: Get endpoint from env
-      ethereum: 'lotus-fixturenet:http://lotus-node-1:1234/rpc/v1'
-      GRAPH_LOG: info
+      ethereum: ${NETWORK:-filecoin}:${ETH_RPC_ENDPOINT:-https://archive.lotus.vdb.to/rpc/v1}
+      GRAPH_LOG: debug
+      ETHEREUM_REORG_THRESHOLD: 3
     ports:
       - "8000"
       - "8001"

@@ -23,7 +23,6 @@ if [ ! -f /root/data/localnet.json ]; then
 fi
 
 # start daemon
-# /root/.lotus-shared/devgen.car path
 nohup lotus daemon --lotus-make-genesis=/root/.lotus-shared/devgen.car --profile=bootstrapper --genesis-template=/root/data/localnet.json --bootstrap=false > /var/log/lotus.log 2>&1 &
 
 # Loop until the daemon is started
@@ -33,9 +32,6 @@ while ! grep -q "started ChainNotify channel" /var/log/lotus.log ; do
 done
 echo "Daemon started."
 
-# copy genesis file to shared volume
-cp /devgen.car /root/.lotus-shared
-
 # if miner not already initialized
 if [ ! -d $LOTUS_MINER_PATH ]; then
   # initialize miner
@@ -44,6 +40,7 @@ if [ ! -d $LOTUS_MINER_PATH ]; then
   # fund a known account for usage
   /fund-account.sh
 
+  echo "Initializing miner..."
   lotus-miner init --genesis-miner --actor=t01000 --sector-size=2KiB --pre-sealed-sectors=/root/data/.genesis-sectors --pre-sealed-metadata=/root/data/.genesis-sectors/pre-seal-t01000.json --nosync
 fi
 

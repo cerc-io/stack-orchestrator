@@ -41,6 +41,8 @@ NETWORK=lotus-fixturenet
 ETH_RPC_ENDPOINT=http://lotus-node-1:1234/rpc/v1
 ```
 
+Uncomment the dependency on `lotus-node-1` in the [graph-node compose file](../../compose/docker-compose-graph-node.yml)
+
 Deploy the stack:
 
 ```bash
@@ -66,19 +68,19 @@ After all services have started:
   # .
   # .
   # sushigraph-sushiswap-subgraph-v3-1  | - Deploying to Graph node http://graph-node:8020/
+  # sushigraph-sushiswap-subgraph-v3-1  | Deployed to http://graph-node:8000/subgraphs/name/sushiswap/v3-lotus/graphql
+  # sushigraph-sushiswap-subgraph-v3-1  |
+  # sushigraph-sushiswap-subgraph-v3-1  |
+  # sushigraph-sushiswap-subgraph-v3-1  | Subgraph endpoints:
+  # sushigraph-sushiswap-subgraph-v3-1  | Queries (HTTP):     http://graph-node:8000/subgraphs/name/sushiswap/v3-lotus
+  # .
+  # .
+  # sushigraph-sushiswap-subgraph-v3-1  | - Deploying to Graph node http://graph-node:8020/
   # sushigraph-sushiswap-subgraph-v3-1  | Deployed to http://graph-node:8000/subgraphs/name/sushiswap/blocks/graphql
   # sushigraph-sushiswap-subgraph-v3-1  |
   # sushigraph-sushiswap-subgraph-v3-1  |
   # sushigraph-sushiswap-subgraph-v3-1  | Subgraph endpoints:
   # sushigraph-sushiswap-subgraph-v3-1  | Queries (HTTP):     http://graph-node:8000/subgraphs/name/sushiswap/blocks
-  # .
-  # .
-  # sushigraph-sushiswap-subgraph-v3-1  | - Deploying to Graph node http://graph-node:8020/
-  # sushigraph-sushiswap-subgraph-v3-1  | Deployed to http://graph-node:8000/subgraphs/name/sushiswap/v3-filecoin/graphql
-  # sushigraph-sushiswap-subgraph-v3-1  |
-  # sushigraph-sushiswap-subgraph-v3-1  |
-  # sushigraph-sushiswap-subgraph-v3-1  | Subgraph endpoints:
-  # sushigraph-sushiswap-subgraph-v3-1  | Queries (HTTP):     http://graph-node:8000/subgraphs/name/sushiswap/v3-filecoin
   # sushigraph-sushiswap-subgraph-v3-1  |
   # sushigraph-sushiswap-subgraph-v3-1  |
   # sushigraph-sushiswap-subgraph-v3-1  | Done
@@ -95,7 +97,7 @@ laconic-so --stack fixturenet-sushiswap-subgraph deploy --cluster sushigraph por
 http://127.0.0.1:<HOST_PORT>/subgraphs/name/sushiswap/blocks/graphql
 
 # v3 subgraph endpoint:
-http://127.0.0.1:<HOST_PORT>/subgraphs/name/sushiswap/v3-filecoin/graphql
+http://127.0.0.1:<HOST_PORT>/subgraphs/name/sushiswap/v3-lotus/graphql
 ```
 
 ## Run
@@ -128,7 +130,7 @@ http://127.0.0.1:<HOST_PORT>/subgraphs/name/sushiswap/v3-filecoin/graphql
   export POOL_ADDRESS=<POOL_ADDRESS>
   ```
 
-* Initialize pool:
+* Initialize the pool:
 
   ```bash
   docker exec -it sushigraph-sushiswap-v3-core-1 pnpm run pool:initialize:docker --sqrt-price 4295128939 --pool $POOL_ADDRESS

@@ -11,7 +11,7 @@ services:
     environment:
       - APP=v3
       - NETWORK=lotus-fixturenet
-    command: ["bash", "-c", "./blocks/run-blocks.sh && ./v3/run-v3.sh"]
+    command: ["bash", "-c", "./v3/run-v3.sh && ./blocks/run-blocks.sh"]
     working_dir: /app/subgraphs
     volumes:
       - ../config/fixturenet-sushiswap-subgraph-v3/lotus-fixturenet.js.template:/app/config/lotus-fixturenet.js.template

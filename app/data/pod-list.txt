@@ -32,3 +32,5 @@ lasso
 reth
 watcher-sushiswap
 contract-sushiswap
+fixturenet-graph-node
+sushiswap-subgraph-v3

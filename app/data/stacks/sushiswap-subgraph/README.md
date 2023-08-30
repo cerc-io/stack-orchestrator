@@ -32,10 +32,18 @@ laconic-so --stack sushiswap-subgraph build-containers
 
 ## Deploy
 
+Create an env file to be used in the next step:
+
+  ```bash
+  # Network and ETH RPC endpoint to run graph-node against
+  NETWORK=filecoin
+  ETH_RPC_ENDPOINT=
+  ```
+
 Deploy the stack:
 
 ```bash
-laconic-so --stack sushiswap-subgraph deploy --cluster sushigraph up
+laconic-so --stack sushiswap-subgraph deploy --cluster sushigraph --env-file <PATH_TO_ENV_FILE> up
 
 # Note: Remove any existing volumes for the cluster for a fresh start
 ```

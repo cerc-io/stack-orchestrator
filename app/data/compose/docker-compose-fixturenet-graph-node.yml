@@ -18,7 +18,7 @@ services:
       postgres_user: graph-node
       postgres_pass: password
       postgres_db: graph-node
-      ethereum: ${NETWORK}:${ETH_RPC_ENDPOINT}
+      ethereum: ${NETWORK:-filecoin}:${ETH_RPC_ENDPOINT:-https://archive.lotus.vdb.to/rpc/v1}
       GRAPH_LOG: debug
       ETHEREUM_REORG_THRESHOLD: 3
     ports:

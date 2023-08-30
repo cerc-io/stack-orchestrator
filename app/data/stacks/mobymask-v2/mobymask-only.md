@@ -39,7 +39,7 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   CERC_L2_NODE_HOST=
   CERC_L2_NODE_PORT=
 
-  # URL to get CSV with credentials for accounts on L1 to perform txs on L2
+  # URL (fixturenet-eth-bootnode-lighthouse) to get CSV with credentials for accounts on L1 to perform txs on L2
   CERC_L1_ACCOUNTS_CSV_URL=
 
   # OR

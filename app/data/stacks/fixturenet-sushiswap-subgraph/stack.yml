@@ -25,4 +25,4 @@ pods:
   - fixturenet-lotus
   - graph-node
   - contract-sushiswap
-  - sushiswap-subgraph-v3
+  - fixturenet-sushiswap-subgraph-v3

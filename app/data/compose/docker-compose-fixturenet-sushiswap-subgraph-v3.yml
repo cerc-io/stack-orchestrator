@@ -1,0 +1,27 @@
+version: '3.2'
+
+services:
+  # Deploys the sushiswap v3 subgraph
+  sushiswap-subgraph-v3:
+    image: cerc/sushiswap-subgraphs:local
+    restart: on-failure
+    depends_on:
+      graph-node:
+        condition: service_healthy
+    environment:
+      - APP=v3
+      - NETWORK=lotus-fixturenet
+    command: ["bash", "-c", "./blocks/run-blocks.sh && ./v3/run-v3.sh"]
+    working_dir: /app/subgraphs
+    volumes:
+      - ../config/fixturenet-sushiswap-subgraph-v3/lotus-fixturenet.js.template:/app/config/lotus-fixturenet.js.template
+      - ../config/fixturenet-sushiswap-subgraph-v3/run-blocks.sh:/app/subgraphs/blocks/run-blocks.sh
+      - ../config/fixturenet-sushiswap-subgraph-v3/run-v3.sh:/app/subgraphs/v3/run-v3.sh
+      - sushiswap_core_deployment:/app/subgraphs/v3/core-deployments/docker
+      - sushiswap_periphery_deployment:/app/subgraphs/v3/periphery-deployments/docker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  sushiswap_core_deployment:
+  sushiswap_periphery_deployment:

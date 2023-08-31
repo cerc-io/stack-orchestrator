@@ -113,6 +113,48 @@ http://127.0.0.1:8000/subgraphs/name/sushiswap/blocks/graphql
 http://127.0.0.1:8000/subgraphs/name/sushiswap/v3-filecoin/graphql
 ```
 
+## Set environment variables
+
+* The graph-node environment variable `ETHEREUM_REORG_THRESHOLD` can be set in the deployment compose file
+  ```bash
+  $ cat sushiswap-subgraph-deployment/compose/docker-compose-graph-node.yml
+  services:
+    graph-node:
+      image: cerc/graph-node:local
+      ...
+      environment:
+        ...
+        GRAPH_LOG: debug
+        ETHEREUM_REORG_THRESHOLD: 16
+  ```
+  Change `ETHEREUM_REORG_THRESHOLD` to desired value
+
+  * To restart graph-node with updated values, we need to restart only graph-node compose services
+    * Comment `sushiswap-subgraph-v3` pod in stack.yml so that subgraphs are not deployed again
+      ```bash
+      $ cat sushiswap-subgraph-deployment/stack.yml
+      version: "1.0"
+      name: sushiswap-subgraph
+      ...
+      pods:
+        - graph-node
+        # - sushiswap-subgraph-v3
+      ```
+    * Stop the stack first
+      ```bash
+      laconic-so deployment --dir sushiswap-subgraph-deployment stop
+      ```
+    * Start the stack again (will not start `sushiswap-subgraph-v3` pod)
+      ```
+      laconic-so deployment --dir sushiswap-subgraph-deployment start
+      ```
+  * To check if environment variable has been updated in graph-node container
+      ```bash
+      $ laconic-so deployment --dir sushiswap-subgraph-deployment exec graph-node bash
+      root@dc4d3abe1615:/# echo $ETHEREUM_REORG_THRESHOLD
+      16
+      ```
+
 ## Clean up
 
 Stop all the services running in background run:

@@ -4,6 +4,8 @@ Testing a "Loaded" fixturenet with console.
 
 Instructions for deploying a local Laconic blockchain "fixturenet" for development and testing purposes using laconic-stack-orchestrator.
 
+**Note:** For building some NPMs, access to the @lirewine repositories is required. If you don't have access, see [this tutorial](/docs/laconicd-fixturenet.md) to run this stack
+
 ## 1. Install Laconic Stack Orchestrator
 Installation is covered in detail [here](https://github.com/cerc-io/stack-orchestrator#user-mode) but if you're on Linux and already have docker installed it should be as simple as:
 ```
@@ -30,24 +32,24 @@ $ export CERC_NPM_AUTH_TOKEN=<my-token>
 
 ## 3. Clone required repositories
 ```
-$ laconic-so --stack fixturenet-laconicd setup-repositories
+$ laconic-so --stack fixturenet-laconic-loaded setup-repositories
 ```
 ## 4. Build the stack's packages and containers
 ```
-$ laconic-so --stack fixturenet-laconicd build-npms
-$ laconic-so --stack fixturenet-laconicd build-containers
+$ laconic-so --stack fixturenet-laconic-loaded build-npms
+$ laconic-so --stack fixturenet-laconic-loaded build-containers
 ```
 ## 5. Deploy the stack
 ```
-$ laconic-so --stack fixturenet-laconicd deploy up
+$ laconic-so --stack fixturenet-laconic-loaded deploy up
 ```
 Correct operation should be verified by checking the laconicd container's logs with:
 ```
-$ laconic-so --stack fixturenet-laconicd deploy logs
+$ laconic-so --stack fixturenet-laconic-loaded deploy logs
 ```
 ## 6. Test with the Registry CLI
 ```
-$ laconic-so --stack fixturenet-laconicd deploy exec cli "laconic cns status"
+$ laconic-so --stack fixturenet-laconic-loaded deploy exec cli "laconic cns status"
 ```
 ## 7. View the laconic console
 Get the URL for the console web app with this command (the port number will be different for each deployment):

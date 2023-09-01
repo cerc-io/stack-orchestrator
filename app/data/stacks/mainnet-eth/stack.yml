@@ -1,6 +1,6 @@
 version: "1.1"
 name: mainnet-eth
-decription: "Ethereum Mainnet"
+description: "Ethereum Mainnet"
 repos:
   - github.com/cerc-io/go-ethereum
   - github.com/cerc-io/lighthouse

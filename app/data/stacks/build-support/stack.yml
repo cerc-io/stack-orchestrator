@@ -1,5 +1,5 @@
 version: "1.2"
 name: build-support
-decription: "Build Support Components"
+description: "Build Support Components"
 containers:
   - cerc/builder-js

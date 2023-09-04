@@ -14,7 +14,7 @@ services:
       CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
       CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
-      CERC_RELEASE: "v0.1.5"
+      CERC_RELEASE: "v0.1.6"
       CERC_USE_NPM: true
       CERC_CONFIG_FILE: "src/config.json"
     working_dir: /scripts
@@ -48,7 +48,7 @@ services:
       CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
       CERC_RELAY_NODES: ${CERC_RELAY_NODES}
       CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
-      CERC_RELEASE: "v0.1.5-lxdao-0.1.1"
+      CERC_RELEASE: "v0.1.6-lxdao-0.1.1"
       CERC_USE_NPM: false
       CERC_CONFIG_FILE: "src/utils/config.json"
     working_dir: /scripts

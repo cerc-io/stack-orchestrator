@@ -32,9 +32,6 @@ default_spec_file_content = """config:
     chain_id: my-chain-id
 """
 
-init_help_text = """Add helpful text here on setting config variables.
-"""
-
 
 class SetupPhase(Enum):
     INITIALIZE = 1
@@ -275,7 +272,6 @@ def create(command_context: DeployCommandContext, extra_args):
 
 
 def init(command_context: DeployCommandContext):
-    print(init_help_text)
     yaml = get_yaml()
     return yaml.load(default_spec_file_content)
 

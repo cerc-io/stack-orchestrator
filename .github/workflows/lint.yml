@@ -1,0 +1,21 @@
+name: Lint Checks
+
+on:
+  pull_request:
+    branches: '*'
+  push:
+    branches: '*'
+
+jobs:
+  test:
+    name: "Run linter"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      - name: "Install Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name : "Run flake8"
+        uses: py-actions/flake8@v2

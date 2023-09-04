@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from app.util import get_yaml
-from app.deploy_types import DeployCommandContext, LaconicStackSetupCommand
+from app.deploy_types import DeployCommandContext, LaconicStackSetupCommand, DeploymentContext
 from app.stack_state import State
 from app.deploy_util import VolumeMapping, run_container_command
 from app.command_types import CommandOptions
@@ -111,13 +111,13 @@ def _remove_persistent_peers(options: CommandOptions, network_dir: Path):
 
 
 def _insert_persistent_peers(options: CommandOptions, config_dir: Path, new_persistent_peers: str):
-    config_file_path = _config_toml_path(config_dir)
+    config_file_path = config_dir.joinpath("config.toml")
     if not config_file_path.exists():
         print("Error: config.toml not found")
         sys.exit(1)
     with open(config_file_path, "r") as input_file:
         config_file_content = input_file.read()
-        persistent_peers_pattern = '^persistent_peers = "(.+?)"'
+        persistent_peers_pattern = '^persistent_peers = ""'
         replace_with = f"persistent_peers = \"{new_persistent_peers}\""
         config_file_content = re.sub(persistent_peers_pattern, replace_with, config_file_content, flags=re.MULTILINE)
     with open(config_file_path, "w") as output_file:
@@ -198,20 +198,22 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000{currency}\
                 --home {laconicd_home_path_in_container} --keyring-backend test",
             mounts)
-        print(f"Command output: {output2}")
+        if options.debug:
+            print(f"Command output: {output2}")
         output3, status3 = run_container_command(
             command_context,
             "laconicd",
             f"laconicd gentx  {parameters.key_name} 90000000000{currency} --home {laconicd_home_path_in_container}\
                 --chain-id {chain_id} --keyring-backend test",
             mounts)
-        print(f"Command output: {output3}")
+        if options.debug:
+            print(f"Command output: {output3}")
         output4, status4 = run_container_command(
             command_context,
             "laconicd",
             f"laconicd keys show  {parameters.key_name} -a --home {laconicd_home_path_in_container} --keyring-backend test",
             mounts)
-        print(f"Command output: {output4}")
+        print(f"Node validator address: {output4}")
 
     elif phase == SetupPhase.CREATE:
         if not os.path.exists(network_dir):
@@ -230,6 +232,9 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             copyfile(genesis_file_path, os.path.join(network_dir, "config", os.path.basename(genesis_file_path)))
         else:
             # We're generating the genesis file
+            if not parameters.gentx_file_list:
+                print(f"Error: --gentx-files must be supplied")
+                sys.exit(1)
             # First look in the supplied gentx files for the other nodes' keys
             other_node_keys = _get_node_keys_from_gentx_files(options, parameters.gentx_file_list)
             # Add those keys to our genesis, with balances we determine here (why?)
@@ -237,13 +242,15 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
                 outputk, statusk = run_container_command(
                     command_context, "laconicd", f"laconicd add-genesis-account {other_node_key} 12900000000000000000000{currency}\
                         --home {laconicd_home_path_in_container} --keyring-backend test", mounts)
-            print(f"Command output: {outputk}")
+            if options.debug:
+                print(f"Command output: {outputk}")
             # Copy the gentx json files into our network dir
             _copy_gentx_files(options, network_dir, parameters.gentx_file_list)
             # Now we can run collect-gentxs
             output1, status1 = run_container_command(
                 command_context, "laconicd", f"laconicd collect-gentxs --home {laconicd_home_path_in_container}", mounts)
-            print(f"Command output: {output1}")
+            if options.debug:
+                print(f"Command output: {output1}")
             print(f"Generated genesis file, please copy to other nodes as required: \
                 {os.path.join(network_dir, 'config', 'genesis.json')}")
             # Last thing, collect-gentxs puts a likely bogus set of persistent_peers in config.toml so we remove that now
@@ -251,14 +258,14 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         # In both cases we validate the genesis file now
         output2, status1 = run_container_command(
             command_context, "laconicd", f"laconicd validate-genesis --home {laconicd_home_path_in_container}", mounts)
-        print(f"Command output: {output2}")
+        print(f"validate-genesis result: {output2}")
 
     else:
         print("Illegal parameters supplied")
         sys.exit(1)
 
 
-def create(command_context: DeployCommandContext, extra_args):
+def create(context: DeploymentContext, extra_args):
     network_dir = extra_args[0]
     if network_dir is None:
         print("Error: --network-dir must be supplied")
@@ -277,15 +284,15 @@ def create(command_context: DeployCommandContext, extra_args):
         sys.exit(1)
     # Copy the network directory contents into our deployment
     # TODO: change this to work with non local paths
-    deployment_config_dir = command_context.deployment_dir.joinpath("data", "laconicd-config")
+    deployment_config_dir = context.deployment_dir.joinpath("data", "laconicd-config")
     copytree(config_dir_path, deployment_config_dir, dirs_exist_ok=True)
     # If supplied, add the initial persistent peers to the config file
     if extra_args[1]:
         initial_persistent_peers = extra_args[1]
-        _insert_persistent_peers(command_context.cluster_context.options, deployment_config_dir, initial_persistent_peers)
+        _insert_persistent_peers(context.command_context.cluster_context.options, deployment_config_dir, initial_persistent_peers)
     # Copy the data directory contents into our deployment
     # TODO: change this to work with non local paths
-    deployment_data_dir = command_context.deployment_dir.joinpath("data", "laconicd-data")
+    deployment_data_dir = context.deployment_dir.joinpath("data", "laconicd-data")
     copytree(data_dir_path, deployment_data_dir, dirs_exist_ok=True)
 
 

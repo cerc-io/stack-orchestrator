@@ -23,9 +23,6 @@ default_spec_file_content = """config:
     config_variable: test-value
 """
 
-init_help_text = """Add helpful text here on setting config variables.
-"""
-
 
 # Output a known string to a know file in the bind mounted directory ./container-output-dir
 # for test purposes -- test checks that the file was written.
@@ -40,7 +37,6 @@ def setup(command_context: DeployCommandContext, parameters, extra_args):
 
 
 def init(command_context: DeployCommandContext):
-    print(init_help_text)
     yaml = get_yaml()
     return yaml.load(default_spec_file_content)
 

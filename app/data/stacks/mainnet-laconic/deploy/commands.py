@@ -124,17 +124,8 @@ def _insert_persistent_peers(options: CommandOptions, config_dir: Path, new_pers
         output_file.write(config_file_content)
 
 
-def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCommand, extra_args):
-
-    options = command_context.cluster_context.options
-
-    currency = "stake"  # Does this need to be a parameter?
-
-    if options.debug:
-        print(f"parameters: {parameters}")
-
+def _phase_from_params(parameters):
     phase = SetupPhase.ILLEGAL
-
     if parameters.initialize_network:
         if parameters.join_network or parameters.create_network:
             print("Can't supply --join-network or --create-network with --initialize-network")
@@ -157,6 +148,19 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             print("Can't supply --initialize-network or --join-network with --create-network")
             sys.exit(1)
         phase = SetupPhase.CREATE
+    return phase
+
+
+def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCommand, extra_args):
+
+    options = command_context.cluster_context.options
+
+    currency = "stake"  # Does this need to be a parameter?
+
+    if options.debug:
+        print(f"parameters: {parameters}")
+
+    phase = _phase_from_params()
 
     network_dir = Path(parameters.network_dir).absolute()
     laconicd_home_path_in_container = "/laconicd-home"
@@ -233,7 +237,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         else:
             # We're generating the genesis file
             if not parameters.gentx_file_list:
-                print(f"Error: --gentx-files must be supplied")
+                print("Error: --gentx-files must be supplied")
                 sys.exit(1)
             # First look in the supplied gentx files for the other nodes' keys
             other_node_keys = _get_node_keys_from_gentx_files(options, parameters.gentx_file_list)

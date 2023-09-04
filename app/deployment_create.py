@@ -238,8 +238,9 @@ def init(ctx, output, map_ports_to_host):
 @click.option("--deployment-dir", help="Create deployment files in this directory")
 # TODO: Hack
 @click.option("--network-dir", help="Network configuration supplied in this directory")
+@click.option("--initial-peers", help="Initial set of persistent peers")
 @click.pass_context
-def create(ctx, spec_file, deployment_dir, network_dir):
+def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     # This function fails with a useful error message if the file doens't exist
     parsed_spec = get_parsed_deployment_spec(spec_file)
     stack_name = parsed_spec['stack']
@@ -287,7 +288,7 @@ def create(ctx, spec_file, deployment_dir, network_dir):
     deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext(Path(deployment_dir), deployment_command_context)
-    call_stack_deploy_create(deployment_context, network_dir)
+    call_stack_deploy_create(deployment_context, [network_dir, initial_peers])
 
 
 # TODO: this code should be in the stack .py files but

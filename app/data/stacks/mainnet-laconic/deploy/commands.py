@@ -110,6 +110,20 @@ def _remove_persistent_peers(options: CommandOptions, network_dir: Path):
         output_file.write(config_file_content)
 
 
+def _insert_persistent_peers(options: CommandOptions, config_dir: Path, new_persistent_peers: str):
+    config_file_path = _config_toml_path(config_dir)
+    if not config_file_path.exists():
+        print("Error: config.toml not found")
+        sys.exit(1)
+    with open(config_file_path, "r") as input_file:
+        config_file_content = input_file.read()
+        persistent_peers_pattern = '^persistent_peers = "(.+?)"'
+        replace_with = f"persistent_peers = \"{new_persistent_peers}\""
+        config_file_content = re.sub(persistent_peers_pattern, replace_with, config_file_content, flags=re.MULTILINE)
+    with open(config_file_path, "w") as output_file:
+        output_file.write(config_file_content)
+
+
 def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCommand, extra_args):
 
     options = command_context.cluster_context.options
@@ -245,7 +259,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
 
 
 def create(command_context: DeployCommandContext, extra_args):
-    network_dir = extra_args
+    network_dir = extra_args[0]
     if network_dir is None:
         print("Error: --network-dir must be supplied")
         sys.exit(1)
@@ -265,6 +279,10 @@ def create(command_context: DeployCommandContext, extra_args):
     # TODO: change this to work with non local paths
     deployment_config_dir = command_context.deployment_dir.joinpath("data", "laconicd-config")
     copytree(config_dir_path, deployment_config_dir, dirs_exist_ok=True)
+    # If supplied, add the initial persistent peers to the config file
+    if extra_args[1]:
+        initial_persistent_peers = extra_args[1]
+        _insert_persistent_peers(command_context.cluster_context.options, deployment_config_dir, initial_persistent_peers)
     # Copy the data directory contents into our deployment
     # TODO: change this to work with non local paths
     deployment_data_dir = command_context.deployment_dir.joinpath("data", "laconicd-data")

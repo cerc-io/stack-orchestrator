@@ -16,6 +16,7 @@
 import click
 import importlib.resources
 
+
 @click.command()
 @click.pass_context
 def command(ctx):

@@ -15,6 +15,7 @@
 
 from secrets import token_hex
 
+
 def init(ctx):
     return None
 

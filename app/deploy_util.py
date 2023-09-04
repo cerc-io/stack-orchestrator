@@ -19,7 +19,7 @@ from app.deploy_types import DeployCommandContext, VolumeMapping
 from app.util import get_parsed_stack_config, get_yaml, get_compose_file_dir
 
 
-def _container_image_from_service(stack :str, service: str):
+def _container_image_from_service(stack: str, service: str):
     # Parse the compose files looking for the image name of the specified service
     image_name = None
     parsed_stack = get_parsed_stack_config(stack)

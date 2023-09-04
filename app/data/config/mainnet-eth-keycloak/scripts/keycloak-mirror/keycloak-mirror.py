@@ -101,7 +101,8 @@ if __name__ == "__main__":
             if args.ssh_host:
                 dst_dbport = random.randint(11000, 12000)
                 print(
-                    f"Establishing SSH tunnel from 127.0.0.1:{dst_dbport} to {args.ssh_host}->{args.dst_dbhost}:{args.dst_dbport}... ",
+                    f"Establishing SSH tunnel from 127.0.0.1:{dst_dbport} to "
+                    "{args.ssh_host}->{args.dst_dbhost}:{args.dst_dbport}... ",
                     end="",
                 )
                 with Connection(

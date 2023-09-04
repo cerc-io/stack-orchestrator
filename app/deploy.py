@@ -140,8 +140,8 @@ def exec_operation(ctx, extra_args):
             print(f"Running compose exec {service_name} {command_to_exec}")
         try:
             ctx.obj.docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
-        except DockerException as error:
-            print(f"container command returned error exit status")
+        except DockerException:
+            print("container command returned error exit status")
 
 
 def logs_operation(ctx, tail: int, follow: bool, extra_args: str):

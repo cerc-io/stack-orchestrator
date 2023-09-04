@@ -76,7 +76,7 @@ def _get_repo_current_branch_or_tag(full_filesystem_repo_path):
     try:
         current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).active_branch.name
         is_branch = True
-    except TypeError as error:
+    except TypeError:
         # This means that the current ref is not a branch, so possibly a tag
         # Let's try to get the tag
         current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).git.describe("--tags", "--exact-match")
@@ -96,7 +96,9 @@ def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_pa
     repoName = repo_path.split("/")[-1]
     full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
     is_present = os.path.isdir(full_filesystem_repo_path)
-    (current_repo_branch_or_tag, is_branch) = _get_repo_current_branch_or_tag(full_filesystem_repo_path) if is_present else (None, None)
+    (current_repo_branch_or_tag, is_branch) = _get_repo_current_branch_or_tag(
+        full_filesystem_repo_path
+        ) if is_present else (None, None)
     if not quiet:
         present_text = f"already exists active {'branch' if is_branch else 'tag'}: {current_repo_branch_or_tag}" if is_present \
             else 'Needs to be fetched'
@@ -116,7 +118,7 @@ def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_pa
                         origin = git_repo.remotes.origin
                         origin.pull(progress=None if quiet else GitProgress())
                     else:
-                        print(f"skipping pull because this repo checked out a tag")
+                        print("skipping pull because this repo checked out a tag")
                 else:
                     print("(git pull skipped)")
     if not is_present:
@@ -143,7 +145,10 @@ def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_pa
         branch_to_checkout = repo_branch
 
     if branch_to_checkout:
-        if current_repo_branch_or_tag is None or (current_repo_branch_or_tag and (current_repo_branch_or_tag != branch_to_checkout)):
+        if current_repo_branch_or_tag is None or (
+            current_repo_branch_or_tag and (
+                current_repo_branch_or_tag != branch_to_checkout)
+                ):
             if not quiet:
                 print(f"switching to branch {branch_to_checkout} in repo {repo_path}")
             git_repo = git.Repo(full_filesystem_repo_path)

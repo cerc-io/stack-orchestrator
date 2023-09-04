@@ -30,10 +30,12 @@ from app.util import include_exclude_check, get_parsed_stack_config
 
 builder_js_image_name = "cerc/builder-js:local"
 
+
 @click.command()
 @click.option('--include', help="only build these packages")
 @click.option('--exclude', help="don\'t build these packages")
-@click.option("--force-rebuild", is_flag=True, default=False, help="Override existing target package version check -- force rebuild")
+@click.option("--force-rebuild", is_flag=True, default=False,
+              help="Override existing target package version check -- force rebuild")
 @click.option("--extra-build-args", help="Supply extra arguments to build")
 @click.pass_context
 def command(ctx, include, exclude, force_rebuild, extra_build_args):
@@ -122,7 +124,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
             # envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
             # but that isn't available in Python 3.8 (default in Ubuntu 20) so for now we use dict.update:
             envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token,
-                    "LACONIC_HOSTED_CONFIG_FILE": "config-hosted.yml" # Convention used by our web app packages
+                    "LACONIC_HOSTED_CONFIG_FILE": "config-hosted.yml"  # Convention used by our web app packages
                     }
             envs.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
             envs.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})

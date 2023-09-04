@@ -1,5 +1,4 @@
 from web3.auto import w3
-import json
 import ruamel.yaml as yaml
 import sys
 

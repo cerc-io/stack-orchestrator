@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
-from dataclasses import dataclass
 
 from app.command_types import CommandOptions
 from app import setup_repositories

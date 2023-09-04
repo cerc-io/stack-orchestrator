@@ -141,7 +141,7 @@ def exec_operation(ctx, extra_args):
         try:
             ctx.obj.docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
         except DockerException:
-            print(f"container command returned error exit status")
+            print("container command returned error exit status")
 
 
 def logs_operation(ctx, tail: int, follow: bool, extra_args: str):

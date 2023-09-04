@@ -41,7 +41,7 @@ def _get_ports(stack):
             for svc_name, svc in parsed_pod_file["services"].items():
                 if "ports" in svc:
                     # Ports can appear as strings or numbers.  We normalize them as strings.
-                    ports[svc_name] = [ str(x) for x in svc["ports"] ]
+                    ports[svc_name] = [str(x) for x in svc["ports"]]
     return ports
 
 
@@ -178,7 +178,7 @@ def _get_mapped_ports(stack: str, map_recipe: str):
                     ports_array = ports[service]
                     for x in range(0, len(ports_array)):
                         orig_port = ports_array[x]
-                        random_port = random.randint(20000,50000) # Beware: we're relying on luck to not collide
+                        random_port = random.randint(20000, 50000)  # Beware: we're relying on luck to not collide
                         if map_recipe == "any-variable-random":
                             # This is the default so take no action
                             pass
@@ -202,11 +202,11 @@ def _get_mapped_ports(stack: str, map_recipe: str):
     return ports
 
 
-
 @click.command()
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.option("--map-ports-to-host", required=False,
-              help="Map ports to the host as one of: any-variable-random (default), localhost-same, any-same, localhost-fixed-random, any-fixed-random")
+              help="Map ports to the host as one of: any-variable-random (default), "
+              "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
 @click.pass_context
 def init(ctx, output, map_ports_to_host):
     yaml = get_yaml()

@@ -118,7 +118,7 @@ def process_repo(verbose, quiet, dry_run, pull, check_only, git_ssh, dev_root_pa
                         origin = git_repo.remotes.origin
                         origin.pull(progress=None if quiet else GitProgress())
                     else:
-                        print(f"skipping pull because this repo checked out a tag")
+                        print("skipping pull because this repo checked out a tag")
                 else:
                     print("(git pull skipped)")
     if not is_present:

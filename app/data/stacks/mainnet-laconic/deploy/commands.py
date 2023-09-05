@@ -160,7 +160,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
     if options.debug:
         print(f"parameters: {parameters}")
 
-    phase = _phase_from_params()
+    phase = _phase_from_params(parameters)
 
     network_dir = Path(parameters.network_dir).absolute()
     laconicd_home_path_in_container = "/laconicd-home"

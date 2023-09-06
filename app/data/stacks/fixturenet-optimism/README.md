@@ -18,6 +18,11 @@ Build the container images:
 
 ```bash
 laconic-so --stack fixturenet-optimism build-containers
+
+# If redeploying with changes in the stack containers
+laconic-so --stack fixturenet-optimism build-containers --force-rebuild
+
+# If errors are thrown during build, old images used by this stack would have to be deleted
 ```
 
 Note: this will take >10 mins depending on the specs of your machine, and **requires** 16GB of memory or greater.

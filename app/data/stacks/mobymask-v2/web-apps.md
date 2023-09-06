@@ -45,6 +45,9 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   # L2 Chain ID used by mobymask web-app for L2 txs
   CERC_CHAIN_ID=42069
+
+  # (Optional) Type of pubsub to be used ("floodsub" | "gossipsub")
+  CERC_PUBSUB=""
   ```
 
 * NOTE: If watcher is running on the host machine, use `host.docker.internal` as the hostname to access the host port

@@ -119,4 +119,8 @@ docker volume ls -q --filter "name=mobymask_v2"
 
 # Remove all the listed volumes
 docker volume rm $(docker volume ls -q --filter "name=mobymask_v2")
+
+# WARNING: To avoid changing peer ids for the watcher, `peers_ids` volume can be persisted
+# To delete all volumes except for `peers_ids`
+docker volume rm $(docker volume ls -q --filter "name=mobymask_v2" | grep -v "peers_ids$")
 ```

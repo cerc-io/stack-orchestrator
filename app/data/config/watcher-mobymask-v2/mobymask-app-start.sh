@@ -42,7 +42,7 @@ jq --arg address "$CERC_DEPLOYED_CONTRACT" \
   --argjson chainId "$CERC_CHAIN_ID" \
   --argjson relayNodes "$CERC_RELAY_NODES" \
   --argjson denyMultiaddrs "$CERC_DENY_MULTIADDRS" \
-  --argjson pubsub "$CERC_PUBSUB" \
+  --arg pubsub "$CERC_PUBSUB" \
   '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes | .peer.denyMultiaddrs = $denyMultiaddrs | .peer.pubsub = $pubsub' \
   /app/src/mobymask-app-config.json > /app/${CERC_CONFIG_FILE}
 

@@ -30,6 +30,7 @@
       denyMultiaddrs = REPLACE_WITH_CERC_DENY_MULTIADDRS
       peerIdFile = './peers/relay-id.json'
       announce = 'REPLACE_WITH_CERC_RELAY_ANNOUNCE_DOMAIN'
+      pubsub = 'REPLACE_WITH_CERC_PUBSUB'
       enableDebugInfo = true
 
     [server.p2p.peer]
@@ -37,6 +38,7 @@
       pubSubTopic = 'mobymask'
       denyMultiaddrs = REPLACE_WITH_CERC_DENY_MULTIADDRS
       peerIdFile = './peers/peer-id.json'
+      pubsub = 'REPLACE_WITH_CERC_PUBSUB'
       enableDebugInfo = true
       enableL2Txs = REPLACE_WITH_CERC_ENABLE_PEER_L2_TXS
 

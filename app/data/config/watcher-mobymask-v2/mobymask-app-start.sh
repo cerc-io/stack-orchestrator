@@ -8,6 +8,7 @@ CERC_CHAIN_ID="${CERC_CHAIN_ID:-${DEFAULT_CERC_CHAIN_ID}}"
 CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRACT}}"
 CERC_RELAY_NODES="${CERC_RELAY_NODES:-${DEFAULT_CERC_RELAY_NODES}}"
 CERC_DENY_MULTIADDRS="${CERC_DENY_MULTIADDRS:-${DEFAULT_CERC_DENY_MULTIADDRS}}"
+CERC_PUBSUB="${CERC_PUBSUB:-${DEFAULT_CERC_PUBSUB}}"
 CERC_APP_WATCHER_URL="${CERC_APP_WATCHER_URL:-${DEFAULT_CERC_APP_WATCHER_URL}}"
 
 # If not set (or []), check the mounted volume for relay peer id
@@ -41,7 +42,8 @@ jq --arg address "$CERC_DEPLOYED_CONTRACT" \
   --argjson chainId "$CERC_CHAIN_ID" \
   --argjson relayNodes "$CERC_RELAY_NODES" \
   --argjson denyMultiaddrs "$CERC_DENY_MULTIADDRS" \
-  '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes | .peer.denyMultiaddrs = $denyMultiaddrs' \
+  --argjson pubsub "$CERC_PUBSUB" \
+  '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes | .peer.denyMultiaddrs = $denyMultiaddrs | .peer.pubsub = $pubsub' \
   /app/src/mobymask-app-config.json > /app/${CERC_CONFIG_FILE}
 
 if [ "${CERC_USE_NPM}" = "true" ]; then

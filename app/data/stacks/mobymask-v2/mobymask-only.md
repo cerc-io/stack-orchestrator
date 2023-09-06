@@ -60,6 +60,9 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # (Optional) Set of multiaddrs to be avoided while dialling
   CERC_DENY_MULTIADDRS=[]
 
+  # (Optional) Type of pubsub to be used
+  CERC_PUBSUB=""
+
   # Set to false for disabling watcher peer to send txs to L2
   CERC_ENABLE_PEER_L2_TXS=true
 

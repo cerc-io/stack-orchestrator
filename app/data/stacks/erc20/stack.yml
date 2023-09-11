@@ -4,7 +4,7 @@ repos:
   - github.com/cerc-io/go-ethereum
   - github.com/cerc-io/ipld-eth-db
   - github.com/cerc-io/ipld-eth-server
-  - github.com/cerc-io/watcher-ts
+  - github.com/cerc-io/erc20-watcher-ts
   - github.com/dboreham/foundry
 containers:
   - cerc/foundry

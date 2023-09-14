@@ -37,7 +37,7 @@ RUN yarn global add http-server
 
 WORKDIR /app
 COPY . .
-RUN npm install
+RUN yarn install
 
 # Expose port for http
 EXPOSE 80

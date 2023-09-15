@@ -18,11 +18,11 @@ if [ -n "$CERC_NA_ADDRESS" ]; then
   echo "Using the above addresses and skipping Nitro contracts deployment"
 
   # Create the required JSON and write it to a file
-  nitro_addresses_json="{
-    \"nitroAdjudicatorAddress\": \"$CERC_NA_ADDRESS\",
-    \"virtualPaymentAppAddress\": \"$CERC_VPA_ADDRESS\",
-    \"consensusAppAddress\": \"$CERC_CA_ADDRESS\"
-  }"
+  nitro_addresses_json=$(jq -n \
+    --arg na "$CERC_NA_ADDRESS" \
+    --arg vpa "$CERC_VPA_ADDRESS" \
+    --arg ca "$CERC_CA_ADDRESS" \
+    '.nitroAdjudicatorAddress = $na | .virtualPaymentAppAddress = $vpa | .consensusAppAddress = $ca')
   echo "$nitro_addresses_json" > "${NITRO_ADDRESSES_FILE_PATH}"
 
   exit

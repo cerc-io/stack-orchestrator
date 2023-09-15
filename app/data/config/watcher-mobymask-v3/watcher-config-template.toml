@@ -46,6 +46,23 @@
         privateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_PEER'
         contractAddress = 'REPLACE_WITH_CONTRACT_ADDRESS'
 
+    [server.p2p.nitro]
+      store = './out/nitro-db'
+      privateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_NITRO'
+      chainPrivateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_PEER'
+
+      [server.p2p.nitro.payments]
+        ratesFile = './environments/rates.toml'
+        requestTimeoutInSecs = 10
+
+        [server.p2p.nitro.payments.cache]
+          maxAccounts = 1000
+          accountTTLInSecs = 1800
+          maxVouchersPerAccount = 1000
+          voucherTTLInSecs = 300
+          maxPaymentChannels = 10000
+          paymentChannelTTLInSecs = 1800
+
 [metrics]
   host = "0.0.0.0"
   port = 9000

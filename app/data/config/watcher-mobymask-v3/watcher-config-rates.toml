@@ -1,0 +1,14 @@
+freeQueriesLimit = 10
+
+freeQueriesList = []
+
+[queries]
+  multiNonce = ''
+  _owner = ''
+  isRevoked = ''
+  isPhisher = ''
+  isMember = ''
+
+[mutations]
+  invoke = ''
+  revoke = ''

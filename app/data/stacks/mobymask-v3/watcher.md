@@ -37,7 +37,6 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # OR
   # Specify the required account credentials
   CERC_PRIVATE_KEY_DEPLOYER=
-  CERC_PRIVATE_KEY_PEER=
 
   # Base URI for mobymask-app
   # (used for generating a root invite link after deploying the contract)
@@ -65,6 +64,12 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   CERC_NA_ADDRESS=
   CERC_VPA_ADDRESS=
   CERC_CA_ADDRESS=
+
+  # Specify private key of a funded account for sending txs to L2
+  CERC_PRIVATE_KEY_PEER=
+
+  # Specify private key for the Nitro account
+  CERC_PRIVATE_KEY_NITRO=
   ```
 
 * NOTE: If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port

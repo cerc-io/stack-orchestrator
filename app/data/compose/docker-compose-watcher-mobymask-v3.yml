@@ -81,7 +81,6 @@ services:
       CERC_L2_GETH_RPC: ${CERC_L2_GETH_RPC}
       CERC_L1_ACCOUNTS_CSV_URL: ${CERC_L1_ACCOUNTS_CSV_URL}
       CERC_PRIVATE_KEY_DEPLOYER: ${CERC_PRIVATE_KEY_DEPLOYER}
-      CERC_PRIVATE_KEY_PEER: ${CERC_PRIVATE_KEY_PEER}
       CERC_RELAY_PEERS: ${CERC_RELAY_PEERS}
       CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
       CERC_PUBSUB: ${CERC_PUBSUB}
@@ -91,14 +90,16 @@ services:
       CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
       CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
+      CERC_PRIVATE_KEY_PEER: ${CERC_PRIVATE_KEY_PEER}
+      CERC_PRIVATE_KEY_NITRO: ${CERC_PRIVATE_KEY_NITRO}
     entrypoint: ["bash", "-c"]
-    command: ["./deploy-nitro-contracts.sh && ./read-nitro-contracts.sh && ./start-server.sh"]
+    command: ["./deploy-nitro-contracts.sh && ./start-server.sh"]
     volumes:
       - ../config/watcher-mobymask-v3/deploy-nitro-contracts.sh:/app/deploy-nitro-contracts.sh
       - ../config/watcher-mobymask-v3/deploy-nitro-contracts.ts:/app/deploy-nitro-contracts.ts
-      - ../config/watcher-mobymask-v3/read-nitro-contracts.sh:/app/read-nitro-contracts.sh
       - ../config/watcher-mobymask-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml
-      - ../config/watcher-mobymask-v2/start-server.sh:/app/start-server.sh
+      - ../config/watcher-mobymask-v3/watcher-config-rates.toml:/app/environments/rates.toml
+      - ../config/watcher-mobymask-v3/start-server.sh:/app/start-server.sh
       - peers_ids:/app/peers
       - nitro_addresses:/nitro
       - mobymask_deployment:/server

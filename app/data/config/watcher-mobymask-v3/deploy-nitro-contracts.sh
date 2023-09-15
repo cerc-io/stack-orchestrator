@@ -4,17 +4,34 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-CERC_L2_GETH_RPC="${CERC_L2_GETH_RPC:-${DEFAULT_CERC_L2_GETH_RPC}}"
-CERC_L1_ACCOUNTS_CSV_URL="${CERC_L1_ACCOUNTS_CSV_URL:-${DEFAULT_CERC_L1_ACCOUNTS_CSV_URL}}"
-CERC_NITRO_CONTRACTS="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_NITRO_CONTRACTS}}"
+CERC_NA_ADDRESS="${CERC_NA_ADDRESS:-${DEFAULT_CERC_NA_ADDRESS}}"
+CERC_VPA_ADDRESS="${CERC_VPA_ADDRESS:-${DEFAULT_CERC_VPA_ADDRESS}}"
+CERC_CA_ADDRESS="${CERC_CA_ADDRESS:-${DEFAULT_CERC_CA_ADDRESS}}"
 
 NITRO_ADDRESSES_FILE_PATH="/nitro/nitro-addresses.json"
 
 # Check if CERC_NITRO_CONTRACTS environment variable set to skip contract deployment
-if [ -n "$CERC_NITRO_CONTRACTS" ]; then
-  echo "CERC_NITRO_CONTRACTS is set to '$CERC_NITRO_CONTRACTS'"
-  echo "Skipping Nitro contracts deployment"
-  exit 0
+if [ -n "$CERC_NA_ADDRESS" ]; then
+  echo "CERC_NA_ADDRESS is set to '$CERC_NA_ADDRESS'"
+  echo "CERC_VPA_ADDRESS is set to '$CERC_VPA_ADDRESS'"
+  echo "CERC_CA_ADDRESS is set to '$CERC_CA_ADDRESS'"
+  echo "Using the above addresses and skipping Nitro contracts deployment"
+
+  # Create the required JSON and write it to a file
+  nitro_addresses_json="{
+    \"nitroAdjudicatorAddress\": \"$CERC_NA_ADDRESS\",
+    \"virtualPaymentAppAddress\": \"$CERC_VPA_ADDRESS\",
+    \"consensusAppAddress\": \"$CERC_CA_ADDRESS\"
+  }"
+  echo "$nitro_addresses_json" > "${NITRO_ADDRESSES_FILE_PATH}"
+
+  exit
+fi
+
+# Check and exit if a deployment already exists (on restarts)
+if [ -f ${NITRO_ADDRESSES_FILE_PATH} ]; then
+  echo "${NITRO_ADDRESSES_FILE_PATH} already exists, skipping Nitro contracts deployment"
+  exit
 fi
 
 echo "Using L2 RPC endpoint ${CERC_L2_GETH_RPC}"
@@ -33,14 +50,8 @@ else
   echo "Couldn't fetch L1 account credentials, using CERC_PRIVATE_KEY_DEPLOYER from env"
 fi
 
-# Check and exit if a deployment already exists (on restarts)
-if [ -f ${NITRO_ADDRESSES_FILE_PATH} ]; then
-  echo "${NITRO_ADDRESSES_FILE_PATH} already exists, skipping Nitro contracts deployment"
-  exit
-fi
+echo "RPC_URL=${CERC_L2_GETH_RPC}" > .env
+echo "NITRO_ADDRESSES_FILE_PATH=${NITRO_ADDRESSES_FILE_PATH}" >> .env
+echo "PRIVATE_KEY=${CERC_PRIVATE_KEY_DEPLOYER}" >> .env
 
-export RPC_URL="${CERC_L2_GETH_RPC}"
-export NITRO_ADDRESSES_FILE_PATH="${NITRO_ADDRESSES_FILE_PATH}"
-export PRIVATE_KEY="${CERC_PRIVATE_KEY_DEPLOYER}"
-
-yarn ts-node --esm ./src/deploy-nitro-contracts.ts
+yarn ts-node --esm deploy-nitro-contracts.ts

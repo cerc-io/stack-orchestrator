@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import fs from 'fs';
 import { providers, Wallet } from 'ethers';
 import { deployContracts } from '@cerc-io/nitro-util';

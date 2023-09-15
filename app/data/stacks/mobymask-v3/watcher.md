@@ -5,13 +5,98 @@
 Clone required repositories:
 
 ```bash
-laconic-so --stack mobymask-v3 setup-repositories
+laconic-so --stack mobymask-v3 setup-repositories --pull --exclude github.com/cerc-io/mobymask-ui
 ```
 
 Build the container images:
 
 ```bash
-laconic-so --stack mobymask-v3 build-containers
+laconic-so --stack mobymask-v3 build-containers --exclude cerc/mobymask-ui
 ```
 
 ## Deploy
+
+### Configuration
+
+Create and update an env file to be used in the next step ([defaults](../../config/watcher-mobymask-v3/mobymask-params.env)):
+
+  ```bash
+  # External L2 endpoints
+  CERC_L2_GETH_RPC=
+
+  # Endpoints waited on before contract deployment
+  CERC_L2_GETH_HOST=
+  CERC_L2_GETH_PORT=
+
+  CERC_L2_NODE_HOST=
+  CERC_L2_NODE_PORT=
+
+  # URL (fixturenet-eth-bootnode-lighthouse) to get CSV with credentials for accounts on L1 to perform txs on L2
+  CERC_L1_ACCOUNTS_CSV_URL=
+
+  # OR
+  # Specify the required account credentials
+  CERC_PRIVATE_KEY_DEPLOYER=
+  CERC_PRIVATE_KEY_PEER=
+
+  # Base URI for mobymask-app
+  # (used for generating a root invite link after deploying the contract)
+  CERC_MOBYMASK_APP_BASE_URI="http://127.0.0.1:3004/#"
+
+  # (Optional) Domain to be used in the relay node's announce address
+  CERC_RELAY_ANNOUNCE_DOMAIN=
+
+  # (Optional) Set of relay peers to connect to from the relay node
+  CERC_RELAY_PEERS=[]
+
+  # (Optional) Set of multiaddrs to be avoided while dialling
+  CERC_DENY_MULTIADDRS=[]
+
+  # (Optional) Type of pubsub to be used
+  CERC_PUBSUB=""
+
+  # Set to false for disabling watcher peer to send txs to L2
+  CERC_ENABLE_PEER_L2_TXS=true
+
+  # (Optional) Set already deployed MobyMask contract address to avoid deploying contract in the stack
+  CERC_DEPLOYED_CONTRACT=
+
+  # (Optional) Set already deployed Nitro addresses to avoid deploying them in the stack
+  CERC_NA_ADDRESS=
+  CERC_VPA_ADDRESS=
+  CERC_CA_ADDRESS=
+  ```
+
+* NOTE: If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
+
+### Deploy the stack
+
+```bash
+laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mobymask-v3 --env-file <PATH_TO_ENV_FILE> up
+```
+
+* To list down and monitor the running containers:
+
+  ```bash
+  laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mobymask-v3 ps
+
+  # With status
+  docker ps -a
+
+  # Check logs for a container
+  docker logs -f <CONTAINER_ID>
+  ```
+
+* The watcher endpoint is exposed on host port `3001` and the relay node endpoint is exposed on host port `9090`
+
+* Check the logs of the MobyMask contract deployment container to get the deployed contract's address and generated root invite link:
+
+  ```bash
+  docker logs -f $(docker ps -aq --filter name="mobymask-1")
+  ```
+
+* Check the logs of the watcher server container to get the deployed Nitro contracts' addresses:
+
+```bash
+docker exec -it $(docker ps -q --filter name="mobymask-watcher-server") bash -c "cat /nitro/nitro-addresses.json"
+```

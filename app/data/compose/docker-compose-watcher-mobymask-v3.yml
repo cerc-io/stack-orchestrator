@@ -28,8 +28,7 @@ services:
     image: cerc/mobymask:local
     working_dir: /app/packages/server
     env_file:
-      - ../config/watcher-mobymask-v2/optimism-params.env
-      - ../config/watcher-mobymask-v2/mobymask-params.env
+      - ../config/watcher-mobymask-v3/mobymask-params.env
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       ENV: "PROD"
@@ -57,14 +56,65 @@ services:
     restart: on-failure
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-    # working_dir: /app/packages/peer
-    working_dir: /app/packages/
-    command: ["sh", "generate-peer-ids.sh && deploy-nitro-contracts.sh"]
+    working_dir: /app/packages/peer
+    command: ["sh", "generate-peer-ids.sh"]
     volumes:
       - ../config/watcher-mobymask-v2/generate-peer-ids.sh:/app/packages/peer/generate-peer-ids.sh
       - peers_ids:/peer-ids
-      - ../config/watcher-mobymask-v3/deploy-nitro-contracts.sh:/app/packages/peer/deploy-nitro-contracts.sh
+
+  # Optionally deploys the Nitro contracts and sets them at the required path
+  # Starts the MobyMask v3 watcher server
+  mobymask-watcher-server:
+    image: cerc/watcher-mobymask-v3:local
+    restart: unless-stopped
+    depends_on:
+      mobymask-watcher-db:
+        condition: service_healthy
+      peer-ids-gen:
+        condition: service_completed_successfully
+      mobymask:
+        condition: service_completed_successfully
+    env_file:
+      - ../config/watcher-mobymask-v3/mobymask-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_L2_GETH_RPC: ${CERC_L2_GETH_RPC}
+      CERC_L1_ACCOUNTS_CSV_URL: ${CERC_L1_ACCOUNTS_CSV_URL}
+      CERC_PRIVATE_KEY_DEPLOYER: ${CERC_PRIVATE_KEY_DEPLOYER}
+      CERC_PRIVATE_KEY_PEER: ${CERC_PRIVATE_KEY_PEER}
+      CERC_RELAY_PEERS: ${CERC_RELAY_PEERS}
+      CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
+      CERC_PUBSUB: ${CERC_PUBSUB}
+      CERC_RELAY_ANNOUNCE_DOMAIN: ${CERC_RELAY_ANNOUNCE_DOMAIN}
+      CERC_ENABLE_PEER_L2_TXS: ${CERC_ENABLE_PEER_L2_TXS}
+      CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
+      CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
+      CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
+      CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
+    entrypoint: ["bash", "-c"]
+    command: ["./deploy-nitro-contracts.sh && ./read-nitro-contracts.sh && ./start-server.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v3/deploy-nitro-contracts.sh:/app/deploy-nitro-contracts.sh
+      - ../config/watcher-mobymask-v3/deploy-nitro-contracts.ts:/app/deploy-nitro-contracts.ts
+      - ../config/watcher-mobymask-v3/read-nitro-contracts.sh:/app/read-nitro-contracts.sh
+      - ../config/watcher-mobymask-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-mobymask-v2/start-server.sh:/app/start-server.sh
+      - peers_ids:/app/peers
       - nitro_addresses:/nitro
+      - mobymask_deployment:/server
+    # Expose GQL, metrics and relay node ports
+    ports:
+      - "127.0.0.1:3001:3001"
+      - "127.0.0.1:9001:9001"
+      - "127.0.0.1:9090:9090"
+    healthcheck:
+      test: ["CMD", "busybox", "nc", "localhost", "9090"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   mobymask_watcher_db_data:

@@ -8,9 +8,9 @@ repos:
   - github.com/cerc-io/mobymask-ui
 containers:
   - cerc/watcher-ts
-  - cerc/watcher-mobymask-v2
-  - cerc/mobymask-ui
+  - cerc/watcher-mobymask-v3
   - cerc/mobymask
+  - cerc/mobymask-ui
 pods:
   - watcher-mobymask-v3
-  - mobymask-app-v3
+  # - mobymask-app-v3

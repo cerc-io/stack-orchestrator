@@ -70,6 +70,10 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   # Specify private key for the Nitro account
   CERC_PRIVATE_KEY_NITRO=
+
+  # (Optional) Set a pre-existing peer id to be used (enables consensus)
+  # Uses a generated peer id if not set (disables consensus)
+  CERC_PEER_ID=
   ```
 
 * NOTE: If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port

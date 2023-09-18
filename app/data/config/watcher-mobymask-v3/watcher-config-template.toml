@@ -37,7 +37,7 @@
       relayMultiaddr = 'REPLACE_WITH_CERC_RELAY_MULTIADDR'
       pubSubTopic = 'mobymask'
       denyMultiaddrs = REPLACE_WITH_CERC_DENY_MULTIADDRS
-      peerIdFile = './peers/peer-id.json'
+      peerIdFile = 'REPLACE_WITH_PEER_ID_FILE'
       pubsub = 'REPLACE_WITH_CERC_PUBSUB'
       enableDebugInfo = true
       enableL2Txs = REPLACE_WITH_CERC_ENABLE_PEER_L2_TXS
@@ -62,6 +62,12 @@
           voucherTTLInSecs = 300
           maxPaymentChannels = 10000
           paymentChannelTTLInSecs = 1800
+
+    [server.p2p.consensus]
+      enabled = REPLACE_WITH_CONSENSUS_ENABLED
+      publicKey = 'REPLACE_WITH_CONSENSUS_PUBLIC_KEY'
+      privateKey = 'REPLACE_WITH_CONSENSUS_PRIVATE_KEY'
+      watcherPartyFile = 'REPLACE_WITH_WATCHER_PARTY_PEERS_FILE'
 
 [metrics]
   host = "0.0.0.0"

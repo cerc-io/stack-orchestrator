@@ -92,6 +92,7 @@ services:
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
       CERC_PRIVATE_KEY_PEER: ${CERC_PRIVATE_KEY_PEER}
       CERC_PRIVATE_KEY_NITRO: ${CERC_PRIVATE_KEY_NITRO}
+      CERC_PEER_ID: ${CERC_PEER_ID}
     entrypoint: ["bash", "-c"]
     command: ["./deploy-nitro-contracts.sh && ./start-server.sh"]
     volumes:
@@ -99,6 +100,7 @@ services:
       - ../config/watcher-mobymask-v3/deploy-nitro-contracts.ts:/app/deploy-nitro-contracts.ts
       - ../config/watcher-mobymask-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml
       - ../config/watcher-mobymask-v3/watcher-config-rates.toml:/app/environments/rates.toml
+      - ../config/watcher-mobymask-v3/keys:/app/keys
       - ../config/watcher-mobymask-v3/start-server.sh:/app/start-server.sh
       - peers_ids:/app/peers
       - nitro_addresses:/nitro

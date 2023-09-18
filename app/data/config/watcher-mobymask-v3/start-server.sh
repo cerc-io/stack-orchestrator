@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+
 set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
@@ -13,8 +14,10 @@ CERC_RELAY_ANNOUNCE_DOMAIN="${CERC_RELAY_ANNOUNCE_DOMAIN:-${DEFAULT_CERC_RELAY_A
 CERC_ENABLE_PEER_L2_TXS="${CERC_ENABLE_PEER_L2_TXS:-${DEFAULT_CERC_ENABLE_PEER_L2_TXS}}"
 CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRACT}}"
 
-NITRO_ADDRESSES_FILE_PATH="/nitro/nitro-addresses.json"
-DESTINATION_FILE_PATH="./src/nitro-addresses.json"
+nitro_addresses_file="/nitro/nitro-addresses.json"
+nitro_addresses_destination_file="./src/nitro-addresses.json"
+
+watcher_keys_dir="./keys"
 
 echo "Using L2 RPC endpoint ${CERC_L2_GETH_RPC}"
 
@@ -35,11 +38,14 @@ else
 fi
 
 # Copy the deployed Nitro addresses to the required path
-if [ -f "$NITRO_ADDRESSES_FILE_PATH" ]; then
-  cat "$NITRO_ADDRESSES_FILE_PATH" > "$DESTINATION_FILE_PATH"
-  echo "Nitro addresses set to ${DESTINATION_FILE_PATH}"
+if [ -f "$nitro_addresses_file" ]; then
+  cat "$nitro_addresses_file" > "$nitro_addresses_destination_file"
+  echo "Nitro addresses set to ${nitro_addresses_destination_file}"
+
+  # Build after setting the Nitro addresses
+  yarn build
 else
-  echo "File ${NITRO_ADDRESSES_FILE_PATH} does not exist"
+  echo "File ${nitro_addresses_file} does not exist"
   exit 1
 fi
 

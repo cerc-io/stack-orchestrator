@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+
 set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
@@ -10,7 +11,7 @@ CERC_CA_ADDRESS="${CERC_CA_ADDRESS:-${DEFAULT_CERC_CA_ADDRESS}}"
 
 NITRO_ADDRESSES_FILE_PATH="/nitro/nitro-addresses.json"
 
-# Check if CERC_NITRO_CONTRACTS environment variable set to skip contract deployment
+# Check if CERC_NA_ADDRESS environment variable set to skip contract deployment
 if [ -n "$CERC_NA_ADDRESS" ]; then
   echo "CERC_NA_ADDRESS is set to '$CERC_NA_ADDRESS'"
   echo "CERC_VPA_ADDRESS is set to '$CERC_VPA_ADDRESS'"

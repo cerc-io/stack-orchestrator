@@ -111,3 +111,25 @@ laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mo
 ```bash
 docker exec -it $(docker ps -q --filter name="mobymask-watcher-server") bash -c "cat /nitro/nitro-addresses.json"
 ```
+
+## Clean up
+
+Stop all services running in the background:
+
+```bash
+laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mobymask-v3 down
+```
+
+Clear volumes created by this stack:
+
+```bash
+# List all relevant volumes
+docker volume ls -q --filter "name=mobymask_v3"
+
+# Remove all the listed volumes
+docker volume rm $(docker volume ls -q --filter "name=mobymask_v3")
+
+# WARNING: To avoid changing peer ids for the watcher, `peers_ids` volume can be persisted
+# To delete all volumes except for `peers_ids`
+docker volume rm $(docker volume ls -q --filter "name=mobymask_v3" | grep -v "peers_ids$")
+```

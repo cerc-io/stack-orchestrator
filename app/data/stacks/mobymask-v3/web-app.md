@@ -85,13 +85,3 @@ For mobymask-app
 ```bash
 laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include mobymask-app-v3 down
 ```
-
-Clear volumes created by this stack:
-
-```bash
-# List all relevant volumes
-docker volume ls -q --filter "name=mobymask_v3"
-
-# Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=mobymask_v3")
-```

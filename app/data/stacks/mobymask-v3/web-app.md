@@ -68,7 +68,7 @@ laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include mobymask-a
 To list down and monitor the running containers:
 
 ```bash
-laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include mobymask-v3-app ps
+laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include mobymask-app-v3 ps
 
 # With status
 docker ps -a
@@ -81,7 +81,6 @@ docker logs -f <CONTAINER_ID>
 
 Stop all services running in the background:
 
-For mobymask-app
 ```bash
 laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include mobymask-app-v3 down
 ```

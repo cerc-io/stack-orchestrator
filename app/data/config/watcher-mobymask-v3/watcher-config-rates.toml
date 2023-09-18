@@ -3,12 +3,12 @@ freeQueriesLimit = 10
 freeQueriesList = []
 
 [queries]
-  multiNonce = ''
-  _owner = ''
-  isRevoked = ''
-  isPhisher = ''
-  isMember = ''
+  multiNonce = '50'
+  _owner = '50'
+  isRevoked = '50'
+  isPhisher = '50'
+  isMember = '50'
 
 [mutations]
-  invoke = ''
-  revoke = ''
+  invoke = '100'
+  revoke = '100'

@@ -13,4 +13,4 @@ containers:
   - cerc/mobymask-ui
 pods:
   - watcher-mobymask-v3
-  # - mobymask-app-v3
+  - mobymask-app-v3

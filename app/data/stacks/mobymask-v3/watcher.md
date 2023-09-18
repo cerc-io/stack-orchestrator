@@ -1,6 +1,8 @@
-# MobyMask v3 watcher
+# MobyMask v3 Watcher
 
 ## Setup
+
+Prerequisite: L2 Optimism Geth and Node RPC endpoints
 
 Clone required repositories:
 

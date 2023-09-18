@@ -1,0 +1,38 @@
+version: '3.2'
+
+services:
+  # Builds and serves the MobyMask v3 react-app
+  mobymask-v3-app:
+    restart: unless-stopped
+    image: cerc/mobymask-ui:local
+    env_file:
+      - ../config/watcher-mobymask-v3/mobymask-params.env
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_CHAIN_ID: ${CERC_CHAIN_ID}
+      CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
+      CERC_RELAY_NODES: ${CERC_RELAY_NODES}
+      CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
+      CERC_PUBSUB: ${CERC_PUBSUB}
+      CERC_RELEASE: "laconic-v3"
+      CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
+      CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
+      CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
+      CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
+      CERC_PAYMENT_NITRO_ADDRESS: ${CERC_PAYMENT_NITRO_ADDRESS}
+      CERC_SNAP_URL: ${CERC_SNAP_URL}
+    working_dir: /scripts
+    command: ["sh", "mobymask-app-start.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v3/mobymask-app-start.sh:/scripts/mobymask-app-start.sh
+      - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
+    ports:
+      - "127.0.0.1:3004:80"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "80"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

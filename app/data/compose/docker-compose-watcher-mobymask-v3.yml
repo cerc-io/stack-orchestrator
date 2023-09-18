@@ -62,7 +62,7 @@ services:
       - ../config/watcher-mobymask-v2/generate-peer-ids.sh:/app/packages/peer/generate-peer-ids.sh
       - peers_ids:/peer-ids
 
-  # Optionally deploys the Nitro contracts and sets them at the required path
+  # Optionally deploys the Nitro contracts; sets them at the required path
   # Starts the MobyMask v3 watcher server
   mobymask-watcher-server:
     image: cerc/watcher-mobymask-v3:local
@@ -102,6 +102,7 @@ services:
       - ../config/watcher-mobymask-v3/watcher-config-rates.toml:/app/environments/rates.toml
       - ../config/watcher-mobymask-v3/keys:/app/keys
       - ../config/watcher-mobymask-v3/start-server.sh:/app/start-server.sh
+      - nitro_data:/app/out/nitro-db
       - peers_ids:/app/peers
       - nitro_addresses:/nitro
       - mobymask_deployment:/server
@@ -122,5 +123,6 @@ services:
 volumes:
   mobymask_watcher_db_data:
   peers_ids:
-  nitro_addresses:
   mobymask_deployment:
+  nitro_addresses:
+  nitro_data:

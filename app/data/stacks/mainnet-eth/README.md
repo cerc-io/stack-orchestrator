@@ -17,7 +17,7 @@ $ laconic-so --stack mainnet-eth build-containers
 ## Create a deployment
 
 ```
-$ laconic-so --stack mainnet-eth deploy init --output mainnet-eth-spec.yml
+$ laconic-so --stack mainnet-eth deploy init --map-ports-to-host any-same --output mainnet-eth-spec.yml
 $ laconic-so deploy create --spec-file mainnet-eth-spec.yml --deployment-dir mainnet-eth-deployment
 ```
 ## Start the stack

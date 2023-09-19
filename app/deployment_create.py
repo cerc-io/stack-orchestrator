@@ -179,7 +179,7 @@ def _get_mapped_ports(stack: str, map_recipe: str):
                     for x in range(0, len(ports_array)):
                         orig_port = ports_array[x]
                         # Strip /udp suffix if present
-                        bare_orig_port = orig_port.replace("/udp","")
+                        bare_orig_port = orig_port.replace("/udp", "")
                         random_port = random.randint(20000, 50000)  # Beware: we're relying on luck to not collide
                         if map_recipe == "any-variable-random":
                             # This is the default so take no action

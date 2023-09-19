@@ -178,16 +178,18 @@ def _get_mapped_ports(stack: str, map_recipe: str):
                     ports_array = ports[service]
                     for x in range(0, len(ports_array)):
                         orig_port = ports_array[x]
+                        # Strip /udp suffix if present
+                        bare_orig_port = orig_port.replace("/udp","")
                         random_port = random.randint(20000, 50000)  # Beware: we're relying on luck to not collide
                         if map_recipe == "any-variable-random":
                             # This is the default so take no action
                             pass
                         elif map_recipe == "localhost-same":
                             # Replace instances of "- XX" with "- 127.0.0.1:XX"
-                            ports_array[x] = f"127.0.0.1:{orig_port}:{orig_port}"
+                            ports_array[x] = f"127.0.0.1:{bare_orig_port}:{orig_port}"
                         elif map_recipe == "any-same":
                             # Replace instances of "- XX" with "- 0.0.0.0:XX"
-                            ports_array[x] = f"0.0.0.0:{orig_port}:{orig_port}"
+                            ports_array[x] = f"0.0.0.0:{bare_orig_port}:{orig_port}"
                         elif map_recipe == "localhost-fixed-random":
                             # Replace instances of "- XX" with "- 127.0.0.1:<rnd>:XX"
                             ports_array[x] = f"127.0.0.1:{random_port}:{orig_port}"

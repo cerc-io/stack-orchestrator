@@ -10,6 +10,13 @@ scrape_configs:
     static_configs:
     - targets: ['mainnet-eth-geth-1:6060']
 
+  # lighthouse
+  - job_name: 'lighthouse'
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+    - targets: ['mainnet-eth-lighthouse-1:5054']
+
   # keycloak
   - job_name: 'keycloak'
     scrape_interval: 5s

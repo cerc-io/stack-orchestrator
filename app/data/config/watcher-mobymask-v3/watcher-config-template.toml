@@ -1,0 +1,103 @@
+[server]
+  host = "0.0.0.0"
+  port = 3001
+  kind = "lazy"
+
+  # Checkpointing state.
+  checkpointing = true
+
+  # Checkpoint interval in number of blocks.
+  checkpointInterval = 2000
+
+  # Enable state creation
+  enableState = true
+
+  # Boolean to filter logs by contract.
+  filterLogs = true
+
+  # Max block range for which to return events in eventsInRange GQL query.
+  # Use -1 for skipping check on block range.
+  maxEventsBlockRange = -1
+
+  [server.p2p]
+    enableRelay = true
+    enablePeer = true
+
+    [server.p2p.relay]
+      host = "0.0.0.0"
+      port = 9090
+      relayPeers = REPLACE_WITH_CERC_RELAY_PEERS
+      denyMultiaddrs = REPLACE_WITH_CERC_DENY_MULTIADDRS
+      peerIdFile = './peers/relay-id.json'
+      announce = 'REPLACE_WITH_CERC_RELAY_ANNOUNCE_DOMAIN'
+      pubsub = 'REPLACE_WITH_CERC_PUBSUB'
+      enableDebugInfo = true
+
+    [server.p2p.peer]
+      relayMultiaddr = 'REPLACE_WITH_CERC_RELAY_MULTIADDR'
+      pubSubTopic = 'mobymask'
+      denyMultiaddrs = REPLACE_WITH_CERC_DENY_MULTIADDRS
+      peerIdFile = 'REPLACE_WITH_PEER_ID_FILE'
+      pubsub = 'REPLACE_WITH_CERC_PUBSUB'
+      enableDebugInfo = true
+      enableL2Txs = REPLACE_WITH_CERC_ENABLE_PEER_L2_TXS
+
+      [server.p2p.peer.l2TxsConfig]
+        privateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_PEER'
+        contractAddress = 'REPLACE_WITH_CONTRACT_ADDRESS'
+
+    [server.p2p.nitro]
+      store = './out/nitro-db'
+      privateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_NITRO'
+      chainPrivateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_PEER'
+
+      [server.p2p.nitro.payments]
+        ratesFile = './environments/rates.toml'
+        requestTimeoutInSecs = 10
+
+        [server.p2p.nitro.payments.cache]
+          maxAccounts = 1000
+          accountTTLInSecs = 1800
+          maxVouchersPerAccount = 1000
+          voucherTTLInSecs = 300
+          maxPaymentChannels = 10000
+          paymentChannelTTLInSecs = 1800
+
+    [server.p2p.consensus]
+      enabled = REPLACE_WITH_CONSENSUS_ENABLED
+      publicKey = 'REPLACE_WITH_CONSENSUS_PUBLIC_KEY'
+      privateKey = 'REPLACE_WITH_CONSENSUS_PRIVATE_KEY'
+      watcherPartyFile = 'REPLACE_WITH_WATCHER_PARTY_PEERS_FILE'
+
+[metrics]
+  host = "0.0.0.0"
+  port = 9000
+  [metrics.gql]
+    port = 9001
+
+[database]
+  type = "postgres"
+  host = "mobymask-watcher-db"
+  port = 5432
+  database = "mobymask-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+
+[upstream]
+  [upstream.ethServer]
+    gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
+    rpcProviderEndpoint = "REPLACE_WITH_CERC_L2_GETH_RPC_ENDPOINT"
+    blockDelayInMilliSecs = 60000
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@mobymask-watcher-db/mobymask-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 100
+  eventsInBatch = 50

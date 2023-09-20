@@ -35,3 +35,5 @@ contract-sushiswap
 graph-node
 sushiswap-subgraph-v3
 fixturenet-sushiswap-subgraph-v3
+watcher-mobymask-v3
+mobymask-app-v3

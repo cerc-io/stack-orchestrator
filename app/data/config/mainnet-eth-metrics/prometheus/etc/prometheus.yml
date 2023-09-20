@@ -12,7 +12,7 @@ scrape_configs:
 
   # lighthouse
   - job_name: 'lighthouse'
-    metrics_path: /debug/metrics/prometheus
+    metrics_path: /metrics
     scheme: http
     static_configs:
     - targets: ['mainnet-eth-lighthouse-1:5054']

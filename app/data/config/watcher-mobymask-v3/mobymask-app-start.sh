@@ -10,6 +10,7 @@ CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRA
 CERC_RELAY_NODES="${CERC_RELAY_NODES:-${DEFAULT_CERC_RELAY_NODES}}"
 CERC_DENY_MULTIADDRS="${CERC_DENY_MULTIADDRS:-${DEFAULT_CERC_DENY_MULTIADDRS}}"
 CERC_PUBSUB="${CERC_PUBSUB:-${DEFAULT_CERC_PUBSUB}}"
+CERC_GOSSIPSUB_DIRECT_PEERS="${CERC_GOSSIPSUB_DIRECT_PEERS:-${DEFAULT_CERC_GOSSIPSUB_DIRECT_PEERS}}"
 
 echo "Using CERC_RELAY_NODES $CERC_RELAY_NODES"
 
@@ -49,7 +50,8 @@ jq --arg address "$CERC_DEPLOYED_CONTRACT" \
   --argjson relayNodes "$CERC_RELAY_NODES" \
   --argjson denyMultiaddrs "$CERC_DENY_MULTIADDRS" \
   --arg pubsub "$CERC_PUBSUB" \
-  '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes | .peer.denyMultiaddrs = $denyMultiaddrs | .peer.pubsub = $pubsub' \
+  --argjson directPeers "$CERC_GOSSIPSUB_DIRECT_PEERS" \
+  '.address = $address | .chainId = $chainId | .relayNodes = $relayNodes | .peer.denyMultiaddrs = $denyMultiaddrs | .peer.pubsub = $pubsub | .peer.directPeers = $directPeers' \
   /app/src/mobymask-app-config.json > /app/src/utils/config.json
 
 yarn install

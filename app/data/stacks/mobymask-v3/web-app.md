@@ -45,6 +45,9 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # (Optional) Type of pubsub to be used ("floodsub" | "gossipsub")
   CERC_PUBSUB=""
 
+  # (Optional) Set of direct peers to be used when pubsub is set to gossipsub
+  CERC_GOSSIPSUB_DIRECT_PEERS=[]
+
   # Set Nitro addresses
   CERC_NA_ADDRESS=
   CERC_VPA_ADDRESS=

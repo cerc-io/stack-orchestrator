@@ -1,7 +1,6 @@
 # Specification
 
-(note this page is out of date)
-
+Note: this page is out of date (but still useful) - it will no longer be useful once stacks are [decoupled from the tool functionality](https://github.com/cerc-io/stack-orchestrator/issues/315).
 
 ## Implementation
 

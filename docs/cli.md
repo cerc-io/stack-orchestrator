@@ -6,7 +6,7 @@ Sub-commands and flags
 
 Clone a single repository:
 ```
-$ laconic-so setup-repositories --include cerc-io/go-ethereum
+$ laconic-so setup-repositories --include github.com/cerc-io/go-ethereum
 ```
 Clone the repositories for a stack:
 ```

@@ -1,0 +1,23 @@
+version: "1.0"
+name: fixturenet-payments
+description: "Stack to demonstrate payments between various services"
+repos:
+  # fixturenet repos
+  - github.com/cerc-io/go-ethereum
+  - github.com/cerc-io/lighthouse
+  - github.com/cerc-io/ipld-eth-db
+  - github.com/cerc-io/ipld-eth-server
+containers:
+  # fixturenet images
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/fixturenet-eth-genesis
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/ipld-eth-db
+  - cerc/ipld-eth-server
+pods:
+  - fixturenet-eth
+  - ipld-eth-server
+  - ipld-eth-db

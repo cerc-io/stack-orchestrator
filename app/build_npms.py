@@ -132,8 +132,8 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
             try:
                 docker.run(builder_js_image_name,
                            remove=True,
-                           interactive=True,
-                           tty=True,
+                           interactive=False,
+                           tty=False,
                            user=f"{os.getuid()}:{os.getgid()}",
                            envs=envs,
                            # TODO: detect this host name in npm_registry_url rather than hard-wiring it

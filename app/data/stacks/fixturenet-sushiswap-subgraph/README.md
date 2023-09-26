@@ -143,6 +143,42 @@ http://127.0.0.1:<HOST_PORT>/subgraphs/name/sushiswap/v3-lotus/graphql
   docker exec -it sushigraph-sushiswap-v3-core-1 pnpm run pool:burn:docker --pool $POOL_ADDRESS --amount 10
   ```
 
+* Query the sushiswap v3-lotus subgraph GQL after running above commands
+
+  ```graphql
+  {
+    _meta {
+      block {
+        number
+      }
+      deployment
+      hasIndexingErrors
+    }
+    
+    factories {
+      poolCount
+      id
+    }
+    
+    pools {
+      id
+      token0 {
+        id
+        name
+        symbol
+      }
+      mints {
+        id
+        owner
+      }
+      burns {
+        id
+        owner
+      }
+    }
+  }
+  ```
+
 ## Clean up
 
 Stop all the services running in background run:

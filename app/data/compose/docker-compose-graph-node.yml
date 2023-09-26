@@ -19,8 +19,9 @@ services:
       GRAPH_LOG: debug
       ETHEREUM_REORG_THRESHOLD: 3
     entrypoint: ["bash", "-c"]
+    # Wait for ETH RPC endpoint to be up when running with fixturenet-lotus
     command: |
-      "wait_for ${ETH_RPC_HOST:-lotus-node-1}:${ETH_RPC_PORT:-1234} -t 60 -- start"
+      "wait_for ${ETH_RPC_HOST:-lotus-node-1}:${ETH_RPC_PORT:-1234} -t 1800 -- start"
     ports:
       - "8000"
       - "8001"

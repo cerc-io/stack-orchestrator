@@ -1,0 +1,9 @@
+version: "1.0"
+name: graph-node
+description: "Stack for running graph-node"
+repos:
+  - github.com/graphprotocol/graph-node
+containers:
+  - cerc/graph-node
+pods:
+  - graph-node

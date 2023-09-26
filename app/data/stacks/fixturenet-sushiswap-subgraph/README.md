@@ -32,21 +32,10 @@ laconic-so --stack fixturenet-sushiswap-subgraph build-containers
 
 ## Deploy
 
-
-Create an env file with the following contents to be used in the next step:
-
-```bash
-# Network and ETH RPC endpoint to run graph-node against
-NETWORK=lotus-fixturenet
-ETH_RPC_ENDPOINT=http://lotus-node-1:1234/rpc/v1
-```
-
-Uncomment the dependency on `lotus-node-1` in the [graph-node compose file](../../compose/docker-compose-graph-node.yml)
-
 Deploy the stack:
 
 ```bash
-laconic-so --stack fixturenet-sushiswap-subgraph deploy --cluster sushigraph --env-file <PATH_TO_ENV_FILE> up
+laconic-so --stack fixturenet-sushiswap-subgraph deploy --cluster sushigraph up
 
 # Note: Remove any existing volumes for the cluster for a fresh start
 ```

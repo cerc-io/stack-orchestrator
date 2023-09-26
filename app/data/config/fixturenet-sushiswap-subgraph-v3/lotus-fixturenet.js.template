@@ -17,8 +17,8 @@ module.exports = {
     whitelistedTokenAddresses: [
       'NATIVE_ADDRESS',
     ],
-    stableTokenAddresses: [
-    ],
+    stableTokenAddresses: [],
+    nativePricePool: '0x0000000000000000000000000000000000000000',
     minimumEthLocked: 1.5
   }
 }

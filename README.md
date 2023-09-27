@@ -49,6 +49,13 @@ laconic-so version
 Version: 1.1.0-7a607c2-202304260513
 ```
 
+### Update
+If Stack Orchestrator was installed using the process described above, it is able to subsequently self-update to the current latest version by running:
+
+```bash
+laconic-so update
+```
+
 ## Usage
 
 The various [stacks](/app/data/stacks) each contain instructions for running different stacks based on your use case. For example:

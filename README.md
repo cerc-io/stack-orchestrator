@@ -16,6 +16,7 @@ Ensure that the following are already installed:
 - [Python3](https://wiki.python.org/moin/BeginnersGuide/Download): `python3 --version` >= `3.8.10` (the Python3 shipped in Ubuntu 20+ is good to go)
 - [Docker](https://docs.docker.com/get-docker/): `docker --version` >= `20.10.21`
 - [jq](https://stedolan.github.io/jq/download/): `jq --version` >= `1.5`
+- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git): `git --version` >= `2.10.3`
 
 Note: if installing docker-compose via package manager on Linux (as opposed to Docker Desktop), you must [install the plugin](https://docs.docker.com/compose/install/linux/#install-the-plugin-manually), e.g. :
 

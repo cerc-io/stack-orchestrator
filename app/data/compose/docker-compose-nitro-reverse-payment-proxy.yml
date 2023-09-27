@@ -10,7 +10,7 @@ services:
       go-nitro:
         condition: service_healthy
     environment:
-      PROXY_ADDRESS: localhost:${PROXY_PORT:-8081}
+      PROXY_ADDRESS: 0.0.0.0:${PROXY_PORT:-8081}
       PROXY_NITRO_ENDPOINT: ${PROXY_NITRO_ENDPOINT:-go-nitro:${NITRO_RPC_PORT:-4005}/api/v1}
       PROXY_DESTINATION_URL: ${PROXY_DESTINATION_URL:-http://ipld-eth-server:8081}
       PROXY_COST_PER_BYTE: ${PROXY_COST_PER_BYTE:-1}

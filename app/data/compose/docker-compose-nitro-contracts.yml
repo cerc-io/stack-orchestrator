@@ -15,7 +15,7 @@ services:
     volumes:
       - ../config/nitro-contracts/deploy.sh:/app/deploy.sh
       - nitro_deployment:/app/deployment
-    command: ["bash", "-c", "/app/deploy.sh && tail -f"]
+    command: ["bash", "-c", "/app/deploy.sh"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

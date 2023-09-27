@@ -1,0 +1,33 @@
+#!/bin/bash
+
+set -e
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
+  set -x
+fi
+
+NITRO_ADDRESSES_FILE_PATH="/app/deployment/nitro-addresses.json"
+
+# Check if CERC_NA_ADDRESS environment variable set to skip contract deployment
+if [ -n "$CERC_NA_ADDRESS" ]; then
+  echo "CERC_NA_ADDRESS is set to '$CERC_NA_ADDRESS'"
+  echo "CERC_VPA_ADDRESS is set to '$CERC_VPA_ADDRESS'"
+  echo "CERC_CA_ADDRESS is set to '$CERC_CA_ADDRESS'"
+  echo "Using the above Nitro addresses"
+
+  NA_ADDRESS=${CERC_NA_ADDRESS}
+  VPA_ADDRESS=${CERC_VPA_ADDRESS}
+  CA_ADDRESS=${CERC_CA_ADDRESS}
+elif [ -f ${NITRO_ADDRESSES_FILE_PATH} ]; then
+  echo "Reading Nitro addresses from ${NITRO_ADDRESSES_FILE_PATH}"
+
+  NA_ADDRESS=$(jq -r '.nitroAdjudicatorAddress' ${NITRO_ADDRESSES_FILE_PATH})
+  VPA_ADDRESS=$(jq -r '.virtualPaymentAppAddress' ${NITRO_ADDRESSES_FILE_PATH})
+  CA_ADDRESS=$(jq -r '.consensusAppAddress' ${NITRO_ADDRESSES_FILE_PATH})
+else
+  echo "${NITRO_ADDRESSES_FILE_PATH} not found"
+  exit 1
+fi
+
+echo "Running Nitro node"
+
+./nitro -chainurl ${CHAIN_URL} -msgport ${MSG_PORT} -rpcport ${RPC_PORT} -wsmsgport ${WS_MSG_PORT} -pk ${PK} -chainpk ${CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${USE_DURABLE_STORE} -durablestorefolder ${DURABLE_STORE_FOLDER}

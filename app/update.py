@@ -72,8 +72,19 @@ def command(ctx, check_only):
     # Check if the downloaded file is identical to the existing one
     same = filecmp.cmp(temp_download_path, shiv_binary_path)
     if same:
+        if not ctx.obj.quiet or check_only:
+            print("No update available, latest version already installed")
+    else:
         if not ctx.obj.quiet:
-            print("Up update available, latest version already installed")
-    if ctx.obj.verbose:
-        print(f"Replacing: {shiv_binary_path} with {temp_download_path}")
-    os.replace(temp_download_path, shiv_binary_path)
+            print("Update available")
+        if check_only:
+            if not ctx.obj.quiet:
+                print("Check-only node, update not installed")
+        else:
+            if not ctx.obj.quiet:
+                print("Installing...")
+            if ctx.obj.verbose:
+                print(f"Replacing: {shiv_binary_path} with {temp_download_path}")
+            os.replace(temp_download_path, shiv_binary_path)
+            if not ctx.obj.quiet:
+                print("Done. Run \"laconic-so version\" to see the newly installed version")

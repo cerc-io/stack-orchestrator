@@ -49,6 +49,11 @@ Verify operation (your version will probably be different, just check here that 
 laconic-so version
 Version: 1.1.0-7a607c2-202304260513
 ```
+Save the distribution url to `~/.laconic-so/config.yml`:
+```bash
+mkdir ~/.laconic-so
+echo "distribution-url: https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so" >  ~/.laconic-so/config.yml"
+```
 
 ### Update
 If Stack Orchestrator was installed using the process described above, it is able to subsequently self-update to the current latest version by running:

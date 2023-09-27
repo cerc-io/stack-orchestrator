@@ -1,0 +1,35 @@
+version: '3.7'
+
+services:
+  go-nitro:
+    restart: always
+    hostname: go-nitro
+    environment:
+      CHAIN_URL: ${CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
+      NA_ADDRESS: ${NA_ADDRESS}
+      VPA_ADDRESS: ${VPA_ADDRESS}
+      CA_ADDRESS: ${CA_ADDRESS}
+      MSG_PORT: ${MSG_PORT:-3005}
+      RPC_PORT: ${RPC_PORT:-4005}
+      WS_MSG_PORT: ${WS_MSG_PORT:-5005}
+      PK: ${PK}
+      CHAIN_PK: ${CHAIN_PK}
+      USE_DURABLE_STORE: ${USE_DURABLE_STORE:-true}
+      DURABLE_STORE_FOLDER: ${DURABLE_STORE_FOLDER:-/app/data/nitro-store}
+      BOOT_PEERS: []
+    image: cerc/go-nitro:local
+    volumes:
+      go_nitro_data: /app/data
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "${MSG_PORT:-3005}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    ports:
+      - "3005"
+      - "4005"
+      - "5005"
+
+volumes:
+  go_nitro_data:

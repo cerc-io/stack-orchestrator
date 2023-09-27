@@ -10,14 +10,14 @@ services:
       nitro-contracts:
         condition: service_completed_successfully
     environment:
-      CHAIN_URL: ${CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
-      MSG_PORT: ${MSG_PORT:-3005}
-      RPC_PORT: ${RPC_PORT:-4005}
-      WS_MSG_PORT: ${WS_MSG_PORT:-5005}
-      PK: ${PK}
-      CHAIN_PK: ${CHAIN_PK}
-      USE_DURABLE_STORE: ${USE_DURABLE_STORE:-true}
-      DURABLE_STORE_FOLDER: ${DURABLE_STORE_FOLDER:-/app/data/nitro-store}
+      NITRO_CHAIN_URL: ${NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
+      NITRO_MSG_PORT: ${NITRO_MSG_PORT:-3005}
+      NITRO_RPC_PORT: ${NITRO_RPC_PORT:-4005}
+      NITRO_WS_MSG_PORT: ${NITRO_WS_MSG_PORT:-5005}
+      NITRO_PK: ${NITRO_PK}
+      NITRO_CHAIN_PK: ${NITRO_CHAIN_PK}
+      NITRO_USE_DURABLE_STORE: ${NITRO_USE_DURABLE_STORE:-true}
+      NITRO_DURABLE_STORE_FOLDER: ${NITRO_DURABLE_STORE_FOLDER:-/app/data/nitro-store}
       CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
       CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
@@ -27,15 +27,15 @@ services:
       - nitro_deployment:/app/deployment
       - ../config/go-nitro/run-nitro-node.sh:/app/run-nitro-node.sh
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "${MSG_PORT:-3005}"]
+      test: ["CMD", "nc", "-vz", "localhost", "${NITRO_RPC_PORT:-4005}"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 5s
     ports:
-      - "3005"
-      - "4005"
-      - "5005"
+      - "${NITRO_MSG_PORT:-3005}"
+      - "${NITRO_RPC_PORT:-4005}"
+      - "${NITRO_WS_MSG_PORT:-5005}"
 
 volumes:
   go_nitro_data:

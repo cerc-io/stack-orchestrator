@@ -27,3 +27,4 @@ pods:
   - ipld-eth-db
   - nitro-contracts
   - go-nitro
+  - nitro-reverse-payment-proxy

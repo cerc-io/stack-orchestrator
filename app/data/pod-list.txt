@@ -39,3 +39,4 @@ watcher-mobymask-v3
 mobymask-app-v3
 go-nitro
 nitro-contracts
+nitro-reverse-payment-proxy

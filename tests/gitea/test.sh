@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 set -e
+
+export CERC_SCRIPT_DEBUG=true
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 # Dump environment variables for debugging
 echo "Environment variables:"
 env
+
+echo "holla 1 $GITEA_ACTIONS"
 echo "Running gitea test"
+
 # Bit of a hack, test the most recent package
 TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
 # Set a non-default repo dir
@@ -25,8 +30,10 @@ $TEST_TARGET_SO --stack package-registry build-containers
 output=$($TEST_TARGET_SO --stack package-registry deploy-system up)
 token=$(echo $output | grep -o 'export CERC_NPM_AUTH_TOKEN=[^ ]*' | cut -d '=' -f 2)
 export CERC_NPM_AUTH_TOKEN=$token
+export GITEA_ACTIONS=true
+echo "holla 2 $GITEA_ACTIONS"
 $TEST_TARGET_SO --stack fixturenet-laconicd setup-repositories 
-$TEST_TARGET_SO --stack fixturenet-laconicd build-npms
+$TEST_TARGET_SO --stack fixturenet-laconicd --verbose --debug build-npms --include laconic-sdk
 
 # Clean up
 $TEST_TARGET_SO --stack package-registry deploy-system down

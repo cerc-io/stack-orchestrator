@@ -1,9 +1,25 @@
 #!/bin/bash
 # Usage: build-npm-package.sh <registry-url> <publish-with-this-version>
 # Note: supply the registry auth token in CERC_NPM_AUTH_TOKEN
+#
+
+
 if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
     set -x
 fi
+
+echo "GITEA ACTIONS 1 is: $GITEA_ACTIONS"
+echo "GITEA ACTIONS 2 is: ${GITEA_ACTIONS}"
+
+echo "token 1 is: $CERC_NPM_AUTH_TOKEN"
+echo "token 2 is: ${CERC_NPM_AUTH_TOKEN}"
+
+if [[ "$GITEA_ACTIONS" = "true" ]]; then
+	echo "WORKS"
+else
+	echo "WTF"
+fi
+
 if ! [[ $# -eq 1 || $# -eq 2 ]]; then
     echo "Illegal number of parameters" >&2
     exit 1
@@ -28,17 +44,20 @@ npm config set @lirewine:registry ${local_npm_registry_url}
 local_npm_registry_url_fixed=$( echo ${local_npm_registry_url} | sed -e 's/^http[s]\{0,1\}://')
 npm config set -- ${local_npm_registry_url_fixed}:_authToken ${CERC_NPM_AUTH_TOKEN}
 # First check if the version of this package we're trying to build already exists in the registry
+# but this line: "jq -r .data.dist.tarball" fails only in gitea, so skip this block
+if [[ "${GITEA_ACTIONS}" != "true" ]]; then
 package_exists=$( yarn info --json ${package_name}@${package_publish_version} 2>/dev/null | jq -r .data.dist.tarball )
-if [[ ! -z "$package_exists" && "$package_exists" != "null" ]]; then
-    echo "${package_publish_version} of ${package_name} already exists in the registry"
-    if [[ ${CERC_FORCE_REBUILD} == "true" ]]; then
-        # Attempt to unpublish the existing package
-        echo "NOTE: unpublishing existing package version since force rebuild is enabled"
-        npm unpublish --force ${package_name}@${package_publish_version}
-    else
-        echo "skipping build since target version already exists"
-        exit 0
-    fi
+  if [[ ! -z "$package_exists" && "$package_exists" != "null" ]]; then
+      echo "${package_publish_version} of ${package_name} already exists in the registry"
+      if [[ ${CERC_FORCE_REBUILD} == "true" ]]; then
+          # Attempt to unpublish the existing package
+          echo "NOTE: unpublishing existing package version since force rebuild is enabled"
+          npm unpublish --force ${package_name}@${package_publish_version}
+      else
+          echo "skipping build since target version already exists"
+          exit 0
+      fi
+  fi
 fi
 echo "Build and publish ${package_name} version ${package_publish_version}"
 yarn install

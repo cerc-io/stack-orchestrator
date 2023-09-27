@@ -45,5 +45,7 @@ jobs:
           dockerd -H $DOCKER_HOST --userland-proxy=false &
           sleep 5
       - name: "Run gitea tests"
-        run: ./tests/gitea/test.sh
+        run: |
+          export CERC_SCRIPT_DEBUG=true &
+          ./tests/gitea/test.sh
 

@@ -5,6 +5,9 @@ fi
 
 install_dir=~/bin
 
+# Skip the package install stuff if so directed
+if ! [[ -n "$CERC_SO_INSTALL_SKIP_PACKAGES" ]]; then
+
 # First display a reasonable warning to the user unless run with -y
 if ! [[ $# -eq 1 && $1 == "-y" ]]; then
   echo "**************************************************************************************"
@@ -128,13 +131,20 @@ sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin d
 # Allow the current user to use Docker
 sudo usermod -aG docker $USER
 
+# End of long if block: Skip the package install stuff if so directed
+fi
+
 echo "**************************************************************************************"
 echo "Installing laconic-so"
 # install latest `laconic-so`
+distribution_url=https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so
 install_filename=${install_dir}/laconic-so
 mkdir -p  ${install_dir}
-curl -L -o ${install_filename} https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so
+curl -L -o ${install_filename} ${distribution_url}
 chmod +x ${install_filename}
+# Set up config file for self-update feature
+mkdir ~/.laconic-so
+echo "distribution-url: ${distribution_url}" >  ~/.laconic-so/config.yml
 
 echo "**************************************************************************************"
 # Check if our PATH line is already there

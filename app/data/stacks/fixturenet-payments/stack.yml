@@ -7,6 +7,7 @@ repos:
   - github.com/cerc-io/lighthouse
   - github.com/cerc-io/ipld-eth-db
   - github.com/cerc-io/ipld-eth-server
+  - github.com/cerc-io/ts-nitro
   - github.com/cerc-io/go-nitro@ts-interop
 containers:
   # fixturenet images
@@ -18,9 +19,11 @@ containers:
   - cerc/fixturenet-eth-lighthouse
   - cerc/ipld-eth-db
   - cerc/ipld-eth-server
+  - cerc/nitro-contracts
   - cerc/go-nitro
 pods:
   - fixturenet-eth
   - ipld-eth-server
   - ipld-eth-db
+  - nitro-contracts
   - go-nitro

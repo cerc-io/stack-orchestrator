@@ -87,4 +87,4 @@ def command(ctx, check_only):
                 print(f"Replacing: {shiv_binary_path} with {temp_download_path}")
             os.replace(temp_download_path, shiv_binary_path)
             if not ctx.obj.quiet:
-                print("Done. Run \"laconic-so version\" to see the newly installed version")
+                print("Run \"laconic-so version\" to see the newly installed version")

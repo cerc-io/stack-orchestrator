@@ -30,4 +30,4 @@ fi
 
 echo "Running Nitro node"
 
-./nitro -chainurl ${NITRO_CHAIN_URL} -msgport ${NITRO_MSG_PORT} -rpcport ${NITRO_RPC_PORT} -wsmsgport ${NITRO_WS_MSG_PORT} -pk ${NITRO_PK} -chainpk ${NITRO_CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${NITRO_USE_DURABLE_STORE} -durablestorefolder ${NITRO_DURABLE_STORE_FOLDER}
+./nitro -chainurl ${NITRO_CHAIN_URL} -msgport 3005 -rpcport 4005 -wsmsgport 5005 -pk ${NITRO_PK} -chainpk ${NITRO_CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${NITRO_USE_DURABLE_STORE} -durablestorefolder ${NITRO_DURABLE_STORE_FOLDER}

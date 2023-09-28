@@ -11,9 +11,6 @@ services:
         condition: service_completed_successfully
     environment:
       NITRO_CHAIN_URL: ${NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
-      NITRO_MSG_PORT: ${NITRO_MSG_PORT:-3005}
-      NITRO_RPC_PORT: ${NITRO_RPC_PORT:-4005}
-      NITRO_WS_MSG_PORT: ${NITRO_WS_MSG_PORT:-5005}
       NITRO_PK: ${NITRO_PK}
       NITRO_CHAIN_PK: ${NITRO_CHAIN_PK}
       NITRO_USE_DURABLE_STORE: ${NITRO_USE_DURABLE_STORE:-true}
@@ -27,15 +24,15 @@ services:
       - nitro_deployment:/app/deployment
       - ../config/go-nitro/run-nitro-node.sh:/app/run-nitro-node.sh
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "${NITRO_RPC_PORT:-4005}"]
+      test: ["CMD", "nc", "-vz", "localhost", "4005"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 5s
     ports:
-      - "${NITRO_MSG_PORT:-3005}"
-      - "${NITRO_RPC_PORT:-4005}"
-      - "${NITRO_WS_MSG_PORT:-5005}"
+      - "3005"
+      - "4005"
+      - "5005:5005"
 
 volumes:
   go_nitro_data:

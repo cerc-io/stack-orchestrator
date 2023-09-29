@@ -10,6 +10,10 @@ repos:
   # nitro repos
   - github.com/cerc-io/ts-nitro
   - github.com/cerc-io/go-nitro@pm-disable-compression
+  # mobymask watcher repos
+  - github.com/cerc-io/watcher-ts@v0.2.61
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.0 # TODO: Update
+  - github.com/cerc-io/MobyMask@v0.1.3
 containers:
   # fixturenet images
   - cerc/go-ethereum
@@ -22,6 +26,10 @@ containers:
   - cerc/ipld-eth-server
   - cerc/nitro-contracts
   - cerc/go-nitro
+  # mobymask watcher images
+  - cerc/watcher-ts
+  - cerc/watcher-mobymask-v3
+  - cerc/mobymask
 pods:
   - fixturenet-eth
   - ipld-eth-server
@@ -29,3 +37,4 @@ pods:
   - nitro-contracts
   - go-nitro
   - nitro-reverse-payment-proxy
+  - watcher-mobymask-v3

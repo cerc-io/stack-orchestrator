@@ -25,7 +25,7 @@ fi
 
 echo "Using ETH RPC endpoint ${CERC_ETH_RPC_ENDPOINT}"
 
-# Wait till ETH RPC endpoint is available
+# Wait till ETH RPC endpoint is available with block number > 1
 retry_interval=5
 while true; do
   block_number_hex=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' ${CERC_ETH_RPC_ENDPOINT} | jq -r '.result')

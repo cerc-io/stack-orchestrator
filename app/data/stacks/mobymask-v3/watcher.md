@@ -2,7 +2,7 @@
 
 ## Setup
 
-Prerequisite: L2 Optimism Geth and Node RPC endpoints
+Prerequisite: L2 Optimism Geth RPC endpoint
 
 Clone required repositories:
 
@@ -23,15 +23,8 @@ laconic-so --stack mobymask-v3 build-containers --exclude cerc/mobymask-ui
 Create and update an env file to be used in the next step ([defaults](../../config/watcher-mobymask-v3/mobymask-params.env)):
 
   ```bash
-  # External L2 endpoints
-  CERC_L2_GETH_RPC=
-
-  # Endpoints waited on before contract deployment
-  CERC_L2_GETH_HOST=
-  CERC_L2_GETH_PORT=
-
-  CERC_L2_NODE_HOST=
-  CERC_L2_NODE_PORT=
+  # External ETH RPC endpoint
+  CERC_ETH_RPC_ENDPOINT=
 
   # URL (fixturenet-eth-bootnode-lighthouse) to get CSV with credentials for accounts on L1 to perform txs on L2
   CERC_L1_ACCOUNTS_CSV_URL=

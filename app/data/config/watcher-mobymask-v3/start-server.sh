@@ -14,9 +14,6 @@ CERC_RELAY_ANNOUNCE_DOMAIN="${CERC_RELAY_ANNOUNCE_DOMAIN:-${DEFAULT_CERC_RELAY_A
 CERC_ENABLE_PEER_L2_TXS="${CERC_ENABLE_PEER_L2_TXS:-${DEFAULT_CERC_ENABLE_PEER_L2_TXS}}"
 CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRACT}}"
 
-nitro_addresses_file="/nitro/nitro-addresses.json"
-nitro_addresses_destination_file="./src/nitro-addresses.json"
-
 watcher_keys_dir="./keys"
 
 echo "Using L2 RPC endpoint ${CERC_L2_GETH_RPC}"
@@ -37,17 +34,34 @@ else
   CONTRACT_ADDRESS=$(jq -r '.address' /server/config.json | tr -d '"')
 fi
 
-# Copy the deployed Nitro addresses to the required path
-if [ -f "$nitro_addresses_file" ]; then
-  cat "$nitro_addresses_file" > "$nitro_addresses_destination_file"
-  echo "Nitro addresses set to ${nitro_addresses_destination_file}"
+nitro_addresses_file="/nitro/nitro-addresses.json"
+nitro_addresses_destination_file="./src/nitro-addresses.json"
 
-  # Build after setting the Nitro addresses
-  yarn build
+# Check if CERC_NA_ADDRESS environment variable is set
+if [ -n "$CERC_NA_ADDRESS" ]; then
+  echo "CERC_NA_ADDRESS is set to '$CERC_NA_ADDRESS'"
+  echo "CERC_VPA_ADDRESS is set to '$CERC_VPA_ADDRESS'"
+  echo "CERC_CA_ADDRESS is set to '$CERC_CA_ADDRESS'"
+  echo "Using the above Nitro addresses"
+
+  # Create the required JSON and write it to a file
+  nitro_addresses_json=$(jq -n \
+    --arg na "$CERC_NA_ADDRESS" \
+    --arg vpa "$CERC_VPA_ADDRESS" \
+    --arg ca "$CERC_CA_ADDRESS" \
+    '.nitroAdjudicatorAddress = $na | .virtualPaymentAppAddress = $vpa | .consensusAppAddress = $ca')
+  echo "$nitro_addresses_json" > "${nitro_addresses_destination_file}"
+elif [ -f ${nitro_addresses_file} ]; then
+  echo "Using Nitro addresses from ${nitro_addresses_file}:"
+  cat "$nitro_addresses_file"
+  cat "$nitro_addresses_file" > "$nitro_addresses_destination_file"
 else
-  echo "File ${nitro_addresses_file} does not exist"
+  echo "File ${nitro_addresses_file} not found"
   exit 1
 fi
+
+# Build after setting the Nitro addresses
+yarn build
 
 echo "Using CERC_PRIVATE_KEY_PEER (account with funds) from env for sending txs to L2"
 echo "Using CERC_PRIVATE_KEY_NITRO from env for Nitro account"

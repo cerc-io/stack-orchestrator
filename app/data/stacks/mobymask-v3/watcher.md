@@ -83,13 +83,13 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 ### Deploy the stack
 
 ```bash
-laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mobymask-v3 --env-file <PATH_TO_ENV_FILE> up
+laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --exclude mobymask-app-v3 --env-file <PATH_TO_ENV_FILE> up
 ```
 
 * To list down and monitor the running containers:
 
   ```bash
-  laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mobymask-v3 ps
+  laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --exclude mobymask-app-v3 ps
 
   # With status
   docker ps -a
@@ -106,10 +106,10 @@ laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mo
   docker logs -f $(docker ps -aq --filter name="mobymask-1")
   ```
 
-* Check the logs of the watcher server container to get the deployed Nitro contracts' addresses:
+* Check logs of the Nitro contracts container to get the deployed Nitro contracts' addresses:
 
 ```bash
-docker exec -it $(docker ps -q --filter name="mobymask-watcher-server") bash -c "cat /nitro/nitro-addresses.json"
+docker exec -it $(docker ps -q --filter name="nitro-contracts") bash -c "cat /app/deployment/nitro-addresses.json"
 ```
 
 ## Clean up
@@ -117,7 +117,7 @@ docker exec -it $(docker ps -q --filter name="mobymask-watcher-server") bash -c 
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mobymask-v3 down
+laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --exclude mobymask-app-v3 down
 ```
 
 Clear volumes created by this stack:

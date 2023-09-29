@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  # Deploys the Nitro contracts
+  # Optionally deploys the Nitro contracts
   nitro-contracts:
     image: cerc/nitro-contracts:local
     restart: on-failure

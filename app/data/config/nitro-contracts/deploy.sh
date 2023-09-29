@@ -5,7 +5,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-NITRO_ADDRESSES_FILE_PATH="/app/deployment/nitro-addresses.json"
+nitro_addresses_file="/app/deployment/nitro-addresses.json"
 
 # Check if CERC_NA_ADDRESS environment variable set to skip contract deployment
 if [ -n "$CERC_NA_ADDRESS" ]; then
@@ -17,8 +17,9 @@ if [ -n "$CERC_NA_ADDRESS" ]; then
 fi
 
 # Check and exit if a deployment already exists (on restarts)
-if [ -f ${NITRO_ADDRESSES_FILE_PATH} ]; then
-  echo "${NITRO_ADDRESSES_FILE_PATH} already exists, skipping Nitro contracts deployment"
+if [ -f ${nitro_addresses_file} ]; then
+  echo "${nitro_addresses_file} already exists, skipping Nitro contracts deployment"
+  cat ${nitro_addresses_file}
   exit
 fi
 
@@ -53,4 +54,5 @@ done
 # TODO: Fetch pk from ACCOUNTS_CSV_URL?
 echo "Using CERC_PRIVATE_KEY_DEPLOYER from env"
 
-yarn test:deploy-contracts --chainurl ${CERC_ETH_RPC_ENDPOINT} --key ${CERC_PRIVATE_KEY_DEPLOYER} --addressesFilePath ${NITRO_ADDRESSES_FILE_PATH}
+yarn test:deploy-contracts --chainurl ${CERC_ETH_RPC_ENDPOINT} --key ${CERC_PRIVATE_KEY_DEPLOYER} --addressesFilePath ${nitro_addresses_file}
+cat ${nitro_addresses_file}

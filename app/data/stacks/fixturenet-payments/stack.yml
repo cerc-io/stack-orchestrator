@@ -7,6 +7,7 @@ repos:
   - github.com/cerc-io/lighthouse
   - github.com/cerc-io/ipld-eth-db
   - github.com/cerc-io/ipld-eth-server
+  # nitro repos
   - github.com/cerc-io/ts-nitro
   - github.com/cerc-io/go-nitro@pm-disable-compression
 containers:

@@ -48,6 +48,7 @@ services:
 ```bash
 github.com/my-org/my-new-stack
 ```
+whereby that repository contains your source code and a `Dockerfile`, and matches the `repos:` field in the `stack.yml`.
 
 - in `app/data/container-image-list.txt` add:
 
@@ -59,4 +60,12 @@ cerc/my-new-stack
 
 ```bash
 my-new-stack
+```
+
+Now, the following commands will fetch, build, and deploy you app:
+
+```bash
+laconic-so --stack my-new-stack setup-repositories
+laconic-so --stack my-new-stack build-containers
+laconic-so --stack my-new-stack deploy-system up
 ```

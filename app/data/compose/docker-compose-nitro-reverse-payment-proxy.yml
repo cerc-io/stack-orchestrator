@@ -19,9 +19,9 @@ services:
       - ../config/go-nitro/run-reverse-payment-proxy.sh:/app/run-reverse-payment-proxy.sh
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "8081"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 5s
+      retries: 10
+      start_period: 10s
     ports:
       - "8081:8081"

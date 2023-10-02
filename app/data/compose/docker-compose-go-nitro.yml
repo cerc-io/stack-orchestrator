@@ -25,10 +25,10 @@ services:
       - ../config/go-nitro/run-nitro-node.sh:/app/run-nitro-node.sh
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "4005"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 5s
+      retries: 10
+      start_period: 10s
     ports:
       - "3005"
       - "4005"

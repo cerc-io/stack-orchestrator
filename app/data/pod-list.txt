@@ -40,3 +40,4 @@ mobymask-app-v3
 go-nitro
 nitro-contracts
 nitro-reverse-payment-proxy
+mobymask-snap

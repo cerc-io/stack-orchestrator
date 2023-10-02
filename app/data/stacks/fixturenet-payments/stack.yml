@@ -14,6 +14,8 @@ repos:
   - github.com/cerc-io/watcher-ts@v0.2.61
   - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.0 # TODO: Update
   - github.com/cerc-io/MobyMask@v0.1.3
+  # mobymask app repos
+  - github.com/cerc-io/mobymask-snap
 containers:
   # fixturenet images
   - cerc/go-ethereum
@@ -30,6 +32,8 @@ containers:
   - cerc/watcher-ts
   - cerc/watcher-mobymask-v3
   - cerc/mobymask
+  # mobymask app images
+  - cerc/mobymask-snap
 pods:
   - fixturenet-eth
   - ipld-eth-server
@@ -38,3 +42,4 @@ pods:
   - go-nitro
   - nitro-reverse-payment-proxy
   - watcher-mobymask-v3
+  - mobymask-snap

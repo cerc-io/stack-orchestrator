@@ -61,7 +61,7 @@ elif [ -f ${nitro_addresses_file} ]; then
   cat "$nitro_addresses_file"
   cat "$nitro_addresses_file" > "$nitro_addresses_destination_file"
 else
-  echo "File ${nitro_addresses_file} not found"
+  echo "Nitro addresses not available"
   exit 1
 fi
 

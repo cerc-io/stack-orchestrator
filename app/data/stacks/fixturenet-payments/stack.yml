@@ -16,6 +16,7 @@ repos:
   - github.com/cerc-io/MobyMask@v0.1.3
   # mobymask app repos
   - github.com/cerc-io/mobymask-snap
+  - github.com/cerc-io/mobymask-ui@v0.2.0
 containers:
   # fixturenet images
   - cerc/go-ethereum
@@ -34,6 +35,7 @@ containers:
   - cerc/mobymask
   # mobymask app images
   - cerc/mobymask-snap
+  - cerc/mobymask-ui
 pods:
   - fixturenet-eth
   - ipld-eth-server
@@ -43,3 +45,4 @@ pods:
   - nitro-reverse-payment-proxy
   - watcher-mobymask-v3
   - mobymask-snap
+  - mobymask-app-v3

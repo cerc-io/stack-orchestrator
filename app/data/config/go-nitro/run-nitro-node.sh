@@ -7,7 +7,7 @@ fi
 
 nitro_addresses_file="/app/deployment/nitro-addresses.json"
 
-# Check if CERC_NA_ADDRESS environment variable set to skip contract deployment
+# Check if CERC_NA_ADDRESS environment variable is set
 if [ -n "$CERC_NA_ADDRESS" ]; then
   echo "CERC_NA_ADDRESS is set to '$CERC_NA_ADDRESS'"
   echo "CERC_VPA_ADDRESS is set to '$CERC_VPA_ADDRESS'"

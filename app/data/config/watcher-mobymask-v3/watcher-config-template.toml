@@ -54,7 +54,7 @@
 
     [server.p2p.nitro]
       store = './out/nitro-db'
-      privateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_NITRO'
+      privateKey = 'REPLACE_WITH_CERC_WATCHER_NITRO_PK'
       chainPrivateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_PEER'
 
       [server.p2p.nitro.payments]

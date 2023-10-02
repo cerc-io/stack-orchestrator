@@ -9,14 +9,16 @@ repos:
   - github.com/cerc-io/ipld-eth-server
   # nitro repos
   - github.com/cerc-io/ts-nitro
-  - github.com/cerc-io/go-nitro@pm-disable-compression
+  - github.com/cerc-io/go-nitro@pm-disable-compression # TODO: Update
   # mobymask watcher repos
   - github.com/cerc-io/watcher-ts@v0.2.61
-  - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.0 # TODO: Update
+  - github.com/cerc-io/mobymask-v2-watcher-ts@pm-upstream-payments # TODO: Update
   - github.com/cerc-io/MobyMask@v0.1.3
   # mobymask app repos
   - github.com/cerc-io/mobymask-snap
   - github.com/cerc-io/mobymask-ui@v0.2.0
+  # ponder repo
+  - github.com/cerc-io/ponder@paid-eth-rpc # TODO: Update
 containers:
   # fixturenet images
   - cerc/go-ethereum
@@ -36,6 +38,8 @@ containers:
   # mobymask app images
   - cerc/mobymask-snap
   - cerc/mobymask-ui
+  # ponder image
+  - cerc/ponder
 pods:
   - fixturenet-eth
   - ipld-eth-server
@@ -46,3 +50,4 @@ pods:
   - watcher-mobymask-v3
   - mobymask-snap
   - mobymask-app-v3
+  - ponder

@@ -64,7 +64,7 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   CERC_PRIVATE_KEY_PEER=
 
   # Specify private key for the Nitro account
-  CERC_PRIVATE_KEY_NITRO=
+  CERC_WATCHER_NITRO_PK=
 
   # (Optional) Set a pre-existing peer id to be used (enables consensus)
   # Uses a generated peer id if not set (disables consensus)

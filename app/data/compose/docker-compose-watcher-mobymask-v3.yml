@@ -84,7 +84,7 @@ services:
       CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
       CERC_PRIVATE_KEY_PEER: ${CERC_PRIVATE_KEY_PEER}
-      CERC_PRIVATE_KEY_NITRO: ${CERC_PRIVATE_KEY_NITRO}
+      CERC_WATCHER_NITRO_PK: ${CERC_WATCHER_NITRO_PK}
       CERC_PEER_ID: ${CERC_PEER_ID}
       CERC_UPSTREAM_NITRO_ADDRESS: ${CERC_UPSTREAM_NITRO_ADDRESS}
       CERC_UPSTREAM_NITRO_MULTIADDR: ${CERC_UPSTREAM_NITRO_MULTIADDR}
@@ -95,7 +95,7 @@ services:
       - ../config/watcher-mobymask-v3/watcher-config-rates.toml:/app/environments/rates.toml
       - ../config/watcher-mobymask-v3/keys:/app/keys
       - ../config/watcher-mobymask-v3/start-server.sh:/app/start-server.sh
-      - nitro_data:/app/out/nitro-db
+      - watcher_nitro_data:/app/out/nitro-db
       - peers_ids:/app/peers
       - nitro_deployment:/nitro
       - mobymask_deployment:/server
@@ -118,4 +118,4 @@ volumes:
   peers_ids:
   mobymask_deployment:
   nitro_deployment:
-  nitro_data:
+  watcher_nitro_data:

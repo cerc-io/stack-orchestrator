@@ -54,3 +54,4 @@ cerc/watcher-mobymask-v3
 cerc/go-nitro
 cerc/nitro-contracts
 cerc/mobymask-snap
+cerc/ponder

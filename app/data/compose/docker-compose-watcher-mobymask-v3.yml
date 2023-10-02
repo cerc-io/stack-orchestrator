@@ -32,12 +32,11 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       ENV: "PROD"
-      CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT:-http://fixturenet-eth-geth-1:8545}
-      CERC_L1_ACCOUNTS_CSV_URL: ${CERC_L1_ACCOUNTS_CSV_URL}
+      CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT}
       CERC_PRIVATE_KEY_DEPLOYER: ${CERC_PRIVATE_KEY_DEPLOYER}
       CERC_MOBYMASK_APP_BASE_URI: ${CERC_MOBYMASK_APP_BASE_URI}
       CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
-    command: ["sh", "deploy-and-generate-invite.sh"]
+    command: ["bash", "-c", "./deploy-and-generate-invite.sh"]
     volumes:
       - ../config/watcher-mobymask-v3/deploy-and-generate-invite.sh:/app/packages/server/deploy-and-generate-invite.sh
       - mobymask_deployment:/app/packages/server
@@ -66,6 +65,8 @@ services:
       peer-ids-gen:
         condition: service_completed_successfully
       mobymask:
+        condition: service_completed_successfully
+      nitro-contracts:
         condition: service_completed_successfully
     env_file:
       - ../config/watcher-mobymask-v3/mobymask-params.env

@@ -1,9 +1,11 @@
-#!/bin/sh
+#!/bin/bash
+
 set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+CERC_ETH_RPC_ENDPOINT="${CERC_ETH_RPC_ENDPOINT:-${DEFAULT_CERC_ETH_RPC_ENDPOINT}}"
 CERC_MOBYMASK_APP_BASE_URI="${CERC_MOBYMASK_APP_BASE_URI:-${DEFAULT_CERC_MOBYMASK_APP_BASE_URI}}"
 CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRACT}}"
 
@@ -42,19 +44,7 @@ while true; do
   fi
 done
 
-if [ -n "$CERC_L1_ACCOUNTS_CSV_URL" ] && \
-  l1_accounts_response=$(curl -L --write-out '%{http_code}' --silent --output /dev/null "$CERC_L1_ACCOUNTS_CSV_URL") && \
-  [ "$l1_accounts_response" -eq 200 ];
-then
-  echo "Fetching L1 account credentials using provided URL"
-  mkdir -p /geth-accounts
-  wget -O /geth-accounts/accounts.csv "$CERC_L1_ACCOUNTS_CSV_URL"
-
-  # Read the private key of an L1 account to deploy contract
-  CERC_PRIVATE_KEY_DEPLOYER=$(head -n 1 /geth-accounts/accounts.csv | cut -d ',' -f 3)
-else
-  echo "Couldn't fetch L1 account credentials, using CERC_PRIVATE_KEY_DEPLOYER from env"
-fi
+echo "Using CERC_PRIVATE_KEY_DEPLOYER from env"
 
 # Create the required JSON and write it to a file
 secrets_file="secrets.json"

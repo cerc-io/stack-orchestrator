@@ -1,9 +1,9 @@
 version: "1.0"
 name: erc721-watcher
 repos:
-  - github.com/cerc-io/go-ethereum
-  - github.com/cerc-io/ipld-eth-db
-  - github.com/cerc-io/ipld-eth-server
+  - git.vdb.to/cerc-io/go-ethereum
+  - git.vdb.to/cerc-io/ipld-eth-db
+  - git.vdb.to/cerc-io/ipld-eth-server
   - github.com/cerc-io/watcher-ts
 containers:
   - cerc/go-ethereum

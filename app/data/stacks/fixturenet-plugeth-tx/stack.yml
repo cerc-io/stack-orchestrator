@@ -4,10 +4,10 @@ description: "plugeth Ethereum Fixturenet w/ tx-spammer"
 repos:
   - git.vdb.to/cerc-io/plugeth@statediff
   - git.vdb.to/cerc-io/plugeth-statediff
-  - github.com/cerc-io/lighthouse
-  - github.com/cerc-io/ipld-eth-db@v5
-  - github.com/cerc-io/ipld-eth-server@v5
-  - github.com/cerc-io/tx-spammer
+  - git.vdb.to/cerc-io/lighthouse
+  - git.vdb.to/cerc-io/ipld-eth-db@v5
+  - git.vdb.to/cerc-io/ipld-eth-server@v5
+  - git.vdb.to/cerc-io/tx-spammer
   - github.com/dboreham/foundry
 containers:
   - cerc/plugeth-statediff

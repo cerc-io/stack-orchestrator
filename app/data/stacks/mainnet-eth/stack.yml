@@ -2,8 +2,8 @@ version: "1.2"
 name: mainnet-eth
 description: "Ethereum Mainnet"
 repos:
-  - github.com/cerc-io/go-ethereum
-  - github.com/cerc-io/lighthouse
+  - git.vdb.to/cerc-io/go-ethereum
+  - git.vdb.to/cerc-io/lighthouse
   - github.com/dboreham/foundry
   - git.vdb.to/cerc-io/keycloak-reg-api
   - git.vdb.to/cerc-io/keycloak-reg-ui

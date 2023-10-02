@@ -2,8 +2,8 @@ version: "1.0"
 name: fixturenet-optimism
 description: "Optimism Fixturenet"
 repos:
-  - github.com/cerc-io/go-ethereum
-  - github.com/cerc-io/lighthouse
+  - git.vdb.to/cerc-io/go-ethereum
+  - git.vdb.to/cerc-io/lighthouse
   - github.com/dboreham/foundry
   - github.com/ethereum-optimism/optimism@v1.0.4
   - github.com/ethereum-optimism/op-geth@v1.101105.2

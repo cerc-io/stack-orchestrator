@@ -2,10 +2,10 @@ version: "1.0"
 name: chain-chunker
 description: "Stack to build containers for chain-chunker"
 repos:
-  - github.com/cerc-io/ipld-eth-state-snapshot@v5
-  - github.com/cerc-io/eth-statediff-service@v5
-  - github.com/cerc-io/ipld-eth-db@v5
-  - github.com/cerc-io/ipld-eth-server@v5
+  - git.vdb.to/cerc-io/ipld-eth-state-snapshot@v5
+  - git.vdb.to/cerc-io/eth-statediff-service@v5
+  - git.vdb.to/cerc-io/ipld-eth-db@v5
+  - git.vdb.to/cerc-io/ipld-eth-server@v5
 containers:
   - cerc/ipld-eth-state-snapshot
   - cerc/eth-statediff-service

@@ -9,10 +9,10 @@ repos:
   - github.com/cerc-io/ipld-eth-server
   # nitro repos
   - github.com/cerc-io/ts-nitro@v0.1.12
-  - github.com/cerc-io/go-nitro@pm-disable-compression # TODO: Update
+  - github.com/cerc-io/go-nitro@v0.1.0-ts-port-0.1.4 # TODO: Update after fixes
   # mobymask watcher repos
   - github.com/cerc-io/watcher-ts@v0.2.61
-  - github.com/cerc-io/mobymask-v2-watcher-ts@v3 # TODO: Update
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v3 # TODO: Update after fixes
   - github.com/cerc-io/MobyMask@v0.1.3
   # mobymask app repos
   - github.com/cerc-io/mobymask-snap

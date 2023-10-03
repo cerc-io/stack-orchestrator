@@ -18,12 +18,10 @@ laconic-so --stack fixturenet-payments build-containers
 
 ### Configuration
 
-Create an env file with contents from [.env.fixturenet](./.env.fixturenet) to be used in the next step
-
-### Deploy the stack:
+Deploy the stack:
 
 ```bash
-laconic-so --stack fixturenet-payments deploy --cluster [CLUSTER_NAME] --env-file <PATH_TO_ENV_FILE> up
+laconic-so --stack fixturenet-payments deploy --cluster payments up
 
 # Exposed on host ports:
 # 5005: go-nitro node's p2p msg port
@@ -35,38 +33,38 @@ laconic-so --stack fixturenet-payments deploy --cluster [CLUSTER_NAME] --env-fil
 # 3004: MobyMask v3 app
 ```
 
-* Check the logs of the MobyMask contract deployment container to get the deployed contract's address and generated root invite link:
+Check the logs of the MobyMask contract deployment container to get the deployed contract's address and generated root invite link:
 
-  ```bash
-  docker logs -f $(docker ps -aq --filter name="mobymask-1")
-  ```
+```bash
+docker logs -f $(docker ps -aq --filter name="mobymask-1")
+```
 
-* Check the reverse payment proxy container logs:
+Check the reverse payment proxy container logs:
 
-  ```bash
-  docker logs -f $(docker ps -aq --filter name="nitro-reverse-payment-proxy")
-  ```
+```bash
+docker logs -f $(docker ps -aq --filter name="nitro-reverse-payment-proxy")
+```
 
-* Run the ponder app:
+Run the ponder app:
 
-  ```bash
-  docker exec -it payments-ponder-app-1 bash -c "pnpm start"
-  ```
+```bash
+docker exec -it payments-ponder-app-1 bash -c "pnpm start"
+```
 
 ## Clean up
 
 Stop all the services running in background:
 
 ```bash
-laconic-so --stack fixturenet-payments deploy --cluster [CLUSTER_NAME] down 30
+laconic-so --stack fixturenet-payments deploy --cluster payments down 30
 ```
 
 Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=[CLUSTER_NAME]"
+docker volume ls -q --filter "name=[payments"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=[CLUSTER_NAME]")
+docker volume rm $(docker volume ls -q --filter "name=[payments")
 ```

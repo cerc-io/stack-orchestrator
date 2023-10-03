@@ -51,7 +51,6 @@ while true; do
   fi
 done
 
-# TODO: Fetch pk from ACCOUNTS_CSV_URL?
 echo "Using CERC_PRIVATE_KEY_DEPLOYER from env"
 
 yarn test:deploy-contracts --chainurl ${CERC_ETH_RPC_ENDPOINT} --key ${CERC_PRIVATE_KEY_DEPLOYER} --addressesFilePath ${nitro_addresses_file}

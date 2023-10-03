@@ -23,14 +23,16 @@ laconic-so --stack mobymask-v3 build-containers --exclude cerc/mobymask-ui
 Create and update an env file to be used in the next step ([defaults](../../config/watcher-mobymask-v3/mobymask-params.env)):
 
   ```bash
-  # External ETH RPC endpoint
+  # External ETH RPC endpoint (L2 Optimism geth)
   CERC_ETH_RPC_ENDPOINT=
 
-  # URL (fixturenet-eth-bootnode-lighthouse) to get CSV with credentials for accounts on L1 to perform txs on L2
-  CERC_L1_ACCOUNTS_CSV_URL=
+  # External ETH RPC endpoint used for queries in the watcher
+  CERC_ETH_RPC_QUERY_ENDPOINT=
 
-  # OR
-  # Specify the required account credentials
+  # External ETH RPC endpoint used for mutations in the watcher
+  CERC_ETH_RPC_MUTATION_ENDPOINT=
+
+  # Specify the an account PK for contract deployment
   CERC_PRIVATE_KEY_DEPLOYER=
 
   # Base URI for mobymask-app
@@ -69,6 +71,9 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # (Optional) Set a pre-existing peer id to be used (enables consensus)
   # Uses a generated peer id if not set (disables consensus)
   CERC_PEER_ID=
+
+  # Disable payments to upstream ETH server
+  CERC_ENABLE_UPSTREAM_PAYMENTS=false
   ```
 
 * NOTE: If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
@@ -101,9 +106,9 @@ laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --exclude mobymask-a
 
 * Check logs of the Nitro contracts container to get the deployed Nitro contracts' addresses:
 
-```bash
-docker exec -it $(docker ps -q --filter name="nitro-contracts") bash -c "cat /app/deployment/nitro-addresses.json"
-```
+  ```bash
+  docker exec -it $(docker ps -q --filter name="nitro-contracts") bash -c "cat /app/deployment/nitro-addresses.json"
+  ```
 
 ## Clean up
 

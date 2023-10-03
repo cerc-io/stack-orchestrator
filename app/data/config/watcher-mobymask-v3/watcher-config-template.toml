@@ -73,7 +73,7 @@
       enabled = REPLACE_WITH_CONSENSUS_ENABLED
       publicKey = 'REPLACE_WITH_CONSENSUS_PUBLIC_KEY'
       privateKey = 'REPLACE_WITH_CONSENSUS_PRIVATE_KEY'
-      watcherPartyFile = 'REPLACE_WITH_WATCHER_PARTY_PEERS_FILE'
+      watcherPartyPeersFile = 'REPLACE_WITH_WATCHER_PARTY_PEERS_FILE'
 
 [metrics]
   host = "0.0.0.0"
@@ -98,9 +98,9 @@
     rpcProviderMutationEndpoint = 'REPLACE_WITH_CERC_ETH_RPC_MUTATION_ENDPOINT'
 
     [upstream.ethServer.rpcProviderNitroNode]
-      address = 'REPLACE_WITH_CERC_UPSTREAM_NITRO_ADDRESS'
-      multiAddr = 'REPLACE_WITH_CERC_UPSTREAM_NITRO_MULTIADDR'
-      amount = 'REPLACE_WITH_CERC_UPSTREAM_NITRO_PAY_AMOUNT'
+      address = 'REPLACE_WITH_UPSTREAM_NITRO_ADDRESS'
+      multiAddr = 'REPLACE_WITH_UPSTREAM_NITRO_MULTIADDR'
+      amount = 'REPLACE_WITH_UPSTREAM_NITRO_PAY_AMOUNT'
 
   [upstream.cache]
     name = "requests"

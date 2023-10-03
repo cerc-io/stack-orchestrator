@@ -2,7 +2,7 @@ version: "1.0"
 name: fixturenet-pocket
 description: "A single node pocket chain that can serve relays from the geth-1 node in eth-fixturenet"
 repos:
-  - git.vdb.to/cerc-io/go-ethereum
+  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
   - git.vdb.to/cerc-io/lighthouse
   - github.com/pokt-network/pocket-core
   - github.com/pokt-network/pocket-core-deployments # contains the dockerfile

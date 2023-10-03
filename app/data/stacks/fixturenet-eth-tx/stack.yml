@@ -2,7 +2,7 @@ version: "1.2"
 name: fixturenet-eth-tx
 description: "Ethereum Fixturenet w/ tx-spammer"
 repos:
-  - git.vdb.to/cerc-io/go-ethereum
+  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
   - git.vdb.to/cerc-io/tx-spammer
   - git.vdb.to/cerc-io/lighthouse
   - github.com/dboreham/foundry

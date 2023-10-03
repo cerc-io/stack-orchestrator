@@ -261,6 +261,16 @@ def init(ctx, config, output, map_ports_to_host):
         yaml.dump(spec_file_content, output_file)
 
 
+def _write_config_file(spec_file: Path, config_env_file: Path):
+    spec_content = get_parsed_deployment_spec(spec_file)
+    if spec_content["config"]:
+        config_vars = spec_content["config"]
+        if config_vars:
+            with open(config_env_file, "w") as output_file:
+                for variable_name, variable_value in config_vars.items():
+                    output_file.write(f"{variable_name}={variable_value}\n")
+
+
 @click.command()
 @click.option("--spec-file", required=True, help="Spec file to use to create this deployment")
 @click.option("--deployment-dir", help="Create deployment files in this directory")
@@ -285,6 +295,8 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     # Copy spec file and the stack file into the deployment dir
     copyfile(spec_file, os.path.join(deployment_dir, os.path.basename(spec_file)))
     copyfile(stack_file, os.path.join(deployment_dir, os.path.basename(stack_file)))
+    # Copy any config varibles from the spec file into an env file suitable for compose
+    _write_config_file(spec_file, os.path.join(deployment_dir, "config.env"))
     # Copy the pod files into the deployment dir, fixing up content
     pods = parsed_stack['pods']
     destination_compose_dir = os.path.join(deployment_dir, "compose")

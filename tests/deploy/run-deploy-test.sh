@@ -77,7 +77,7 @@ $TEST_TARGET_SO --stack test deploy down --delete-volumes
 # Basic test of creating a deployment
 test_deployment_dir=$CERC_REPO_BASE_DIR/test-deployment-dir
 test_deployment_spec=$CERC_REPO_BASE_DIR/test-deployment-spec.yml
-$TEST_TARGET_SO --stack test deploy init --output $test_deployment_spec
+$TEST_TARGET_SO --stack test deploy init --output $test_deployment_spec --config CERC_TEST_PARAM_1=PASSED
 # Check the file now exists
 if [ ! -f "$test_deployment_spec" ]; then
     echo "deploy init test: spec file not present"
@@ -110,11 +110,18 @@ echo "deploy create output file test: passed"
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 # Check logs command works
-log_output_2=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
-if [[ "$log_output_2" == *"Filesystem is fresh"* ]]; then
+log_output_3=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_3" == *"Filesystem is fresh"* ]]; then
     echo "deployment logs test: passed"
 else
     echo "deployment logs test: FAILED"
+    exit 1
+fi
+# Check the config variable CERC_TEST_PARAM_1 was passed correctly
+if [[ "$log_output_3" == *"Test-param-1: PASSED"* ]]; then
+    echo "deployment config test: passed"
+else
+    echo "deployment config test: FAILED"
     exit 1
 fi
 # Stop and clean up

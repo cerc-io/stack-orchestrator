@@ -15,18 +15,19 @@ services:
       CERC_DENY_MULTIADDRS: ${CERC_DENY_MULTIADDRS}
       CERC_PUBSUB: ${CERC_PUBSUB}
       CERC_GOSSIPSUB_DIRECT_PEERS: ${CERC_GOSSIPSUB_DIRECT_PEERS}
-      CERC_RELEASE: "laconic-v3"
       CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
       CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
       CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
-      CERC_PAYMENT_NITRO_ADDRESS: ${CERC_PAYMENT_NITRO_ADDRESS}
+      CERC_PAYMENT_NITRO_ADDRESS: ${CERC_PAYMENT_NITRO_ADDRESS:-0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94}
       CERC_SNAP_URL: ${CERC_SNAP_URL}
-    working_dir: /scripts
-    command: ["sh", "mobymask-app-start.sh"]
+    working_dir: /app
+    command: ["bash", "/scripts/mobymask-app-start.sh"]
     volumes:
       - ../config/watcher-mobymask-v3/mobymask-app-start.sh:/scripts/mobymask-app-start.sh
-      - ../config/watcher-mobymask-v2/mobymask-app-config.json:/app/src/mobymask-app-config.json
+      - peers_ids:/peers
+      - mobymask_deployment:/server
+      - nitro_deployment:/nitro
     ports:
       - "127.0.0.1:3004:80"
     healthcheck:
@@ -37,3 +38,8 @@ services:
       start_period: 10s
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+volumes:
+  peers_ids:
+  mobymask_deployment:
+  nitro_deployment:

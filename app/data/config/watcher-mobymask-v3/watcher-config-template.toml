@@ -19,6 +19,9 @@
   # Use -1 for skipping check on block range.
   maxEventsBlockRange = -1
 
+  # Flag to specify whether RPC endpoint supports block hash as block tag parameter
+  rpcSupportsBlockHashParam = true
+
   [server.p2p]
     enableRelay = true
     enablePeer = true
@@ -41,6 +44,9 @@
       pubsub = 'REPLACE_WITH_CERC_PUBSUB'
       enableDebugInfo = true
       enableL2Txs = REPLACE_WITH_CERC_ENABLE_PEER_L2_TXS
+      pingInterval = 4000
+      pingTimeout = 1500
+      maxRelayConnections = 10
 
       [server.p2p.peer.l2TxsConfig]
         privateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_PEER'
@@ -48,7 +54,7 @@
 
     [server.p2p.nitro]
       store = './out/nitro-db'
-      privateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_NITRO'
+      privateKey = 'REPLACE_WITH_CERC_WATCHER_NITRO_PK'
       chainPrivateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_PEER'
 
       [server.p2p.nitro.payments]
@@ -67,7 +73,7 @@
       enabled = REPLACE_WITH_CONSENSUS_ENABLED
       publicKey = 'REPLACE_WITH_CONSENSUS_PUBLIC_KEY'
       privateKey = 'REPLACE_WITH_CONSENSUS_PRIVATE_KEY'
-      watcherPartyFile = 'REPLACE_WITH_WATCHER_PARTY_PEERS_FILE'
+      watcherPartyPeersFile = 'REPLACE_WITH_WATCHER_PARTY_PEERS_FILE'
 
 [metrics]
   host = "0.0.0.0"
@@ -87,9 +93,14 @@
 
 [upstream]
   [upstream.ethServer]
-    gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
-    rpcProviderEndpoint = "REPLACE_WITH_CERC_L2_GETH_RPC_ENDPOINT"
-    blockDelayInMilliSecs = 60000
+    gqlApiEndpoint = 'http://ipld-eth-server:8083/graphql'
+    rpcProviderEndpoint = 'REPLACE_WITH_CERC_ETH_RPC_QUERY_ENDPOINT'
+    rpcProviderMutationEndpoint = 'REPLACE_WITH_CERC_ETH_RPC_MUTATION_ENDPOINT'
+
+    [upstream.ethServer.rpcProviderNitroNode]
+      address = 'REPLACE_WITH_UPSTREAM_NITRO_ADDRESS'
+      multiAddr = 'REPLACE_WITH_UPSTREAM_NITRO_MULTIADDR'
+      amount = 'REPLACE_WITH_UPSTREAM_NITRO_PAY_AMOUNT'
 
   [upstream.cache]
     name = "requests"
@@ -101,3 +112,4 @@
   maxCompletionLagInSecs = 300
   jobDelayInMilliSecs = 100
   eventsInBatch = 50
+  blockDelayInMilliSecs = 60000

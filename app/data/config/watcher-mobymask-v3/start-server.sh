@@ -5,21 +5,20 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-CERC_L2_GETH_RPC="${CERC_L2_GETH_RPC:-${DEFAULT_CERC_L2_GETH_RPC}}"
-
+CERC_ETH_RPC_QUERY_ENDPOINT="${CERC_ETH_RPC_QUERY_ENDPOINT:-${DEFAULT_CERC_ETH_RPC_QUERY_ENDPOINT}}"
+CERC_ETH_RPC_MUTATION_ENDPOINT="${CERC_ETH_RPC_MUTATION_ENDPOINT:-${DEFAULT_CERC_ETH_RPC_MUTATION_ENDPOINT}}"
 CERC_RELAY_PEERS="${CERC_RELAY_PEERS:-${DEFAULT_CERC_RELAY_PEERS}}"
 CERC_DENY_MULTIADDRS="${CERC_DENY_MULTIADDRS:-${DEFAULT_CERC_DENY_MULTIADDRS}}"
 CERC_PUBSUB="${CERC_PUBSUB:-${DEFAULT_CERC_PUBSUB}}"
 CERC_RELAY_ANNOUNCE_DOMAIN="${CERC_RELAY_ANNOUNCE_DOMAIN:-${DEFAULT_CERC_RELAY_ANNOUNCE_DOMAIN}}"
 CERC_ENABLE_PEER_L2_TXS="${CERC_ENABLE_PEER_L2_TXS:-${DEFAULT_CERC_ENABLE_PEER_L2_TXS}}"
 CERC_DEPLOYED_CONTRACT="${CERC_DEPLOYED_CONTRACT:-${DEFAULT_CERC_DEPLOYED_CONTRACT}}"
-
-nitro_addresses_file="/nitro/nitro-addresses.json"
-nitro_addresses_destination_file="./src/nitro-addresses.json"
+CERC_ENABLE_UPSTREAM_PAYMENTS="${CERC_ENABLE_UPSTREAM_PAYMENTS:-${DEFAULT_CERC_ENABLE_UPSTREAM_PAYMENTS}}"
 
 watcher_keys_dir="./keys"
 
-echo "Using L2 RPC endpoint ${CERC_L2_GETH_RPC}"
+echo "Using RPC query endpoint ${CERC_ETH_RPC_QUERY_ENDPOINT}"
+echo "Using RPC mutation endpoint ${CERC_ETH_RPC_MUTATION_ENDPOINT}"
 
 # Use public domain for relay multiaddr in peer config if specified
 # Otherwise, use the docker container's host IP
@@ -37,20 +36,37 @@ else
   CONTRACT_ADDRESS=$(jq -r '.address' /server/config.json | tr -d '"')
 fi
 
-# Copy the deployed Nitro addresses to the required path
-if [ -f "$nitro_addresses_file" ]; then
-  cat "$nitro_addresses_file" > "$nitro_addresses_destination_file"
-  echo "Nitro addresses set to ${nitro_addresses_destination_file}"
+nitro_addresses_file="/nitro/nitro-addresses.json"
+nitro_addresses_destination_file="./src/nitro-addresses.json"
 
-  # Build after setting the Nitro addresses
-  yarn build
+# Check if CERC_NA_ADDRESS environment variable is set
+if [ -n "$CERC_NA_ADDRESS" ]; then
+  echo "CERC_NA_ADDRESS is set to '$CERC_NA_ADDRESS'"
+  echo "CERC_VPA_ADDRESS is set to '$CERC_VPA_ADDRESS'"
+  echo "CERC_CA_ADDRESS is set to '$CERC_CA_ADDRESS'"
+  echo "Using the above Nitro addresses"
+
+  # Create the required JSON and write it to a file
+  nitro_addresses_json=$(jq -n \
+    --arg na "$CERC_NA_ADDRESS" \
+    --arg vpa "$CERC_VPA_ADDRESS" \
+    --arg ca "$CERC_CA_ADDRESS" \
+    '.nitroAdjudicatorAddress = $na | .virtualPaymentAppAddress = $vpa | .consensusAppAddress = $ca')
+  echo "$nitro_addresses_json" > "${nitro_addresses_destination_file}"
+elif [ -f ${nitro_addresses_file} ]; then
+  echo "Using Nitro addresses from ${nitro_addresses_file}:"
+  cat "$nitro_addresses_file"
+  cat "$nitro_addresses_file" > "$nitro_addresses_destination_file"
 else
-  echo "File ${nitro_addresses_file} does not exist"
+  echo "Nitro addresses not available"
   exit 1
 fi
 
+# Build after setting the Nitro addresses
+yarn build
+
 echo "Using CERC_PRIVATE_KEY_PEER (account with funds) from env for sending txs to L2"
-echo "Using CERC_PRIVATE_KEY_NITRO from env for Nitro account"
+echo "Using CERC_WATCHER_NITRO_PK from env for Nitro account"
 
 if [ -n "$CERC_PEER_ID" ]; then
   echo "Using CERC_PEER_ID ${CERC_PEER_ID} from env for watcher fixture"
@@ -107,24 +123,38 @@ else
   CONSENSUS_PRIVATE_KEY=''
 fi
 
+if [ "$CERC_ENABLE_UPSTREAM_PAYMENTS" = true ]; then
+  UPSTREAM_NITRO_ADDRESS=${CERC_UPSTREAM_NITRO_ADDRESS}
+  UPSTREAM_NITRO_MULTIADDR=${CERC_UPSTREAM_NITRO_MULTIADDR}
+  UPSTREAM_NITRO_PAY_AMOUNT=${CERC_UPSTREAM_NITRO_PAY_AMOUNT}
+else
+  UPSTREAM_NITRO_ADDRESS=""
+  UPSTREAM_NITRO_MULTIADDR=""
+  UPSTREAM_NITRO_PAY_AMOUNT=""
+fi
+
 # Read in the config template TOML file and modify it
 WATCHER_CONFIG_TEMPLATE=$(cat environments/watcher-config-template.toml)
 WATCHER_CONFIG=$(echo "$WATCHER_CONFIG_TEMPLATE" | \
   sed -E "s|REPLACE_WITH_CERC_RELAY_PEERS|${CERC_RELAY_PEERS}|g; \
-          s|REPLACE_WITH_CERC_DENY_MULTIADDRS|${CERC_DENY_MULTIADDRS}|g; \
-          s/REPLACE_WITH_CERC_PUBSUB/${CERC_PUBSUB}/g; \
-          s/REPLACE_WITH_CERC_RELAY_ANNOUNCE_DOMAIN/${CERC_RELAY_ANNOUNCE_DOMAIN}/g; \
-          s|REPLACE_WITH_CERC_RELAY_MULTIADDR|${CERC_RELAY_MULTIADDR}|g; \
-          s|REPLACE_WITH_PEER_ID_FILE|${PEER_ID_FILE}|g; \
-          s/REPLACE_WITH_CERC_ENABLE_PEER_L2_TXS/${CERC_ENABLE_PEER_L2_TXS}/g; \
-          s/REPLACE_WITH_CERC_PRIVATE_KEY_PEER/${CERC_PRIVATE_KEY_PEER}/g; \
-          s/REPLACE_WITH_CERC_PRIVATE_KEY_NITRO/${CERC_PRIVATE_KEY_NITRO}/g; \
-          s/REPLACE_WITH_CONTRACT_ADDRESS/${CONTRACT_ADDRESS}/g; \
-          s/REPLACE_WITH_CONSENSUS_ENABLED/${CONSENSUS_ENABLED}/g; \
-          s/REPLACE_WITH_CONSENSUS_PUBLIC_KEY/${CONSENSUS_PUBLIC_KEY}/g; \
-          s/REPLACE_WITH_CONSENSUS_PRIVATE_KEY/${CONSENSUS_PRIVATE_KEY}/g; \
-          s|REPLACE_WITH_WATCHER_PARTY_PEERS_FILE|${WATCHER_PARTY_PEERS_FILE}|g; \
-          s|REPLACE_WITH_CERC_L2_GETH_RPC_ENDPOINT|${CERC_L2_GETH_RPC}| ")
+    s|REPLACE_WITH_CERC_DENY_MULTIADDRS|${CERC_DENY_MULTIADDRS}|g; \
+    s/REPLACE_WITH_CERC_PUBSUB/${CERC_PUBSUB}/g; \
+    s/REPLACE_WITH_CERC_RELAY_ANNOUNCE_DOMAIN/${CERC_RELAY_ANNOUNCE_DOMAIN}/g; \
+    s|REPLACE_WITH_CERC_RELAY_MULTIADDR|${CERC_RELAY_MULTIADDR}|g; \
+    s|REPLACE_WITH_PEER_ID_FILE|${PEER_ID_FILE}|g; \
+    s/REPLACE_WITH_CERC_ENABLE_PEER_L2_TXS/${CERC_ENABLE_PEER_L2_TXS}/g; \
+    s/REPLACE_WITH_CERC_PRIVATE_KEY_PEER/${CERC_PRIVATE_KEY_PEER}/g; \
+    s/REPLACE_WITH_CERC_WATCHER_NITRO_PK/${CERC_WATCHER_NITRO_PK}/g; \
+    s/REPLACE_WITH_CONTRACT_ADDRESS/${CONTRACT_ADDRESS}/g; \
+    s/REPLACE_WITH_CONSENSUS_ENABLED/${CONSENSUS_ENABLED}/g; \
+    s/REPLACE_WITH_CONSENSUS_PUBLIC_KEY/${CONSENSUS_PUBLIC_KEY}/g; \
+    s/REPLACE_WITH_CONSENSUS_PRIVATE_KEY/${CONSENSUS_PRIVATE_KEY}/g; \
+    s|REPLACE_WITH_WATCHER_PARTY_PEERS_FILE|${WATCHER_PARTY_PEERS_FILE}|g; \
+    s|REPLACE_WITH_CERC_ETH_RPC_QUERY_ENDPOINT|${CERC_ETH_RPC_QUERY_ENDPOINT}|g; \
+    s|REPLACE_WITH_CERC_ETH_RPC_MUTATION_ENDPOINT|${CERC_ETH_RPC_MUTATION_ENDPOINT}|g; \
+    s/REPLACE_WITH_UPSTREAM_NITRO_ADDRESS/${UPSTREAM_NITRO_ADDRESS}/g; \
+    s|REPLACE_WITH_UPSTREAM_NITRO_MULTIADDR|${UPSTREAM_NITRO_MULTIADDR}|g; \
+    s/REPLACE_WITH_UPSTREAM_NITRO_PAY_AMOUNT/${UPSTREAM_NITRO_PAY_AMOUNT}/ ")
 
 # Write the modified content to a new file
 echo "$WATCHER_CONFIG" > environments/local.toml

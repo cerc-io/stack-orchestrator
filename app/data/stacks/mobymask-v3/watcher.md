@@ -2,7 +2,7 @@
 
 ## Setup
 
-Prerequisite: L2 Optimism Geth and Node RPC endpoints
+Prerequisite: L2 Optimism Geth RPC endpoint
 
 Clone required repositories:
 
@@ -23,21 +23,16 @@ laconic-so --stack mobymask-v3 build-containers --exclude cerc/mobymask-ui
 Create and update an env file to be used in the next step ([defaults](../../config/watcher-mobymask-v3/mobymask-params.env)):
 
   ```bash
-  # External L2 endpoints
-  CERC_L2_GETH_RPC=
+  # External ETH RPC endpoint (L2 Optimism geth)
+  CERC_ETH_RPC_ENDPOINT=
 
-  # Endpoints waited on before contract deployment
-  CERC_L2_GETH_HOST=
-  CERC_L2_GETH_PORT=
+  # External ETH RPC endpoint used for queries in the watcher
+  CERC_ETH_RPC_QUERY_ENDPOINT=
 
-  CERC_L2_NODE_HOST=
-  CERC_L2_NODE_PORT=
+  # External ETH RPC endpoint used for mutations in the watcher
+  CERC_ETH_RPC_MUTATION_ENDPOINT=
 
-  # URL (fixturenet-eth-bootnode-lighthouse) to get CSV with credentials for accounts on L1 to perform txs on L2
-  CERC_L1_ACCOUNTS_CSV_URL=
-
-  # OR
-  # Specify the required account credentials
+  # Specify the an account PK for contract deployment
   CERC_PRIVATE_KEY_DEPLOYER=
 
   # Base URI for mobymask-app
@@ -71,11 +66,14 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   CERC_PRIVATE_KEY_PEER=
 
   # Specify private key for the Nitro account
-  CERC_PRIVATE_KEY_NITRO=
+  CERC_WATCHER_NITRO_PK=
 
   # (Optional) Set a pre-existing peer id to be used (enables consensus)
   # Uses a generated peer id if not set (disables consensus)
   CERC_PEER_ID=
+
+  # Disable payments to upstream ETH server
+  CERC_ENABLE_UPSTREAM_PAYMENTS=false
   ```
 
 * NOTE: If Optimism is running on the host machine, use `host.docker.internal` as the hostname to access the host port
@@ -83,13 +81,13 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 ### Deploy the stack
 
 ```bash
-laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mobymask-v3 --env-file <PATH_TO_ENV_FILE> up
+laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --exclude mobymask-app-v3 --env-file <PATH_TO_ENV_FILE> up
 ```
 
 * To list down and monitor the running containers:
 
   ```bash
-  laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mobymask-v3 ps
+  laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --exclude mobymask-app-v3 ps
 
   # With status
   docker ps -a
@@ -106,18 +104,18 @@ laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mo
   docker logs -f $(docker ps -aq --filter name="mobymask-1")
   ```
 
-* Check the logs of the watcher server container to get the deployed Nitro contracts' addresses:
+* Check logs of the Nitro contracts container to get the deployed Nitro contracts' addresses:
 
-```bash
-docker exec -it $(docker ps -q --filter name="mobymask-watcher-server") bash -c "cat /nitro/nitro-addresses.json"
-```
+  ```bash
+  docker exec -it $(docker ps -q --filter name="nitro-contracts") bash -c "cat /app/deployment/nitro-addresses.json"
+  ```
 
 ## Clean up
 
 Stop all services running in the background:
 
 ```bash
-laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --include watcher-mobymask-v3 down
+laconic-so --stack mobymask-v3 deploy --cluster mobymask_v3 --exclude mobymask-app-v3 down
 ```
 
 Clear volumes created by this stack:

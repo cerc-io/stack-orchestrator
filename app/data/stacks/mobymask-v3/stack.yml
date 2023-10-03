@@ -2,15 +2,18 @@ version: "1.0"
 description: "MobyMask v3 stack"
 name: mobymask-v3
 repos:
+  - github.com/cerc-io/ts-nitrov0.1.12
   - github.com/cerc-io/watcher-ts@v0.2.57
-  - github.com/cerc-io/mobymask-v2-watcher-ts@v3
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v3 # TODO: Update after fixes
   - github.com/cerc-io/MobyMask@v0.1.3
-  - github.com/cerc-io/mobymask-ui
+  - github.com/cerc-io/mobymask-ui@v0.2.0
 containers:
+  - cerc/nitro-contracts
   - cerc/watcher-ts
   - cerc/watcher-mobymask-v3
   - cerc/mobymask
   - cerc/mobymask-ui
 pods:
+  - nitro-contracts
   - watcher-mobymask-v3
   - mobymask-app-v3

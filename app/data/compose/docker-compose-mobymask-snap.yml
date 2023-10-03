@@ -1,0 +1,14 @@
+version: '3.7'
+
+services:
+  mobymask-snap:
+    restart: unless-stopped
+    image: cerc/mobymask-snap:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s

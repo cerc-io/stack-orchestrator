@@ -56,7 +56,7 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # Nitro account address to make the query and mutation payments to
   CERC_PAYMENT_NITRO_ADDRESS=
 
-  # Endpoint for Mobymask snap installation
+  # (Optional) Endpoint for Mobymask snap installation
   CERC_SNAP_URL=
   ```
 

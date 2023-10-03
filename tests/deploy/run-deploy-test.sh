@@ -118,7 +118,7 @@ else
     exit 1
 fi
 # Check the config variable CERC_TEST_PARAM_1 was passed correctly
-if [[ "$log_output_3" == *"Test-param-1: PPASSED"* ]]; then
+if [[ "$log_output_3" == *"Test-param-1: PASSED"* ]]; then
     echo "deployment config test: passed"
 else
     echo "deployment config test: FAILED"

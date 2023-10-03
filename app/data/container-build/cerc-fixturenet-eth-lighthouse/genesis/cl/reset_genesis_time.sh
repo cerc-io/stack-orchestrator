@@ -13,6 +13,7 @@ NOW=${1:-`date +%s`}
 
 lcli \
   change-genesis-time \
+  --testnet-dir $TESTNET_DIR \
   $TESTNET_DIR/genesis.ssz \
   $NOW
 

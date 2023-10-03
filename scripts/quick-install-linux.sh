@@ -5,6 +5,9 @@ fi
 
 install_dir=~/bin
 
+# Skip the package install stuff if so directed
+if ! [[ -n "$CERC_SO_INSTALL_SKIP_PACKAGES" ]]; then
+
 # First display a reasonable warning to the user unless run with -y
 if ! [[ $# -eq 1 && $1 == "-y" ]]; then
   echo "**************************************************************************************"
@@ -30,6 +33,21 @@ fi
 
 # Determine if we are on Debian or Ubuntu
 linux_distro=$(lsb_release -a 2>/dev/null | grep "^Distributor ID:" | cut -f 2)
+# Some systems don't have lsb_release installed (e.g. ChromeOS) and so we try to
+# use /etc/os-release instead
+if [[ -z "$linux_distro" ]]; then
+  if [[ -f "/etc/os-release" ]]; then
+    distro_name_string=$(grep "^NAME=" /etc/os-release | cut -d '=' -f 2)
+    if [[ $distro_name_string =~ Debian ]]; then
+      linux_distro="Debian"
+    elif [[ $distro_name_string =~ Ubuntu ]]; then
+      linux_distro="Ubuntu"
+    fi
+  else
+    echo "Failed to identify distro: /etc/os-release doesn't exist"
+    exit 1
+  fi
+fi
 case $linux_distro in
   Debian)
     echo "Installing docker for Debian"
@@ -113,13 +131,20 @@ sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin d
 # Allow the current user to use Docker
 sudo usermod -aG docker $USER
 
+# End of long if block: Skip the package install stuff if so directed
+fi
+
 echo "**************************************************************************************"
 echo "Installing laconic-so"
 # install latest `laconic-so`
+distribution_url=https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so
 install_filename=${install_dir}/laconic-so
 mkdir -p  ${install_dir}
-curl -L -o ${install_filename} https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so
+curl -L -o ${install_filename} ${distribution_url}
 chmod +x ${install_filename}
+# Set up config file for self-update feature
+mkdir ~/.laconic-so
+echo "distribution-url: ${distribution_url}" >  ~/.laconic-so/config.yml
 
 echo "**************************************************************************************"
 # Check if our PATH line is already there

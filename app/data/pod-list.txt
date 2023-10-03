@@ -32,3 +32,13 @@ lasso
 reth
 watcher-sushiswap
 contract-sushiswap
+graph-node
+sushiswap-subgraph-v3
+fixturenet-sushiswap-subgraph-v3
+watcher-mobymask-v3
+mobymask-app-v3
+go-nitro
+nitro-contracts
+nitro-reverse-payment-proxy
+mobymask-snap
+ponder

@@ -18,7 +18,7 @@ if ! [[ -d ${webapp_files_dir} ]]; then
 fi
 # First some magic using yq to translate our yaml config file into an array of key value pairs like:
 # LACONIC_HOSTED_CONFIG_<path-through-objects>=<value>
-readarray -t config_kv_pair_array < <( yq '.. | select(length > 2) | ([path | join("_"), .] | join("=") )' ${config_file_name} | sed 's/^/LACONIC_HOSTED_CONFIG_/' )
+readarray -t config_kv_pair_array < <( yq '.. | ([path | join("_"), .] | join("=") )' ${config_file_name} | sort -r | sed -e '$ d' | sed 's/^/LACONIC_HOSTED_CONFIG_/' )
 declare -p config_kv_pair_array
 # Then iterate over that kv array making the template substitution in our web app files
 for kv_pair_string in "${config_kv_pair_array[@]}"

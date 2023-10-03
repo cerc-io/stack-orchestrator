@@ -49,3 +49,9 @@ cerc/sushiswap-v3-periphery
 cerc/watcher-sushiswap
 cerc/graph-node
 cerc/sushiswap-subgraphs
+cerc/webapp-base
+cerc/watcher-mobymask-v3
+cerc/go-nitro
+cerc/nitro-contracts
+cerc/mobymask-snap
+cerc/ponder

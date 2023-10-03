@@ -1,6 +1,6 @@
 version: "1.0"
 name: fixturenet-eth-loaded
-decription: "Loaded Ethereum Fixturenet"
+description: "Loaded Ethereum Fixturenet"
 repos:
   - github.com/cerc-io/go-ethereum
   - github.com/cerc-io/tx-spammer

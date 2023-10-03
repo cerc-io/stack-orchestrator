@@ -1,4 +1,4 @@
-# Copyright © 2023 Cerc
+# Copyright © 2023 Vulcanize
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -15,6 +15,7 @@
 
 import click
 import importlib.resources
+
 
 @click.command()
 @click.pass_context

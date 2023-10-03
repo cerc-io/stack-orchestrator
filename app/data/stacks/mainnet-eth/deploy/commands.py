@@ -1,4 +1,4 @@
-# Copyright © 2023 Cerc
+# Copyright © 2023 Vulcanize
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -15,6 +15,7 @@
 
 from secrets import token_hex
 
+
 def init(ctx):
     return None
 
@@ -23,7 +24,7 @@ def setup(ctx):
     return None
 
 
-def create(ctx):
+def create(ctx, extra_args):
     # Generate the JWT secret and save to its config file
     secret = token_hex(32)
     jwt_file_path = ctx.deployment_dir.joinpath("data", "mainnet_eth_config_data", "jwtsecret")

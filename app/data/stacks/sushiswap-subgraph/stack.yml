@@ -1,28 +1,16 @@
 version: "1.0"
 name: sushiswap-subgraph
-description: "An end-to-end SushiSwap Subgraph stack"
+description: "SushiSwap Subgraph stack"
 repos:
-  ## fixturenet-lotus repo
-  - github.com/filecoin-project/lotus
-  ## graph-node repo
+  # graph-node repo
   - github.com/graphprotocol/graph-node
-  ## sushiswap repos
-  - github.com/cerc-io/sushiswap-v3-core@watcher-ts
-  - github.com/cerc-io/sushiswap-v3-periphery@watcher-ts
-  ## subgraph repo
+  # sushiswap subgraph repo
   - github.com/sushiswap/subgraphs
 containers:
-  ## fixturenet-lotus image
-  - cerc/lotus
-  ## fixturenet-graph-node image
+  # graph-node image
   - cerc/graph-node
-  ## sushiswap contract deployment images
-  - cerc/sushiswap-v3-core
-  - cerc/sushiswap-v3-periphery
-  ## sushiswap subgraphs image
+  # sushiswap subgraphs image
   - cerc/sushiswap-subgraphs
 pods:
-  - fixturenet-lotus
-  - fixturenet-graph-node
-  - contract-sushiswap
+  - graph-node
   - sushiswap-subgraph-v3

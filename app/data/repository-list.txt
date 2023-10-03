@@ -10,7 +10,7 @@ github.com/cerc-io/laconicd
 github.com/cerc-io/laconic-sdk
 github.com/cerc-io/laconic-registry-cli
 github.com/cerc-io/laconic-console
-github.com/cerc-io/mobymask-watcher
+github.com/cerc-io/mobymask-watcher-ts
 github.com/cerc-io/watcher-ts
 github.com/cerc-io/mobymask-v2-watcher-ts
 github.com/cerc-io/MobyMask
@@ -43,3 +43,7 @@ github.com/cerc-io/sushiswap-v3-core
 github.com/cerc-io/sushiswap-v3-periphery
 github.com/graphprotocol/graph-node
 github.com/sushiswap/subgraphs
+github.com/cerc-io/go-nitro
+github.com/cerc-io/ts-nitro
+github.com/cerc-io/mobymask-snap
+github.com/cerc-io/ponder

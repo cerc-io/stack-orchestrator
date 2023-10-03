@@ -6,6 +6,12 @@ Instructions to setup and deploy MobyMask and Peer Test web apps
 
 Prerequisite: Watcher with GQL and relay node endpoints
 
+Clone required repositories:
+
+```bash
+laconic-so --stack mobymask-v2 setup-repositories --include github.com/cerc-io/mobymask-ui
+```
+
 Build the container images:
 
 ```bash
@@ -39,6 +45,9 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   # L2 Chain ID used by mobymask web-app for L2 txs
   CERC_CHAIN_ID=42069
+
+  # (Optional) Type of pubsub to be used ("floodsub" | "gossipsub")
+  CERC_PUBSUB=""
   ```
 
 * NOTE: If watcher is running on the host machine, use `host.docker.internal` as the hostname to access the host port

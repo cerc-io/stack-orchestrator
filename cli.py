@@ -1,4 +1,4 @@
-# Copyright © 2022 Cerc
+# Copyright © 2022, 2023 Vulcanize
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -14,27 +14,17 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
-from dataclasses import dataclass
 
+from app.command_types import CommandOptions
 from app import setup_repositories
 from app import build_containers
 from app import build_npms
 from app import deploy
 from app import version
 from app import deployment
+from app import update
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
-
-@dataclass
-class Options:
-    stack: str
-    quiet: bool = False
-    verbose: bool = False
-    dry_run: bool = False
-    local_stack: bool = False
-    debug: bool = False
-    continue_on_error: bool = False
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -49,7 +39,7 @@ class Options:
 @click.pass_context
 def cli(ctx, stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error):
     """Laconic Stack Orchestrator"""
-    ctx.obj = Options(stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error)
+    ctx.obj = CommandOptions(stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error)
 
 
 cli.add_command(setup_repositories.command, "setup-repositories")
@@ -59,3 +49,4 @@ cli.add_command(deploy.command, "deploy")  # deploy is an alias for deploy-syste
 cli.add_command(deploy.command, "deploy-system")
 cli.add_command(deployment.command, "deployment")
 cli.add_command(version.command, "version")
+cli.add_command(update.command, "update")

@@ -1,0 +1,53 @@
+version: "1.0"
+name: fixturenet-payments
+description: "Stack to demonstrate payments between various services"
+repos:
+  # fixturenet repos
+  - github.com/cerc-io/go-ethereum
+  - github.com/cerc-io/lighthouse
+  - github.com/cerc-io/ipld-eth-db
+  - github.com/cerc-io/ipld-eth-server
+  # nitro repos
+  - github.com/cerc-io/ts-nitro@v0.1.12
+  - github.com/cerc-io/go-nitro@v0.1.0-ts-port-0.1.4 # TODO: Update after fixes
+  # mobymask watcher repos
+  - github.com/cerc-io/watcher-ts@v0.2.61
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v3 # TODO: Update after fixes
+  - github.com/cerc-io/MobyMask@v0.1.3
+  # mobymask app repos
+  - github.com/cerc-io/mobymask-snap
+  - github.com/cerc-io/mobymask-ui@v0.2.0
+  # ponder repo
+  - github.com/cerc-io/ponder@laconic
+containers:
+  # fixturenet images
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/fixturenet-eth-genesis
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/ipld-eth-db
+  - cerc/ipld-eth-server
+  - cerc/nitro-contracts
+  - cerc/go-nitro
+  # mobymask watcher images
+  - cerc/watcher-ts
+  - cerc/watcher-mobymask-v3
+  - cerc/mobymask
+  # mobymask app images
+  - cerc/mobymask-snap
+  - cerc/mobymask-ui
+  # ponder image
+  - cerc/ponder
+pods:
+  - fixturenet-eth
+  - ipld-eth-server
+  - ipld-eth-db
+  - nitro-contracts
+  - go-nitro
+  - nitro-reverse-payment-proxy
+  - watcher-mobymask-v3
+  - mobymask-snap
+  - mobymask-app-v3
+  - ponder

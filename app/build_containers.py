@@ -1,4 +1,4 @@
-# Copyright © 2022, 2023 Cerc
+# Copyright © 2022, 2023 Vulcanize
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -86,6 +86,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
     # TODO: make this configurable
     container_build_env = {
         "CERC_NPM_REGISTRY_URL": get_npm_registry_url(),
+        "CERC_GO_AUTH_TOKEN": config("CERC_GO_AUTH_TOKEN", default=""),
         "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default=""),
         "CERC_REPO_BASE_DIR": dev_root_path,
         "CERC_CONTAINER_BASE_DIR": container_build_dir,

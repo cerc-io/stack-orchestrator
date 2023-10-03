@@ -16,6 +16,7 @@ Ensure that the following are already installed:
 - [Python3](https://wiki.python.org/moin/BeginnersGuide/Download): `python3 --version` >= `3.8.10` (the Python3 shipped in Ubuntu 20+ is good to go)
 - [Docker](https://docs.docker.com/get-docker/): `docker --version` >= `20.10.21`
 - [jq](https://stedolan.github.io/jq/download/): `jq --version` >= `1.5`
+- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git): `git --version` >= `2.10.3`
 
 Note: if installing docker-compose via package manager on Linux (as opposed to Docker Desktop), you must [install the plugin](https://docs.docker.com/compose/install/linux/#install-the-plugin-manually), e.g. :
 
@@ -47,6 +48,18 @@ Verify operation (your version will probably be different, just check here that 
 ```
 laconic-so version
 Version: 1.1.0-7a607c2-202304260513
+```
+Save the distribution url to `~/.laconic-so/config.yml`:
+```bash
+mkdir ~/.laconic-so
+echo "distribution-url: https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so" >  ~/.laconic-so/config.yml"
+```
+
+### Update
+If Stack Orchestrator was installed using the process described above, it is able to subsequently self-update to the current latest version by running:
+
+```bash
+laconic-so update
 ```
 
 ## Usage

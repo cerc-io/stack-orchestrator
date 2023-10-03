@@ -1,4 +1,4 @@
-# Copyright © 2022, 2023 Cerc
+# Copyright © 2022, 2023 Vulcanize
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -140,8 +140,8 @@ def exec_operation(ctx, extra_args):
             print(f"Running compose exec {service_name} {command_to_exec}")
         try:
             ctx.obj.docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
-        except DockerException as error:
-            print(f"container command returned error exit status")
+        except DockerException:
+            print("container command returned error exit status")
 
 
 def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
@@ -312,7 +312,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
     if ctx.verbose:
         print(f"files: {compose_files}")
 
-    return ClusterContext(cluster, compose_files, pre_start_commands, post_start_commands, cluster_config, env_file)
+    return ClusterContext(ctx, cluster, compose_files, pre_start_commands, post_start_commands, cluster_config, env_file)
 
 
 def _convert_to_new_format(old_pod_array):

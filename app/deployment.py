@@ -1,4 +1,4 @@
-# Copyright © 2022, 2023 Cerc
+# Copyright © 2022, 2023 Vulcanize
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -17,8 +17,8 @@ import click
 from dataclasses import dataclass
 from pathlib import Path
 import sys
-from app.deploy import up_operation, down_operation, ps_operation, port_operation, exec_operation, logs_operation, create_deploy_context
-from app.util import global_options
+from app.deploy import up_operation, down_operation, ps_operation, port_operation
+from app.deploy import exec_operation, logs_operation, create_deploy_context
 
 
 @dataclass
@@ -30,6 +30,8 @@ class DeploymentContext:
 @click.option("--dir", required=True, help="path to deployment directory")
 @click.pass_context
 def command(ctx, dir):
+    '''create a deployment'''
+
     # Check that --stack wasn't supplied
     if ctx.parent.obj.stack:
         print("Error: --stack can't be supplied with the deployment command")

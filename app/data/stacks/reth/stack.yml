@@ -1,6 +1,6 @@
 version: "1.1"
 name: reth
-decription: "Reth node"
+description: "Reth node"
 repos:
   - github.com/paradigmxyz/reth
 containers:

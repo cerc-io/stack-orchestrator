@@ -39,7 +39,7 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   CERC_L2_NODE_HOST=
   CERC_L2_NODE_PORT=
 
-  # URL to get CSV with credentials for accounts on L1 to perform txs on L2
+  # URL (fixturenet-eth-bootnode-lighthouse) to get CSV with credentials for accounts on L1 to perform txs on L2
   CERC_L1_ACCOUNTS_CSV_URL=
 
   # OR
@@ -59,6 +59,9 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   # (Optional) Set of multiaddrs to be avoided while dialling
   CERC_DENY_MULTIADDRS=[]
+
+  # (Optional) Type of pubsub to be used
+  CERC_PUBSUB=""
 
   # Set to false for disabling watcher peer to send txs to L2
   CERC_ENABLE_PEER_L2_TXS=true
@@ -119,4 +122,8 @@ docker volume ls -q --filter "name=mobymask_v2"
 
 # Remove all the listed volumes
 docker volume rm $(docker volume ls -q --filter "name=mobymask_v2")
+
+# WARNING: To avoid changing peer ids for the watcher, `peers_ids` volume can be persisted
+# To delete all volumes except for `peers_ids`
+docker volume rm $(docker volume ls -q --filter "name=mobymask_v2" | grep -v "peers_ids$")
 ```

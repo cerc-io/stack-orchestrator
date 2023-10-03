@@ -20,7 +20,7 @@ from app.deploy_util import VolumeMapping, run_container_command
 from pathlib import Path
 
 default_spec_file_content = """config:
-    config_variable: test-value
+    test-variable-1: test-value-1
 """
 
 

@@ -204,22 +204,48 @@ def _get_mapped_ports(stack: str, map_recipe: str):
     return ports
 
 
+def _parse_config_variables(variable_values: str):
+    result = None
+    if variable_values:
+        value_pairs = variable_values.split(",")
+        if len(value_pairs):
+            result_values = {}
+            for value_pair in value_pairs:
+                variable_value_pair = value_pair.split("=")
+                if len(variable_value_pair) != 2:
+                    print(f"ERROR: config argument is not valid: {variable_values}")
+                    sys.exit(1)
+                variable_name = variable_value_pair[0]
+                variable_value = variable_value_pair[1]
+                result_values[variable_name] = variable_value
+            result = {"config": result_values}
+    return result
+
+
 @click.command()
+@click.option("--config", help="Provide config variables for the deployment")
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.option("--map-ports-to-host", required=False,
               help="Map ports to the host as one of: any-variable-random (default), "
               "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
 @click.pass_context
-def init(ctx, output, map_ports_to_host):
+def init(ctx, config, output, map_ports_to_host):
     yaml = get_yaml()
     stack = global_options(ctx).stack
-    verbose = global_options(ctx).verbose
+    debug = global_options(ctx).debug
     default_spec_file_content = call_stack_deploy_init(ctx.obj)
     spec_file_content = {"stack": stack}
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
-    if verbose:
-        print(f"Creating spec file for stack: {stack}")
+    config_variables = _parse_config_variables(config)
+    if config_variables:
+       # Implement merge, since update() overwrites
+       orig_config = spec_file_content["config"]
+       new_config = config_variables["config"]
+       merged_config = {**new_config, **orig_config}
+       spec_file_content.update({"config": merged_config})
+    if debug:
+        print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
 
     ports = _get_mapped_ports(stack, map_ports_to_host)
     spec_file_content["ports"] = ports

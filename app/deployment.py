@@ -25,6 +25,16 @@ from app.deploy import exec_operation, logs_operation, create_deploy_context
 class DeploymentContext:
     dir: Path
 
+    def get_stack_file(self):
+        return self.dir.joinpath("stack.yml")
+
+    def get_env_file(self):
+        return self.dir.joinpath("config.env")
+
+    # TODO: implement me
+    def get_cluster_name(self):
+        return None
+
 
 @click.group()
 @click.option("--dir", required=True, help="path to deployment directory")
@@ -49,10 +59,10 @@ def command(ctx, dir):
 
 
 def make_deploy_context(ctx):
-    # Get the stack config file name
-    stack_file_path = ctx.obj.dir.joinpath("stack.yml")
-    # TODO: add cluster name and env file here
-    return create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, None, None)
+    stack_file_path = ctx.obj.get_stack_file()
+    env_file = ctx.obj.get_env_file()
+    cluster_name = ctx.obj.get_cluster_name()
+    return create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, cluster_name, env_file)
 
 
 @command.command()

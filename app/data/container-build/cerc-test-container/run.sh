@@ -14,6 +14,8 @@ else
     echo "Filesystem is fresh"
     echo `date` > $EXISTSFILENAME
 fi
-
+if [ -n "$CERC_TEST_PARAM_1" ]; then
+  echo "Test-param-1: ${CERC_TEST_PARAM_1}"
+fi
 # Run nginx which will block here forever
 /usr/sbin/nginx -g "daemon off;"

@@ -4,6 +4,7 @@ services:
     restart: always
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_TEST_PARAM_1: ${CERC_TEST_PARAM_1:-FAILED}
     volumes:
       - test-data:/data
     ports:

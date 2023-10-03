@@ -8,17 +8,17 @@ repos:
   - github.com/cerc-io/ipld-eth-db
   - github.com/cerc-io/ipld-eth-server
   # nitro repos
-  - github.com/cerc-io/ts-nitro
+  - github.com/cerc-io/ts-nitro@v0.1.12
   - github.com/cerc-io/go-nitro@pm-disable-compression # TODO: Update
   # mobymask watcher repos
   - github.com/cerc-io/watcher-ts@v0.2.61
-  - github.com/cerc-io/mobymask-v2-watcher-ts@pm-upstream-payments # TODO: Update
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v3 # TODO: Update
   - github.com/cerc-io/MobyMask@v0.1.3
   # mobymask app repos
   - github.com/cerc-io/mobymask-snap
   - github.com/cerc-io/mobymask-ui@v0.2.0
   # ponder repo
-  - github.com/cerc-io/ponder@paid-eth-rpc # TODO: Update
+  - github.com/cerc-io/ponder@laconic
 containers:
   # fixturenet images
   - cerc/go-ethereum

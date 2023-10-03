@@ -5,8 +5,21 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+# Wait till RPC endpoint is available
+retry_interval=5
+while true; do
+  rpc_response=$(curl -s -o /dev/null -w '%{http_code}' ${PONDER_RPC_URL_1})
+  if [ ${rpc_response} = 200 ]; then
+    echo "RPC endpoint is available"
+    break
+  fi
+
+  echo "RPC endpoint not yet available, retrying in $retry_interval seconds..."
+  sleep $retry_interval
+done
+
 nitro_addresses_file="/nitro/nitro-addresses.json"
-nitro_addresses_destination_file="/app/nitro-addresses.json"
+nitro_addresses_destination_file="/app/examples/token-erc20/nitro-addresses.json"
 
 # Check if CERC_NA_ADDRESS environment variable is set
 if [ -n "$CERC_NA_ADDRESS" ]; then
@@ -38,20 +51,8 @@ echo "Using ${CERC_PONDER_NITRO_CHAIN_URL} as the RPC endpoint for Nitro txs"
 # If not set, check the mounted volume for relay peer id
 if [ -z "$CERC_RELAY_MULTIADDR" ]; then
   echo "CERC_RELAY_MULTIADDR not provided, taking from the mounted volume"
-  CERC_RELAY_MULTIADDR="[\"/ip4/127.0.0.1/tcp/9090/ws/p2p/$(jq -r '.id' /peers/relay-id.json)\"]"
+  CERC_RELAY_MULTIADDR="/dns4/mobymask-watcher-server/tcp/9090/ws/p2p/$(jq -r '.id' /peers/relay-id.json)"
 fi
-
-# Wait till RPC endpoint is available
-retry_interval=5
-while true; do
-  rpc_response=$(curl -s -o /dev/null -w '%{http_code}' ${PONDER_RPC_URL_1})
-  if [ ${rpc_response} = 200 ]; then
-    break
-  fi
-
-  echo "RPC endpoint not yet available, retrying in $retry_interval seconds..."
-  sleep $retry_interval
-done
 
 env_file='.env.local'
 echo "PONDER_CHAIN_ID=\"$PONDER_CHAIN_ID\"" > "$env_file"
@@ -64,4 +65,5 @@ echo "CERC_UPSTREAM_NITRO_ADDRESS=\"$CERC_UPSTREAM_NITRO_ADDRESS\"" >> "$env_fil
 echo "CERC_UPSTREAM_NITRO_MULTIADDR=\"$CERC_UPSTREAM_NITRO_MULTIADDR\"" >> "$env_file"
 echo "CERC_UPSTREAM_NITRO_PAY_AMOUNT=\"$CERC_UPSTREAM_NITRO_PAY_AMOUNT\"" >> "$env_file"
 
-pnpm start
+# Keep the container running
+tail -f

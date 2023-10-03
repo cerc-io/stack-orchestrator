@@ -4,7 +4,7 @@ services:
   ponder-app:
     restart: unless-stopped
     image: cerc/ponder:local
-    workdir: /app/examples/token-erc20
+    working_dir: /app/examples/token-erc20
     environment:
       PONDER_CHAIN_ID: ${PONDER_CHAIN_ID:-99}
       PONDER_RPC_URL_1: ${PONDER_RPC_URL_1:-http://nitro-reverse-payment-proxy:8081}
@@ -14,15 +14,14 @@ services:
       CERC_RELAY_MULTIADDR: ${CERC_RELAY_MULTIADDR}
       CERC_UPSTREAM_NITRO_ADDRESS: ${CERC_UPSTREAM_NITRO_ADDRESS}
       CERC_UPSTREAM_NITRO_MULTIADDR: ${CERC_UPSTREAM_NITRO_MULTIADDR}
-      CERC_UPSTREAM_NITRO_PAY_AMOUNT: ${CERC_UPSTREAM_NITRO_PAY_AMOUNT}
-    command: ["bash", "ponder-app-start.sh"]
+      CERC_UPSTREAM_NITRO_PAY_AMOUNT: ${CERC_UPSTREAM_NITRO_PAY_AMOUNT:-5000}
+    command: ["bash", "./ponder-start.sh"]
     volumes:
-      - ../config/ponder/ponder-app-start.sh:/app/ponder-app-start.sh
-      - ../config/ponder/ponder.config.ts:/app/ponder.config.ts
-      - ../config/ponder/.env.local:/app/.env.local
+      - ../config/ponder/ponder-start.sh:/app/examples/token-erc20/ponder-start.sh
+      - ../config/ponder/ponder.config.ts:/app/examples/token-erc20/ponder.config.ts
       - peers_ids:/peers
       - nitro_deployment:/nitro
-      - ponder_nitro_data:/app/.ponder/nitro-db
+      - ponder_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

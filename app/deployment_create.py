@@ -239,11 +239,11 @@ def init(ctx, config, output, map_ports_to_host):
         spec_file_content.update(default_spec_file_content)
     config_variables = _parse_config_variables(config)
     if config_variables:
-       # Implement merge, since update() overwrites
-       orig_config = spec_file_content["config"]
-       new_config = config_variables["config"]
-       merged_config = {**new_config, **orig_config}
-       spec_file_content.update({"config": merged_config})
+        # Implement merge, since update() overwrites
+        orig_config = spec_file_content["config"]
+        new_config = config_variables["config"]
+        merged_config = {**new_config, **orig_config}
+        spec_file_content.update({"config": merged_config})
     if debug:
         print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
 

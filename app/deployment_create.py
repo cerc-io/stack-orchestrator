@@ -20,7 +20,8 @@ from pathlib import Path
 import random
 from shutil import copyfile, copytree
 import sys
-from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
+from app.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml,
+                      get_pod_list, get_pod_file_path)
 from app.util import get_compose_file_dir
 from app.deploy_types import DeploymentContext, LaconicStackSetupCommand
 
@@ -32,10 +33,10 @@ def _make_default_deployment_dir():
 def _get_ports(stack):
     ports = {}
     parsed_stack = get_parsed_stack_config(stack)
-    pods = parsed_stack["pods"]
+    pods = get_pod_list(parsed_stack)
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "services" in parsed_pod_file:
             for svc_name, svc in parsed_pod_file["services"].items():
@@ -49,10 +50,10 @@ def _get_named_volumes(stack):
     # Parse the compose files looking for named volumes
     named_volumes = []
     parsed_stack = get_parsed_stack_config(stack)
-    pods = parsed_stack["pods"]
+    pods = get_pod_list(parsed_stack)
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
@@ -263,7 +264,7 @@ def init(ctx, config, output, map_ports_to_host):
 
 def _write_config_file(spec_file: Path, config_env_file: Path):
     spec_content = get_parsed_deployment_spec(spec_file)
-    if spec_content["config"]:
+    if "config" in spec_content and spec_content["config"]:
         config_vars = spec_content["config"]
         if config_vars:
             with open(config_env_file, "w") as output_file:

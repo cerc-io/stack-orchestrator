@@ -20,13 +20,12 @@ import copy
 import os
 import sys
 from dataclasses import dataclass
-from decouple import config
 from importlib import resources
 import subprocess
 from python_on_whales import DockerClient, DockerException
 import click
 from pathlib import Path
-from app.util import include_exclude_check, get_parsed_stack_config, global_options2
+from app.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
 from app.deploy_types import ClusterContext, DeployCommandContext
 from app.deployment_create import create as deployment_create
 from app.deployment_create import init as deployment_init
@@ -235,11 +234,7 @@ def _make_runtime_env(ctx):
 # stack has to be either PathLike pointing to a stack yml file, or a string with the name of a known stack
 def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
 
-    if ctx.local_stack:
-        dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
-        print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
-    else:
-        dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
+    dev_root_path = get_dev_root_path(ctx)
 
     # TODO: huge hack, fix this
     # If the caller passed a path for the stack file, then we know that we can get the compose files

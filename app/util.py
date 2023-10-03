@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+from decouple import config
 import os.path
 import sys
 import ruamel.yaml
@@ -37,6 +38,16 @@ def get_stack_file_path(stack):
     return stack_file_path
 
 
+def get_dev_root_path(ctx):
+    if ctx and ctx.local_stack:
+        # TODO: This code probably doesn't work
+        dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
+        print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
+    else:
+        dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
+    return dev_root_path
+
+
 # Caller can pass either the name of a stack, or a path to a stack file
 def get_parsed_stack_config(stack):
     stack_file_path = stack if isinstance(stack, os.PathLike) else get_stack_file_path(stack)
@@ -54,6 +65,30 @@ def get_parsed_stack_config(stack):
             print(f"Error: stack: {stack} does not exist")
         print(f"Exiting, error: {error}")
         sys.exit(1)
+
+
+def get_pod_list(parsed_stack):
+    # Handle both old and new format
+    pods = parsed_stack["pods"]
+    if type(pods[0]) is str:
+        result = pods
+    else:
+        result = []
+        for pod in pods:
+            result.append(pod["name"])
+    return result
+
+
+def get_pod_file_path(parsed_stack, pod_name: str):
+    pods = parsed_stack["pods"]
+    if type(pods[0]) is str:
+        result = os.path.join(get_compose_file_dir(), f"docker-compose-{pod_name}.yml")
+    else:
+        for pod in pods:
+            if pod["name"] == pod_name:
+                pod_root_dir = os.path.join(get_dev_root_path(None), pod["repository"].split("/")[-1], pod["path"])
+                result = os.path.join(pod_root_dir, "docker-compose.yml")
+    return result
 
 
 def get_compose_file_dir():

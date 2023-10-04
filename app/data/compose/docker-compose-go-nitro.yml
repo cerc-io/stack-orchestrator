@@ -31,7 +31,7 @@ services:
       start_period: 10s
     ports:
       - "3005"
-      - "4005"
+      - "4005:4005"
       - "5005:5005"
 
 volumes:

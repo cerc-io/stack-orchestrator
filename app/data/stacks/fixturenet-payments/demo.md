@@ -204,3 +204,13 @@
   # {"time":"2023-09-28T09:59:14.501221898Z","level":"DEBUG","msg":"Received voucher","delta":5000}
   # {"time":"2023-09-28T09:59:14.501245984Z","level":"DEBUG","msg":"Destination request","url":"http://ipld-eth-server:8081/?method=eth_getLogs"}
   ```
+
+## Clean Up
+
+* In the MobyMask app, perform `VIRTUAL DEFUND` and `DIRECT DEFUND` (in this order) for closing the payment channel created with watcher
+
+* Run the following in the browser console to delete the Nitro node's data:
+
+  ```bash
+  await clearNodeStorage()
+  ```

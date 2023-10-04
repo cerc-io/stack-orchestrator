@@ -9,6 +9,24 @@ export const config: Config = {
       chainId: Number(process.env.PONDER_CHAIN_ID),
       rpcUrl: process.env.PONDER_RPC_URL_1,
       maxRpcRequestConcurrency: 1,
+      pollingInterval: 5000,
+      payments: {
+        nitro: {
+          address: process.env.CERC_UPSTREAM_NITRO_ADDRESS!,
+          multiAddr: process.env.CERC_UPSTREAM_NITRO_MULTIADDR!,
+          fundingAmounts: {
+            // TODO: Pass amounts from env
+            directFund: "1000000000000",
+            virtualFund: "1000000000",
+          },
+        },
+        paidRPCMethods: [
+          "eth_getLogs",
+          "eth_getBlockByNumber",
+          "eth_getBlockByHash",
+        ],
+        amount: process.env.CERC_UPSTREAM_NITRO_PAY_AMOUNT!,
+      },
     },
   ],
   contracts: [
@@ -28,10 +46,5 @@ export const config: Config = {
     contractAddresses,
     relayMultiAddr: process.env.CERC_RELAY_MULTIADDR!,
     store: "./.ponder/nitro-db",
-    rpcNitroNode: {
-      address: process.env.CERC_UPSTREAM_NITRO_ADDRESS!,
-      multiAddr: process.env.CERC_UPSTREAM_NITRO_MULTIADDR!,
-    },
-    payAmount: process.env.CERC_UPSTREAM_NITRO_PAY_AMOUNT!,
   },
 };

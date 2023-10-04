@@ -299,13 +299,13 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     # Copy any config varibles from the spec file into an env file suitable for compose
     _write_config_file(spec_file, os.path.join(deployment_dir, "config.env"))
     # Copy the pod files into the deployment dir, fixing up content
-    pods = parsed_stack['pods']
+    pods = get_pod_list(parsed_stack)
     destination_compose_dir = os.path.join(deployment_dir, "compose")
     os.mkdir(destination_compose_dir)
     data_dir = Path(__file__).absolute().parent.joinpath("data")
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
         if global_options(ctx).debug:

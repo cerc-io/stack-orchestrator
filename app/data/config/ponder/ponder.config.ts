@@ -12,8 +12,8 @@ export const config: Config = {
       pollingInterval: 5000,
       payments: {
         nitro: {
-          address: process.env.CERC_UPSTREAM_NITRO_ADDRESS!,
-          multiAddr: process.env.CERC_UPSTREAM_NITRO_MULTIADDR!,
+          address: process.env.UPSTREAM_NITRO_ADDRESS!,
+          multiAddr: process.env.UPSTREAM_NITRO_MULTIADDR!,
           fundingAmounts: {
             // TODO: Pass amounts from env
             directFund: "1000000000000",
@@ -25,7 +25,7 @@ export const config: Config = {
           "eth_getBlockByNumber",
           "eth_getBlockByHash",
         ],
-        amount: process.env.CERC_UPSTREAM_NITRO_PAY_AMOUNT!,
+        amount: process.env.UPSTREAM_NITRO_PAY_AMOUNT!,
       },
     },
   ],
@@ -40,11 +40,11 @@ export const config: Config = {
     },
   ],
   nitro: {
-    privateKey: process.env.CERC_PONDER_NITRO_PK!,
-    chainPrivateKey: process.env.CERC_PONDER_NITRO_CHAIN_PK!,
-    chainURL: process.env.CERC_PONDER_NITRO_CHAIN_URL!,
+    privateKey: process.env.PONDER_NITRO_PK!,
+    chainPrivateKey: process.env.PONDER_NITRO_CHAIN_PK!,
+    chainURL: process.env.PONDER_NITRO_CHAIN_URL!,
     contractAddresses,
-    relayMultiAddr: process.env.CERC_RELAY_MULTIADDR!,
+    relayMultiAddr: process.env.RELAY_MULTIADDR!,
     store: "./.ponder/nitro-db",
   },
 };

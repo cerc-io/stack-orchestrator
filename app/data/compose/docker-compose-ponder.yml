@@ -6,8 +6,8 @@ services:
     image: cerc/ponder:local
     working_dir: /app/examples/token-erc20
     environment:
-      PONDER_CHAIN_ID: ${PONDER_CHAIN_ID:-99}
-      PONDER_RPC_URL_1: ${PONDER_RPC_URL_1:-http://nitro-reverse-payment-proxy:8081}
+      CERC_PONDER_CHAIN_ID: ${PONDER_CHAIN_ID:-99}
+      CERC_PONDER_RPC_URL_1: ${PONDER_RPC_URL_1:-http://nitro-reverse-payment-proxy:8081}
       CERC_PONDER_NITRO_PK: ${CERC_PONDER_NITRO_PK:-58368d20ff12f17669c06158c21d885897aa56f9be430edc789614bf9851d53f}
       CERC_PONDER_NITRO_CHAIN_PK: ${CERC_PONDER_NITRO_CHAIN_PK:-fb1e9af328c283ca3e2486e7c24d13582b7912057d8b9542ff41503c85bc05c0}
       CERC_PONDER_NITRO_CHAIN_URL: ${CERC_PONDER_NITRO_CHAIN_URL:-http://fixturenet-eth-geth-1:8546}

@@ -7,6 +7,6 @@ WORKDIR /app
 COPY . .
 
 RUN echo "Installing dependencies" && \
-  yarn
+  yarn && yarn build:node
 
-WORKDIR /app/packages/nitro-util
+WORKDIR /app/packages/nitro-node

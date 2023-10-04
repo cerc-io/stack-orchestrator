@@ -264,10 +264,11 @@ def init(ctx, config, output, map_ports_to_host):
 
 def _write_config_file(spec_file: Path, config_env_file: Path):
     spec_content = get_parsed_deployment_spec(spec_file)
-    if "config" in spec_content and spec_content["config"]:
-        config_vars = spec_content["config"]
-        if config_vars:
-            with open(config_env_file, "w") as output_file:
+    # Note: we want to write an empty file even if we have no config variables
+    with open(config_env_file, "w") as output_file:
+        if "config" in spec_content and spec_content["config"]:
+            config_vars = spec_content["config"]
+            if config_vars:
                 for variable_name, variable_value in config_vars.items():
                     output_file.write(f"{variable_name}={variable_value}\n")
 

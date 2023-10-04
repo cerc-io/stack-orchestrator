@@ -190,8 +190,22 @@
     \"params\": { \"authtoken\": \"$AUTH_TOKEN\", \"payload\": { \"Id\": \"$PONDER_UPSTREAM_PAYMENT_CHANNEL\" } }
   }" http://127.0.0.1:4005/api/v1 | jq
 
-  # Expected output:
-  # TODO
+  # Expected output ('PaidSoFar' is non zero):
+  # {
+  #   "jsonrpc": "2.0",
+  #   "id": 1,
+  #   "result": {
+  #     "ID": "0x53ef192359e2f23b3b9b26d51380562ffc012c9ea858e50a5948c47eaf0a9ff2",
+  #     "Status": "Open",
+  #     "Balance": {
+  #       "AssetAddress": "0x0000000000000000000000000000000000000000",
+  #       "Payee": "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
+  #       "Payer": "0x67d5b55604d1af90074fcb69b8c51838fff84f8d",
+  #       "PaidSoFar": "0xfde8",
+  #       "RemainingFunds": "0x3b99cc18"
+  #     }
+  #   }
+  # }
   ```
 
 * Check reverse payment proxy server logs for charged RPC requests made from ponder app to upstream ETH server:

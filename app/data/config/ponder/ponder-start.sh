@@ -8,7 +8,7 @@ fi
 # Wait till RPC endpoint is available
 retry_interval=5
 while true; do
-  rpc_response=$(curl -s -o /dev/null -w '%{http_code}' ${PONDER_RPC_URL_1})
+  rpc_response=$(curl -s -o /dev/null -w '%{http_code}' ${CERC_PONDER_RPC_URL_1})
   if [ ${rpc_response} = 200 ]; then
     echo "RPC endpoint is available"
     break

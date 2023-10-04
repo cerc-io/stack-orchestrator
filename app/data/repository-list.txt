@@ -1,7 +1,7 @@
-github.com/cerc-io/ipld-eth-db
-github.com/cerc-io/go-ethereum
-github.com/cerc-io/ipld-eth-server
-github.com/cerc-io/eth-statediff-service
+git.vdb.to/cerc-io/ipld-eth-db
+git.vdb.to/cerc-io/go-ethereum
+git.vdb.to/cerc-io/ipld-eth-server
+git.vdb.to/cerc-io/eth-statediff-service
 github.com/cerc-io/eth-statediff-fill-service
 github.com/cerc-io/ipld-eth-db-validator
 github.com/cerc-io/ipld-eth-beacon-indexer
@@ -18,7 +18,7 @@ github.com/vulcanize/uniswap-watcher-ts
 github.com/vulcanize/uniswap-v3-info
 github.com/vulcanize/assemblyscript
 github.com/cerc-io/eth-probe
-github.com/cerc-io/tx-spammer
+git.vdb.to/cerc-io/tx-spammer
 github.com/dboreham/foundry
 github.com/lirewine/gem
 github.com/lirewine/debug
@@ -30,7 +30,7 @@ github.com/ethereum-optimism/optimism
 github.com/pokt-network/pocket-core
 github.com/pokt-network/pocket-core-deployments
 github.com/cerc-io/azimuth-watcher-ts
-github.com/cerc-io/ipld-eth-state-snapshot
+git.vdb.to/cerc-io/ipld-eth-state-snapshot
 github.com/cerc-io/gelato-watcher-ts
 github.com/filecoin-project/lotus
 git.vdb.to/cerc-io/test-project

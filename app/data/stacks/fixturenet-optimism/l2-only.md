@@ -9,7 +9,7 @@ Prerequisite: An L1 Ethereum RPC endpoint
 Clone required repositories:
 
 ```bash
-laconic-so --stack fixturenet-optimism setup-repositories --exclude github.com/cerc-io/go-ethereum
+laconic-so --stack fixturenet-optimism setup-repositories --exclude git.vdb.to/cerc-io/go-ethereum
 
 # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```

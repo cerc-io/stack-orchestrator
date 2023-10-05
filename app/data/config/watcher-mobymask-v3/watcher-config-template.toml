@@ -99,7 +99,7 @@
     rpcProviderMutationEndpoint = 'REPLACE_WITH_CERC_ETH_RPC_MUTATION_ENDPOINT'
 
     [upstream.ethServer.payments]
-      paidRPCMethods = ["eth_getBlockByHash", "eth_getStorageAt"]
+      paidRPCMethods = ["eth_getBlockByHash", "eth_getBlockByNumber", "eth_getStorageAt"]
       amount = 'REPLACE_WITH_UPSTREAM_NITRO_PAY_AMOUNT'
 
       [upstream.ethServer.payments.nitro]

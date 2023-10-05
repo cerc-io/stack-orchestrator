@@ -55,3 +55,4 @@ cerc/go-nitro
 cerc/nitro-contracts
 cerc/mobymask-snap
 cerc/ponder
+cerc/nitro-rpc-client

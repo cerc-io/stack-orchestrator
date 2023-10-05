@@ -44,7 +44,6 @@ services:
           condition: service_healthy
       command: ["bash", "-c", "tail -f /dev/null"]
 
-
 volumes:
   go_nitro_data:
   nitro_deployment:

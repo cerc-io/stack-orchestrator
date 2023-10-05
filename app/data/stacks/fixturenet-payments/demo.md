@@ -159,22 +159,18 @@
 * Check the ponder - eth-server payment channel status:
 
   ```bash
-  npm exec -c 'nitro-rpc-client get-payment-channel <PONDER_UPSTREAM_PAYMENT_CHANNEL> -h <hostname> -p <port>'
+  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $PONDER_UPSTREAM_PAYMENT_CHANNEL -h go-nitro -p 4005"
 
   # Expected output ('PaidSoFar' is non zero):
   # {
-  #   "jsonrpc": "2.0",
-  #   "id": 1,
-  #   "result": {
-  #     "ID": "0x53ef192359e2f23b3b9b26d51380562ffc012c9ea858e50a5948c47eaf0a9ff2",
-  #     "Status": "Open",
-  #     "Balance": {
-  #       "AssetAddress": "0x0000000000000000000000000000000000000000",
-  #       "Payee": "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-  #       "Payer": "0x67d5b55604d1af90074fcb69b8c51838fff84f8d",
-  #       "PaidSoFar": "0xfde8",
-  #       "RemainingFunds": "0x3b99cc18"
-  #     }
+  #   ID: '0x1178ac0f2a43e54a122216fa6afdd30333b590e49e50317a1f9274a591da0f96',
+  #   Status: 'Open',
+  #   Balance: {
+  #     AssetAddress: '0x0000000000000000000000000000000000000000',
+  #     Payee: '0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce',
+  #     Payer: '0x67d5b55604d1af90074fcb69b8c51838fff84f8d',
+  #     PaidSoFar: 215000n,
+  #     RemainingFunds: 999785000n
   #   }
   # }
   ```

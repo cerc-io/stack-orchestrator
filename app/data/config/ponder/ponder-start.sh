@@ -42,14 +42,13 @@ if [ -z "$CERC_RELAY_MULTIADDR" ]; then
 fi
 
 env_file='.env.local'
-echo "PONDER_TELEMETRY_DISABLED=true" >> "$env_file"
+echo "PONDER_TELEMETRY_DISABLED=true" > "$env_file"
 echo "PONDER_LOG_LEVEL=debug" >> "$env_file"
-echo "PONDER_CHAIN_ID=\"$CERC_PONDER_CHAIN_ID\"" > "$env_file"
+echo "PONDER_CHAIN_ID=\"$CERC_PONDER_CHAIN_ID\"" >> "$env_file"
 echo "PONDER_RPC_URL_1=\"$CERC_PONDER_RPC_URL_1\"" >> "$env_file"
 echo "PONDER_NITRO_PK=\"$CERC_PONDER_NITRO_PK\"" >> "$env_file"
 echo "PONDER_NITRO_CHAIN_PK=\"$CERC_PONDER_NITRO_CHAIN_PK\"" >> "$env_file"
 echo "PONDER_NITRO_CHAIN_URL=\"$CERC_PONDER_NITRO_CHAIN_URL\"" >> "$env_file"
-echo "RELAY_MULTIADDR -> ${CERC_RELAY_MULTIADDR}"
 echo "RELAY_MULTIADDR=\"$CERC_RELAY_MULTIADDR\"" >> "$env_file"
 echo "UPSTREAM_NITRO_ADDRESS=\"$CERC_UPSTREAM_NITRO_ADDRESS\"" >> "$env_file"
 echo "UPSTREAM_NITRO_MULTIADDR=\"$CERC_UPSTREAM_NITRO_MULTIADDR\"" >> "$env_file"

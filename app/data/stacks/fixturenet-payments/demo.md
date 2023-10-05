@@ -21,24 +21,10 @@
   export WATCHER_UPSTREAM_PAYMENT_CHANNEL=<PAYMENT_CHANNEL_ID>
   ```
 
-* Generate an auth token required to query the go-nitro node's RPC endpoint:
-
-  ```bash
-  export AUTH_TOKEN=$(curl -s -X POST -H "Content-Type: application/json" --data '{
-    "jsonrpc": "2.0", "id": 1,
-    "method": "get_auth_token",
-    "params": {}
-  }' http://127.0.0.1:4005/api/v1 | jq -r '.result')
-  ```
-
 * Check the payment channel status:
 
   ```bash
-  curl -X POST -H "Content-Type: application/json" --data "{
-    \"jsonrpc\": \"2.0\", \"id\": 1,
-    \"method\": \"get_payment_channel\",
-    \"params\": { \"authtoken\": \"$AUTH_TOKEN\", \"payload\": { \"Id\": \"$WATCHER_UPSTREAM_PAYMENT_CHANNEL\" } }
-  }" http://127.0.0.1:4005/api/v1 | jq
+  npm exec -c 'nitro-rpc-client get-payment-channel <WATCHER_UPSTREAM_PAYMENT_CHANNEL> -h <hostname> -p <port>'
 
   # Expected output:
   # {
@@ -136,11 +122,7 @@
 * Check the watcher - eth-server payment channel status after a few requests:
 
   ```bash
-  curl -X POST -H "Content-Type: application/json" --data "{
-    \"jsonrpc\": \"2.0\", \"id\": 1,
-    \"method\": \"get_payment_channel\",
-    \"params\": { \"authtoken\": \"$AUTH_TOKEN\", \"payload\": { \"Id\": \"$WATCHER_UPSTREAM_PAYMENT_CHANNEL\" } }
-  }" http://127.0.0.1:4005/api/v1 | jq
+  npm exec -c 'nitro-rpc-client get-payment-channel <WATCHER_UPSTREAM_PAYMENT_CHANNEL> -h <hostname> -p <port>'
 
   # Expected output ('PaidSoFar' should be non zero):
   # {
@@ -184,11 +166,7 @@
 * Check the ponder - eth-server payment channel status:
 
   ```bash
-  curl -X POST -H "Content-Type: application/json" --data "{
-    \"jsonrpc\": \"2.0\", \"id\": 1,
-    \"method\": \"get_payment_channel\",
-    \"params\": { \"authtoken\": \"$AUTH_TOKEN\", \"payload\": { \"Id\": \"$PONDER_UPSTREAM_PAYMENT_CHANNEL\" } }
-  }" http://127.0.0.1:4005/api/v1 | jq
+  npm exec -c 'nitro-rpc-client get-payment-channel <PONDER_UPSTREAM_PAYMENT_CHANNEL> -h <hostname> -p <port>'
 
   # Expected output ('PaidSoFar' is non zero):
   # {

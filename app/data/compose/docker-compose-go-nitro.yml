@@ -34,6 +34,17 @@ services:
       - "4005:4005"
       - "5005:5005"
 
+  nitro-rpc-client:
+      image: cerc/nitro-rpc-client:local
+      hostname: nitro-rpc-client
+      restart: on-failure
+      depends_on:
+        # Wait for the go-nitro node to start
+        go-nitro:
+          condition: service_healthy
+      command: ["bash", "-c", "tail -f /dev/null"]
+
+
 volumes:
   go_nitro_data:
   nitro_deployment:

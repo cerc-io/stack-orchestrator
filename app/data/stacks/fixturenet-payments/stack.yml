@@ -31,6 +31,7 @@ containers:
   - cerc/ipld-eth-server
   - cerc/nitro-contracts
   - cerc/go-nitro
+  - cerc/nitro-rpc-client
   # mobymask watcher images
   - cerc/watcher-ts
   - cerc/watcher-mobymask-v3

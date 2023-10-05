@@ -5,19 +5,6 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-# Wait till RPC endpoint is available
-retry_interval=5
-while true; do
-  rpc_response=$(curl -s -o /dev/null -w '%{http_code}' ${CERC_PONDER_RPC_URL_1})
-  if [ ${rpc_response} = 200 ]; then
-    echo "RPC endpoint is available"
-    break
-  fi
-
-  echo "RPC endpoint not yet available, retrying in $retry_interval seconds..."
-  sleep $retry_interval
-done
-
 nitro_addresses_file="/nitro/nitro-addresses.json"
 nitro_addresses_destination_file="/app/examples/token-erc20/nitro-addresses.json"
 

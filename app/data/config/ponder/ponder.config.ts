@@ -42,7 +42,7 @@ export const config: Config = {
   nitro: {
     privateKey: process.env.PONDER_NITRO_PK!,
     chainPrivateKey: process.env.PONDER_NITRO_CHAIN_PK!,
-    chainURL: process.env.PONDER_NITRO_CHAIN_URL!,
+    chainUrl: process.env.PONDER_NITRO_CHAIN_URL!,
     contractAddresses,
     relayMultiAddr: process.env.RELAY_MULTIADDR!,
     store: "./.ponder/nitro-db",

@@ -30,6 +30,6 @@ fi
 
 echo "Running Nitro node"
 
-# TODO Wait for RPC endpoint to come up
+# TODO Wait for chain endpoint to come up
 
-./nitro -chainurl ${NITRO_CHAIN_URL} -msgport 3005 -rpcport 4005 -wsmsgport 5005 -pk ${NITRO_PK} -chainpk ${NITRO_CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${NITRO_USE_DURABLE_STORE} -durablestorefolder ${NITRO_DURABLE_STORE_FOLDER}
+./nitro -chainurl ${CERC_NITRO_CHAIN_URL} -msgport 3005 -rpcport 4005 -wsmsgport 5005 -pk ${CERC_NITRO_PK} -chainpk ${CERC_NITRO_CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${CERC_NITRO_USE_DURABLE_STORE} -durablestorefolder ${CERC_NITRO_DURABLE_STORE_FOLDER}

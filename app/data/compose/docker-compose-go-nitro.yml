@@ -10,11 +10,11 @@ services:
       nitro-contracts:
         condition: service_completed_successfully
     environment:
-      NITRO_CHAIN_URL: ${NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
-      NITRO_PK: ${NITRO_PK:-2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d}
-      NITRO_CHAIN_PK: ${NITRO_CHAIN_PK:-570b909da9669b2f35a0b1ac70b8358516d55ae1b5b3710e95e9a94395090597}
-      NITRO_USE_DURABLE_STORE: ${NITRO_USE_DURABLE_STORE:-true}
-      NITRO_DURABLE_STORE_FOLDER: ${NITRO_DURABLE_STORE_FOLDER:-/app/data/nitro-store}
+      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
+      CERC_NITRO_PK: ${CERC_NITRO_PK:-2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d}
+      CERC_NITRO_CHAIN_PK: ${CERC_NITRO_CHAIN_PK:-570b909da9669b2f35a0b1ac70b8358516d55ae1b5b3710e95e9a94395090597}
+      CERC_NITRO_USE_DURABLE_STORE: ${CERC_NITRO_USE_DURABLE_STORE:-true}
+      CERC_NITRO_DURABLE_STORE_FOLDER: ${CERC_NITRO_DURABLE_STORE_FOLDER:-/app/data/nitro-store}
       CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
       CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
@@ -33,6 +33,17 @@ services:
       - "3005"
       - "4005:4005"
       - "5005:5005"
+
+  nitro-rpc-client:
+      image: cerc/nitro-rpc-client:local
+      hostname: nitro-rpc-client
+      restart: on-failure
+      depends_on:
+        # Wait for the go-nitro node to start
+        go-nitro:
+          condition: service_healthy
+      command: ["bash", "-c", "tail -f /dev/null"]
+
 
 volumes:
   go_nitro_data:

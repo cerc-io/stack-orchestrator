@@ -5,19 +5,6 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-# Wait till RPC endpoint is available
-retry_interval=5
-while true; do
-  rpc_response=$(curl -s -o /dev/null -w '%{http_code}' ${PONDER_RPC_URL_1})
-  if [ ${rpc_response} = 200 ]; then
-    echo "RPC endpoint is available"
-    break
-  fi
-
-  echo "RPC endpoint not yet available, retrying in $retry_interval seconds..."
-  sleep $retry_interval
-done
-
 nitro_addresses_file="/nitro/nitro-addresses.json"
 nitro_addresses_destination_file="/app/examples/token-erc20/nitro-addresses.json"
 
@@ -55,15 +42,19 @@ if [ -z "$CERC_RELAY_MULTIADDR" ]; then
 fi
 
 env_file='.env.local'
-echo "PONDER_CHAIN_ID=\"$PONDER_CHAIN_ID\"" > "$env_file"
-echo "PONDER_RPC_URL_1=\"$PONDER_RPC_URL_1\"" >> "$env_file"
-echo "CERC_PONDER_NITRO_PK=\"$CERC_PONDER_NITRO_PK\"" >> "$env_file"
-echo "CERC_PONDER_NITRO_CHAIN_PK=\"$CERC_PONDER_NITRO_CHAIN_PK\"" >> "$env_file"
-echo "CERC_PONDER_NITRO_CHAIN_URL=\"$CERC_PONDER_NITRO_CHAIN_URL\"" >> "$env_file"
-echo "CERC_RELAY_MULTIADDR=\"$CERC_RELAY_MULTIADDR\"" >> "$env_file"
-echo "CERC_UPSTREAM_NITRO_ADDRESS=\"$CERC_UPSTREAM_NITRO_ADDRESS\"" >> "$env_file"
-echo "CERC_UPSTREAM_NITRO_MULTIADDR=\"$CERC_UPSTREAM_NITRO_MULTIADDR\"" >> "$env_file"
-echo "CERC_UPSTREAM_NITRO_PAY_AMOUNT=\"$CERC_UPSTREAM_NITRO_PAY_AMOUNT\"" >> "$env_file"
+echo "PONDER_TELEMETRY_DISABLED=true" > "$env_file"
+echo "PONDER_LOG_LEVEL=debug" >> "$env_file"
+echo "PONDER_CHAIN_ID=\"$CERC_PONDER_CHAIN_ID\"" >> "$env_file"
+echo "PONDER_RPC_URL_1=\"$CERC_PONDER_RPC_URL_1\"" >> "$env_file"
+echo "PONDER_NITRO_PK=\"$CERC_PONDER_NITRO_PK\"" >> "$env_file"
+echo "PONDER_NITRO_CHAIN_PK=\"$CERC_PONDER_NITRO_CHAIN_PK\"" >> "$env_file"
+echo "PONDER_NITRO_CHAIN_URL=\"$CERC_PONDER_NITRO_CHAIN_URL\"" >> "$env_file"
+echo "RELAY_MULTIADDR=\"$CERC_RELAY_MULTIADDR\"" >> "$env_file"
+echo "UPSTREAM_NITRO_ADDRESS=\"$CERC_UPSTREAM_NITRO_ADDRESS\"" >> "$env_file"
+echo "UPSTREAM_NITRO_MULTIADDR=\"$CERC_UPSTREAM_NITRO_MULTIADDR\"" >> "$env_file"
+echo "UPSTREAM_NITRO_PAY_AMOUNT=\"$CERC_UPSTREAM_NITRO_PAY_AMOUNT\"" >> "$env_file"
+
+cat "$env_file"
 
 # Keep the container running
 tail -f

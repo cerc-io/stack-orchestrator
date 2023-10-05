@@ -13,6 +13,7 @@
   # ts-nitro:util:nitro Ledger channel created with id 0x65703ccdfacab09ac35367bdbe6c5a337e7a6651aad526807607b1c59b28bc1e
   # ...
   # ts-nitro:util:nitro Virtual payment channel created with id 0x29ff1335d73391a50e8fde3e9b34f00c3d81c39ddc7f89187f44dd51df96140e
+  # vulcanize:server Starting server... +0ms
   ```
 
 * Export the payment channel id to a variable:
@@ -21,39 +22,21 @@
   export WATCHER_UPSTREAM_PAYMENT_CHANNEL=<PAYMENT_CHANNEL_ID>
   ```
 
-* Generate an auth token required to query the go-nitro node's RPC endpoint:
-
-  ```bash
-  export AUTH_TOKEN=$(curl -s -X POST -H "Content-Type: application/json" --data '{
-    "jsonrpc": "2.0", "id": 1,
-    "method": "get_auth_token",
-    "params": {}
-  }' http://127.0.0.1:4005/api/v1 | jq -r '.result')
-  ```
-
 * Check the payment channel status:
 
   ```bash
-  curl -X POST -H "Content-Type: application/json" --data "{
-    \"jsonrpc\": \"2.0\", \"id\": 1,
-    \"method\": \"get_payment_channel\",
-    \"params\": { \"authtoken\": \"$AUTH_TOKEN\", \"payload\": { \"Id\": \"$WATCHER_UPSTREAM_PAYMENT_CHANNEL\" } }
-  }" http://127.0.0.1:4005/api/v1 | jq
+  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $WATCHER_UPSTREAM_PAYMENT_CHANNEL -h go-nitro -p 4005"
 
   # Expected output:
   # {
-  #   "jsonrpc": "2.0",
-  #   "id": 1,
-  #   "result": {
-  #     "ID": "0xfe1231722d6c2cd7af8606afe039582ebc438ee5ca2b956f8284cb497597583f",
-  #     "Status": "Open",
-  #     "Balance": {
-  #       "AssetAddress": "0x0000000000000000000000000000000000000000",
-  #       "Payee": "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-  #       "Payer": "0xbbb676f9cff8d242e9eac39d063848807d3d1d94",
-  #       "PaidSoFar": "0x0",
-  #       "RemainingFunds": "0x3b9aca00"
-  #     }
+  #   ID: '0x8c0d17639bd2ba07dbcd248304a8f3c6c7276bfe25c2b87fe41f461e20f33f01',
+  #   Status: 'Open',
+  #   Balance: {
+  #     AssetAddress: '0x0000000000000000000000000000000000000000',
+  #     Payee: '0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce',
+  #     Payer: '0xbbb676f9cff8d242e9eac39d063848807d3d1d94',
+  #     PaidSoFar: 0n,
+  #     RemainingFunds: 1000000000n
   #   }
   # }
   ```
@@ -127,7 +110,7 @@
 
 * Perform phisher status check queries now that a payment channel is created:
   * Check the watcher logs for received payments
-  * Check the payment proxy server logs for charged RPC requests (`eth_getBlockByHash`, `eth_getStorageAt`) made from watcher to upstream ETH server
+  * Check the payment proxy server logs for charged RPC requests (`eth_getBlockByHash`, `eth_getBlockByNumber`, `eth_getStorageAt`) made from watcher to upstream ETH server
 
 * Change the amount besides `PAY` button to `>=100` for phisher reports next
 
@@ -136,26 +119,18 @@
 * Check the watcher - eth-server payment channel status after a few requests:
 
   ```bash
-  curl -X POST -H "Content-Type: application/json" --data "{
-    \"jsonrpc\": \"2.0\", \"id\": 1,
-    \"method\": \"get_payment_channel\",
-    \"params\": { \"authtoken\": \"$AUTH_TOKEN\", \"payload\": { \"Id\": \"$WATCHER_UPSTREAM_PAYMENT_CHANNEL\" } }
-  }" http://127.0.0.1:4005/api/v1 | jq
+  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $WATCHER_UPSTREAM_PAYMENT_CHANNEL -h go-nitro -p 4005"
 
   # Expected output ('PaidSoFar' should be non zero):
   # {
-  #   "jsonrpc": "2.0",
-  #   "id": 1,
-  #   "result": {
-  #     "ID": "0xfe1231722d6c2cd7af8606afe039582ebc438ee5ca2b956f8284cb497597583f",
-  #     "Status": "Open",
-  #     "Balance": {
-  #       "AssetAddress": "0x0000000000000000000000000000000000000000",
-  #       "Payee": "0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce",
-  #       "Payer": "0xbbb676f9cff8d242e9eac39d063848807d3d1d94",
-  #       "PaidSoFar": "0x2710",
-  #       "RemainingFunds": "0x3b9aa2f0"
-  #     }
+  #   ID: '0x8c0d17639bd2ba07dbcd248304a8f3c6c7276bfe25c2b87fe41f461e20f33f01',
+  #   Status: 'Open',
+  #   Balance: {
+  #     AssetAddress: '0x0000000000000000000000000000000000000000',
+  #     Payee: '0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce',
+  #     Payer: '0xbbb676f9cff8d242e9eac39d063848807d3d1d94',
+  #     PaidSoFar: 30000n,
+  #     RemainingFunds: 999970000n
   #   }
   # }
   ```
@@ -184,14 +159,20 @@
 * Check the ponder - eth-server payment channel status:
 
   ```bash
-  curl -X POST -H "Content-Type: application/json" --data "{
-    \"jsonrpc\": \"2.0\", \"id\": 1,
-    \"method\": \"get_payment_channel\",
-    \"params\": { \"authtoken\": \"$AUTH_TOKEN\", \"payload\": { \"Id\": \"$PONDER_UPSTREAM_PAYMENT_CHANNEL\" } }
-  }" http://127.0.0.1:4005/api/v1 | jq
+  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $PONDER_UPSTREAM_PAYMENT_CHANNEL -h go-nitro -p 4005"
 
-  # Expected output:
-  # TODO
+  # Expected output ('PaidSoFar' is non zero):
+  # {
+  #   ID: '0x1178ac0f2a43e54a122216fa6afdd30333b590e49e50317a1f9274a591da0f96',
+  #   Status: 'Open',
+  #   Balance: {
+  #     AssetAddress: '0x0000000000000000000000000000000000000000',
+  #     Payee: '0xaaa6628ec44a8a742987ef3a114ddfe2d4f7adce',
+  #     Payer: '0x67d5b55604d1af90074fcb69b8c51838fff84f8d',
+  #     PaidSoFar: 215000n,
+  #     RemainingFunds: 999785000n
+  #   }
+  # }
   ```
 
 * Check reverse payment proxy server logs for charged RPC requests made from ponder app to upstream ETH server:

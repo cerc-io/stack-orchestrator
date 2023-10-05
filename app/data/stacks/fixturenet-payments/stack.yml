@@ -9,10 +9,10 @@ repos:
   - git.vdb.to/cerc-io/ipld-eth-server@v1.11.6-statediff-v5
   # nitro repos
   - github.com/cerc-io/ts-nitro@v0.1.13
-  - github.com/cerc-io/go-nitro@parse-rpc-method # TODO: Update after fixes
+  - github.com/cerc-io/go-nitro@ts-interop # TODO: Update after fixes
   # mobymask watcher repos
-  - github.com/cerc-io/watcher-ts@v0.2.61
-  - github.com/cerc-io/mobymask-v2-watcher-ts@v3 # TODO: Update after fixes
+  - github.com/cerc-io/watcher-ts@v0.2.63
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v3 # TODO: Update
   - github.com/cerc-io/MobyMask@v0.1.3
   # mobymask app repos
   - github.com/cerc-io/mobymask-snap

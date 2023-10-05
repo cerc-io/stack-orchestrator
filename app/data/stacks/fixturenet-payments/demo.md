@@ -13,6 +13,7 @@
   # ts-nitro:util:nitro Ledger channel created with id 0x65703ccdfacab09ac35367bdbe6c5a337e7a6651aad526807607b1c59b28bc1e
   # ...
   # ts-nitro:util:nitro Virtual payment channel created with id 0x29ff1335d73391a50e8fde3e9b34f00c3d81c39ddc7f89187f44dd51df96140e
+  # vulcanize:server Starting server... +0ms
   ```
 
 * Export the payment channel id to a variable:

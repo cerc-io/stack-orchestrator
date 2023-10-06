@@ -1,6 +1,6 @@
 # fixturenet-payments
 
-Instructions to setup and deploy end-to-end fixturenet-payments stack using [laconic-stack-orchestrator](/README.md#install)
+Instructions to setup and deploy an end-to-end fixturenet-payments stack
 
 ## Setup
 

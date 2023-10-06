@@ -1,5 +1,7 @@
 # fixturenet-payments
 
+Instructions to setup and deploy end-to-end fixturenet-payments stack using [laconic-stack-orchestrator](/README.md#install)
+
 ## Setup
 
 Clone required repositories:

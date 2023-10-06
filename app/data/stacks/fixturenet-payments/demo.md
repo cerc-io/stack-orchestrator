@@ -164,7 +164,7 @@ Stack components:
 
 * Change the amount besides `PAY` button in debug panel to `>=100` for phisher reports next
 
-* Perform a phisher report and check the watcher logs for received payments; the RPC mutation request is sent to geth node and is not charged:
+* Perform a phisher report and check the watcher logs for received payments:
 
   ```bash
   # Expected output:
@@ -272,4 +272,4 @@ Stack components:
   await clearNodeStorage()
   ```
 
-* On a restart, clear activity tab data in MetaMask for concerned accounts
+* On a fresh restart, clear activity tab data in MetaMask for concerned accounts

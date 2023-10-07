@@ -25,7 +25,7 @@ import click
 import importlib.resources
 from pathlib import Path
 import yaml
-from app.util import include_exclude_check
+from .util import include_exclude_check
 
 
 class GitProgress(git.RemoteProgress):
@@ -232,7 +232,7 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches, branches
         os.makedirs(dev_root_path)
 
     # See: https://stackoverflow.com/a/20885799/1701505
-    from app import data
+    from . import data
     with importlib.resources.open_text(data, "repository-list.txt") as repository_list_file:
         all_repos = repository_list_file.read().splitlines()
 

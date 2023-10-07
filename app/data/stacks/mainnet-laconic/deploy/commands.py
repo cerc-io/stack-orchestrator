@@ -13,11 +13,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from app.util import get_yaml
-from app.deploy_types import DeployCommandContext, LaconicStackSetupCommand, DeploymentContext
-from app.stack_state import State
-from app.deploy_util import VolumeMapping, run_container_command
-from app.command_types import CommandOptions
+from laconic_stack_orchestrator.util import get_yaml
+from laconic_stack_orchestrator.deploy_types import DeployCommandContext, LaconicStackSetupCommand, DeploymentContext
+from laconic_stack_orchestrator.stack_state import State
+from laconic_stack_orchestrator.deploy_util import VolumeMapping, run_container_command
+from laconic_stack_orchestrator.command_types import CommandOptions
 from enum import Enum
 from pathlib import Path
 from shutil import copyfile, copytree

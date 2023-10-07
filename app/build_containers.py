@@ -27,8 +27,8 @@ import subprocess
 import click
 import importlib.resources
 from pathlib import Path
-from app.util import include_exclude_check, get_parsed_stack_config
-from app.base import get_npm_registry_url
+from .util import include_exclude_check, get_parsed_stack_config
+from .base import get_npm_registry_url
 
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
@@ -67,7 +67,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         print('Dev root directory doesn\'t exist, creating')
 
     # See: https://stackoverflow.com/a/20885799/1701505
-    from app import data
+    from . import data
     with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
         all_containers = container_list_file.read().splitlines()
 

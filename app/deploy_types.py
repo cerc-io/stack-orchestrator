@@ -17,7 +17,7 @@ from typing import List
 from dataclasses import dataclass
 from pathlib import Path
 from python_on_whales import DockerClient
-from app.command_types import CommandOptions
+from .command_types import CommandOptions
 
 
 @dataclass

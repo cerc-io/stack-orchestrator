@@ -26,11 +26,11 @@ import subprocess
 from python_on_whales import DockerClient, DockerException
 import click
 from pathlib import Path
-from app.util import include_exclude_check, get_parsed_stack_config, global_options2
-from app.deploy_types import ClusterContext, DeployCommandContext
-from app.deployment_create import create as deployment_create
-from app.deployment_create import init as deployment_init
-from app.deployment_create import setup as deployment_setup
+from .util import include_exclude_check, get_parsed_stack_config, global_options2
+from .deploy_types import ClusterContext, DeployCommandContext
+from .deployment_create import create as deployment_create
+from .deployment_create import init as deployment_init
+from .deployment_create import setup as deployment_setup
 
 
 @click.group()
@@ -263,7 +263,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
             print(f"Using cluster name: {cluster}")
 
     # See: https://stackoverflow.com/a/20885799/1701505
-    from app import data
+    from . import data
     with resources.open_text(data, "pod-list.txt") as pod_list_file:
         all_pods = pod_list_file.read().splitlines()
 

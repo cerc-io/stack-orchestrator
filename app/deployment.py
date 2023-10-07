@@ -17,8 +17,8 @@ import click
 from dataclasses import dataclass
 from pathlib import Path
 import sys
-from app.deploy import up_operation, down_operation, ps_operation, port_operation
-from app.deploy import exec_operation, logs_operation, create_deploy_context
+from .deploy import up_operation, down_operation, ps_operation, port_operation
+from .deploy import exec_operation, logs_operation, create_deploy_context
 
 
 @dataclass

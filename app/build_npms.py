@@ -25,8 +25,8 @@ from decouple import config
 import click
 import importlib.resources
 from python_on_whales import docker, DockerException
-from app.base import get_stack
-from app.util import include_exclude_check, get_parsed_stack_config
+from .base import get_stack
+from .util import include_exclude_check, get_parsed_stack_config
 
 builder_js_image_name = "cerc/builder-js:local"
 
@@ -83,7 +83,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         os.makedirs(build_root_path)
 
     # See: https://stackoverflow.com/a/20885799/1701505
-    from app import data
+    from . import data
     with importlib.resources.open_text(data, "npm-package-list.txt") as package_list_file:
         all_packages = package_list_file.read().splitlines()
 

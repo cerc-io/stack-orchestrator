@@ -20,9 +20,9 @@ from pathlib import Path
 import random
 from shutil import copyfile, copytree
 import sys
-from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
-from app.util import get_compose_file_dir
-from app.deploy_types import DeploymentContext, LaconicStackSetupCommand
+from .util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
+from .util import get_compose_file_dir
+from .deploy_types import DeploymentContext, LaconicStackSetupCommand
 
 
 def _make_default_deployment_dir():

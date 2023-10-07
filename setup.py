@@ -1,5 +1,5 @@
 # See https://medium.com/nerd-for-tech/how-to-build-and-distribute-a-cli-tool-with-python-537ae41d9d78
-from setuptools import setup, find_packages
+from setuptools import setup
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 with open("requirements.txt", "r", encoding="utf-8") as fh:
@@ -14,8 +14,9 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/cerc-io/stack-orchestrator',
-    py_modules=['cli', 'app'],
-    packages=find_packages(),
+    packages=['laconic_stack_orchestrator'],
+    package_dir={'laconic_stack_orchestrator': 'app'},
+    py_modules=['laconic_stack_orchestrator', 'laconic_stack_orchestrator.cli'],
     install_requires=[requirements],
     python_requires='>=3.7',
     include_package_data=True,
@@ -25,6 +26,6 @@ setup(
         "Operating System :: OS Independent",
     ],
     entry_points={
-        'console_scripts': ['laconic-so=cli:cli'],
+        'console_scripts': ['laconic-so=laconic_stack_orchestrator.cli:cli'],
     }
 )

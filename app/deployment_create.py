@@ -108,7 +108,6 @@ def _fixup_pod_file(pod, spec, compose_dir):
 
 def _commands_plugin_path(ctx: DeployCommandContext):
     plugin_path = get_plugin_code_path(ctx.stack)
-    print(f"Plugin path: {plugin_path}")
     return plugin_path.joinpath("deploy", "commands.py")
 
 
@@ -148,7 +147,6 @@ def call_stack_deploy_create(deployment_context, extra_args):
     # Call a function in it
     # If no function found, return None
     python_file_path = _commands_plugin_path(deployment_context.command_context)
-    print(f"Plugin is : {python_file_path}")
     if python_file_path.exists():
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)

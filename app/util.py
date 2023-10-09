@@ -91,6 +91,31 @@ def get_pod_file_path(parsed_stack, pod_name: str):
     return result
 
 
+def get_pod_script_paths(parsed_stack, pod_name: str):
+    pods = parsed_stack["pods"]
+    result = []
+    if not type(pods[0]) is str:
+        for pod in pods:
+            if pod["name"] == pod_name:
+                pod_root_dir = os.path.join(get_dev_root_path(None), pod["repository"].split("/")[-1], pod["path"])
+                if "pre_start_command" in pod:
+                    result.append(os.path.join(pod_root_dir, pod["pre_start_command"]))
+                if "post_start_command" in pod:
+                    result.append(os.path.join(pod_root_dir, pod["post_start_command"]))
+    return result
+
+
+def pod_has_scripts(parsed_stack, pod_name: str):
+    pods = parsed_stack["pods"]
+    if type(pods[0]) is str:
+        result = False
+    else:
+        for pod in pods:
+            if pod["name"] == pod_name:
+                result = "pre_start_command" in pod or "post_start_command" in pod
+    return result
+
+
 def get_compose_file_dir():
     # TODO: refactor to use common code with deploy command
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure

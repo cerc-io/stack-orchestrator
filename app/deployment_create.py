@@ -17,12 +17,12 @@ import click
 from importlib import util
 import os
 from pathlib import Path
+from typing import List
 import random
-from shutil import copyfile, copytree
+from shutil import copy, copyfile, copytree
 import sys
 from app.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml,
-                      get_pod_list, get_pod_file_path)
-from app.util import get_compose_file_dir
+                      get_pod_list, get_pod_file_path, pod_has_scripts, get_pod_script_paths)
 from app.deploy_types import DeploymentContext, LaconicStackSetupCommand
 
 
@@ -273,6 +273,12 @@ def _write_config_file(spec_file: Path, config_env_file: Path):
                     output_file.write(f"{variable_name}={variable_value}\n")
 
 
+def _copy_files_to_directory(file_paths: List[Path], directory: Path):
+    for path in file_paths:
+        # Using copy to preserve the execute bit
+        copy(path, os.path.join(directory, os.path.basename(path)))
+
+
 @click.command()
 @click.option("--spec-file", required=True, help="Spec file to use to create this deployment")
 @click.option("--deployment-dir", help="Create deployment files in this directory")
@@ -303,12 +309,16 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     pods = get_pod_list(parsed_stack)
     destination_compose_dir = os.path.join(deployment_dir, "compose")
     os.mkdir(destination_compose_dir)
+    destination_pods_dir = os.path.join(deployment_dir, "pods")
+    os.mkdir(destination_pods_dir)
     data_dir = Path(__file__).absolute().parent.joinpath("data")
     yaml = get_yaml()
     for pod in pods:
         pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
+        destination_pod_dir = os.path.join(destination_pods_dir, pod)
+        os.mkdir(destination_pod_dir)
         if global_options(ctx).debug:
             print(f"extra config dirs: {extra_config_dirs}")
         _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
@@ -324,6 +334,12 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
                 # If the same config dir appears in multiple pods, it may already have been copied
                 if not os.path.exists(destination_config_dir):
                     copytree(source_config_dir, destination_config_dir)
+        # Copy the script files for the pod, if any
+        if pod_has_scripts(parsed_stack, pod):
+            destination_script_dir = os.path.join(destination_pod_dir, "scripts")
+            os.mkdir(destination_script_dir)
+            script_paths = get_pod_script_paths(parsed_stack, pod)
+            _copy_files_to_directory(script_paths, destination_script_dir)
     # Delegate to the stack's Python code
     # The deploy create command doesn't require a --stack argument so we need to insert the
     # stack member here.

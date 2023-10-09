@@ -16,14 +16,14 @@
 import os
 from typing import List
 from app.deploy_types import DeployCommandContext, VolumeMapping
-from app.util import get_parsed_stack_config, get_yaml, get_compose_file_dir
+from app.util import get_parsed_stack_config, get_yaml, get_compose_file_dir, get_pod_list
 
 
 def _container_image_from_service(stack: str, service: str):
     # Parse the compose files looking for the image name of the specified service
     image_name = None
     parsed_stack = get_parsed_stack_config(stack)
-    pods = parsed_stack["pods"]
+    pods = get_pod_list(parsed_stack)
     yaml = get_yaml()
     for pod in pods:
         pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")

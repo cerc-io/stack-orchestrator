@@ -20,13 +20,12 @@ import copy
 import os
 import sys
 from dataclasses import dataclass
-from decouple import config
 from importlib import resources
 import subprocess
 from python_on_whales import DockerClient, DockerException
 import click
 from pathlib import Path
-from app.util import include_exclude_check, get_parsed_stack_config, global_options2
+from app.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
 from app.deploy_types import ClusterContext, DeployCommandContext
 from app.deployment_create import create as deployment_create
 from app.deployment_create import init as deployment_init
@@ -235,17 +234,15 @@ def _make_runtime_env(ctx):
 # stack has to be either PathLike pointing to a stack yml file, or a string with the name of a known stack
 def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
 
-    if ctx.local_stack:
-        dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
-        print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
-    else:
-        dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
+    dev_root_path = get_dev_root_path(ctx)
 
     # TODO: huge hack, fix this
     # If the caller passed a path for the stack file, then we know that we can get the compose files
     # from the same directory
+    deployment = False
     if isinstance(stack, os.PathLike):
         compose_dir = stack.parent.joinpath("compose")
+        deployment = True
     else:
         # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
         compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
@@ -296,14 +293,24 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
             if pod_repository is None or pod_repository == "internal":
                 compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_path}.yml")
             else:
-                pod_root_dir = os.path.join(dev_root_path, pod_repository.split("/")[-1], pod["path"])
-                compose_file_name = os.path.join(pod_root_dir, "docker-compose.yml")
-                pod_pre_start_command = pod["pre_start_command"]
-                pod_post_start_command = pod["post_start_command"]
-                if pod_pre_start_command is not None:
-                    pre_start_commands.append(os.path.join(pod_root_dir, pod_pre_start_command))
-                if pod_post_start_command is not None:
-                    post_start_commands.append(os.path.join(pod_root_dir, pod_post_start_command))
+                if deployment:
+                    compose_file_name = os.path.join(compose_dir, "docker-compose.yml")
+                    pod_pre_start_command = pod["pre_start_command"]
+                    pod_post_start_command = pod["post_start_command"]
+                    script_dir = compose_dir.parent.joinpath("pods", pod_name, "scripts")
+                    if pod_pre_start_command is not None:
+                        pre_start_commands.append(os.path.join(script_dir, pod_pre_start_command))
+                    if pod_post_start_command is not None:
+                        post_start_commands.append(os.path.join(script_dir, pod_post_start_command))
+                else:
+                    pod_root_dir = os.path.join(dev_root_path, pod_repository.split("/")[-1], pod["path"])
+                    compose_file_name = os.path.join(pod_root_dir, "docker-compose.yml")
+                    pod_pre_start_command = pod["pre_start_command"]
+                    pod_post_start_command = pod["post_start_command"]
+                    if pod_pre_start_command is not None:
+                        pre_start_commands.append(os.path.join(pod_root_dir, pod_pre_start_command))
+                    if pod_post_start_command is not None:
+                        post_start_commands.append(os.path.join(pod_root_dir, pod_post_start_command))
             compose_files.append(compose_file_name)
         else:
             if ctx.verbose:

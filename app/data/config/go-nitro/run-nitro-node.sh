@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
@@ -30,6 +29,21 @@ fi
 
 echo "Running Nitro node"
 
-# TODO Wait for RPC endpoint to come up
+# Wait till chain endpoint is available
+retry_interval=5
+while true; do
+  # Assuming CERC_NITRO_CHAIN_URL is of format <ws|http>://host:port
+  ws_host=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 1)
+  ws_port=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 2)
+  nc -z -w 1 "$ws_host" "$ws_port"
 
-./nitro -chainurl ${NITRO_CHAIN_URL} -msgport 3005 -rpcport 4005 -wsmsgport 5005 -pk ${NITRO_PK} -chainpk ${NITRO_CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${NITRO_USE_DURABLE_STORE} -durablestorefolder ${NITRO_DURABLE_STORE_FOLDER}
+  if [ $? -eq 0 ]; then
+    echo "Chain endpoint is available"
+    break
+  fi
+
+  echo "Chain endpoint not yet available, retrying in $retry_interval seconds..."
+  sleep $retry_interval
+done
+
+./nitro -chainurl ${CERC_NITRO_CHAIN_URL} -msgport 3005 -rpcport 4005 -wsmsgport 5005 -pk ${CERC_NITRO_PK} -chainpk ${CERC_NITRO_CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${CERC_NITRO_USE_DURABLE_STORE} -durablestorefolder ${CERC_NITRO_DURABLE_STORE_FOLDER}

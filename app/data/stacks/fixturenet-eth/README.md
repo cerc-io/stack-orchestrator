@@ -66,7 +66,7 @@ It is not necessary to use them all at once, but a complete example follows:
 
 ```
 # Setup
-$ laconic-so setup-repositories --include github.com/cerc-io/go-ethereum,github.com/cerc-io/ipld-eth-db,github.com/cerc-io/ipld-eth-server,github.com/cerc-io/ipld-eth-beacon-db,github.com/cerc-io/ipld-eth-beacon-indexer,github.com/cerc-io/eth-probe,github.com/cerc-io/tx-spammer
+$ laconic-so setup-repositories --include git.vdb.to/cerc-io/go-ethereum,git.vdb.to/cerc-io/ipld-eth-db,git.vdb.to/cerc-io/ipld-eth-server,github.com/cerc-io/ipld-eth-beacon-db,github.com/cerc-io/ipld-eth-beacon-indexer,github.com/cerc-io/eth-probe,git.vdb.to/cerc-io/tx-spammer
 
 # Build
 $ laconic-so build-containers --include cerc/go-ethereum,cerc/lighthouse,cerc/fixturenet-eth-geth,cerc/fixturenet-eth-lighthouse,cerc/ipld-eth-db,cerc/ipld-eth-server,cerc/ipld-eth-beacon-db,cerc/ipld-eth-beacon-indexer,cerc/eth-probe,cerc/keycloak,cerc/tx-spammer

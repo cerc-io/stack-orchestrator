@@ -6,9 +6,9 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
 fi
 
 echo "Running Nitro reverse payment proxy"
-echo "Using PROXY_ADDRESS ${PROXY_ADDRESS}"
-echo "Using PROXY_NITRO_ENDPOINT ${PROXY_NITRO_ENDPOINT}"
-echo "Using PROXY_DESTINATION_URL ${PROXY_DESTINATION_URL}"
-echo "Using PROXY_COST_PER_BYTE ${PROXY_COST_PER_BYTE}"
+echo "Using CERC_PROXY_ADDRESS ${CERC_PROXY_ADDRESS}"
+echo "Using CERC_PROXY_NITRO_ENDPOINT ${CERC_PROXY_NITRO_ENDPOINT}"
+echo "Using CERC_PROXY_DESTINATION_URL ${CERC_PROXY_DESTINATION_URL}"
+echo "Using CERC_PROXY_COST_PER_BYTE ${CERC_PROXY_COST_PER_BYTE}"
 
-./start-reverse-payment-proxy -proxyaddress ${PROXY_ADDRESS} -nitroendpoint=${PROXY_NITRO_ENDPOINT} -destinationurl=${PROXY_DESTINATION_URL} -costperbyte ${PROXY_COST_PER_BYTE} -enablepaidrpcmethods
+./proxy -proxyaddress ${CERC_PROXY_ADDRESS} -nitroendpoint=${CERC_PROXY_NITRO_ENDPOINT} -destinationurl=${CERC_PROXY_DESTINATION_URL} -costperbyte ${CERC_PROXY_COST_PER_BYTE} -enablepaidrpcmethods

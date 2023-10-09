@@ -53,6 +53,7 @@
         contractAddress = 'REPLACE_WITH_CONTRACT_ADDRESS'
 
     [server.p2p.nitro]
+      chainUrl = 'REPLACE_WITH_CERC_NITRO_CHAIN_URL'
       store = './out/nitro-db'
       privateKey = 'REPLACE_WITH_CERC_WATCHER_NITRO_PK'
       chainPrivateKey = 'REPLACE_WITH_CERC_PRIVATE_KEY_PEER'
@@ -93,14 +94,21 @@
 
 [upstream]
   [upstream.ethServer]
-    gqlApiEndpoint = 'http://ipld-eth-server:8083/graphql'
+    gqlApiEndpoint = "http://ipld-eth-server:8083/graphql"
     rpcProviderEndpoint = 'REPLACE_WITH_CERC_ETH_RPC_QUERY_ENDPOINT'
     rpcProviderMutationEndpoint = 'REPLACE_WITH_CERC_ETH_RPC_MUTATION_ENDPOINT'
 
-    [upstream.ethServer.rpcProviderNitroNode]
-      address = 'REPLACE_WITH_UPSTREAM_NITRO_ADDRESS'
-      multiAddr = 'REPLACE_WITH_UPSTREAM_NITRO_MULTIADDR'
+    [upstream.ethServer.payments]
+      paidRPCMethods = ["eth_getBlockByHash", "eth_getBlockByNumber", "eth_getStorageAt"]
       amount = 'REPLACE_WITH_UPSTREAM_NITRO_PAY_AMOUNT'
+
+      [upstream.ethServer.payments.nitro]
+        address = 'REPLACE_WITH_UPSTREAM_NITRO_ADDRESS'
+        multiAddr = 'REPLACE_WITH_UPSTREAM_NITRO_MULTIADDR'
+
+        [upstream.ethServer.payments.nitro.fundingAmounts]
+          directFund = "1000000000000"
+          virtualFund = "1000000000"
 
   [upstream.cache]
     name = "requests"

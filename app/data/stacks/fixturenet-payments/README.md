@@ -1,5 +1,7 @@
 # fixturenet-payments
 
+Instructions to setup and deploy an end-to-end fixturenet-payments stack
+
 ## Setup
 
 Clone required repositories:
@@ -16,15 +18,14 @@ laconic-so --stack fixturenet-payments build-containers
 
 ## Deploy
 
-### Configuration
-
 Deploy the stack:
 
 ```bash
 laconic-so --stack fixturenet-payments deploy --cluster payments up
 
 # Exposed on host ports:
-# 5005: go-nitro node's p2p msg port
+# 4005: go-nitro node's RPC endpoint
+# 5005: go-nitro node's p2p endpoint
 # 8081: reverse payment proxy's RPC endpoint
 # 15432: MobyMask v3 watcher's db endpoint
 # 3001: MobyMask v3 watcher endpoint
@@ -33,23 +34,9 @@ laconic-so --stack fixturenet-payments deploy --cluster payments up
 # 3004: MobyMask v3 app
 ```
 
-Check the logs of the MobyMask contract deployment container to get the deployed contract's address and generated root invite link:
+## Demo
 
-```bash
-docker logs -f $(docker ps -aq --filter name="mobymask-1")
-```
-
-Check the reverse payment proxy container logs:
-
-```bash
-docker logs -f $(docker ps -aq --filter name="nitro-reverse-payment-proxy")
-```
-
-Run the ponder app:
-
-```bash
-docker exec -it payments-ponder-app-1 bash -c "pnpm start"
-```
+Follow the [demo](./demo.md) to try out end-to-end payments
 
 ## Clean up
 

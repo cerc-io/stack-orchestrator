@@ -70,6 +70,7 @@ services:
     command: "/run-op-geth.sh"
     ports:
       - "0.0.0.0:8545:8545"
+      - "0.0.0.0:8546:8546"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost:8545"]
       interval: 30s

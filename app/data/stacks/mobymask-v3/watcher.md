@@ -23,7 +23,7 @@ laconic-so --stack mobymask-v3 build-containers --exclude cerc/mobymask-ui
 Create and update an env file to be used in the next step ([defaults](../../config/watcher-mobymask-v3/mobymask-params.env)):
 
   ```bash
-  # External ETH RPC endpoint (L2 Optimism geth)
+  # External ETH RPC endpoint for contract(s) deployment
   CERC_ETH_RPC_ENDPOINT=
 
   # External ETH RPC endpoint used for queries in the watcher
@@ -31,6 +31,9 @@ Create and update an env file to be used in the next step ([defaults](../../conf
 
   # External ETH RPC endpoint used for mutations in the watcher
   CERC_ETH_RPC_MUTATION_ENDPOINT=
+
+  # External ETH endpoint used by watcher's Nitro node
+  CERC_NITRO_CHAIN_URL=
 
   # Specify the an account PK for contract deployment
   CERC_PRIVATE_KEY_DEPLOYER=

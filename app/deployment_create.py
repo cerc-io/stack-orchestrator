@@ -23,7 +23,7 @@ from shutil import copy, copyfile, copytree
 import sys
 from app.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml,
                       get_pod_list, get_pod_file_path, pod_has_scripts, get_pod_script_paths)
-from app.deploy_types import DeploymentContext, LaconicStackSetupCommand
+from app.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
 
 
 def _make_default_deployment_dir():
@@ -106,11 +106,15 @@ def _fixup_pod_file(pod, spec, compose_dir):
                 pod["services"][container_name]["ports"] = container_ports
 
 
+def _commands_plugin_path(ctx: DeployCommandContext):
+    return get_stack_file_path(ctx.stack).parent.joinpath("deploy", "commands.py")
+
+
 def call_stack_deploy_init(deploy_command_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(deploy_command_context.stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = _commands_plugin_path(deploy_command_context)
     if python_file_path.exists():
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
@@ -125,7 +129,7 @@ def call_stack_deploy_setup(deploy_command_context, parameters: LaconicStackSetu
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(deploy_command_context.stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = _commands_plugin_path(deploy_command_context)
     if python_file_path.exists():
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
@@ -140,7 +144,7 @@ def call_stack_deploy_create(deployment_context, extra_args):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(deployment_context.command_context.stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = _commands_plugin_path(deployment_context.command_context)
     if python_file_path.exists():
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)

@@ -239,8 +239,10 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
     # TODO: huge hack, fix this
     # If the caller passed a path for the stack file, then we know that we can get the compose files
     # from the same directory
+    deployment = False
     if isinstance(stack, os.PathLike):
         compose_dir = stack.parent.joinpath("compose")
+        deployment = True
     else:
         # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
         compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
@@ -291,14 +293,24 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
             if pod_repository is None or pod_repository == "internal":
                 compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_path}.yml")
             else:
-                pod_root_dir = os.path.join(dev_root_path, pod_repository.split("/")[-1], pod["path"])
-                compose_file_name = os.path.join(pod_root_dir, "docker-compose.yml")
-                pod_pre_start_command = pod["pre_start_command"]
-                pod_post_start_command = pod["post_start_command"]
-                if pod_pre_start_command is not None:
-                    pre_start_commands.append(os.path.join(pod_root_dir, pod_pre_start_command))
-                if pod_post_start_command is not None:
-                    post_start_commands.append(os.path.join(pod_root_dir, pod_post_start_command))
+                if deployment:
+                    compose_file_name = os.path.join(compose_dir, "docker-compose.yml")
+                    pod_pre_start_command = pod["pre_start_command"]
+                    pod_post_start_command = pod["post_start_command"]
+                    script_dir = compose_dir.parent.joinpath("pods", pod_name, "scripts")
+                    if pod_pre_start_command is not None:
+                        pre_start_commands.append(os.path.join(script_dir, pod_pre_start_command))
+                    if pod_post_start_command is not None:
+                        post_start_commands.append(os.path.join(script_dir, pod_post_start_command))
+                else:
+                    pod_root_dir = os.path.join(dev_root_path, pod_repository.split("/")[-1], pod["path"])
+                    compose_file_name = os.path.join(pod_root_dir, "docker-compose.yml")
+                    pod_pre_start_command = pod["pre_start_command"]
+                    pod_post_start_command = pod["post_start_command"]
+                    if pod_pre_start_command is not None:
+                        pre_start_commands.append(os.path.join(pod_root_dir, pod_pre_start_command))
+                    if pod_post_start_command is not None:
+                        post_start_commands.append(os.path.join(pod_root_dir, pod_post_start_command))
             compose_files.append(compose_file_name)
         else:
             if ctx.verbose:

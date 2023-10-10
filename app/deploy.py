@@ -41,9 +41,16 @@ from app.deployment_create import setup as deployment_setup
 def command(ctx, include, exclude, env_file, cluster):
     '''deploy a stack'''
 
+    # Although in theory for some subcommands (e.g. deploy create) the stack can be inferred,
+    # Click doesn't allow us to know that here, so we make providing the stack mandatory
+    stack = global_options2(ctx).stack
+    if not stack:
+        print("Error: --stack option is required")
+        sys.exit(1)
+
     if ctx.parent.obj.debug:
         print(f"ctx.parent.obj: {ctx.parent.obj}")
-    ctx.obj = create_deploy_context(global_options2(ctx), global_options2(ctx).stack, include, exclude, cluster, env_file)
+    ctx.obj = create_deploy_context(global_options2(ctx), stack, include, exclude, cluster, env_file)
     # Subcommand is executed now, by the magic of click
 
 

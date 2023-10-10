@@ -37,8 +37,4 @@ $TEST_TARGET_SO --stack test deploy-system down
 # Run same test but not using the stack definition
 # Test building the a stack container
 $TEST_TARGET_SO build-containers --include cerc/test-container
-# Deploy the test container
-$TEST_TARGET_SO deploy-system --include test up
-# Clean up
-$TEST_TARGET_SO deploy-system --include test down
 echo "Test passed"

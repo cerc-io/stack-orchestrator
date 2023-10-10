@@ -111,6 +111,11 @@ def _commands_plugin_path(ctx: DeployCommandContext):
     return plugin_path.joinpath("deploy", "commands.py")
 
 
+# See: https://stackoverflow.com/a/54625079/1701505
+def _has_method(o, name):
+    return callable(getattr(o, name, None))
+
+
 def call_stack_deploy_init(deploy_command_context):
     # Link with the python file in the stack
     # Call a function in it
@@ -120,7 +125,8 @@ def call_stack_deploy_init(deploy_command_context):
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
         spec.loader.exec_module(imported_stack)
-        return imported_stack.init(deploy_command_context)
+        if _has_method(imported_stack, "init"):
+            return imported_stack.init(deploy_command_context)
     else:
         return None
 
@@ -136,7 +142,8 @@ def call_stack_deploy_setup(deploy_command_context, parameters: LaconicStackSetu
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
         spec.loader.exec_module(imported_stack)
-        return imported_stack.setup(deploy_command_context, parameters, extra_args)
+        if _has_method(imported_stack, "setup"):
+            return imported_stack.setup(deploy_command_context, parameters, extra_args)
     else:
         return None
 
@@ -151,7 +158,8 @@ def call_stack_deploy_create(deployment_context, extra_args):
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
         spec.loader.exec_module(imported_stack)
-        return imported_stack.create(deployment_context, extra_args)
+        if _has_method(imported_stack, "create"):
+            return imported_stack.create(deployment_context, extra_args)
     else:
         return None
 

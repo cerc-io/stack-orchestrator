@@ -288,6 +288,9 @@ Stack components:
   await clearNodeStorage()
   ```
 
-* Clear `site data` in `Application` section of `chrome developer tools`
+* Run the following in the browser console to clear data in local storage:
+  ```bash
+  localStorage.clear()
+  ```
 
 * On a fresh restart, clear activity tab data in MetaMask for concerned accounts

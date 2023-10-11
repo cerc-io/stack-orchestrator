@@ -204,10 +204,10 @@ Stack components:
 
 ### ERC20 Ponder App
 
-* Run the ponder app in it's container:
+* Run the ponder app in indexer mode:
 
   ```bash
-  docker exec -it payments-ponder-app-1 bash -c "pnpm start"
+  docker exec -it payments-ponder-app-indexer-1 bash -c "pnpm start --mode indexer"
 
   # Expected output:
   # 09:58:54.288 INFO  payment    Creating ledger channel with nitro node 0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE
@@ -217,7 +217,7 @@ Stack components:
   # 09:59:14.329 INFO  payment    Using payment channel 0x10f049519bc3f862e2b26e974be8666886228f30ea54aab06e2f23718afffab0
   ```
 
-* On starting the Ponder app, it creates a payment channel with the `ipld-eth-server`'s Nitro node and then starts the historical sync service
+* On starting the Ponder app in indexer mode, it creates a payment channel with the `ipld-eth-server`'s Nitro node and then starts the historical sync service
 
 * The sync service makes several ETH RPC requests to the `ipld-eth-server` to fetch required data; check the payment proxy server logs for charged RPC requests (`eth_getBlockByNumber`, `eth_getLogs`)
 
@@ -262,6 +262,22 @@ Stack components:
   # }
   ```
 
+* In another terminal run the ponder app in watcher mode:
+  ```bash
+  docker exec -it payments-ponder-app-watcher-1 bash -c "pnpm start --mode watcher"
+
+  # Expected output:
+  # 11:23:22.057 DEBUG app        Started using config file: ponder.config.ts
+  # 11:23:22.322 DEBUG codegen    Wrote new file at generated/index.ts
+  # 11:23:22.129 DEBUG aggregator Completed historical sync across all networks
+  # 11:23:22.133 INFO  server     Started listening on port 42069
+  # 11:23:22.362 DEBUG codegen    Wrote new file at generated/index.ts
+  # 11:23:22.379 DEBUG codegen    Wrote new file at generated/schema.graphql
+  # 11:23:22.417 DEBUG handlers   Paused event queue (versionId=undefined)
+  # 11:23:22.420 DEBUG handlers   Reset user store (versionId=900f1444)
+  # 11:23:22.436 INFO  server     Started responding as healthy
+  ```
+  
 ## Clean Up
 
 * In the MobyMask app, perform `VIRTUAL DEFUND` and `DIRECT DEFUND` (in order) for closing the payment channel created with watcher
@@ -271,5 +287,7 @@ Stack components:
   ```bash
   await clearNodeStorage()
   ```
+
+* Clear `site data` in `Application` section of `chrome developer tools`
 
 * On a fresh restart, clear activity tab data in MetaMask for concerned accounts

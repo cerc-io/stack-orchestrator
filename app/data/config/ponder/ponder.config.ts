@@ -1,6 +1,6 @@
 import type { Config } from "@ponder/core";
 
-import contractAddresses from "./nitro-addresses.json";
+import contractAddresses from "./nitro-addresses.json" assert { type: "json" };
 
 export const config: Config = {
   networks: [
@@ -47,4 +47,8 @@ export const config: Config = {
     relayMultiAddr: process.env.RELAY_MULTIADDR!,
     store: "./.ponder/nitro-db",
   },
+  options: {
+    /** GQL endpoint of the indexer, required when running app in watcher mode */
+    indexerGqlEndpoint: "http://ponder-app-indexer:42070/graphql"
+  }
 };

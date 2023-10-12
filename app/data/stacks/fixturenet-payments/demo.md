@@ -204,12 +204,15 @@ Stack components:
 
 ### ERC20 Ponder App
 
-* Run the ponder app in it's container:
+* Run the ponder app in indexer mode:
 
   ```bash
-  docker exec -it payments-ponder-app-1 bash -c "pnpm start"
+  docker exec -it payments-ponder-app-indexer-1 bash -c "DEBUG=laconic:payments pnpm start"
 
   # Expected output:
+  # 08:00:28.701 INFO  payment    Nitro node setup with address 0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d
+  #   laconic:payments Starting voucher subscription... +0ms
+  # ...
   # 09:58:54.288 INFO  payment    Creating ledger channel with nitro node 0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE
   # ...
   # 09:59:14.230 INFO  payment    Creating payment channel with nitro node 0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE
@@ -217,7 +220,13 @@ Stack components:
   # 09:59:14.329 INFO  payment    Using payment channel 0x10f049519bc3f862e2b26e974be8666886228f30ea54aab06e2f23718afffab0
   ```
 
-* On starting the Ponder app, it creates a payment channel with the `ipld-eth-server`'s Nitro node and then starts the historical sync service
+* Export the payment channel id to a variable:
+
+  ```bash
+  export PONDER_UPSTREAM_PAYMENT_CHANNEL=<PAYMENT_CHANNEL_ID>
+  ```
+
+* On starting the Ponder app in indexer mode, it creates a payment channel with the `ipld-eth-server`'s Nitro node and then starts the historical sync service
 
 * The sync service makes several ETH RPC requests to the `ipld-eth-server` to fetch required data; check the payment proxy server logs for charged RPC requests (`eth_getBlockByNumber`, `eth_getLogs`)
 
@@ -235,12 +244,6 @@ Stack components:
   # {"time":"2023-10-06T06:51:45.249743149Z","level":"DEBUG","msg":"Received voucher","delta":5000}
   # {"time":"2023-10-06T06:51:45.249760631Z","level":"DEBUG","msg":"Destination request","url":"http://ipld-eth-server:8081/"}
   # ...
-  ```
-
-* Export the payment channel id to a variable:
-
-  ```bash
-  export PONDER_UPSTREAM_PAYMENT_CHANNEL=<PAYMENT_CHANNEL_ID>
   ```
 
 * Check the ponder - ipld-eth-server payment channel status:
@@ -262,6 +265,33 @@ Stack components:
   # }
   ```
 
+* In another terminal run the ponder app in watcher mode:
+  ```bash
+  docker exec -it payments-ponder-app-watcher-1 bash -c "DEBUG=laconic:payments pnpm start"
+
+  # Expected output:
+  # 11:23:22.057 DEBUG app        Started using config file: ponder.config.ts
+  # 08:02:12.548 INFO  payment    Nitro node setup with address 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db
+  #   laconic:payments Starting voucher subscription... +0ms
+  # 08:02:17.417 INFO  payment    Creating ledger channel with nitro node 0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d ...
+  # 08:02:37.135 INFO  payment    Creating payment channel with nitro node 0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d ...
+  # 08:02:37.313 INFO  payment    Using payment channel 0x4b8e67f6a6fcfe114fdd60b85f963344ece4c77d4eea3825688c74b45ff5509b
+  # ...
+  # 11:23:22.436 INFO  server     Started responding as healthy
+  ```
+
+* Check the terminal in which indexer mode ponder is running. Logs of payment for `eth_getLogs` queries can be seen:
+  ```bash
+  # ...
+  # 08:02:37.763 DEBUG realtime   Finished processing new head block 89 (network=fixturenet)
+  #   laconic:payments Received a payment voucher of 50 from 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db +444ms
+  #   laconic:payments Serving a paid query for 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db +1ms
+  # 08:02:37.804 DEBUG payment    Verified payment for GQL queries getLogEvents
+  #   laconic:payments Received a payment voucher of 50 from 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db +45ms
+  #   laconic:payments Serving a paid query for 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db +0ms
+  # 08:02:37.849 DEBUG payment    Verified payment for GQL queries getLogEvents
+  ```
+  
 ## Clean Up
 
 * In the MobyMask app, perform `VIRTUAL DEFUND` and `DIRECT DEFUND` (in order) for closing the payment channel created with watcher
@@ -270,6 +300,11 @@ Stack components:
 
   ```bash
   await clearNodeStorage()
+  ```
+
+* Run the following in the browser console to clear data in local storage:
+  ```bash
+  localStorage.clear()
   ```
 
 * On a fresh restart, clear activity tab data in MetaMask for concerned accounts

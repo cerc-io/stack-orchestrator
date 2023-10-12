@@ -1,4 +1,4 @@
-import type { Config } from "@ponder/core";
+import { type Config, AppMode } from "@ponder/core";
 
 import contractAddresses from "./nitro-addresses.json" assert { type: "json" };
 
@@ -39,6 +39,9 @@ export const config: Config = {
       maxBlockRange: 100,
     },
   ],
+  options: {
+    mode: AppMode.Indexer,
+  },
   nitro: {
     privateKey: process.env.PONDER_NITRO_PK!,
     chainPrivateKey: process.env.PONDER_NITRO_CHAIN_PK!,

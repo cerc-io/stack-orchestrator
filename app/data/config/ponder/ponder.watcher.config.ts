@@ -1,4 +1,4 @@
-import type { Config } from "@ponder/core";
+import { type Config, AppMode } from "@ponder/core";
 
 import contractAddresses from "./nitro-addresses.json" assert { type: "json" };
 
@@ -19,6 +19,22 @@ export const config: Config = {
       maxBlockRange: 100,
     },
   ],
+  options: {
+    mode: AppMode.Watcher,
+  },
+  indexer: {
+    gqlEndpoint: process.env.INDEXER_GQL_ENDPOINT,
+    payments: {
+      nitro: {
+        address: process.env.INDEXER_NITRO_ADDRESS,
+        fundingAmounts: {
+          directFund: "1000000000000",
+          virtualFund: "1000000000",
+        },
+      },
+      amount: process.env.INDEXER_NITRO_PAY_AMOUNT,
+    },
+  },
   nitro: {
     privateKey: process.env.PONDER_NITRO_PK!,
     chainPrivateKey: process.env.PONDER_NITRO_CHAIN_PK!,

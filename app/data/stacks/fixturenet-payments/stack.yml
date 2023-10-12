@@ -3,22 +3,22 @@ name: fixturenet-payments
 description: "Stack to demonstrate payments between various services"
 repos:
   # fixturenet repos
-  - github.com/cerc-io/go-ethereum
-  - github.com/cerc-io/lighthouse
-  - github.com/cerc-io/ipld-eth-db
-  - github.com/cerc-io/ipld-eth-server
+  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
+  - git.vdb.to/cerc-io/lighthouse
+  - git.vdb.to/cerc-io/ipld-eth-db@v5
+  - git.vdb.to/cerc-io/ipld-eth-server@v1.11.6-statediff-v5
   # nitro repos
-  - github.com/cerc-io/ts-nitro@v0.1.12
-  - github.com/cerc-io/go-nitro@v0.1.0-ts-port-0.1.4 # TODO: Update after fixes
+  - github.com/cerc-io/ts-nitro@v0.1.13
+  - github.com/cerc-io/go-nitro@v0.1.1-ts-port-0.1.5
   # mobymask watcher repos
-  - github.com/cerc-io/watcher-ts@v0.2.61
-  - github.com/cerc-io/mobymask-v2-watcher-ts@v3 # TODO: Update after fixes
+  - github.com/cerc-io/watcher-ts@v0.2.63
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.2
   - github.com/cerc-io/MobyMask@v0.1.3
   # mobymask app repos
   - github.com/cerc-io/mobymask-snap
-  - github.com/cerc-io/mobymask-ui@v0.2.0
+  - github.com/cerc-io/mobymask-ui@v0.2.1
   # ponder repo
-  - github.com/cerc-io/ponder@laconic
+  - github.com/cerc-io/ponder@laconic-esm
 containers:
   # fixturenet images
   - cerc/go-ethereum
@@ -31,6 +31,7 @@ containers:
   - cerc/ipld-eth-server
   - cerc/nitro-contracts
   - cerc/go-nitro
+  - cerc/nitro-rpc-client
   # mobymask watcher images
   - cerc/watcher-ts
   - cerc/watcher-mobymask-v3

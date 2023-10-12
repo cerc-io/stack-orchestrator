@@ -17,12 +17,13 @@ import click
 from importlib import util
 import os
 from pathlib import Path
+from typing import List
 import random
-from shutil import copyfile, copytree
+from shutil import copy, copyfile, copytree
 import sys
-from app.util import get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml
-from app.util import get_compose_file_dir
-from app.deploy_types import DeploymentContext, LaconicStackSetupCommand
+from app.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml,
+                      get_pod_list, get_pod_file_path, pod_has_scripts, get_pod_script_paths, get_plugin_code_path)
+from app.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
 
 
 def _make_default_deployment_dir():
@@ -32,10 +33,10 @@ def _make_default_deployment_dir():
 def _get_ports(stack):
     ports = {}
     parsed_stack = get_parsed_stack_config(stack)
-    pods = parsed_stack["pods"]
+    pods = get_pod_list(parsed_stack)
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "services" in parsed_pod_file:
             for svc_name, svc in parsed_pod_file["services"].items():
@@ -49,10 +50,10 @@ def _get_named_volumes(stack):
     # Parse the compose files looking for named volumes
     named_volumes = []
     parsed_stack = get_parsed_stack_config(stack)
-    pods = parsed_stack["pods"]
+    pods = get_pod_list(parsed_stack)
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
@@ -105,16 +106,27 @@ def _fixup_pod_file(pod, spec, compose_dir):
                 pod["services"][container_name]["ports"] = container_ports
 
 
+def _commands_plugin_path(ctx: DeployCommandContext):
+    plugin_path = get_plugin_code_path(ctx.stack)
+    return plugin_path.joinpath("deploy", "commands.py")
+
+
+# See: https://stackoverflow.com/a/54625079/1701505
+def _has_method(o, name):
+    return callable(getattr(o, name, None))
+
+
 def call_stack_deploy_init(deploy_command_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(deploy_command_context.stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = _commands_plugin_path(deploy_command_context)
     if python_file_path.exists():
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
         spec.loader.exec_module(imported_stack)
-        return imported_stack.init(deploy_command_context)
+        if _has_method(imported_stack, "init"):
+            return imported_stack.init(deploy_command_context)
     else:
         return None
 
@@ -124,12 +136,14 @@ def call_stack_deploy_setup(deploy_command_context, parameters: LaconicStackSetu
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(deploy_command_context.stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = _commands_plugin_path(deploy_command_context)
+    print(f"Path: {python_file_path}")
     if python_file_path.exists():
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
         spec.loader.exec_module(imported_stack)
-        return imported_stack.setup(deploy_command_context, parameters, extra_args)
+        if _has_method(imported_stack, "setup"):
+            return imported_stack.setup(deploy_command_context, parameters, extra_args)
     else:
         return None
 
@@ -139,12 +153,13 @@ def call_stack_deploy_create(deployment_context, extra_args):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = get_stack_file_path(deployment_context.command_context.stack).parent.joinpath("deploy", "commands.py")
+    python_file_path = _commands_plugin_path(deployment_context.command_context)
     if python_file_path.exists():
         spec = util.spec_from_file_location("commands", python_file_path)
         imported_stack = util.module_from_spec(spec)
         spec.loader.exec_module(imported_stack)
-        return imported_stack.create(deployment_context, extra_args)
+        if _has_method(imported_stack, "create"):
+            return imported_stack.create(deployment_context, extra_args)
     else:
         return None
 
@@ -204,22 +219,48 @@ def _get_mapped_ports(stack: str, map_recipe: str):
     return ports
 
 
+def _parse_config_variables(variable_values: str):
+    result = None
+    if variable_values:
+        value_pairs = variable_values.split(",")
+        if len(value_pairs):
+            result_values = {}
+            for value_pair in value_pairs:
+                variable_value_pair = value_pair.split("=")
+                if len(variable_value_pair) != 2:
+                    print(f"ERROR: config argument is not valid: {variable_values}")
+                    sys.exit(1)
+                variable_name = variable_value_pair[0]
+                variable_value = variable_value_pair[1]
+                result_values[variable_name] = variable_value
+            result = {"config": result_values}
+    return result
+
+
 @click.command()
+@click.option("--config", help="Provide config variables for the deployment")
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.option("--map-ports-to-host", required=False,
               help="Map ports to the host as one of: any-variable-random (default), "
               "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
 @click.pass_context
-def init(ctx, output, map_ports_to_host):
+def init(ctx, config, output, map_ports_to_host):
     yaml = get_yaml()
     stack = global_options(ctx).stack
-    verbose = global_options(ctx).verbose
+    debug = global_options(ctx).debug
     default_spec_file_content = call_stack_deploy_init(ctx.obj)
     spec_file_content = {"stack": stack}
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
-    if verbose:
-        print(f"Creating spec file for stack: {stack}")
+    config_variables = _parse_config_variables(config)
+    if config_variables:
+        # Implement merge, since update() overwrites
+        orig_config = spec_file_content["config"]
+        new_config = config_variables["config"]
+        merged_config = {**new_config, **orig_config}
+        spec_file_content.update({"config": merged_config})
+    if debug:
+        print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
 
     ports = _get_mapped_ports(stack, map_ports_to_host)
     spec_file_content["ports"] = ports
@@ -233,6 +274,23 @@ def init(ctx, output, map_ports_to_host):
 
     with open(output, "w") as output_file:
         yaml.dump(spec_file_content, output_file)
+
+
+def _write_config_file(spec_file: Path, config_env_file: Path):
+    spec_content = get_parsed_deployment_spec(spec_file)
+    # Note: we want to write an empty file even if we have no config variables
+    with open(config_env_file, "w") as output_file:
+        if "config" in spec_content and spec_content["config"]:
+            config_vars = spec_content["config"]
+            if config_vars:
+                for variable_name, variable_value in config_vars.items():
+                    output_file.write(f"{variable_name}={variable_value}\n")
+
+
+def _copy_files_to_directory(file_paths: List[Path], directory: Path):
+    for path in file_paths:
+        # Using copy to preserve the execute bit
+        copy(path, os.path.join(directory, os.path.basename(path)))
 
 
 @click.command()
@@ -259,16 +317,22 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     # Copy spec file and the stack file into the deployment dir
     copyfile(spec_file, os.path.join(deployment_dir, os.path.basename(spec_file)))
     copyfile(stack_file, os.path.join(deployment_dir, os.path.basename(stack_file)))
+    # Copy any config varibles from the spec file into an env file suitable for compose
+    _write_config_file(spec_file, os.path.join(deployment_dir, "config.env"))
     # Copy the pod files into the deployment dir, fixing up content
-    pods = parsed_stack['pods']
+    pods = get_pod_list(parsed_stack)
     destination_compose_dir = os.path.join(deployment_dir, "compose")
     os.mkdir(destination_compose_dir)
+    destination_pods_dir = os.path.join(deployment_dir, "pods")
+    os.mkdir(destination_pods_dir)
     data_dir = Path(__file__).absolute().parent.joinpath("data")
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
+        destination_pod_dir = os.path.join(destination_pods_dir, pod)
+        os.mkdir(destination_pod_dir)
         if global_options(ctx).debug:
             print(f"extra config dirs: {extra_config_dirs}")
         _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
@@ -284,6 +348,12 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
                 # If the same config dir appears in multiple pods, it may already have been copied
                 if not os.path.exists(destination_config_dir):
                     copytree(source_config_dir, destination_config_dir)
+        # Copy the script files for the pod, if any
+        if pod_has_scripts(parsed_stack, pod):
+            destination_script_dir = os.path.join(destination_pod_dir, "scripts")
+            os.mkdir(destination_script_dir)
+            script_paths = get_pod_script_paths(parsed_stack, pod)
+            _copy_files_to_directory(script_paths, destination_script_dir)
     # Delegate to the stack's Python code
     # The deploy create command doesn't require a --stack argument so we need to insert the
     # stack member here.

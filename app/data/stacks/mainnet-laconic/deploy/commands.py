@@ -27,10 +27,7 @@ import sys
 import tomli
 import re
 
-default_spec_file_content = """config:
-    node_moniker: my-node-name
-    chain_id: my-chain-id
-"""
+default_spec_file_content = ""
 
 
 class SetupPhase(Enum):

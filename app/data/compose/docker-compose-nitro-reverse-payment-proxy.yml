@@ -10,10 +10,10 @@ services:
       go-nitro:
         condition: service_healthy
     environment:
-      PROXY_ADDRESS: 0.0.0.0:8081
-      PROXY_NITRO_ENDPOINT: ${PROXY_NITRO_ENDPOINT:-go-nitro:4005/api/v1}
-      PROXY_DESTINATION_URL: ${PROXY_DESTINATION_URL:-http://ipld-eth-server:8081}
-      PROXY_COST_PER_BYTE: ${PROXY_COST_PER_BYTE:-1}
+      CERC_PROXY_ADDRESS: 0.0.0.0:8081
+      CERC_PROXY_NITRO_ENDPOINT: ${CERC_PROXY_NITRO_ENDPOINT:-go-nitro:4005/api/v1}
+      CERC_PROXY_DESTINATION_URL: ${CERC_PROXY_DESTINATION_URL:-http://ipld-eth-server:8081}
+      CERC_PROXY_COST_PER_BYTE: ${CERC_PROXY_COST_PER_BYTE:-1}
     entrypoint: ["bash", "-c", "/app/run-reverse-payment-proxy.sh"]
     volumes:
       - ../config/go-nitro/run-reverse-payment-proxy.sh:/app/run-reverse-payment-proxy.sh

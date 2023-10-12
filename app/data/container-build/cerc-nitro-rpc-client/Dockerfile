@@ -7,6 +7,6 @@ WORKDIR /app
 COPY . .
 
 RUN echo "Installing dependencies" && \
-  yarn && yarn build:node
+  yarn
 
-WORKDIR /app/packages/nitro-node
+RUN cd packages/nitro-rpc-client

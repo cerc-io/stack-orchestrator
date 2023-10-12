@@ -38,6 +38,7 @@ services:
       - fixturenet-eth-bootnode-geth
     ports:
       - "8545"
+      - "8546"
       - "40000"
       - "6060"
 
@@ -59,6 +60,9 @@ services:
       - fixturenet-eth-bootnode-geth
     volumes:
       - fixturenet_plugeth_geth_2_data:/root/ethdata
+    ports:
+      - "8545"
+      - "8546"
 
   fixturenet-eth-bootnode-lighthouse:
     restart: always

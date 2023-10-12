@@ -42,8 +42,5 @@ export const config: Config = {
     contractAddresses,
     relayMultiAddr: process.env.RELAY_MULTIADDR!,
     store: "./.ponder/nitro-db",
-  },
-  options: {
-    indexerGqlEndpoint: process.env.INDEXER_GQL_ENDPOINT,
-  },
+  }
 };

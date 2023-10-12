@@ -22,7 +22,7 @@ services:
       - ../config/ponder/ponder.indexer.config.ts:/app/examples/token-erc20/ponder.config.ts
       - peers_ids:/peers
       - nitro_deployment:/nitro
-      - ponder_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
+      - ponder_indexer_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     ports:
       - "42070"
     extra_hosts:
@@ -42,6 +42,7 @@ services:
       CERC_PONDER_NITRO_CHAIN_URL: ${CERC_PONDER_NITRO_CHAIN_URL:-http://fixturenet-eth-geth-1:8546}
       CERC_RELAY_MULTIADDR: ${CERC_RELAY_MULTIADDR}
       CERC_INDEXER_GQL_ENDPOINT: ${CERC_INDEXER_GQL_ENDPOINT:-http://ponder-app-indexer:42070/graphql}
+      CERC_INDEXER_NITRO_ADDRESS: ${CERC_INDEXER_NITRO_ADDRESS:-0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d}
       CERC_INDEXER_NITRO_PAY_AMOUNT: ${CERC_INDEXER_NITRO_PAY_AMOUNT:-50}
     command: ["bash", "./ponder-start.sh"]
     volumes:
@@ -49,7 +50,7 @@ services:
       - ../config/ponder/ponder.watcher.config.ts:/app/examples/token-erc20/ponder.config.ts
       - peers_ids:/peers
       - nitro_deployment:/nitro
-      - ponder_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
+      - ponder_watcher_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     ports:
       - "42069"
     extra_hosts:
@@ -58,4 +59,5 @@ services:
 volumes:
   peers_ids:
   nitro_deployment:
-  ponder_nitro_data:
+  ponder_indexer_nitro_data:
+  ponder_watcher_nitro_data:

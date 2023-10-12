@@ -90,7 +90,7 @@ services:
       CERC_ENABLE_UPSTREAM_PAYMENTS: ${CERC_ENABLE_UPSTREAM_PAYMENTS}
       CERC_UPSTREAM_NITRO_ADDRESS: ${CERC_UPSTREAM_NITRO_ADDRESS:-0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE}
       CERC_UPSTREAM_NITRO_MULTIADDR: ${CERC_UPSTREAM_NITRO_MULTIADDR:-/dns4/go-nitro/tcp/5005/ws/p2p/16Uiu2HAmSjXJqsyBJgcBUU2HQmykxGseafSatbpq5471XmuaUqyv}
-      CERC_UPSTREAM_NITRO_PAY_AMOUNT: ${CERC_UPSTREAM_NITRO_PAY_AMOUNT:-5000}
+      CERC_UPSTREAM_NITRO_PAY_AMOUNT: ${CERC_UPSTREAM_NITRO_PAY_AMOUNT:-100}
     command: ["bash", "./start-server.sh"]
     volumes:
       - ../config/watcher-mobymask-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml

@@ -6,7 +6,8 @@ repos:
   - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
   - git.vdb.to/cerc-io/lighthouse
   - git.vdb.to/cerc-io/ipld-eth-db@v5
-  - git.vdb.to/cerc-io/ipld-eth-server@v1.11.6-statediff-v5
+  # - git.vdb.to/cerc-io/ipld-eth-server@v1.11.6-statediff-v5
+  - git.vdb.to/deep-stack/ipld-eth-server@pm-integrate-go-nitro
   # nitro repos
   - github.com/cerc-io/ts-nitro@v0.1.13
   - github.com/cerc-io/go-nitro@v0.1.1-ts-port-0.1.5

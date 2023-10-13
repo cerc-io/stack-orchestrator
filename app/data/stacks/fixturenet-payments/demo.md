@@ -3,12 +3,11 @@
 Stack components:
 * `ipld-eth-db` database for statediffed data
 * Local geth + lighthouse blockchain "fixturenet" running in statediffing mode
-* `ipld-eth-server` which runs an ETH RPC API and a GQL server; serves data from `ipld-eth-db`
-* A go-nitro deployment acting as the Nitro node for `ipld-eth-server`
-* A modified reverse payment proxy server (based on the one from go-nitro) that proxies requests to `ipld-eth-server`'s RPC endpoint; it talks to `ipld-eth-server`'s Nitro node to accept and validate payments required for configured RPC requests
+* `ipld-eth-server` which runs an ETH RPC API and a GQL server; serves data from `ipld-eth-db`; also runs an in-process go-nitro node for payments required for configured RPC requests
 * A MobyMask v3 watcher that pays the `ipld-eth-server` for ETH RPC requests
 * A MobyMask v3 app that pays the watcher for reads (GQL queries) and writes
-* An example ERC20 Ponder app that pays the `ipld-eth-server` for ETH RPC requests
+* An example ERC20 Ponder indexer app that pays the `ipld-eth-server` for ETH RPC requests
+* An example ERC20 Ponder watcher app that pays the Ponder indexer app for GQL queries
 
 ## Setup
 
@@ -54,7 +53,7 @@ Stack components:
   # }
   ```
 
-* In another terminal, check the ipld eth server's logs to keep track of incoming payments and RPC requests:
+* In another terminal, check `ipld-eth-server`'s logs to keep track of incoming payments and RPC requests:
 
   ```bash
   docker logs -f $(docker ps -aq --filter name="ipld-eth-server")
@@ -147,7 +146,7 @@ Stack components:
 
     ```
 
-  * The watcher makes several ETH RPC requests to `ipld-eth-server` to fetch data required for satisfying the GQL request(s); check the ipld eth server logs for charged RPC requests (`eth_getBlockByHash`, `eth_getBlockByNumber`, `eth_getStorageAt`):
+  * The watcher makes several ETH RPC requests to `ipld-eth-server` to fetch data required for satisfying the GQL request(s); check `ipld-eth-server` logs for charged RPC requests (`eth_getBlockByHash`, `eth_getBlockByNumber`, `eth_getStorageAt`):
 
     ```bash
     # Expected output:
@@ -155,7 +154,7 @@ Stack components:
     # 2023/10/13 06:34:57 INFO Received a voucher payer=0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94 amount=100
     #  2023/10/13 06:34:59 INFO Serving a paid RPC request method=eth_getBlockByHash sender=0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94
     #  time="2023-10-13T06:34:59Z" level=debug msg=START api_method=eth_getBlockByHash api_params="[0x46411a554f30e607bdd79cd157a60a7c8b314c0709557be3357ed2fef53d6c3d false]" api_reqid=52 conn="192.168.64.4:59644" user_id= uuid=a1893211-6992-11ee-a67a-0242c0a8400c
-    #  WARN [10-13|06:34:59.133] Attempting GerRPCCalls, but default PluginLoader has not been initialized 
+    #  WARN [10-13|06:34:59.133] Attempting GerRPCCalls, but default PluginLoader has not been initialized
     #  time="2023-10-13T06:34:59Z" level=debug msg=END api_method=eth_getBlockByHash api_params="[0x46411a554f30e607bdd79cd157a60a7c8b314c0709557be3357ed2fef53d6c3d false]" api_reqid=52 conn="192.168.64.4:59644" duration=5 user_id= uuid=a1893211-6992-11ee-a67a-0242c0a8400c
     #  2023/10/13 06:34:59 INFO Serving a free RPC request method=eth_chainId
     #  time="2023-10-13T06:34:59Z" level=debug msg=START api_method=eth_chainId api_params="[]" api_reqid=53 conn="192.168.64.4:59658" user_id= uuid=a18a96d9-6992-11ee-a67a-0242c0a8400c
@@ -232,7 +231,7 @@ Stack components:
 
 * On starting the Ponder app in indexer mode, it creates a payment channel with the `ipld-eth-server`'s Nitro node and then starts the historical sync service
 
-* The sync service makes several ETH RPC requests to the `ipld-eth-server` to fetch required data; check the ipld eth server logs for charged RPC requests (`eth_getBlockByNumber`, `eth_getLogs`)
+* The sync service makes several ETH RPC requests to the `ipld-eth-server` to fetch required data; check the `ipld-eth-server` logs for charged RPC requests (`eth_getBlockByNumber`, `eth_getLogs`):
 
   ```bash
   # Expected output:
@@ -240,7 +239,7 @@ Stack components:
   #  2023/10/13 06:59:49 INFO Received a voucher payer=0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d amount=100
   #  time="2023-10-13T06:59:51Z" level=debug msg=START api_method=eth_getLogs api_params="[map[address:0x32353a6c91143bfd6c7d363b546e62a9a2489a20 fromBlock:0x5 toBlock:0x68]]" api_reqid=1 conn="192.168.64.2:55578" user_id= uuid=1aedde38-6996-11ee-a67a-0242c0a8400c
   #  2023/10/13 06:59:51 INFO Serving a paid RPC request method=eth_getLogs sender=0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d
-  #  WARN [10-13|06:59:51.287] Attempting GerRPCCalls, but default PluginLoader has not been initialized 
+  #  WARN [10-13|06:59:51.287] Attempting GerRPCCalls, but default PluginLoader has not been initialized
   #  time="2023-10-13T06:59:51Z" level=debug msg="retrieving log cids for receipt ids"
   #  time="2023-10-13T06:59:51Z" level=debug msg=END api_method=eth_getLogs api_params="[map[address:0x32353a6c91143bfd6c7d363b546e62a9a2489a20 fromBlock:0x5 toBlock:0x68]]" api_reqid=1 conn="192.168.64.2:55578" duration=17 user_id= uuid=1aedde38-6996-11ee-a67a-0242c0a8400c
   #  2023/10/13 06:59:51 INFO Received a voucher payer=0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d amount=100
@@ -270,6 +269,7 @@ Stack components:
   ```
 
 * In another terminal run the ponder app in watcher mode:
+
   ```bash
   docker exec -it payments-ponder-app-watcher-1 bash -c "DEBUG=laconic:payments pnpm start"
 
@@ -284,7 +284,8 @@ Stack components:
   # 11:23:22.436 INFO  server     Started responding as healthy
   ```
 
-* Check the terminal in which indexer mode ponder is running. Logs of payment for `eth_getLogs` queries can be seen:
+* Check the terminal in which ponder is running in indexer mode. Logs of payment for `eth_getLogs` queries can be seen:
+
   ```bash
   # ...
   # 08:02:37.763 DEBUG realtime   Finished processing new head block 89 (network=fixturenet)
@@ -295,7 +296,7 @@ Stack components:
   #   laconic:payments Serving a paid query for 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db +0ms
   # 08:02:37.849 DEBUG payment    Verified payment for GQL queries getLogEvents
   ```
-  
+
 ## Clean Up
 
 * In the MobyMask app, perform `VIRTUAL DEFUND` and `DIRECT DEFUND` (in order) for closing the payment channel created with watcher

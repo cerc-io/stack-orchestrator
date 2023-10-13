@@ -2,7 +2,10 @@ name: Fixturenet-Eth-Plugeth-Test
 
 on:
   push:
-    branches: 'ci-test'
+    branches: '*'
+    paths:
+      - '!**'
+      - '.gitea/workflows/triggers/fixturenet-eth-plugeth-test'
 
 # Needed until we can incorporate docker startup into the executor container
 env:

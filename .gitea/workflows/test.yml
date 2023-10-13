@@ -7,6 +7,8 @@ on:
     branches:
       - main
       - ci-test
+    paths-ignore:
+      - '.gitea/workflows/triggers/*'
 
 # Needed until we can incorporate docker startup into the executor container
 env:

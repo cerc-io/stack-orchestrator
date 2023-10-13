@@ -32,6 +32,7 @@ laconic-so --stack fixturenet-payments deploy --cluster payments up
 # 9090: MobyMask v3 watcher relay node endpoint
 # 8080: MobyMask snap
 # 3004: MobyMask v3 app
+# 32***: geth in statediffing mode
 ```
 
 ## Demo
@@ -50,8 +51,8 @@ Clear volumes created by this stack:
 
 ```bash
 # List all relevant volumes
-docker volume ls -q --filter "name=[payments"
+docker volume ls -q --filter "name=payments"
 
 # Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=[payments")
+docker volume rm $(docker volume ls -q --filter "name=payments")
 ```

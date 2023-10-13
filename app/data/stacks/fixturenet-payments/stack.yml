@@ -49,6 +49,7 @@ pods:
   - nitro-contracts
   # - go-nitro
   # - nitro-reverse-payment-proxy
+  - nitro-rpc-client
   - watcher-mobymask-v3
   - mobymask-snap
   - mobymask-app-v3

@@ -19,8 +19,16 @@ jobs:
     steps:
       - name: "Clone project repository"
         uses: actions/checkout@v3
-      - name: "Install Python"
-        uses: cerc-io/setup-python@v4
+      # At present the stock setup-python action fails on Linux/aarch64
+      # Conditional steps below workaroud this by using deadsnakes for that case only
+      - name: "Install Python for ARM on Linux"
+        if: ${{ runner.arch == 'arm64' && runner.os == 'Linux' }}
+        uses: deadsnakes/action@v3.0.1
+        with:
+          python-version: '3.8'
+      - name: "Install Python cases other than ARM on Linux"
+        if: ${{ ! (runner.arch == 'arm64' && runner.os == 'Linux') }}
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
       - name: "Print Python version"

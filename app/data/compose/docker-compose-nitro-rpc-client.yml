@@ -5,7 +5,3 @@ services:
       hostname: nitro-rpc-client
       restart: on-failure
       command: ["bash", "-c", "tail -f /dev/null"]
-
-volumes:
-  go_nitro_data:
-  nitro_deployment:

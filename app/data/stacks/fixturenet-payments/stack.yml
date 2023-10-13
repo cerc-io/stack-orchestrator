@@ -19,7 +19,7 @@ repos:
   - github.com/cerc-io/mobymask-snap
   - github.com/cerc-io/mobymask-ui@v0.2.1
   # ponder repo
-  - github.com/cerc-io/ponder@sk-add-payment-headers # TODO: Update after merging PR
+  - github.com/cerc-io/ponder@laconic-esm
 containers:
   # fixturenet images
   - cerc/go-ethereum

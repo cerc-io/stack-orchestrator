@@ -6,13 +6,13 @@ repos:
   - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
   - git.vdb.to/cerc-io/lighthouse
   - git.vdb.to/cerc-io/ipld-eth-db@v5
-  - git.vdb.to/cerc-io/ipld-eth-server@v1.11.6-statediff-v5
-  # nitro repos
+  - git.vdb.to/cerc-io/ipld-eth-server@payments
+  # nitro repo
   - github.com/cerc-io/ts-nitro@v0.1.13
-  - github.com/cerc-io/go-nitro@v0.1.1-ts-port-0.1.5
+  - github.com/cerc-io/go-nitro@v0.1.1-ts-port-0.1.7
   # mobymask watcher repos
-  - github.com/cerc-io/watcher-ts@v0.2.63
-  - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.2
+  - github.com/cerc-io/watcher-ts@v0.2.65
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.3
   - github.com/cerc-io/MobyMask@v0.1.3
   # mobymask app repos
   - github.com/cerc-io/mobymask-snap
@@ -30,7 +30,7 @@ containers:
   - cerc/ipld-eth-db
   - cerc/ipld-eth-server
   - cerc/nitro-contracts
-  - cerc/go-nitro
+  # - cerc/go-nitro
   - cerc/nitro-rpc-client
   # mobymask watcher images
   - cerc/watcher-ts
@@ -46,8 +46,8 @@ pods:
   - ipld-eth-server
   - ipld-eth-db
   - nitro-contracts
-  - go-nitro
-  - nitro-reverse-payment-proxy
+  # - go-nitro
+  - nitro-rpc-client
   - watcher-mobymask-v3
   - mobymask-snap
   - mobymask-app-v3

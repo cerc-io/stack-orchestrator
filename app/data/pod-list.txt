@@ -38,6 +38,7 @@ fixturenet-sushiswap-subgraph-v3
 watcher-mobymask-v3
 mobymask-app-v3
 go-nitro
+nitro-rpc-client
 nitro-contracts
 nitro-reverse-payment-proxy
 mobymask-snap

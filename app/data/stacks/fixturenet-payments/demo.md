@@ -3,12 +3,11 @@
 Stack components:
 * `ipld-eth-db` database for statediffed data
 * Local geth + lighthouse blockchain "fixturenet" running in statediffing mode
-* `ipld-eth-server` which runs an ETH RPC API and a GQL server; serves data from `ipld-eth-db`
-* A go-nitro deployment acting as the Nitro node for `ipld-eth-server`
-* A modified reverse payment proxy server (based on the one from go-nitro) that proxies requests to `ipld-eth-server`'s RPC endpoint; it talks to `ipld-eth-server`'s Nitro node to accept and validate payments required for configured RPC requests
+* `ipld-eth-server` which runs an ETH RPC API and a GQL server; serves data from `ipld-eth-db`; also runs an in-process go-nitro node for payments required for configured RPC requests
 * A MobyMask v3 watcher that pays the `ipld-eth-server` for ETH RPC requests
 * A MobyMask v3 app that pays the watcher for reads (GQL queries) and writes
-* An example ERC20 Ponder app that pays the `ipld-eth-server` for ETH RPC requests
+* An example ERC20 Ponder indexer app that pays the `ipld-eth-server` for ETH RPC requests
+* An example ERC20 Ponder watcher app that pays the Ponder indexer app for GQL queries
 
 ## Setup
 
@@ -38,7 +37,7 @@ Stack components:
 * Check the payment channel status:
 
   ```bash
-  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $WATCHER_UPSTREAM_PAYMENT_CHANNEL -h go-nitro -p 4005"
+  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $WATCHER_UPSTREAM_PAYMENT_CHANNEL -h ipld-eth-server -p 4005"
 
   # Expected output:
   # {
@@ -54,10 +53,10 @@ Stack components:
   # }
   ```
 
-* In another terminal, check the reverse payment proxy server's logs to keep track of incoming payments and RPC requests:
+* In another terminal, check `ipld-eth-server`'s logs to keep track of incoming payments and RPC requests:
 
   ```bash
-  docker logs -f $(docker ps -aq --filter name="nitro-reverse-payment-proxy")
+  docker logs -f $(docker ps -aq --filter name="ipld-eth-server")
   ```
 
 * MetaMask flask wallet setup for running the MobyMask app:
@@ -140,26 +139,30 @@ Stack components:
     # vulcanize:indexer isPhisher: db miss, fetching from upstream server
     # laconic:payments Making RPC call: eth_chainId
     # laconic:payments Making RPC call: eth_getBlockByHash
+    # 2023-10-13T06:33:58.443Z ts-nitro:engine{"msg":"Sent message","_msg":{"to":"0xAAA662","from":"0xBBB676", "payloadSummaries":[],"proposalSummaries":[],"payments":[{"amount":200,"channelId":"0x9a4bdfe03c8e72f368aab07e6bd18f1cd6821170e1a93e59864aad6ee6a853a2"}],"rejectedObjectives":[]}}
     # laconic:payments Making RPC call: eth_chainId
     # laconic:payments Making RPC call: eth_getStorageAt
+    # 2023-10-13T06:34:00.483Z ts-nitro:engine {"msg":"Sent message","_msg":{"to":"0xAAA662","from":"0xBBB676",# "payloadSummaries":[],"proposalSummaries":[],"payments":[{"amount":300,"channelId":"0x9a4bdfe03c8e72f368aab07e6bd18f1cd6821170e1a93e59864aad6ee6a853a2"}],"rejectedObjectives":[]}}
+
     ```
 
-  * The watcher makes several ETH RPC requests to `ipld-eth-server` to fetch data required for satisfying the GQL request(s); check the payment proxy server logs for charged RPC requests (`eth_getBlockByHash`, `eth_getBlockByNumber`, `eth_getStorageAt`):
+  * The watcher makes several ETH RPC requests to `ipld-eth-server` to fetch data required for satisfying the GQL request(s); check `ipld-eth-server` logs for charged RPC requests (`eth_getBlockByHash`, `eth_getBlockByNumber`, `eth_getStorageAt`):
 
     ```bash
     # Expected output:
     # ...
-    # {"time":"2023-10-06T06:46:52.769009314Z","level":"DEBUG","msg":"Serving RPC request","method":"eth_chainId"}
-    # {"time":"2023-10-06T06:46:52.773006426Z","level":"DEBUG","msg":"Serving RPC request","method":"eth_getBlockByNumber"}
-    # {"time":"2023-10-06T06:46:52.811142054Z","level":"DEBUG","msg":"Request cost","cost-per-byte":1,"response-length":1480,"cost":1480,"method":"eth_getBlockByNumber"}
-    # {"time":"2023-10-06T06:46:52.811418494Z","level":"DEBUG","msg":"sent message","address":"0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE","method":"receive_voucher"}
-    # {"time":"2023-10-06T06:46:52.812557482Z","level":"DEBUG","msg":"Received voucher","delta":5000}
-    # ...
-    # {"time":"2023-10-06T06:46:52.87525215Z","level":"DEBUG","msg":"Serving RPC request","method":"eth_getStorageAt"}
-    # {"time":"2023-10-06T06:46:52.882859654Z","level":"DEBUG","msg":"Request cost","cost-per-byte":1,"response-length":104,"cost":104,"method":"eth_getStorageAt"}
-    # {"time":"2023-10-06T06:46:52.882946485Z","level":"DEBUG","msg":"sent message","address":"0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE","method":"receive_voucher"}
-    # {"time":"2023-10-06T06:46:52.884012641Z","level":"DEBUG","msg":"Received voucher","delta":5000}
-    # {"time":"2023-10-06T06:46:52.884032961Z","level":"DEBUG","msg":"Destination request","url":"http://ipld-eth-server:8081/"}
+    # 2023/10/13 06:34:57 INFO Received a voucher payer=0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94 amount=100
+    #  2023/10/13 06:34:59 INFO Serving a paid RPC request method=eth_getBlockByHash sender=0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94
+    #  time="2023-10-13T06:34:59Z" level=debug msg=START api_method=eth_getBlockByHash api_params="[0x46411a554f30e607bdd79cd157a60a7c8b314c0709557be3357ed2fef53d6c3d false]" api_reqid=52 conn="192.168.64.4:59644" user_id= uuid=a1893211-6992-11ee-a67a-0242c0a8400c
+    #  WARN [10-13|06:34:59.133] Attempting GerRPCCalls, but default PluginLoader has not been initialized
+    #  time="2023-10-13T06:34:59Z" level=debug msg=END api_method=eth_getBlockByHash api_params="[0x46411a554f30e607bdd79cd157a60a7c8b314c0709557be3357ed2fef53d6c3d false]" api_reqid=52 conn="192.168.64.4:59644" duration=5 user_id= uuid=a1893211-6992-11ee-a67a-0242c0a8400c
+    #  2023/10/13 06:34:59 INFO Serving a free RPC request method=eth_chainId
+    #  time="2023-10-13T06:34:59Z" level=debug msg=START api_method=eth_chainId api_params="[]" api_reqid=53 conn="192.168.64.4:59658" user_id= uuid=a18a96d9-6992-11ee-a67a-0242c0a8400c
+    #  time="2023-10-13T06:34:59Z" level=debug msg=END api_method=eth_chainId api_params="[]" api_reqid=53 conn="192.168.64.4:59658" duration=0 user_id= uuid=a18a96d9-6992-11ee-a67a-0242c0a8400c
+    #  2023/10/13 06:34:59 INFO Received a voucher payer=0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94 amount=100
+    #  2023/10/13 06:35:01 INFO Serving a paid RPC request method=eth_getStorageAt sender=0xBBB676f9cFF8D242e9eaC39D063848807d3D1D94
+    #  time="2023-10-13T06:35:01Z" level=debug msg=START api_method=eth_getStorageAt api_params="[0x2b6afbd4f479ce4101df722cf4e05f941523ead9 0xf76621c2cc1c1705fabbc22d30ffc5ded7f26e4995feb8d1c9812a2697ba1278 0x46411a554f30e607bdd79cd157a60a7c8b314c0709557be3357ed2fef53d6c3d]" api_reqid=54 conn="192.168.64.4:59660" user_id= uuid=a2bd75d2-6992-11ee-a67a-0242c0a8400c
+    #  time="2023-10-13T06:35:01Z" level=debug msg=END api_method=eth_getStorageAt api_params="[0x2b6afbd4f479ce4101df722cf4e05f941523ead9 0xf76621c2cc1c1705fabbc22d30ffc5ded7f26e4995feb8d1c9812a2697ba1278 0x46411a554f30e607bdd79cd157a60a7c8b314c0709557be3357ed2fef53d6c3d]" api_reqid=54 conn="192.168.64.4:59660" duration=7 user_id= uuid=a2bd75d2-6992-11ee-a67a-0242c0a8400c
     ```
 
 * Change the amount besides `PAY` button in debug panel to `>=100` for phisher reports next
@@ -186,7 +189,7 @@ Stack components:
 * Check the watcher - ipld-eth-server payment channel status after a few requests:
 
   ```bash
-  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $WATCHER_UPSTREAM_PAYMENT_CHANNEL -h go-nitro -p 4005"
+  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $WATCHER_UPSTREAM_PAYMENT_CHANNEL -h ipld-eth-server -p 4005"
 
   # Expected output ('PaidSoFar' should be non zero):
   # {
@@ -228,28 +231,28 @@ Stack components:
 
 * On starting the Ponder app in indexer mode, it creates a payment channel with the `ipld-eth-server`'s Nitro node and then starts the historical sync service
 
-* The sync service makes several ETH RPC requests to the `ipld-eth-server` to fetch required data; check the payment proxy server logs for charged RPC requests (`eth_getBlockByNumber`, `eth_getLogs`)
+* The sync service makes several ETH RPC requests to the `ipld-eth-server` to fetch required data; check the `ipld-eth-server` logs for charged RPC requests (`eth_getBlockByNumber`, `eth_getLogs`):
 
   ```bash
   # Expected output:
   # ...
-  # {"time":"2023-10-06T06:51:45.214478402Z","level":"DEBUG","msg":"Serving RPC request","method":"eth_getBlockByNumber"}
-  # {"time":"2023-10-06T06:51:45.22251171Z","level":"DEBUG","msg":"Request cost","cost-per-byte":1,"response-length":576,"cost":576,"method":"eth_getBlockByNumber"}
-  # {"time":"2023-10-06T06:51:45.222641963Z","level":"DEBUG","msg":"sent message","address":"0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE","method":"receive_voucher"}
-  # {"time":"2023-10-06T06:51:45.224042391Z","level":"DEBUG","msg":"Received voucher","delta":5000}
-  # {"time":"2023-10-06T06:51:45.224061411Z","level":"DEBUG","msg":"Destination request","url":"http://ipld-eth-server:8081/"}
-  # {"time":"2023-10-06T06:51:45.242064953Z","level":"DEBUG","msg":"Serving RPC request","method":"eth_getLogs"}
-  # {"time":"2023-10-06T06:51:45.249118517Z","level":"DEBUG","msg":"Request cost","cost-per-byte":1,"response-length":61,"cost":61,"method":"eth_getLogs"}
-  # {"time":"2023-10-06T06:51:45.249189892Z","level":"DEBUG","msg":"sent message","address":"0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE","method":"receive_voucher"}
-  # {"time":"2023-10-06T06:51:45.249743149Z","level":"DEBUG","msg":"Received voucher","delta":5000}
-  # {"time":"2023-10-06T06:51:45.249760631Z","level":"DEBUG","msg":"Destination request","url":"http://ipld-eth-server:8081/"}
+  #  2023/10/13 06:59:49 INFO Received a voucher payer=0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d amount=100
+  #  time="2023-10-13T06:59:51Z" level=debug msg=START api_method=eth_getLogs api_params="[map[address:0x32353a6c91143bfd6c7d363b546e62a9a2489a20 fromBlock:0x5 toBlock:0x68]]" api_reqid=1 conn="192.168.64.2:55578" user_id= uuid=1aedde38-6996-11ee-a67a-0242c0a8400c
+  #  2023/10/13 06:59:51 INFO Serving a paid RPC request method=eth_getLogs sender=0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d
+  #  WARN [10-13|06:59:51.287] Attempting GerRPCCalls, but default PluginLoader has not been initialized
+  #  time="2023-10-13T06:59:51Z" level=debug msg="retrieving log cids for receipt ids"
+  #  time="2023-10-13T06:59:51Z" level=debug msg=END api_method=eth_getLogs api_params="[map[address:0x32353a6c91143bfd6c7d363b546e62a9a2489a20 fromBlock:0x5 toBlock:0x68]]" api_reqid=1 conn="192.168.64.2:55578" duration=17 user_id= uuid=1aedde38-6996-11ee-a67a-0242c0a8400c
+  #  2023/10/13 06:59:51 INFO Received a voucher payer=0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d amount=100
+  #  2023/10/13 06:59:53 INFO Serving a paid RPC request method=eth_getBlockByNumber sender=0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d
+  #  2023/10/13 06:59:53 INFO Received a voucher payer=0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d amount=100
+
   # ...
   ```
 
 * Check the ponder - ipld-eth-server payment channel status:
 
   ```bash
-  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $PONDER_UPSTREAM_PAYMENT_CHANNEL -h go-nitro -p 4005"
+  docker exec payments-nitro-rpc-client-1 npm exec -c "nitro-rpc-client get-payment-channel $PONDER_UPSTREAM_PAYMENT_CHANNEL -h ipld-eth-server -p 4005"
 
   # Expected output ('PaidSoFar' is non zero):
   # {
@@ -266,6 +269,7 @@ Stack components:
   ```
 
 * In another terminal run the ponder app in watcher mode:
+
   ```bash
   docker exec -it payments-ponder-app-watcher-1 bash -c "DEBUG=laconic:payments pnpm start"
 
@@ -280,7 +284,8 @@ Stack components:
   # 11:23:22.436 INFO  server     Started responding as healthy
   ```
 
-* Check the terminal in which indexer mode ponder is running. Logs of payment for `eth_getLogs` queries can be seen:
+* Check the terminal in which ponder is running in indexer mode. Logs of payment for `eth_getLogs` queries can be seen:
+
   ```bash
   # ...
   # 08:02:37.763 DEBUG realtime   Finished processing new head block 89 (network=fixturenet)
@@ -291,7 +296,7 @@ Stack components:
   #   laconic:payments Serving a paid query for 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db +0ms
   # 08:02:37.849 DEBUG payment    Verified payment for GQL queries getLogEvents
   ```
-  
+
 ## Clean Up
 
 * In the MobyMask app, perform `VIRTUAL DEFUND` and `DIRECT DEFUND` (in order) for closing the payment channel created with watcher

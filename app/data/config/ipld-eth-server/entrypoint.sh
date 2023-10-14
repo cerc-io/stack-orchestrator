@@ -12,33 +12,24 @@ if [ -n "$CERC_NA_ADDRESS" ]; then
   export NITRO_NA_ADDRESS=${CERC_NA_ADDRESS}
   export NITRO_VPA_ADDRESS=${CERC_VPA_ADDRESS}
   export NITRO_CA_ADDRESS=${CERC_CA_ADDRESS}
-elif [ -f ${nitro_addresses_file} ]; then
-  echo "Reading Nitro addresses from ${nitro_addresses_file}"
-
-  export NITRO_NA_ADDRESS=$(jq -r '.nitroAdjudicatorAddress' ${nitro_addresses_file})
-  export NITRO_VPA_ADDRESS=$(jq -r '.virtualPaymentAppAddress' ${nitro_addresses_file})
-  export NITRO_CA_ADDRESS=$(jq -r '.consensusAppAddress' ${nitro_addresses_file})
 else
-  echo "File ${nitro_addresses_file} not found"
-  exit 1
+  # Read addresses from a file
+  # Keep retrying until found
+  echo "Reading Nitro addresses from ${nitro_addresses_file}"
+  retry_interval=5
+  while true; do
+    if [[ -e "$nitro_addresses_file" ]]; then
+      export NITRO_NA_ADDRESS=$(jq -r '.nitroAdjudicatorAddress' ${nitro_addresses_file})
+      export NITRO_VPA_ADDRESS=$(jq -r '.virtualPaymentAppAddress' ${nitro_addresses_file})
+      export NITRO_CA_ADDRESS=$(jq -r '.consensusAppAddress' ${nitro_addresses_file})
+
+      break
+    else
+      echo "File not yet available, retrying in $retry_interval seconds..."
+      sleep $retry_interval
+    fi
+  done
 fi
-
-# Wait till chain endpoint is available
-retry_interval=5
-while true; do
-  # Assuming NITRO_CHAIN_URL is of format <ws|http>://host:port
-  ws_host=$(echo "$NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 1)
-  ws_port=$(echo "$NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 2)
-  nc -z -w 1 "$ws_host" "$ws_port"
-
-  if [ $? -eq 0 ]; then
-    echo "Chain endpoint is available"
-    break
-  fi
-
-  echo "Chain endpoint not yet available, retrying in $retry_interval seconds..."
-  sleep $retry_interval
-done
 
 echo "Beginning the ipld-eth-server process"
 

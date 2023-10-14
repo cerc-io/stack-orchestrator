@@ -6,6 +6,7 @@ repos:
   - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
   - git.vdb.to/cerc-io/lighthouse
   - git.vdb.to/cerc-io/ipld-eth-db@v5
+  # ipld-eth-server with payments -- to be used by ipld-eth-server-payments pod
   - git.vdb.to/cerc-io/ipld-eth-server@payments
   # nitro repo
   - github.com/cerc-io/ts-nitro@v0.1.13
@@ -43,7 +44,7 @@ containers:
   - cerc/ponder
 pods:
   - fixturenet-eth
-  - ipld-eth-server
+  - ipld-eth-server-payments
   - ipld-eth-db
   - nitro-contracts
   # - go-nitro

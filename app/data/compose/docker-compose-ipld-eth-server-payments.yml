@@ -27,18 +27,37 @@ services:
       PROM_HTTP_PORT: "8090"
       LOG_LEVEL: "debug"
       CERC_REMOTE_DEBUG: ${CERC_REMOTE_DEBUG:-true}
+      NITRO_PK: ${CERC_NITRO_PK:-2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d}
+      NITRO_CHAIN_PK: ${CERC_NITRO_CHAIN_PK:-570b909da9669b2f35a0b1ac70b8358516d55ae1b5b3710e95e9a94395090597}
+      NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
+      NITRO_USE_DURABLE_STORE: ${CERC_NITRO_USE_DURABLE_STORE:-false}
+      NITRO_DURABLE_STORE_FOLDER: ${CERC_NITRO_DURABLE_STORE_FOLDER:-/app/data/nitro-store}
+      CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
+      CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
+      CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
+    entrypoint: ["bash", "-c", "/app/entrypoint.sh"]
     volumes:
       - type: bind
         source: ../config/ipld-eth-server/chain.json
         target: /tmp/chain.json
+      - eth_server_nitro_data:/app/data
+      - nitro_deployment:/app/deployment
+      - ../config/ipld-eth-server/entrypoint.sh:/app/entrypoint.sh
     ports:
       - "8081"
       - "8082"
       - "8090"
       - "40000"
+      - "3005"
+      - "4005:4005"
+      - "5005:5005"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8081"]
       interval: 20s
       timeout: 5s
       retries: 15
       start_period: 5s
+
+volumes:
+  eth_server_nitro_data:
+  nitro_deployment:

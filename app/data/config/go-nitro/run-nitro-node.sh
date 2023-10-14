@@ -29,12 +29,13 @@ fi
 
 echo "Running Nitro node"
 
+# Assuming CERC_NITRO_CHAIN_URL is of format <ws|http>://host:port
+ws_host=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 1)
+ws_port=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 2)
+
 # Wait till chain endpoint is available
 retry_interval=5
 while true; do
-  # Assuming CERC_NITRO_CHAIN_URL is of format <ws|http>://host:port
-  ws_host=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 1)
-  ws_port=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 2)
   nc -z -w 1 "$ws_host" "$ws_port"
 
   if [ $? -eq 0 ]; then

@@ -26,7 +26,6 @@ laconic-so --stack fixturenet-payments deploy --cluster payments up
 # Exposed on host ports:
 # 4005: go-nitro node's RPC endpoint
 # 5005: go-nitro node's p2p endpoint
-# 8081: reverse payment proxy's RPC endpoint
 # 15432: MobyMask v3 watcher's db endpoint
 # 3001: MobyMask v3 watcher endpoint
 # 9090: MobyMask v3 watcher relay node endpoint

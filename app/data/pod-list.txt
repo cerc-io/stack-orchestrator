@@ -40,7 +40,6 @@ mobymask-app-v3
 go-nitro
 nitro-rpc-client
 nitro-contracts
-nitro-reverse-payment-proxy
 mobymask-snap
 ponder
 ipld-eth-server-payments

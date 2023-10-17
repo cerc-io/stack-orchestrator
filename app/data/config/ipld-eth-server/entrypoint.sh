@@ -31,6 +31,8 @@ else
   done
 fi
 
+# TODO: Wait for chain endpoint
+
 echo "Beginning the ipld-eth-server process"
 
 START_CMD="./ipld-eth-server"

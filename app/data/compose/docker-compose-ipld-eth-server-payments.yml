@@ -44,12 +44,13 @@ services:
       - eth_server_nitro_data:/app/nitro-data
       - nitro_deployment:/app/deployment
       - ../config/ipld-eth-server/entrypoint.sh:/app/entrypoint.sh
+      - ../config/go-nitro/tls:/app/nitroTLS
     ports:
       - "8081"
       - "8082"
       - "8090"
       - "40000"
-      - "3005"
+      - "3005:3005"
       - "4005:4005"
       - "5005:5005"
     healthcheck:

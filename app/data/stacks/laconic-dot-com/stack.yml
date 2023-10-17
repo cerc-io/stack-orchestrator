@@ -1,0 +1,8 @@
+version: "0.1"
+name: laconic-dot-com
+repos:
+  - github.com/LaconicNetwork/laconic.com@dockerfile
+containers:
+  - cerc/laconic-dot-com
+pods:
+  - laconic-dot-com

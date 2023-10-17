@@ -1,6 +1,6 @@
 version: "3.2"
 services:
-  ipld-eth-server:
+  ipld-eth-server-1:
     restart: unless-stopped
     depends_on:
       ipld-eth-db:
@@ -44,7 +44,6 @@ services:
       - eth_server_nitro_data:/app/nitro-data
       - nitro_deployment:/app/deployment
       - ../config/ipld-eth-server/entrypoint.sh:/app/entrypoint.sh
-      - ../config/go-nitro/tls:/app/nitroTLS
     ports:
       - "8081"
       - "8082"
@@ -53,6 +52,55 @@ services:
       - "3005:3005"
       - "4005:4005"
       - "5005:5005"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "8081"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  ipld-eth-server-2:
+    restart: unless-stopped
+    depends_on:
+      ipld-eth-db:
+        condition: service_healthy
+      go-nitro:
+        condition: service_healthy
+    image: cerc/ipld-eth-server:local
+    environment:
+      SERVER_HTTP_PATH: 0.0.0.0:8081
+      SERVER_GRAPHQL: "true"
+      SERVER_GRAPHQLPATH: 0.0.0.0:8082
+      VDB_COMMAND: "serve"
+      ETH_CHAIN_CONFIG: "/tmp/chain.json"
+      DATABASE_NAME: cerc_testing
+      DATABASE_HOSTNAME: ipld-eth-db
+      DATABASE_PORT: 5432
+      DATABASE_USER: "vdbm"
+      DATABASE_PASSWORD: "password"
+      ETH_CHAIN_ID: 99
+      ETH_FORWARD_ETH_CALLS: "false"
+      ETH_FORWARD_GET_STORAGE_AT: "false"
+      ETH_PROXY_ON_ERROR: "false"
+      METRICS: "true"
+      PROM_HTTP: "true"
+      PROM_HTTP_ADDR: "0.0.0.0"
+      PROM_HTTP_PORT: "8090"
+      LOG_LEVEL: "debug"
+      CERC_REMOTE_DEBUG: ${CERC_REMOTE_DEBUG:-true}
+      NITRO_RUN_NODE_IN_PROCESS: ${CERC_NITRO_RUN_NODE_IN_PROCESS:-false}
+      NITRO_ENDPOINT: ${CERC_NITRO_ENDPOINT:-go-nitro:4006/api/v1}
+    entrypoint: ["bash", "-c", "/app/entrypoint.sh"]
+    volumes:
+      - type: bind
+        source: ../config/ipld-eth-server/chain.json
+        target: /tmp/chain.json
+      - ../config/ipld-eth-server/entrypoint.sh:/app/entrypoint.sh
+    ports:
+      - "8081"
+      - "8082"
+      - "8090"
+      - "40000"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8081"]
       interval: 20s

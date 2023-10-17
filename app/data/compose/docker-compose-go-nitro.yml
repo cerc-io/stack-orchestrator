@@ -11,8 +11,8 @@ services:
         condition: service_completed_successfully
     environment:
       CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
-      CERC_NITRO_PK: ${CERC_NITRO_PK:-febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781}
-      CERC_NITRO_CHAIN_PK: ${CERC_NITRO_CHAIN_PK:-be4aa664815ea3bc3d63118649a733f6c96b243744310806ecb6d96359ab62cf}
+      CERC_NITRO_PK: ${CERC_NITRO_PK:-f36f6dd450892224ee113899195ef922a4795d41c32cafb386d9aab6e0b7b0c6}
+      CERC_NITRO_CHAIN_PK: ${CERC_NITRO_CHAIN_PK:-888814df89c4358d7ddb3fa4b0213e7331239a80e1f013eaa7b2deca2a41a218}
       CERC_NITRO_USE_DURABLE_STORE: ${CERC_NITRO_USE_DURABLE_STORE:-true}
       CERC_NITRO_DURABLE_STORE_FOLDER: ${CERC_NITRO_DURABLE_STORE_FOLDER:-/app/data/nitro-store}
       CERC_NITRO_MSG_PORT: ${CERC_NITRO_MSG_PORT:-3006}
@@ -26,10 +26,9 @@ services:
       - go_nitro_data:/app/data
       - nitro_deployment:/app/deployment
       - ../config/go-nitro/run-nitro-node.sh:/app/run-nitro-node.sh
-      - ../config/go-nitro/tls:/app/tls
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "4006"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 10
       start_period: 10s

@@ -1,0 +1,8 @@
+{
+    "freeQueriesLimit": 10,
+    "freeQueriesList": [],
+    "queries": {
+      "getLogEvents": "50"
+    },
+    "mutations": {}
+}

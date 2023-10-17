@@ -38,7 +38,7 @@ services:
       - peers_ids:/peers
       - nitro_deployment:/nitro
       - erc20_deployment:/erc20
-      - ponder_indexer_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
+      - ponder_indexer_1_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     ports:
       - "42070"
     extra_hosts:
@@ -67,7 +67,7 @@ services:
       - peers_ids:/peers
       - nitro_deployment:/nitro
       - erc20_deployment:/erc20
-      - ponder_indexer_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
+      - ponder_indexer_2_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     ports:
       - "42070"
     extra_hosts:
@@ -77,4 +77,5 @@ volumes:
   peers_ids:
   nitro_deployment:
   erc20_deployment:
-  ponder_indexer_nitro_data:
+  ponder_indexer_1_nitro_data:
+  ponder_indexer_2_nitro_data:

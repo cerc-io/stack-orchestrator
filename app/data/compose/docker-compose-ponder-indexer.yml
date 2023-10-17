@@ -15,16 +15,16 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  ponder-app-indexer:
-    hostname: ponder-app-indexer
+  ponder-app-indexer-1:
+    hostname: ponder-app-indexer-1
     restart: unless-stopped
     image: cerc/ponder:local
     working_dir: /app/examples/token-erc20
     environment:
       CERC_PONDER_CHAIN_ID: ${PONDER_CHAIN_ID:-99}
       CERC_PONDER_RPC_URL_1: ${PONDER_RPC_URL_1:-http://ipld-eth-server-2:8081}
-      CERC_PONDER_NITRO_PK: ${CERC_PONDER_INDEXER_NITRO_PK:-58368d20ff12f17669c06158c21d885897aa56f9be430edc789614bf9851d53f}
-      CERC_PONDER_NITRO_CHAIN_PK: ${CERC_PONDER_INDEXER_NITRO_CHAIN_PK:-fb1e9af328c283ca3e2486e7c24d13582b7912057d8b9542ff41503c85bc05c0}
+      CERC_PONDER_NITRO_PK: ${CERC_PONDER_INDEXER_NITRO_PK_1:-58368d20ff12f17669c06158c21d885897aa56f9be430edc789614bf9851d53f}
+      CERC_PONDER_NITRO_CHAIN_PK: ${CERC_PONDER_INDEXER_NITRO_CHAIN_PK_1:-fb1e9af328c283ca3e2486e7c24d13582b7912057d8b9542ff41503c85bc05c0}
       CERC_PONDER_NITRO_CHAIN_URL: ${CERC_PONDER_NITRO_CHAIN_URL:-http://fixturenet-eth-geth-1:8546}
       CERC_RELAY_MULTIADDR: ${CERC_RELAY_MULTIADDR}
       CERC_UPSTREAM_NITRO_ADDRESS: ${CERC_UPSTREAM_NITRO_ADDRESS:-0x660a4bEF3fbC863Fcd8D3CDB39242aE513d7D92e}
@@ -44,33 +44,32 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  ponder-app-watcher:
-    hostname: ponder-app-watcher
-    depends_on:
-      - ponder-app-indexer
+  ponder-app-indexer-2:
+    hostname: ponder-app-indexer-2
     restart: unless-stopped
     image: cerc/ponder:local
     working_dir: /app/examples/token-erc20
     environment:
       CERC_PONDER_CHAIN_ID: ${PONDER_CHAIN_ID:-99}
-      CERC_PONDER_NITRO_PK: ${CERC_PONDER_WATCHER_NITRO_PK:-febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781}
-      CERC_PONDER_NITRO_CHAIN_PK: ${CERC_PONDER_WATCHER_NITRO_CHAIN_PK:-be4aa664815ea3bc3d63118649a733f6c96b243744310806ecb6d96359ab62cf}
+      CERC_PONDER_RPC_URL_1: ${PONDER_RPC_URL_1:-http://ipld-eth-server:8081}
+      CERC_PONDER_NITRO_PK: ${CERC_PONDER_INDEXER_NITRO_PK_2:-0aca28ba64679f63d71e671ab4dbb32aaa212d4789988e6ca47da47601c18fe2}
+      CERC_PONDER_NITRO_CHAIN_PK: ${CERC_PONDER_INDEXER_NITRO_CHAIN_PK_2:-6177345b77c4069ac4d553f8b43cf68a799ca4bb63eac93d6cf796d63694ebf0}
       CERC_PONDER_NITRO_CHAIN_URL: ${CERC_PONDER_NITRO_CHAIN_URL:-http://fixturenet-eth-geth-1:8546}
       CERC_RELAY_MULTIADDR: ${CERC_RELAY_MULTIADDR}
-      CERC_INDEXER_GQL_ENDPOINT: ${CERC_INDEXER_GQL_ENDPOINT:-http://ponder-app-indexer:42070/graphql}
-      CERC_INDEXER_NITRO_ADDRESS: ${CERC_INDEXER_NITRO_ADDRESS:-0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d}
-      CERC_INDEXER_NITRO_PAY_AMOUNT: ${CERC_INDEXER_NITRO_PAY_AMOUNT:-50}
+      CERC_UPSTREAM_NITRO_ADDRESS: ${CERC_UPSTREAM_NITRO_ADDRESS:-0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE}
+      CERC_UPSTREAM_NITRO_MULTIADDR: ${CERC_UPSTREAM_NITRO_MULTIADDR:-/dns4/ipld-eth-server/tcp/5005/ws/p2p/16Uiu2HAmSjXJqsyBJgcBUU2HQmykxGseafSatbpq5471XmuaUqyv}
+      CERC_UPSTREAM_NITRO_PAY_AMOUNT: ${CERC_UPSTREAM_NITRO_PAY_AMOUNT:-100}
     command: ["bash", "./ponder-start.sh"]
     volumes:
       - ../config/ponder/ponder-start.sh:/app/examples/token-erc20/ponder-start.sh
-      - ../config/ponder/ponder.watcher.config.ts:/app/examples/token-erc20/ponder.config.ts
+      - ../config/ponder/ponder.indexer.config.ts:/app/examples/token-erc20/ponder.config.ts
       - ../config/ponder/base-rates-config.json:/app/examples/token-erc20/base-rates-config.json
       - peers_ids:/peers
       - nitro_deployment:/nitro
       - erc20_deployment:/erc20
-      - ponder_watcher_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
+      - ponder_indexer_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     ports:
-      - "42069"
+      - "42070"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -79,4 +78,3 @@ volumes:
   nitro_deployment:
   erc20_deployment:
   ponder_indexer_nitro_data:
-  ponder_watcher_nitro_data:

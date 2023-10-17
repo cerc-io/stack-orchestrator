@@ -55,4 +55,5 @@ pods:
   - watcher-mobymask-v3
   - mobymask-snap
   - mobymask-app-v3
-  - ponder
+  - ponder-indexer
+  - ponder-watcher

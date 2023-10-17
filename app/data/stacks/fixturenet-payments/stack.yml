@@ -19,7 +19,7 @@ repos:
   - github.com/cerc-io/mobymask-snap
   - github.com/cerc-io/mobymask-ui@v0.2.1
   # ponder repo
-  - github.com/cerc-io/ponder@laconic-esm
+  - github.com/deep-stack/ponder@sk-use-rates-file
 containers:
   # fixturenet images
   - cerc/go-ethereum

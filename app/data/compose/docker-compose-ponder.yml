@@ -20,6 +20,7 @@ services:
     volumes:
       - ../config/ponder/ponder-start.sh:/app/examples/token-erc20/ponder-start.sh
       - ../config/ponder/ponder.indexer.config.ts:/app/examples/token-erc20/ponder.config.ts
+      - ../config/ponder/base-rates-config.json:/app/examples/token-erc20/base-rates-config.json
       - peers_ids:/peers
       - nitro_deployment:/nitro
       - ponder_indexer_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
@@ -48,6 +49,7 @@ services:
     volumes:
       - ../config/ponder/ponder-start.sh:/app/examples/token-erc20/ponder-start.sh
       - ../config/ponder/ponder.watcher.config.ts:/app/examples/token-erc20/ponder.config.ts
+      - ../config/ponder/base-rates-config.json:/app/examples/token-erc20/base-rates-config.json
       - peers_ids:/peers
       - nitro_deployment:/nitro
       - ponder_watcher_nitro_data:/app/examples/token-erc20/.ponder/nitro-db

@@ -49,5 +49,17 @@ export const config: Config = {
     contractAddresses,
     relayMultiAddr: process.env.RELAY_MULTIADDR!,
     store: "./.ponder/nitro-db",
+    payments: {
+      cache: {
+        maxAccounts: 1000,
+        accountTTLInSecs: 1800,
+        maxVouchersPerAccount: 1000,
+        voucherTTLInSecs: 300,
+        maxPaymentChannels: 10000,
+        paymentChannelTTLInSecs: 1800,
+      },
+      ratesFile: "./base-rates-config.json",
+      requestTimeoutInSecs: 10,
+    },
   },
 };

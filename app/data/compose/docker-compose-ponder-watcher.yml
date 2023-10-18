@@ -25,13 +25,15 @@ services:
         - ../config/ponder/base-rates-config.json:/app/examples/token-erc20/base-rates-config.json
         - peers_ids:/peers
         - nitro_deployment:/nitro
+        - erc20_deployment:/erc20
         - ponder_watcher_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
       ports:
-        - "42069"
+        - "127.0.0.1:42069:42069"
       extra_hosts:
         - "host.docker.internal:host-gateway"
 
 volumes:
   peers_ids:
   nitro_deployment:
+  erc20_deployment:
   ponder_watcher_nitro_data:

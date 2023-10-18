@@ -40,7 +40,7 @@ services:
       - erc20_deployment:/erc20
       - ponder_indexer_1_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     ports:
-      - "42070"
+      - "127.0.0.1:42070:42070"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -68,7 +68,7 @@ services:
       - erc20_deployment:/erc20
       - ponder_indexer_2_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     ports:
-      - "42070"
+      - "127.0.0.1:42071:42070"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

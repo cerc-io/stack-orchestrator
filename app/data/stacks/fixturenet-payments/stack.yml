@@ -13,6 +13,7 @@ repos:
   - github.com/cerc-io/go-nitro@ts-interop # TODO: Use release
   # mobymask watcher repos
   - github.com/cerc-io/watcher-ts@v0.2.66
+    # this is mobymask-v3
   - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.4
   - github.com/cerc-io/MobyMask@v0.1.3
   # mobymask app repos

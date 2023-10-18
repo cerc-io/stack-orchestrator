@@ -31,6 +31,21 @@ else
   exit 1
 fi
 
+# Read ERC20 address from a file
+# Keep retrying until found
+erc20_address_file="/erc20/erc20-address.json"
+echo "Reading ERC20 address from ${erc20_address_file}"
+retry_interval=5
+while true; do
+  if [[ -e "$erc20_address_file" ]]; then
+    ERC20_CONTRACT=$(jq -r '.address' ${erc20_address_file})
+    break
+  else
+    echo "File not yet available, retrying in $retry_interval seconds..."
+    sleep $retry_interval
+  fi
+done
+
 echo "Using CERC_PONDER_NITRO_PK from env for Nitro account"
 echo "Using CERC_PONDER_NITRO_CHAIN_PK (account with funds) from env for sending Nitro txs"
 echo "Using ${CERC_PONDER_NITRO_CHAIN_URL} as the RPC endpoint for Nitro txs"
@@ -56,6 +71,7 @@ echo "UPSTREAM_NITRO_PAY_AMOUNT=\"$CERC_UPSTREAM_NITRO_PAY_AMOUNT\"" >> "$env_fi
 echo "INDEXER_GQL_ENDPOINT=\"$CERC_INDEXER_GQL_ENDPOINT\"" >> "$env_file"
 echo "INDEXER_NITRO_ADDRESS=\"$CERC_INDEXER_NITRO_ADDRESS\"" >> "$env_file"
 echo "INDEXER_NITRO_PAY_AMOUNT=\"$CERC_INDEXER_NITRO_PAY_AMOUNT\"" >> "$env_file"
+echo "ERC20_CONTRACT=\"$ERC20_CONTRACT\"" >> "$env_file"
 
 cat "$env_file"
 

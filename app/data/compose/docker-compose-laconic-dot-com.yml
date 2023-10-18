@@ -5,4 +5,4 @@ services:
     image: cerc/laconic-dot-com:local
     restart: always
     ports:
-      - "0.0.0.0:3000:3000"
+      - "3000:3000"

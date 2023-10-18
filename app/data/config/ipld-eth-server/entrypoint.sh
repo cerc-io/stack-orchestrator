@@ -35,6 +35,8 @@ read_nitro_addresses() {
 
 if [ "$NITRO_RUN_NODE_IN_PROCESS" = "true" ]; then
   read_nitro_addresses
+else
+  # TODO: wait for the Nitro endpoint to be up
 fi
 
 echo "Beginning the ipld-eth-server process"

@@ -47,4 +47,4 @@ while true; do
   sleep $retry_interval
 done
 
-./nitro -chainurl ${CERC_NITRO_CHAIN_URL} -msgport ${CERC_NITRO_MSG_PORT} -rpcport ${CERC_NITRO_RPC_PORT} -wsmsgport ${CERC_NITRO_WS_MSG_PORT} -pk ${CERC_NITRO_PK} -chainpk ${CERC_NITRO_CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${CERC_NITRO_USE_DURABLE_STORE} -durablestorefolder ${CERC_NITRO_DURABLE_STORE_FOLDER} -publicip "0.0.0.0" -tlscertfilepath "" -tlsKeyFilepath ""
+./nitro -chainurl ${CERC_NITRO_CHAIN_URL} -msgport ${CERC_NITRO_MSG_PORT} -rpcport ${CERC_NITRO_RPC_PORT} -wsmsgport ${CERC_NITRO_WS_MSG_PORT} -publicip "0.0.0.0" -pk ${CERC_NITRO_PK} -chainpk ${CERC_NITRO_CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${CERC_NITRO_USE_DURABLE_STORE} -durablestorefolder ${CERC_NITRO_DURABLE_STORE_FOLDER} -tlscertfilepath "" -tlsKeyFilepath ""

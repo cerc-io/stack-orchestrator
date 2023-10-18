@@ -10,16 +10,16 @@ repos:
   # - git.vdb.to/cerc-io/ipld-eth-server@payments
   - git.vdb.to/deep-stack/ipld-eth-server@pm-external-nitro-node # TODO: Use payments branch after merging
   # nitro repo
-  - github.com/cerc-io/ts-nitro@v0.1.13
+  - github.com/cerc-io/ts-nitro@v0.1.15
   # - github.com/cerc-io/go-nitro@v0.1.1-ts-port-0.1.7
   - github.com/deep-stack/go-nitro@nv-validate-voucher # TODO: Use release
   # mobymask watcher repos
-  - github.com/cerc-io/watcher-ts@v0.2.65
-  - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.3
+  - github.com/cerc-io/watcher-ts@v0.2.66
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.4
   - github.com/cerc-io/MobyMask@v0.1.3
   # mobymask app repos
   - github.com/cerc-io/mobymask-snap
-  - github.com/cerc-io/mobymask-ui@v0.2.1
+  - github.com/cerc-io/mobymask-ui@v0.2.2
   # ponder repo
   - github.com/cerc-io/ponder@laconic-esm
 containers:

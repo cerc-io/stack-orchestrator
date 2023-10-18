@@ -1,6 +1,20 @@
 version: '3.7'
 
 services:
+  ponder-er20-contracts:
+    image: cerc/watcher-erc20:local
+    restart: on-failure
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT:-http://fixturenet-eth-geth-1:8545}
+      CERC_PRIVATE_KEY_DEPLOYER: ${CERC_PRIVATE_KEY_DEPLOYER:-0x888814df89c4358d7ddb3fa4b0213e7331239a80e1f013eaa7b2deca2a41a218}
+    volumes:
+      - ../config/ponder/deploy-erc20-contract.sh:/app/deploy-erc20-contract.sh
+      - erc20_deployment:/app/deployment
+    command: ["bash", "-c", "/app/deploy-erc20-contract.sh"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   ponder-app-indexer:
     hostname: ponder-app-indexer
     restart: unless-stopped
@@ -23,6 +37,7 @@ services:
       - ../config/ponder/base-rates-config.json:/app/examples/token-erc20/base-rates-config.json
       - peers_ids:/peers
       - nitro_deployment:/nitro
+      - erc20_deployment:/erc20
       - ponder_indexer_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     ports:
       - "42070"
@@ -52,6 +67,7 @@ services:
       - ../config/ponder/base-rates-config.json:/app/examples/token-erc20/base-rates-config.json
       - peers_ids:/peers
       - nitro_deployment:/nitro
+      - erc20_deployment:/erc20
       - ponder_watcher_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
     ports:
       - "42069"
@@ -61,5 +77,6 @@ services:
 volumes:
   peers_ids:
   nitro_deployment:
+  erc20_deployment:
   ponder_indexer_nitro_data:
   ponder_watcher_nitro_data:

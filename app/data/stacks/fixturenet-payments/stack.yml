@@ -20,6 +20,7 @@ repos:
   - github.com/cerc-io/mobymask-ui@v0.2.2
   # ponder repo
   - github.com/cerc-io/ponder@laconic-esm
+  - github.com/cerc-io/erc20-watcher-ts
 containers:
   # fixturenet images
   - cerc/go-ethereum
@@ -42,6 +43,7 @@ containers:
   - cerc/mobymask-ui
   # ponder image
   - cerc/ponder
+  - cerc/watcher-erc20
 pods:
   - fixturenet-eth
   - ipld-eth-server-payments

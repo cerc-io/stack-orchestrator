@@ -34,7 +34,7 @@ export const config: Config = {
       name: "AdventureGold",
       network: "fixturenet",
       abi: "./abis/AdventureGold.json",
-      address: "0x32353A6C91143bfd6C7d363B546e62a9A2489A20",
+      address: process.env.ERC20_CONTRACT,
       startBlock: 5,
       maxBlockRange: 100,
     },

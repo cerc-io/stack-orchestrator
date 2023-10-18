@@ -34,7 +34,7 @@ services:
       - ETH_RPC_URL=http://go-ethereum:8545
     command: ["sh", "-c", "yarn server"]
     volumes:
-      - ../config/watcher-erc20/erc20-watcher.toml:/app/packages/erc20-watcher/environments/local.toml
+      - ../config/watcher-erc20/erc20-watcher.toml:/app/environments/local.toml
     ports:
       - "0.0.0.0:3002:3001"
       - "0.0.0.0:9002:9001"

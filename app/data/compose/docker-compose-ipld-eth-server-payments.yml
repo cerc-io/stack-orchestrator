@@ -64,8 +64,6 @@ services:
     depends_on:
       ipld-eth-db:
         condition: service_healthy
-      go-nitro:
-        condition: service_healthy
     image: cerc/ipld-eth-server:local
     environment:
       SERVER_HTTP_PATH: 0.0.0.0:8081

@@ -24,14 +24,18 @@ Deploy the stack:
 laconic-so --stack fixturenet-payments deploy --cluster payments up
 
 # Exposed on host ports:
-# 4005: go-nitro node's RPC endpoint
-# 5005: go-nitro node's p2p endpoint
+# 32***: geth in statediffing mode and ipld-eth-server(s)
+# 4005: in-process go-nitro node's RPC endpoint
+# 3005: in-process go-nitro node's p2p TCP endpoint
+# 5005: in-process go-nitro node's p2p WS endpoin
+# 4006: out-of-process go-nitro node's RPC endpoint
+# 3006: out-of-process go-nitro node's p2p TCP endpoint
+# 5006: out-of-process go-nitro node's p2p WS endpoint
 # 15432: MobyMask v3 watcher's db endpoint
 # 3001: MobyMask v3 watcher endpoint
 # 9090: MobyMask v3 watcher relay node endpoint
 # 8080: MobyMask snap
 # 3004: MobyMask v3 app
-# 32***: geth in statediffing mode
 ```
 
 ## Demo

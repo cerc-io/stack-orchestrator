@@ -33,10 +33,25 @@ read_nitro_addresses() {
   fi
 }
 
+wait_for_nitro_endpoint() {
+  retry_interval=5
+  while true; do
+    curl -I -s -o /dev/null $NITRO_ENDPOINT/health
+
+    if [ $? -eq 0 ]; then
+      echo "Nitro endpoint is up"
+      break
+    else
+      echo "Nitro endpoint not available yet, retrying in $retry_interval seconds..."
+      sleep $retry_interval
+    fi
+  done
+}
+
 if [ "$NITRO_RUN_NODE_IN_PROCESS" = "true" ]; then
   read_nitro_addresses
 else
-  # TODO: wait for the Nitro endpoint to be up
+  wait_for_nitro_endpoint
 fi
 
 echo "Beginning the ipld-eth-server process"

@@ -1,34 +1,57 @@
 #!/bin/sh
 
-nitro_addresses_file="/app/deployment/nitro-addresses.json"
+read_nitro_addresses() {
+  nitro_addresses_file="/app/deployment/nitro-addresses.json"
 
-# Check if CERC_NA_ADDRESS environment variable is set
-if [ -n "$CERC_NA_ADDRESS" ]; then
-  echo "CERC_NA_ADDRESS is set to '$CERC_NA_ADDRESS'"
-  echo "CERC_VPA_ADDRESS is set to '$CERC_VPA_ADDRESS'"
-  echo "CERC_CA_ADDRESS is set to '$CERC_CA_ADDRESS'"
-  echo "Using the above Nitro addresses"
+  # Check if CERC_NA_ADDRESS environment variable is set
+  if [ -n "$CERC_NA_ADDRESS" ]; then
+    echo "CERC_NA_ADDRESS is set to '$CERC_NA_ADDRESS'"
+    echo "CERC_VPA_ADDRESS is set to '$CERC_VPA_ADDRESS'"
+    echo "CERC_CA_ADDRESS is set to '$CERC_CA_ADDRESS'"
+    echo "Using the above Nitro addresses"
 
-  export NITRO_NA_ADDRESS=${CERC_NA_ADDRESS}
-  export NITRO_VPA_ADDRESS=${CERC_VPA_ADDRESS}
-  export NITRO_CA_ADDRESS=${CERC_CA_ADDRESS}
-else
-  # Read addresses from a file
-  # Keep retrying until found
-  echo "Reading Nitro addresses from ${nitro_addresses_file}"
+    export NITRO_NA_ADDRESS=${CERC_NA_ADDRESS}
+    export NITRO_VPA_ADDRESS=${CERC_VPA_ADDRESS}
+    export NITRO_CA_ADDRESS=${CERC_CA_ADDRESS}
+  else
+    # Read addresses from a file
+    # Keep retrying until found
+    echo "Reading Nitro addresses from ${nitro_addresses_file}"
+    retry_interval=5
+    while true; do
+      if [[ -e "$nitro_addresses_file" ]]; then
+        export NITRO_NA_ADDRESS=$(jq -r '.nitroAdjudicatorAddress' ${nitro_addresses_file})
+        export NITRO_VPA_ADDRESS=$(jq -r '.virtualPaymentAppAddress' ${nitro_addresses_file})
+        export NITRO_CA_ADDRESS=$(jq -r '.consensusAppAddress' ${nitro_addresses_file})
+
+        break
+      else
+        echo "File not yet available, retrying in $retry_interval seconds..."
+        sleep $retry_interval
+      fi
+    done
+  fi
+}
+
+wait_for_nitro_endpoint() {
   retry_interval=5
   while true; do
-    if [[ -e "$nitro_addresses_file" ]]; then
-      export NITRO_NA_ADDRESS=$(jq -r '.nitroAdjudicatorAddress' ${nitro_addresses_file})
-      export NITRO_VPA_ADDRESS=$(jq -r '.virtualPaymentAppAddress' ${nitro_addresses_file})
-      export NITRO_CA_ADDRESS=$(jq -r '.consensusAppAddress' ${nitro_addresses_file})
+    curl -I -s -o /dev/null $NITRO_ENDPOINT/health
 
+    if [ $? -eq 0 ]; then
+      echo "Nitro endpoint is up"
       break
     else
-      echo "File not yet available, retrying in $retry_interval seconds..."
+      echo "Nitro endpoint not available yet, retrying in $retry_interval seconds..."
       sleep $retry_interval
     fi
   done
+}
+
+if [ "$NITRO_RUN_NODE_IN_PROCESS" = "true" ]; then
+  read_nitro_addresses
+else
+  wait_for_nitro_endpoint
 fi
 
 echo "Beginning the ipld-eth-server process"

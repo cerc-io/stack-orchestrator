@@ -2,9 +2,9 @@ version: "1.0"
 name: fixturenet-laconicd
 description: "A laconicd fixturenet"
 repos:
-  - github.com/cerc-io/laconicd
-  - github.com/cerc-io/laconic-sdk
-  - github.com/cerc-io/laconic-registry-cli
+  - git.vdb.to/cerc-io/laconicd
+  - git.vdb.to/cerc-io/laconic-sdk
+  - git.vdb.to/cerc-io/laconic-registry-cli
 npms:
   - laconic-sdk
   - laconic-registry-cli

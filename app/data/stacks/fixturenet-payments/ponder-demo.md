@@ -158,8 +158,6 @@ Stack components:
       }
     }
     ```
-  
-  * No entities will be returned at this point
 
 * Transfer an ERC20 token on chain
 
@@ -174,5 +172,11 @@ Stack components:
     ```bash
     docker exec -it payments-ponder-er20-contracts-1 bash -c "yarn token:transfer:docker --token ${TOKEN_ADDRESS} --to 0xe22AD83A0dE117bA0d03d5E94Eb4E0d80a69C62a --amount 5000"
     ```
+
+* Wait for a log in watcher Ponder app
+
+  ```bash
+  06:40:47.567 INFO  handlers   Processed 1 event (up to Oct 19, 2023)
+  ```
 
 * Check the GQL query again in http://localhost:42069 to see a new `TransferEvent` entity

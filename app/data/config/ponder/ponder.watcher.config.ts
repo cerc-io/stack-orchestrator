@@ -15,7 +15,7 @@ export const config: Config = {
       network: "fixturenet",
       abi: "./abis/AdventureGold.json",
       address: process.env.ERC20_CONTRACT,
-      startBlock: 5,
+      startBlock: 1,
       maxBlockRange: 100,
     },
   ],

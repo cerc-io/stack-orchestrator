@@ -145,7 +145,7 @@ Stack components:
     
     ```graphql
     {
-      transferEvents {
+      transferEvents (orderBy: "timestamp", orderDirection: "desc") {
         id
         amount
         from {

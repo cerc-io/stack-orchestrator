@@ -31,8 +31,8 @@ Stack components:
   # 12:57:03.751 INFO  payment    Nitro node setup with address 0x67D5b55604d1aF90074FcB69b8C51838FFF84f8d
   #   laconic:payments Starting voucher subscription... +0ms
   # ...
-  # 09:58:54.288 INFO  payment    Creating ledger channel with nitro node 0x660a4bEF3fbC863Fcd8D3CDB39242aE513d7D92e
-  # 09:59:14.230 INFO  payment    Creating payment channel with nitro node 0x660a4bEF3fbC863Fcd8D3CDB39242aE513d7D92e
+  # 09:58:54.288 INFO  payment    Creating ledger channel with nitro node 0x660a4bEF3fbC863Fcd8D3CDB39242aE513d7D92e ...
+  # 09:59:14.230 INFO  payment    Creating payment channel with nitro node 0x660a4bEF3fbC863Fcd8D3CDB39242aE513d7D92e ...
   # 09:59:14.329 INFO  payment    Using payment channel 0x1ff59db391b7a55bed723b930ab53c80e7ce857487c1e58771aa5a0737d71625
   ```
 
@@ -126,7 +126,7 @@ Stack components:
   # 11:23:22.436 INFO  server     Started responding as healthy
   ```
 
-* Check the terminal of the second indexer Ponder app. Logs of payment for `eth_getLogs` queries can be seen:
+* Check the terminal of the second indexer Ponder app. Logs of payment for `getLogEvents` queries can be seen:
 
   ```bash
   # ...

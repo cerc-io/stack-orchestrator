@@ -197,8 +197,8 @@ Stack components:
     toTimestamp: 1695304156,
     filters: [
       {
-        name: "SmolBrain"
-        chainId: 42161,
+        name: "AdventureGold"
+        chainId: 1212,
         address: ["0x6325439389e0797ab35752b4f43a14c004f22a9c"],
         fromBlock: 100,
         toBlock: 200,

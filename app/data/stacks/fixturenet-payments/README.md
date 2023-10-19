@@ -29,7 +29,7 @@ laconic-so --stack fixturenet-payments deploy --cluster payments up
 # 32***: geth in statediffing mode and ipld-eth-server(s)
 # 4005: in-process go-nitro node's RPC endpoint
 # 3005: in-process go-nitro node's p2p TCP endpoint
-# 5005: in-process go-nitro node's p2p WS endpoin
+# 5005: in-process go-nitro node's p2p WS endpoint
 # 4006: out-of-process go-nitro node's RPC endpoint
 # 3006: out-of-process go-nitro node's p2p TCP endpoint
 # 5006: out-of-process go-nitro node's p2p WS endpoint
@@ -38,7 +38,9 @@ laconic-so --stack fixturenet-payments deploy --cluster payments up
 # 9090: MobyMask v3 watcher relay node endpoint
 # 8080: MobyMask snap
 # 3004: MobyMask v3 app
-# 32***: geth with statediffing
+# 42070: Ponder indexer-1
+# 42071: Ponder indexer-2
+# 42069: Ponder watcher
 ```
 
 If running in the cloud, ensure all the of the above ports are open. The geth port can be retrieved with:
@@ -60,7 +62,8 @@ This will allow you to access the entirety of the app as if it were running loca
 
 ## Demo
 
-Follow the [demo](./demo.md) to try out end-to-end payments.
+- Follow the [mobymask-demo](./mobymask-demo.md) to try out MobyMask end-to-end payments.
+- Follow the [ponder-demo](./ponder-demo.md) to try out Ponder end-to-end payments.
 
 ## Clean up
 

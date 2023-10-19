@@ -7,6 +7,25 @@ export const config: Config = {
     {
       name: "fixturenet",
       chainId: Number(process.env.PONDER_CHAIN_ID),
+      indexerUrl: process.env.INDEXER_GQL_ENDPOINT,
+      maxRpcRequestConcurrency: 1,
+      pollingInterval: 5000,
+      payments: {
+        nitro: {
+          address: process.env.INDEXER_NITRO_ADDRESS!,
+          fundingAmounts: {
+            // TODO: Pass amounts from env
+            directFund: "1000000000000",
+            virtualFund: "1000000000",
+          },
+        },
+        paidRPCMethods: [
+          "eth_getLogs",
+          "eth_getBlockByNumber",
+          "eth_getBlockByHash",
+        ],
+        amount: process.env.UPSTREAM_NITRO_PAY_AMOUNT!,
+      },
     },
   ],
   contracts: [
@@ -20,20 +39,7 @@ export const config: Config = {
     },
   ],
   options: {
-    mode: AppMode.Watcher,
-  },
-  indexer: {
-    gqlEndpoint: process.env.INDEXER_GQL_ENDPOINT,
-    payments: {
-      nitro: {
-        address: process.env.INDEXER_NITRO_ADDRESS,
-        fundingAmounts: {
-          directFund: "1000000000000",
-          virtualFund: "1000000000",
-        },
-      },
-      amount: process.env.INDEXER_NITRO_PAY_AMOUNT,
-    },
+    mode: AppMode.Indexer,
   },
   nitro: {
     privateKey: process.env.PONDER_NITRO_PK!,
@@ -54,5 +60,5 @@ export const config: Config = {
       ratesFile: "./base-rates-config.json",
       requestTimeoutInSecs: 10,
     },
-  }
+  },
 };

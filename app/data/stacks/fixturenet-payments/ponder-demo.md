@@ -110,6 +110,56 @@ Stack components:
   # ...
   ```
 
+* Following are the example GQL queries (with payment headers) `ponder-indexer-2` makes to `ponder-indexer-1` for fetching data
+
+  ```graphql
+  {
+    getEthLogs(
+      chainId: 1212,
+      address: "0x6325439389e0797ab35752b4f43a14c004f22a9c",
+      fromBlock: 100,
+      toBlock: 200,
+    ) {
+      address
+      blockHash
+      blockNumber
+      data
+      logIndex
+      removed
+      topics
+      transactionHash
+      transactionIndex 
+    }
+
+    getEthBlock(
+      chainId: 1212,
+      blockNumber: 150,
+      fullTransactions: false
+    ) {
+      baseFeePerGas
+      difficulty
+      extraData
+      gasLimit
+      gasUsed
+      hash
+      logsBloom
+      miner
+      mixHash
+      nonce
+      number
+      parentHash
+      receiptsRoot
+      sha3Uncles
+      size
+      stateRoot
+      timestamp
+      totalDifficulty
+      transactionsRoot
+      txHashes
+    }
+  }
+  ```
+
 * In another terminal run the Ponder app in watcher mode:
 
   ```bash
@@ -137,6 +187,41 @@ Stack components:
   #   laconic:payments Received a payment voucher of 50 from 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db +45ms
   #   laconic:payments Serving a paid query for 0x111A00868581f73AB42FEEF67D235Ca09ca1E8db +0ms
   # 08:02:37.849 DEBUG payment    Verified payment for GQL queries getLogEvents
+  ```
+
+* Following are the example GQL queries (with payment headers) `ponder-watcher` makes to `ponder-indexer-2` for fetching data
+
+  ```graphql
+  getLogEvents(
+    fromTimestamp: 1695303079,
+    toTimestamp: 1695304156,
+    filters: [
+      {
+        name: "AdventureGold"
+        chainId: 1212,
+        address: ["0x6325439389e0797ab35752b4f43a14c004f22a9c"],
+        fromBlock: 100,
+        toBlock: 200,
+        includeEventSelectors: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"]
+      }
+    ]
+  ) {
+    events {
+      transaction {
+        hash
+      }
+      log {
+        id 
+      }
+      block {
+        number
+      }
+    }
+    metadata {
+      pageEndsAtTimestamp	
+      isLastPage
+    }
+  }
   ```
 
 * Open watcher Ponder app endpoint http://localhost:42069

@@ -1,47 +1,47 @@
-# mainnet-eth
+# mainnet-eth-plugeth
 
-Deploys a "head-tracking" mainnet Ethereum stack comprising a [go-ethereum](https://github.com/cerc-io/go-ethereum) execution layer node and a [lighthouse](https://github.com/sigp/lighthouse) consensus layer node.
+Deploys a "head-tracking" mainnet Ethereum stack comprising a [plugeth](https://git.vdb.to/cerc-io/plugeth) execution layer node and a [lighthouse](https://github.com/sigp/lighthouse) consensus layer node, with [plugeth-statediff](https://git.vdb.to/cerc-io/plugeth-statediff) for statediffing, [ipld-eth-db](https://git.vdb.to/cerc-io/ipld-eth-db) for storage, and [ipld-eth-server](https://git.vdb.to/cerc-io/ipld-eth-server) for indexed ETH IPLD objects.
 
 ## Clone required repositories
 
 ```
-$ laconic-so --stack mainnet-eth setup-repositories
+$ laconic-so --stack mainnet-eth-plugeth setup-repositories
 ```
 
 ## Build containers
 
 ```
-$ laconic-so --stack mainnet-eth build-containers
+$ laconic-so --stack mainnet-eth-plugeth build-containers
 ```
 
 ## Create a deployment
 
 ```
-$ laconic-so --stack mainnet-eth deploy init --map-ports-to-host any-same --output mainnet-eth-spec.yml
-$ laconic-so deploy create --spec-file mainnet-eth-spec.yml --deployment-dir mainnet-eth-deployment
+$ laconic-so --stack mainnet-eth-plugeth deploy init --map-ports-to-host any-same --output mainnet-eth-plugeth-spec.yml
+$ laconic-so deploy create --spec-file mainnet-eth-plugeth-spec.yml --deployment-dir mainnet-eth-plugeth-deployment
 ```
 ## Start the stack
 ```
-$ laconic-so deployment --dir mainnet-eth-deployment start
+$ laconic-so deployment --dir mainnet-eth-plugeth-deployment start
 ```
 Display stack status:
 ```
-$ laconic-so deployment --dir mainnet-eth-deployment ps
+$ laconic-so deployment --dir mainnet-eth-plugeth-deployment ps
 Running containers:
 id: f39608eca04d72d6b0f1f3acefc5ebb52908da06e221d20c7138f7e3dff5e423, name: laconic-ef641b4d13eb61ed561b19be67063241-foundry-1, ports:
-id: 4052b1eddd886ae0d6b41f9ff22e68a70f267b2bfde10f4b7b79b5bd1eeddcac, name: laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-geth-1-1, ports: 30303/tcp, 30303/udp, 0.0.0.0:49184->40000/tcp, 0.0.0.0:49185->6060/tcp, 0.0.0.0:49186->8545/tcp, 8546/tcp
-id: ac331232e597944b621b3b8942ace5dafb14524302cab338ff946c7f6e5a1d52, name: laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-lighthouse-1-1, ports: 0.0.0.0:49187->8001/tcp
+id: 4052b1eddd886ae0d6b41f9ff22e68a70f267b2bfde10f4b7b79b5bd1eeddcac, name: laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-plugeth-geth-1-1, ports: 30303/tcp, 30303/udp, 0.0.0.0:49184->40000/tcp, 0.0.0.0:49185->6060/tcp, 0.0.0.0:49186->8545/tcp, 8546/tcp
+id: ac331232e597944b621b3b8942ace5dafb14524302cab338ff946c7f6e5a1d52, name: laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-plugeth-lighthouse-1-1, ports: 0.0.0.0:49187->8001/tcp
 ```
 See stack logs:
 ```
-$ laconic-so deployment --dir mainnet-eth-deployment logs
+$ laconic-so deployment --dir mainnet-eth-plugeth-deployment logs
 time="2023-07-25T09:46:29-06:00" level=warning msg="The \"CERC_SCRIPT_DEBUG\" variable is not set. Defaulting to a blank string."
-laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-lighthouse-1-1  | Jul 25 15:45:13.362 INFO Logging to file                         path: "/var/lighthouse-data-dir/beacon/logs/beacon.log"
-laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-lighthouse-1-1  | Jul 25 15:45:13.365 INFO Lighthouse started                      version: Lighthouse/v4.1.0-693886b
-laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-lighthouse-1-1  | Jul 25 15:45:13.365 INFO Configured for network                  name: mainnet
-laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-lighthouse-1-1  | Jul 25 15:45:13.366 INFO Data directory initialised              datadir: /var/lighthouse-data-dir
-laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-lighthouse-1-1  | Jul 25 15:45:13.366 INFO Deposit contract                        address: 0x00000000219ab540356cbb839cbe05303d7705fa, deploy_block: 11184524
-laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-lighthouse-1-1  | Jul 25 15:45:13.424 INFO Starting checkpoint sync                remote_url: https://beaconstate.ethstaker.cc/, service: beacon
+laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-plugeth-lighthouse-1-1  | Jul 25 15:45:13.362 INFO Logging to file                         path: "/var/lighthouse-data-dir/beacon/logs/beacon.log"
+laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-plugeth-lighthouse-1-1  | Jul 25 15:45:13.365 INFO Lighthouse started                      version: Lighthouse/v4.1.0-693886b
+laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-plugeth-lighthouse-1-1  | Jul 25 15:45:13.365 INFO Configured for network                  name: mainnet
+laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-plugeth-lighthouse-1-1  | Jul 25 15:45:13.366 INFO Data directory initialised              datadir: /var/lighthouse-data-dir
+laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-plugeth-lighthouse-1-1  | Jul 25 15:45:13.366 INFO Deposit contract                        address: 0x00000000219ab540356cbb839cbe05303d7705fa, deploy_block: 11184524
+laconic-ef641b4d13eb61ed561b19be67063241-mainnet-eth-plugeth-lighthouse-1-1  | Jul 25 15:45:13.424 INFO Starting checkpoint sync                remote_url: https://beaconstate.ethstaker.cc/, service: beacon
 ```
 ## Monitoring stack sync progress
 Both go-ethereum and lighthouse will engage in an initial chain sync phase that will last up to several hours depending on hardware performance and network capacity.
@@ -62,12 +62,12 @@ INFO [07-25|03:04:49.042] Chain head was updated                   number=17,767
 
 Stop the stack:
 ```
-$ laconic-so deployment --dir mainnet-eth-deployment stop
+$ laconic-so deployment --dir mainnet-eth-plugeth-deployment stop
 ```
 This leaves data volumes in place, allowing the stack to be subsequently re-started.
 To permanently *delete* the stack's data volumes run:
 ```
-$ laconic-so deployment --dir mainnet-eth-deployment stop --delete-data-volumes
+$ laconic-so deployment --dir mainnet-eth-plugeth-deployment stop --delete-data-volumes
 ```
 After deleting the volumes, any subsequent re-start will begin chain sync from cold.
 
@@ -79,18 +79,18 @@ customized by editing the "spec" file generated by `laconic-so deploy init`.
 In this example, ports `8545` and `5052` have been assigned to a specific addresses/port combination on the host, while
 port `40000` has been left with random assignment:
 ```
-$ cat mainnet-eth-spec.yml
-stack: mainnet-eth
+$ cat mainnet-eth-plugeth-spec.yml
+stack: mainnet-eth-plugeth
 ports:
-  mainnet-eth-geth-1:
+  mainnet-eth-plugeth-geth-1:
    - '10.10.10.10:8545:8545'
    - '40000'
-  mainnet-eth-lighthouse-1:
+  mainnet-eth-plugeth-lighthouse-1:
    - '10.10.10.10:5052:5052'
 volumes:
-  mainnet_eth_config_data: ./data/mainnet_eth_config_data
-  mainnet_eth_geth_1_data: ./data/mainnet_eth_geth_1_data
-  mainnet_eth_lighthouse_1_data: ./data/mainnet_eth_lighthouse_1_data
+  mainnet_eth_plugeth_config_data: ./data/mainnet_eth_plugeth_config_data
+  mainnet_eth_plugeth_geth_1_data: ./data/mainnet_eth_plugeth_geth_1_data
+  mainnet_eth_plugeth_lighthouse_1_data: ./data/mainnet_eth_plugeth_lighthouse_1_data
 ```
 In addition, a stack-wide port mapping "recipe" can be applied at the time the 
 `laconic-so deploy init` command is run, by supplying the  desired recipe with the `--map-ports-to-host` option. The following recipes are supported:
@@ -105,37 +105,37 @@ In addition, a stack-wide port mapping "recipe" can be applied at the time the
 Container data volumes are bind-mounted to specified paths in the host filesystem.
 The default setup (generated by `laconic-so deploy init`) places the volumes in the `./data` subdirectory of the deployment directory:
 ```
-$ cat mainnet-eth-spec.yml
-stack: mainnet-eth
+$ cat mainnet-eth-plugeth-spec.yml
+stack: mainnet-eth-plugeth
 ports:
-  mainnet-eth-geth-1:
+  mainnet-eth-plugeth-geth-1:
    - '10.10.10.10:8545:8545'
    - '40000'
-  mainnet-eth-lighthouse-1:
+  mainnet-eth-plugeth-lighthouse-1:
    - '10.10.10.10:5052:5052'
 volumes:
-  mainnet_eth_config_data: ./data/mainnet_eth_config_data
-  mainnet_eth_geth_1_data: ./data/mainnet_eth_geth_1_data
-  mainnet_eth_lighthouse_1_data: ./data/mainnet_eth_lighthouse_1_data
+  mainnet_eth_plugeth_config_data: ./data/mainnet_eth_plugeth_config_data
+  mainnet_eth_plugeth_geth_1_data: ./data/mainnet_eth_plugeth_geth_1_data
+  mainnet_eth_plugeth_lighthouse_1_data: ./data/mainnet_eth_plugeth_lighthouse_1_data
 ```
 A synced-up stack will consume around 900GB of data volume space:
 ```
-$ sudo du -h mainnet-eth-deployment/data/
-150M    mainnet-eth-deployment/data/mainnet_eth_lighthouse_1_data/beacon/freezer_db
-25G     mainnet-eth-deployment/data/mainnet_eth_lighthouse_1_data/beacon/chain_db
-16K     mainnet-eth-deployment/data/mainnet_eth_lighthouse_1_data/beacon/network
-368M    mainnet-eth-deployment/data/mainnet_eth_lighthouse_1_data/beacon/logs
-26G     mainnet-eth-deployment/data/mainnet_eth_lighthouse_1_data/beacon
-26G     mainnet-eth-deployment/data/mainnet_eth_lighthouse_1_data
-8.0K    mainnet-eth-deployment/data/mainnet_eth_config_data
-4.0K    mainnet-eth-deployment/data/mainnet_eth_geth_1_data/keystore
-527G    mainnet-eth-deployment/data/mainnet_eth_geth_1_data/geth/chaindata/ancient/chain
-527G    mainnet-eth-deployment/data/mainnet_eth_geth_1_data/geth/chaindata/ancient
-859G    mainnet-eth-deployment/data/mainnet_eth_geth_1_data/geth/chaindata
-4.8M    mainnet-eth-deployment/data/mainnet_eth_geth_1_data/geth/nodes
-242M    mainnet-eth-deployment/data/mainnet_eth_geth_1_data/geth/ethash
-669M    mainnet-eth-deployment/data/mainnet_eth_geth_1_data/geth/triecache
-860G    mainnet-eth-deployment/data/mainnet_eth_geth_1_data/geth
-860G    mainnet-eth-deployment/data/mainnet_eth_geth_1_data
-885G    mainnet-eth-deployment/data/
+$ sudo du -h mainnet-eth-plugeth-deployment/data/
+150M    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_lighthouse_1_data/beacon/freezer_db
+25G     mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_lighthouse_1_data/beacon/chain_db
+16K     mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_lighthouse_1_data/beacon/network
+368M    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_lighthouse_1_data/beacon/logs
+26G     mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_lighthouse_1_data/beacon
+26G     mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_lighthouse_1_data
+8.0K    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_config_data
+4.0K    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_geth_1_data/keystore
+527G    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_geth_1_data/geth/chaindata/ancient/chain
+527G    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_geth_1_data/geth/chaindata/ancient
+859G    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_geth_1_data/geth/chaindata
+4.8M    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_geth_1_data/geth/nodes
+242M    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_geth_1_data/geth/ethash
+669M    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_geth_1_data/geth/triecache
+860G    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_geth_1_data/geth
+860G    mainnet-eth-plugeth-deployment/data/mainnet_eth_plugeth_geth_1_data
+885G    mainnet-eth-plugeth-deployment/data/
 ```

@@ -17,5 +17,8 @@ from app.deploy_k8s import K8sDeployer
 from app.deploy_docker import DockerDeployer
 
 
-def getDeployer(compose_files, compose_project_name, compose_env_file):
-    return DockerDeployer(compose_files, compose_project_name, compose_env_file)
+def getDeployer(type, compose_files, compose_project_name, compose_env_file):
+    if type == "docker":
+        return DockerDeployer(compose_files, compose_project_name, compose_env_file)
+    else:
+        return K8sDeployer(compose_files, compose_project_name, compose_env_file)

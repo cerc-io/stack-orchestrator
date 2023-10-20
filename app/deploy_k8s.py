@@ -18,5 +18,27 @@ from app.deployer import Deployer
 
 
 class K8sDeployer(Deployer):
-    def __init__(self) -> None:
+    def __init__(self, compose_files, compose_project_name, compose_env_file) -> None:
+        config.load_kube_config()
+        self.client = client.CoreV1Api()
+
+    def compose_up(self, detach, services):
+        pass
+
+    def compose_down(self, timeout, volumes):
+        pass
+
+    def compose_ps(self):
+        pass
+
+    def compose_port(self, service, private_port):
+        pass
+
+    def compose_execute(self, service_name, command, envs):
+        pass
+
+    def compose_logs(self, services, tail, follow, stream):
+        pass
+
+    def run(self, image, command, user, volumes, entrypoint=None):
         pass

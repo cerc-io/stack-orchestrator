@@ -14,14 +14,20 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
+from app.deploy_k8s import K8sDeployer
+from app.deploy_docker import DockerDeployer
+
 
 class Deployer(ABC):
 
     @abstractmethod
-    def (self, purchase):
+    def method(self, purchase):
         pass
 
 
-class DeployerException(Exception) {
+def getDeployer(compose_files, compose_project_name, compose_env_file):
+    return DockerDeployer(compose_files, compose_project_name, compose_env_file)
 
-}
+
+class DeployerException(Exception):
+    pass

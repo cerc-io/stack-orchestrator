@@ -2,14 +2,14 @@ version: "1.1"
 name: fixturenet-laconic-loaded
 description: "A full featured laconic fixturenet"
 repos:
-  - github.com/cerc-io/laconicd
+  - git.vdb.to/cerc-io/laconicd
   - github.com/lirewine/debug
   - github.com/lirewine/crypto
   - github.com/lirewine/gem
   - github.com/lirewine/sdk
-  - github.com/cerc-io/laconic-sdk
-  - github.com/cerc-io/laconic-registry-cli
-  - github.com/cerc-io/laconic-console
+  - git.vdb.to/cerc-io/laconic-sdk
+  - git.vdb.to/cerc-io/laconic-registry-cli
+  - git.vdb.to/cerc-io/laconic-console
 npms:
   - laconic-sdk
   - laconic-registry-cli

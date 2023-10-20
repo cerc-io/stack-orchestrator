@@ -10,7 +10,7 @@ repos:
   - git.vdb.to/cerc-io/ipld-eth-server@payments
   # nitro repo
   - github.com/cerc-io/ts-nitro@v0.1.15
-  - github.com/cerc-io/go-nitro@ts-interop # TODO: Use release
+  - github.com/cerc-io/go-nitro@v0.1.2-ts-port-0.1.9
   # mobymask watcher repos
   - github.com/cerc-io/watcher-ts@v0.2.66
     # this is mobymask-v3
@@ -55,4 +55,5 @@ pods:
   - watcher-mobymask-v3
   - mobymask-snap
   - mobymask-app-v3
-  - ponder
+  - ponder-indexer
+  - ponder-watcher

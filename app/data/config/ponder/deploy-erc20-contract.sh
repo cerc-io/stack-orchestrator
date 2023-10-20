@@ -7,11 +7,16 @@ fi
 
 erc20_address_file="/app/deployment/erc20-address.json"
 
-# Check and exit if a deployment already exists (on restarts)
+echo ETH_RPC_URL=${CERC_ETH_RPC_ENDPOINT} > .env
+echo ACCOUNT_PRIVATE_KEY=${CERC_PRIVATE_KEY_DEPLOYER} >> .env
+
+# Check and keep container running if a deployment already exists (on restarts)
 if [ -f ${erc20_address_file} ]; then
   echo "${erc20_address_file} already exists, skipping ERC20 contract deployment"
   cat ${erc20_address_file}
-  exit
+  
+  # Keep the container running
+  tail -f
 fi
 
 wait_for_chain_endpoint() {
@@ -46,8 +51,6 @@ wait_for_chain_endpoint
 
 echo "Using CERC_PRIVATE_KEY_DEPLOYER from env"
 
-echo ETH_RPC_URL=${CERC_ETH_RPC_ENDPOINT} > .env
-echo ACCOUNT_PRIVATE_KEY=${CERC_PRIVATE_KEY_DEPLOYER} >> .env
 yarn token:deploy:docker --file ${erc20_address_file}
 
 # Keep the container running

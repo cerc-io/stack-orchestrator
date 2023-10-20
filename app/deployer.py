@@ -14,20 +14,39 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
-from app.deploy_k8s import K8sDeployer
-from app.deploy_docker import DockerDeployer
 
 
 class Deployer(ABC):
 
     @abstractmethod
-    def method(self, purchase):
+    def compose_up(self, detach, services):
+        pass
+
+    @abstractmethod
+    def compose_down(self, timeout, volumes):
+        pass
+
+    @abstractmethod
+    def compose_ps(self):
+        pass
+
+    @abstractmethod
+    def compose_port(self, service, private_port):
+        pass
+
+    @abstractmethod
+    def compose_execute(self, service_name, command, envs):
+        pass
+
+    @abstractmethod
+    def compose_logs(self, services, tail, follow, stream):
+        pass
+
+    @abstractmethod
+    def run(self, image, command, user, volumes, entrypoint):
         pass
 
 
-def getDeployer(compose_files, compose_project_name, compose_env_file):
-    return DockerDeployer(compose_files, compose_project_name, compose_env_file)
-
-
 class DeployerException(Exception):
-    pass
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)

@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from python_on_whales import DockerClient, DockerException
-from app.deployer import Deployer
+from app.deployer import Deployer, DeployerException
 
 
 class DockerDeployer(Deployer):
@@ -23,19 +23,43 @@ class DockerDeployer(Deployer):
                                    compose_env_file=compose_env_file)
 
     def compose_up(self, detach, services):
-        return self.docker.compose.up(detach=detach, services=services)
+        try:
+            return self.docker.compose.up(detach=detach, services=services)
+        except DockerException as e:
+            raise DeployerException(e)
 
     def compose_down(self, timeout, volumes):
-        return self.docker.compose.down(timeout=timeout, volumes=volumes)
+        try:
+            return self.docker.compose.down(timeout=timeout, volumes=volumes)
+        except DockerException as e:
+            raise DeployerException(e)
 
     def compose_ps(self):
-        return self.docker.compose.ps()
+        try:
+            return self.docker.compose.ps()
+        except DockerException as e:
+            raise DeployerException(e)
 
     def compose_port(self, service, private_port):
-        return self.docker.compose.port(service=service, private_port=private_port)
+        try:
+            return self.docker.compose.port(service=service, private_port=private_port)
+        except DockerException as e:
+            raise DeployerException(e)
 
     def compose_execute(self, service_name, command, envs):
-        return self.docker.compose.execute(service_name=service_name, command=command, envs=envs)
+        try:
+            return self.docker.compose.execute(service_name=service_name, command=command, envs=envs)
+        except DockerException as e:
+            raise DeployerException(e)
 
     def compose_logs(self, services, tail, follow, stream):
-        return self.docker.compose.logs(services=services, tail=tail, follow=follow, stream=stream)
+        try:
+            return self.docker.compose.logs(services=services, tail=tail, follow=follow, stream=stream)
+        except DockerException as e:
+            raise DeployerException(e)
+
+    def run(self, image, command, user, volumes, entrypoint=None):
+        try:
+            return self.docker.run(image=image, command=command, user=user, volumes=volumes, entrypoint=entrypoint)
+        except DockerException as e:
+            raise DeployerException(e)

@@ -26,6 +26,7 @@ import click
 from pathlib import Path
 from app.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
 from app.deployer import Deployer, DeployerException
+from app.deployer_factory import getDeployer
 from app.deploy_types import ClusterContext, DeployCommandContext
 from app.deployment_create import create as deployment_create
 from app.deployment_create import init as deployment_init
@@ -57,8 +58,8 @@ def command(ctx, include, exclude, env_file, cluster):
 def create_deploy_context(global_context, stack, include, exclude, cluster, env_file):
     cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    deployer = Deployer(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
-                        compose_env_file=cluster_context.env_file)
+    deployer = getDeployer(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
+                           compose_env_file=cluster_context.env_file)
     return DeployCommandContext(stack, cluster_context, deployer)
 
 

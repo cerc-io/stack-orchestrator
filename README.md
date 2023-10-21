@@ -52,7 +52,7 @@ Version: 1.1.0-7a607c2-202304260513
 Save the distribution url to `~/.laconic-so/config.yml`:
 ```bash
 mkdir ~/.laconic-so
-echo "distribution-url: https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so" >  ~/.laconic-so/config.yml"
+echo "distribution-url: https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so" >  ~/.laconic-so/config.yml
 ```
 
 ### Update

@@ -1,8 +1,8 @@
 version: "3.2"
 
 services:
-  lasso:
+  laconic-dot-com:
     image: cerc/laconic-dot-com:local
     restart: always
     ports:
-      - "3000:3000"
+      - "3000"

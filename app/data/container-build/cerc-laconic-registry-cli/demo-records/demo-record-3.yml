@@ -1,0 +1,7 @@
+record
+  type: WebsiteRegistrationRecord
+  url: 'https://hello-world-1.laconic.com'
+  repo_registration_record_cid: QmRbyiaLr8CaeYQuqgYpNLVfydbZQ8kqFnoeXxg4cUC5pJ
+  build_artifact_cid: https://ipfs.io/ipfs/QmaZqHTdZ2FZndQ99mCHBSLxWByzDbkY14XAtj6E9Xhu1f
+  tls_cert_cid: QmT4pJ9jazUDN4U7Wfs1KFzQLKByT9dJKK2qeqKw63r22c
+  version: 0.0.1

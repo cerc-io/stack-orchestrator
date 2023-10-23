@@ -2,10 +2,10 @@
 
 The following tutorial explains the steps to run a laconicd fixturenet with CLI and web console that displays records in the registry. It is designed as an introduction to Stack Orchestrator and to showcase one component of the Laconic Stack. Prior to Stack Orchestrator, the following 4 repositories had to be cloned and setup manually:
 
-- https://github.com/cerc-io/laconicd
-- https://github.com/cerc-io/laconic-sdk
-- https://github.com/cerc-io/laconic-registry-cli
-- https://github.com/cerc-io/laconic-console
+- https://git.vdb.to/cerc-io/laconicd
+- https://git.vdb.to/cerc-io/laconic-sdk
+- https://git.vdb.to/cerc-io/laconic-registry-cli
+- https://git.vdb.to/cerc-io/laconic-console
 
 Now, with Stack Orchestrator, it is a few quick commands. Additionally, the `docker` and `docker compose` integration on the back-end allows the stack to easily persist, facilitating workflows.
 
@@ -52,7 +52,7 @@ laconic-so version
 1. Get the repositories
 
 ```
-laconic-so --stack fixturenet-laconic-loaded setup-repositories --include github.com/cerc-io/laconicd,github.com/cerc-io/laconic-sdk,github.com/cerc-io/laconic-registry-cli,github.com/cerc-io/laconic-console
+laconic-so --stack fixturenet-laconic-loaded setup-repositories --include git.vdb.to/cerc-io/laconicd,git.vdb.to/cerc-io/laconic-sdk,git.vdb.to/cerc-io/laconic-registry-cli,git.vdb.to/cerc-io/laconic-console
 ```
 
 2. Set this environment variable to the Laconic self-hosted Gitea instance:
@@ -212,7 +212,7 @@ record:
 
 3. Try out additional CLI commands
 
-- these are documented [here](https://github.com/cerc-io/laconic-registry-cli#readme) and updates are forthcoming
+- these are documented [here](https://git.vdb.to/cerc-io/laconic-registry-cli#readme) and updates are forthcoming
 - e.g,:
 
 ```

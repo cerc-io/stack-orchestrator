@@ -18,7 +18,7 @@ $ laconic-so --stack mainnet-eth-plugeth build-containers
 
 ```
 $ laconic-so --stack mainnet-eth-plugeth deploy init --map-ports-to-host any-same --output mainnet-eth-plugeth-spec.yml
-$ laconic-so deploy create --spec-file mainnet-eth-plugeth-spec.yml --deployment-dir mainnet-eth-plugeth-deployment
+$ laconic-so --stack mainnet-eth-plugeth deploy create --spec-file mainnet-eth-plugeth-spec.yml --deployment-dir mainnet-eth-plugeth-deployment
 ```
 ## Start the stack
 ```

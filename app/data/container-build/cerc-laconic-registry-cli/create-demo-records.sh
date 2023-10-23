@@ -6,7 +6,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
 fi
 
 registry_command="laconic cns"
-demo_records_dir="demo-records"
+demo_records_dir="scripts/demo-records"
 
 # Check we have funds
 funds_response=$(${registry_command} account get --address $(cat my-address.txt))

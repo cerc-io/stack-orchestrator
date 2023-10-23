@@ -15,7 +15,7 @@ services:
       - "8081"
       - "8082"
       - "8090"
-      - "40000"
+      - "40001"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "8081"]
       interval: 20s

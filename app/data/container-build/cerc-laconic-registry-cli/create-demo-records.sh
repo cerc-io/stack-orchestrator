@@ -24,5 +24,6 @@ if [ -d $demo_records_dir ]; then
     publish_response=$(${registry_command} record publish --filename ${demo_record} --bond-id ${bond_id})
     published_record_id=$(echo ${publish_response} | jq -r .id)
     echo "Published ${demo_record} with id: ${published_record_id}"
+    cat ${demo_record}
   done
 fi

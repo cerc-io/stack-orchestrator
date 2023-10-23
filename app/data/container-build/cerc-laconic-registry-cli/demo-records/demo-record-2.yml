@@ -2,6 +2,6 @@ record:
   type: WebsiteRegistrationRecord
   url: 'https://dev-hello-urbit.laconic.com'
   repo_registration_record_cid: QmPbKkK7gKojnGAgKAE6bK5qBY8BcYp2YDB1e4b28NxvVv
-  build_artifact_cid: '~livfex-haprul-labtul-moltev/hello-urbit-dev'
+  build_artifact_cid: '~lostex-rabdur-labtul-moltev/hello-urbit-dev'
   tls_cert_cid: QmWbCv4k9Q9P6XptHNJN6EupDyKVLSLRV6W6T2sAYkfBxr
   version: 0.2.5

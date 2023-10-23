@@ -25,6 +25,5 @@ services:
       start_period: 3s
     ports:
       - "5432"
-      -
 volumes:
   mainnet_eth_ipld_eth_db:

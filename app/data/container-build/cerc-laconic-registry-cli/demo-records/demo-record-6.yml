@@ -1,4 +1,4 @@
-record
+record:
   type: WebsiteRegistrationRecord
   url: 'https://pwa-1-2-3.iglootools.xyz'
   repo_registration_record_cid: QmVjYQ59z3fuKfYUV1aXhDR82JAKxdqB5JMPfUsHkJUkJq

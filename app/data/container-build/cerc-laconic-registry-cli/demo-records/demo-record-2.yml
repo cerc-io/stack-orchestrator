@@ -1,4 +1,4 @@
-record
+record:
   type: WebsiteRegistrationRecord
   url: 'https://dev-hello-urbit.laconic.com'
   repo_registration_record_cid: QmPbKkK7gKojnGAgKAE6bK5qBY8BcYp2YDB1e4b28NxvVv

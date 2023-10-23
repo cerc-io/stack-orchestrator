@@ -1,4 +1,4 @@
-record
+record:
   type: WebsiteRegistrationRecord
   url: 'https://app.osmosis.zone'
   repo_registration_record_cid: QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D

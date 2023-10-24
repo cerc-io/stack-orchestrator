@@ -62,7 +62,7 @@ def make_deploy_context(ctx):
     stack_file_path = ctx.obj.get_stack_file()
     env_file = ctx.obj.get_env_file()
     cluster_name = ctx.obj.get_cluster_name()
-    return create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, cluster_name, env_file)
+    return create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, cluster_name, env_file, deploy_to)
 
 
 @command.command()

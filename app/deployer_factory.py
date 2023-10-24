@@ -18,7 +18,9 @@ from app.deploy_docker import DockerDeployer
 
 
 def getDeployer(type, compose_files, compose_project_name, compose_env_file):
-    if type == "docker":
+    if type == "compose" or type is None:
         return DockerDeployer(compose_files, compose_project_name, compose_env_file)
-    else:
+    elif type == "k8s":
         return K8sDeployer(compose_files, compose_project_name, compose_env_file)
+    else:
+        print(f"ERROR: deploy-to {type} is not valid")

@@ -19,27 +19,27 @@ from abc import ABC, abstractmethod
 class Deployer(ABC):
 
     @abstractmethod
-    def compose_up(self, detach, services):
+    def up(self, detach, services):
         pass
 
     @abstractmethod
-    def compose_down(self, timeout, volumes):
+    def down(self, timeout, volumes):
         pass
 
     @abstractmethod
-    def compose_ps(self):
+    def ps(self):
         pass
 
     @abstractmethod
-    def compose_port(self, service, private_port):
+    def port(self, service, private_port):
         pass
 
     @abstractmethod
-    def compose_execute(self, service_name, command, envs):
+    def execute(self, service_name, command, envs):
         pass
 
     @abstractmethod
-    def compose_logs(self, services, tail, follow, stream):
+    def logs(self, services, tail, follow, stream):
         pass
 
     @abstractmethod

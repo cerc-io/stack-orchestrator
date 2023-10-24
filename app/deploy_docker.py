@@ -24,37 +24,37 @@ class DockerDeployer(Deployer):
         self.docker = DockerClient(compose_files=compose_files, compose_project_name=compose_project_name,
                                    compose_env_file=compose_env_file)
 
-    def compose_up(self, detach, services):
+    def up(self, detach, services):
         try:
             return self.docker.compose.up(detach=detach, services=services)
         except DockerException as e:
             raise DeployerException(e)
 
-    def compose_down(self, timeout, volumes):
+    def down(self, timeout, volumes):
         try:
             return self.docker.compose.down(timeout=timeout, volumes=volumes)
         except DockerException as e:
             raise DeployerException(e)
 
-    def compose_ps(self):
+    def ps(self):
         try:
             return self.docker.compose.ps()
         except DockerException as e:
             raise DeployerException(e)
 
-    def compose_port(self, service, private_port):
+    def port(self, service, private_port):
         try:
             return self.docker.compose.port(service=service, private_port=private_port)
         except DockerException as e:
             raise DeployerException(e)
 
-    def compose_execute(self, service, command, envs):
+    def execute(self, service, command, envs):
         try:
             return self.docker.compose.execute(service=service, command=command, envs=envs)
         except DockerException as e:
             raise DeployerException(e)
 
-    def compose_logs(self, services, tail, follow, stream):
+    def logs(self, services, tail, follow, stream):
         try:
             return self.docker.compose.logs(services=services, tail=tail, follow=follow, stream=stream)
         except DockerException as e:

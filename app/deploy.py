@@ -56,10 +56,10 @@ def command(ctx, include, exclude, env_file, cluster, deploy_to):
     # Subcommand is executed now, by the magic of click
 
 
-def create_deploy_context(global_context, stack, include, exclude, cluster, env_file, deploy_to):
+def create_deploy_context(global_context, stack, include, exclude, cluster, env_file, deployer):
     cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    deployer = getDeployer(deploy_to, compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
+    deployer = getDeployer(deployer, compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
                            compose_env_file=cluster_context.env_file)
     return DeployCommandContext(stack, cluster_context, deployer)
 

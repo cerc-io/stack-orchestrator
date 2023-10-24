@@ -249,7 +249,7 @@ def init(ctx, config, output, map_ports_to_host):
     stack = global_options(ctx).stack
     debug = global_options(ctx).debug
     default_spec_file_content = call_stack_deploy_init(ctx.obj)
-    spec_file_content = {"stack": stack}
+    spec_file_content = {"stack": stack, "deploy-to": "compose"}
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
     config_variables = _parse_config_variables(config)
@@ -315,7 +315,7 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
         sys.exit(1)
     os.mkdir(deployment_dir)
     # Copy spec file and the stack file into the deployment dir
-    copyfile(spec_file, os.path.join(deployment_dir, os.path.basename(spec_file)))
+    copyfile(spec_file, os.path.join(deployment_dir, "spec.yml"))
     copyfile(stack_file, os.path.join(deployment_dir, os.path.basename(stack_file)))
     # Copy any config varibles from the spec file into an env file suitable for compose
     _write_config_file(spec_file, os.path.join(deployment_dir, "config.env"))

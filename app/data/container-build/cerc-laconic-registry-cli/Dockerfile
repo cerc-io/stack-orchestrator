@@ -54,8 +54,10 @@ RUN yarn global add @cerc-io/laconic-registry-cli
 
 # Add scripts
 RUN mkdir /scripts
+RUN mkdir /scripts/demo-records
 ENV PATH="${PATH}:/scripts"
 COPY ./create-demo-records.sh /scripts
+COPY ./demo-records /scripts/demo-records
 COPY ./import-key.sh /scripts
 COPY ./import-address.sh /scripts
 

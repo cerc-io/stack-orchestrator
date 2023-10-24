@@ -69,7 +69,6 @@ def command(ctx, dir):
     # Store the deployment context for subcommands
     deployment_context = DeploymentContext()
     deployment_context.init(dir_path)
-    print(f"DEBUG dc: {deployment_context.spec.obj}")
     ctx.obj = deployment_context
 
 

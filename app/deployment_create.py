@@ -249,7 +249,7 @@ def init(ctx, config, output, map_ports_to_host):
     stack = global_options(ctx).stack
     debug = global_options(ctx).debug
     default_spec_file_content = call_stack_deploy_init(ctx.obj)
-    spec_file_content = {"stack": stack, "deploy-to": "compose"}
+    spec_file_content = {"stack": stack, "deploy-to": ctx.obj.deployer.name}
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
     config_variables = _parse_config_variables(config)
@@ -271,6 +271,7 @@ def init(ctx, config, output, map_ports_to_host):
         for named_volume in named_volumes:
             volume_descriptors[named_volume] = f"./data/{named_volume}"
         spec_file_content["volumes"] = volume_descriptors
+    print(f"DEBUG spec: {spec_file_content}")
 
     with open(output, "w") as output_file:
         yaml.dump(spec_file_content, output_file)

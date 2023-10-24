@@ -271,7 +271,6 @@ def init(ctx, config, output, map_ports_to_host):
         for named_volume in named_volumes:
             volume_descriptors[named_volume] = f"./data/{named_volume}"
         spec_file_content["volumes"] = volume_descriptors
-    print(f"DEBUG spec: {spec_file_content}")
 
     with open(output, "w") as output_file:
         yaml.dump(spec_file_content, output_file)

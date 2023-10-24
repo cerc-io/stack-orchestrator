@@ -19,7 +19,7 @@ from app.deployer import Deployer
 
 class K8sDeployer(Deployer):
     name: str = "k8s"
-    
+
     def __init__(self, compose_files, compose_project_name, compose_env_file) -> None:
         config.load_kube_config()
         self.client = client.CoreV1Api()

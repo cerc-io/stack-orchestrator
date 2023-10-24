@@ -14,19 +14,24 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
-from dataclasses import dataclass
 from pathlib import Path
 import sys
 from app.deploy import up_operation, down_operation, ps_operation, port_operation
 from app.deploy import exec_operation, logs_operation, create_deploy_context
+from app.stack import Stack
+from app.spec import Spec
 
 
-@dataclass
 class DeploymentContext:
     dir: Path
+    spec: Spec
+    stack: Stack
 
     def get_stack_file(self):
         return self.dir.joinpath("stack.yml")
+
+    def get_spec_file(self):
+        return self.dir.joinpath("spec.yml")
 
     def get_env_file(self):
         return self.dir.joinpath("config.env")
@@ -35,12 +40,19 @@ class DeploymentContext:
     def get_cluster_name(self):
         return None
 
+    def init(self, dir):
+        self.dir = dir
+        self.stack = Stack()
+        self.stack.init_from_file(self.get_stack_file())
+        self.spec = Spec()
+        self.spec.init_from_file(self.get_spec_file())
+
 
 @click.group()
 @click.option("--dir", required=True, help="path to deployment directory")
 @click.pass_context
 def command(ctx, dir):
-    '''create a deployment'''
+    '''manage a deployment'''
 
     # Check that --stack wasn't supplied
     if ctx.parent.obj.stack:
@@ -55,14 +67,18 @@ def command(ctx, dir):
         print(f"Error: supplied deployment directory path {dir} exists but is a file not a directory")
         sys.exit(1)
     # Store the deployment context for subcommands
-    ctx.obj = DeploymentContext(dir_path)
+    deployment_context = DeploymentContext()
+    deployment_context.init(dir_path)
+    ctx.obj = deployment_context
 
 
 def make_deploy_context(ctx):
-    stack_file_path = ctx.obj.get_stack_file()
-    env_file = ctx.obj.get_env_file()
-    cluster_name = ctx.obj.get_cluster_name()
-    return create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, cluster_name, env_file)
+    context: DeploymentContext = ctx.obj
+    stack_file_path = context.get_stack_file()
+    env_file = context.get_env_file()
+    cluster_name = context.get_cluster_name()
+    return create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, cluster_name, env_file,
+                                 context.spec.obj["deploy-to"])
 
 
 @command.command()

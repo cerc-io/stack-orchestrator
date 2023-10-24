@@ -16,8 +16,8 @@
 from typing import List
 from dataclasses import dataclass
 from pathlib import Path
-from python_on_whales import DockerClient
 from app.command_types import CommandOptions
+from app.deployer import Deployer
 
 
 @dataclass
@@ -35,7 +35,7 @@ class ClusterContext:
 class DeployCommandContext:
     stack: str
     cluster_context: ClusterContext
-    docker: DockerClient
+    deployer: Deployer
 
 
 @dataclass

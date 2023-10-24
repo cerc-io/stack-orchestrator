@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-# Deploys the system components using docker-compose
+# Deploys the system components using a deployer (either docker-compose or k8s)
 
 import hashlib
 import copy
@@ -22,10 +22,11 @@ import sys
 from dataclasses import dataclass
 from importlib import resources
 import subprocess
-from python_on_whales import DockerClient, DockerException
 import click
 from pathlib import Path
 from app.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
+from app.deployer import Deployer, DeployerException
+from app.deployer_factory import getDeployer
 from app.deploy_types import ClusterContext, DeployCommandContext
 from app.deployment_create import create as deployment_create
 from app.deployment_create import init as deployment_init
@@ -37,8 +38,9 @@ from app.deployment_create import setup as deployment_setup
 @click.option("--exclude", help="don\'t start these components")
 @click.option("--env-file", help="env file to be used")
 @click.option("--cluster", help="specify a non-default cluster name")
+@click.option("--deploy-to", help="cluster system to deploy to (compose or k8s)")
 @click.pass_context
-def command(ctx, include, exclude, env_file, cluster):
+def command(ctx, include, exclude, env_file, cluster, deploy_to):
     '''deploy a stack'''
 
     # Although in theory for some subcommands (e.g. deploy create) the stack can be inferred,
@@ -50,16 +52,20 @@ def command(ctx, include, exclude, env_file, cluster):
 
     if ctx.parent.obj.debug:
         print(f"ctx.parent.obj: {ctx.parent.obj}")
-    ctx.obj = create_deploy_context(global_options2(ctx), stack, include, exclude, cluster, env_file)
+
+    if deploy_to is None:
+        deploy_to = "compose"
+
+    ctx.obj = create_deploy_context(global_options2(ctx), stack, include, exclude, cluster, env_file, deploy_to)
     # Subcommand is executed now, by the magic of click
 
 
-def create_deploy_context(global_context, stack, include, exclude, cluster, env_file):
+def create_deploy_context(global_context, stack, include, exclude, cluster, env_file, deployer):
     cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
-                          compose_env_file=cluster_context.env_file)
-    return DeployCommandContext(stack, cluster_context, docker)
+    deployer = getDeployer(deployer, compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
+                           compose_env_file=cluster_context.env_file)
+    return DeployCommandContext(stack, cluster_context, deployer)
 
 
 def up_operation(ctx, services_list, stay_attached=False):
@@ -74,10 +80,10 @@ def up_operation(ctx, services_list, stay_attached=False):
             print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {services_list}")
         for pre_start_command in cluster_context.pre_start_commands:
             _run_command(global_context, cluster_context.cluster, pre_start_command)
-        deploy_context.docker.compose.up(detach=not stay_attached, services=services_list)
+        deploy_context.deployer.compose_up(detach=not stay_attached, services=services_list)
         for post_start_command in cluster_context.post_start_commands:
             _run_command(global_context, cluster_context.cluster, post_start_command)
-        _orchestrate_cluster_config(global_context, cluster_context.config, deploy_context.docker, container_exec_env)
+        _orchestrate_cluster_config(global_context, cluster_context.config, deploy_context.deployer, container_exec_env)
 
 
 def down_operation(ctx, delete_volumes, extra_args_list):
@@ -89,7 +95,7 @@ def down_operation(ctx, delete_volumes, extra_args_list):
         if extra_args_list:
             timeout_arg = extra_args_list[0]
         # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
-        ctx.obj.docker.compose.down(timeout=timeout_arg, volumes=delete_volumes)
+        ctx.obj.deployer.compose_down(timeout=timeout_arg, volumes=delete_volumes)
 
 
 def ps_operation(ctx):
@@ -97,7 +103,7 @@ def ps_operation(ctx):
     if not global_context.dry_run:
         if global_context.verbose:
             print("Running compose ps")
-        container_list = ctx.obj.docker.compose.ps()
+        container_list = ctx.obj.deployer.compose_ps()
         if len(container_list) > 0:
             print("Running containers:")
             for container in container_list:
@@ -128,7 +134,7 @@ def port_operation(ctx, extra_args):
         exposed_port = extra_args_list[1]
         if global_context.verbose:
             print(f"Running compose port {service_name} {exposed_port}")
-        mapped_port_data = ctx.obj.docker.compose.port(service_name, exposed_port)
+        mapped_port_data = ctx.obj.deployer.compose_port(service_name, exposed_port)
         print(f"{mapped_port_data[0]}:{mapped_port_data[1]}")
 
 
@@ -145,8 +151,8 @@ def exec_operation(ctx, extra_args):
         if global_context.verbose:
             print(f"Running compose exec {service_name} {command_to_exec}")
         try:
-            ctx.obj.docker.compose.execute(service_name, command_to_exec, envs=container_exec_env)
-        except DockerException:
+            ctx.obj.deployer.compose_execute(service_name, command_to_exec, envs=container_exec_env)
+        except DeployerException:
             print("container command returned error exit status")
 
 
@@ -157,7 +163,7 @@ def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
         if global_context.verbose:
             print("Running compose logs")
         services_list = extra_args_list if extra_args_list is not None else []
-        logs_stream = ctx.obj.docker.compose.logs(services=services_list, tail=tail, follow=follow, stream=True)
+        logs_stream = ctx.obj.deployer.compose_logs(services=services_list, tail=tail, follow=follow, stream=True)
         for stream_type, stream_content in logs_stream:
             print(stream_content.decode("utf-8"), end="")
 
@@ -214,11 +220,11 @@ def get_stack_status(ctx, stack):
     ctx_copy.stack = stack
 
     cluster_context = _make_cluster_context(ctx_copy, stack, None, None, None, None)
-    docker = DockerClient(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster)
+    deployer = Deployer(compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster)
     # TODO: refactor to avoid duplicating this code above
     if ctx.verbose:
         print("Running compose ps")
-    container_list = docker.compose.ps()
+    container_list = deployer.compose_ps()
     if len(container_list) > 0:
         if ctx.debug:
             print(f"Container list from compose ps: {container_list}")
@@ -359,7 +365,7 @@ def _run_command(ctx, cluster_name, command):
         sys.exit(1)
 
 
-def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env):
+def _orchestrate_cluster_config(ctx, cluster_config, deployer, container_exec_env):
 
     @dataclass
     class ConfigDirective:
@@ -390,13 +396,13 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                     # TODO: fix the script paths so they're consistent between containers
                     source_value = None
                     try:
-                        source_value = docker.compose.execute(pd.source_container,
-                                                              ["sh", "-c",
-                                                                  "sh /docker-entrypoint-scripts.d/export-"
-                                                                  f"{pd.source_variable}.sh"],
-                                                              tty=False,
-                                                              envs=container_exec_env)
-                    except DockerException as error:
+                        source_value = deployer.compose_execute(pd.source_container,
+                                                                ["sh", "-c",
+                                                                 "sh /docker-entrypoint-scripts.d/export-"
+                                                                 f"{pd.source_variable}.sh"],
+                                                                tty=False,
+                                                                envs=container_exec_env)
+                    except DeployerException as error:
                         if ctx.debug:
                             print(f"Docker exception reading config source: {error}")
                         # If the script executed failed for some reason, we get:
@@ -411,12 +417,12 @@ def _orchestrate_cluster_config(ctx, cluster_config, docker, container_exec_env)
                     if source_value:
                         if ctx.debug:
                             print(f"fetched source value: {source_value}")
-                        destination_output = docker.compose.execute(pd.destination_container,
-                                                                    ["sh", "-c",
-                                                                        f"sh /scripts/import-{pd.destination_variable}.sh"
-                                                                        f" {source_value}"],
-                                                                    tty=False,
-                                                                    envs=container_exec_env)
+                        destination_output = deployer.compose_execute(pd.destination_container,
+                                                                      ["sh", "-c",
+                                                                       f"sh /scripts/import-{pd.destination_variable}.sh"
+                                                                       f" {source_value}"],
+                                                                      tty=False,
+                                                                      envs=container_exec_env)
                         waiting_for_data = False
                     if ctx.debug:
                         print(f"destination output: {destination_output}")

@@ -1,5 +1,7 @@
 # Stack Orchestrator
 
+Change to trigger CI
+
 Stack Orchestrator allows building and deployment of a Laconic Stack on a single machine with minimial prerequisites. It is a Python3 CLI tool that runs on any OS with Python3 and Docker. The following diagram summarizes the relevant repositories in the Laconic Stack - and the relationship to Stack Orchestrator.
 
 ![The Stack](/docs/images/laconic-stack.png)

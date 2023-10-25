@@ -23,7 +23,7 @@ from shutil import copy, copyfile, copytree
 import sys
 from app.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml,
                       get_pod_list, get_pod_file_path, pod_has_scripts, get_pod_script_paths, get_plugin_code_path)
-from app.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
+from app.deploy.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
 
 
 def _make_default_deployment_dir():
@@ -325,7 +325,7 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     os.mkdir(destination_compose_dir)
     destination_pods_dir = os.path.join(deployment_dir, "pods")
     os.mkdir(destination_pods_dir)
-    data_dir = Path(__file__).absolute().parent.joinpath("data")
+    data_dir = Path(__file__).absolute().parent.parent.joinpath("data")
     yaml = get_yaml()
     for pod in pods:
         pod_file_path = get_pod_file_path(parsed_stack, pod)

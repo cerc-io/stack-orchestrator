@@ -17,7 +17,7 @@ from typing import List
 from dataclasses import dataclass
 from pathlib import Path
 from app.command_types import CommandOptions
-from app.deployer import Deployer
+from app.deploy.deployer import Deployer
 
 
 @dataclass

@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from kubernetes import client, config
-from app.deployer import Deployer
+from app.deploy.deployer import Deployer
 
 
 class K8sDeployer(Deployer):

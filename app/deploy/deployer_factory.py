@@ -13,8 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from app.deploy_k8s import K8sDeployer
-from app.deploy_docker import DockerDeployer
+from app.deploy.k8s.deploy_k8s import K8sDeployer
+from app.deploy.compose.deploy_docker import DockerDeployer
 
 
 def getDeployer(type, compose_files, compose_project_name, compose_env_file):

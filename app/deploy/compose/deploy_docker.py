@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from python_on_whales import DockerClient, DockerException
-from app.deployer import Deployer, DeployerException
+from app.deploy.deployer import Deployer, DeployerException
 
 
 class DockerDeployer(Deployer):

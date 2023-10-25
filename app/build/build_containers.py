@@ -52,7 +52,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
     continue_on_error = ctx.obj.continue_on_error
 
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-    container_build_dir = Path(__file__).absolute().parent.joinpath("data", "container-build")
+    container_build_dir = Path(__file__).absolute().parent.parent.joinpath("data", "container-build")
 
     if local_stack:
         dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]

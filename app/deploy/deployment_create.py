@@ -23,7 +23,7 @@ from shutil import copy, copyfile, copytree
 import sys
 from app.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml,
                       get_pod_list, get_pod_file_path, pod_has_scripts, get_pod_script_paths, get_plugin_code_path)
-from app.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
+from app.deploy.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
 
 
 def _make_default_deployment_dir():

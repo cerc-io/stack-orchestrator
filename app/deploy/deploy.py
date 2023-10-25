@@ -25,12 +25,12 @@ import subprocess
 import click
 from pathlib import Path
 from app.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
-from app.deployer import Deployer, DeployerException
-from app.deployer_factory import getDeployer
-from app.deploy_types import ClusterContext, DeployCommandContext
-from app.deployment_create import create as deployment_create
-from app.deployment_create import init as deployment_init
-from app.deployment_create import setup as deployment_setup
+from app.deploy.deployer import Deployer, DeployerException
+from app.deploy.deployer_factory import getDeployer
+from app.deploy.deploy_types import ClusterContext, DeployCommandContext
+from app.deploy.deployment_create import create as deployment_create
+from app.deploy.deployment_create import init as deployment_init
+from app.deploy.deployment_create import setup as deployment_setup
 
 
 @click.group()
@@ -397,11 +397,11 @@ def _orchestrate_cluster_config(ctx, cluster_config, deployer, container_exec_en
                     source_value = None
                     try:
                         source_value = deployer.execute(pd.source_container,
-                                                                ["sh", "-c",
-                                                                 "sh /docker-entrypoint-scripts.d/export-"
-                                                                 f"{pd.source_variable}.sh"],
-                                                                tty=False,
-                                                                envs=container_exec_env)
+                                                        ["sh", "-c",
+                                                         "sh /docker-entrypoint-scripts.d/export-"
+                                                         f"{pd.source_variable}.sh"],
+                                                        tty=False,
+                                                        envs=container_exec_env)
                     except DeployerException as error:
                         if ctx.debug:
                             print(f"Docker exception reading config source: {error}")
@@ -418,11 +418,11 @@ def _orchestrate_cluster_config(ctx, cluster_config, deployer, container_exec_en
                         if ctx.debug:
                             print(f"fetched source value: {source_value}")
                         destination_output = deployer.execute(pd.destination_container,
-                                                                      ["sh", "-c",
-                                                                       f"sh /scripts/import-{pd.destination_variable}.sh"
-                                                                       f" {source_value}"],
-                                                                      tty=False,
-                                                                      envs=container_exec_env)
+                                                              ["sh", "-c",
+                                                               f"sh /scripts/import-{pd.destination_variable}.sh"
+                                                               f" {source_value}"],
+                                                              tty=False,
+                                                              envs=container_exec_env)
                         waiting_for_data = False
                     if ctx.debug:
                         print(f"destination output: {destination_output}")

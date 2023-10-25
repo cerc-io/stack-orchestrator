@@ -15,7 +15,7 @@
 
 import os
 from typing import List
-from app.deploy_types import DeployCommandContext, VolumeMapping
+from app.deploy.deploy_types import DeployCommandContext, VolumeMapping
 from app.util import get_parsed_stack_config, get_yaml, get_compose_file_dir, get_pod_list
 
 

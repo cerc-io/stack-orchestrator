@@ -258,7 +258,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         deployment = True
     else:
         # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-        compose_dir = Path(__file__).absolute().parent.joinpath("data", "compose")
+        compose_dir = Path(__file__).absolute().parent.parent.joinpath("data", "compose")
 
     if cluster is None:
         # Create default unique, stable cluster name from confile file path and stack name if provided

@@ -240,7 +240,7 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches, branches
     if stack:
         # In order to be compatible with Python 3.8 we need to use this hack to get the path:
         # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-        stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
+        stack_file_path = Path(__file__).absolute().parent.parent.joinpath("data", "stacks", stack, "stack.yml")
         with stack_file_path:
             stack_config = yaml.safe_load(open(stack_file_path, "r"))
             # TODO: syntax check the input here

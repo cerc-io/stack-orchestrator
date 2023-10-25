@@ -325,7 +325,7 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     os.mkdir(destination_compose_dir)
     destination_pods_dir = os.path.join(deployment_dir, "pods")
     os.mkdir(destination_pods_dir)
-    data_dir = Path(__file__).absolute().parent.joinpath("data")
+    data_dir = Path(__file__).absolute().parent.parent.joinpath("data")
     yaml = get_yaml()
     for pod in pods:
         pod_file_path = get_pod_file_path(parsed_stack, pod)

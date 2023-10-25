@@ -16,12 +16,12 @@
 import click
 
 from app.command_types import CommandOptions
-from app import setup_repositories
-from app import build_containers
-from app import build_npms
-from app import deploy
+from app.repos import setup_repositories
+from app.build import build_containers
+from app.build import build_npms
+from app.deploy import deploy
 from app import version
-from app import deployment
+from app.deploy import deployment
 from app import update
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])

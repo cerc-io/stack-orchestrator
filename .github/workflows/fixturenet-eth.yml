@@ -1,10 +1,11 @@
 name: Fixturenet-Eth Test
 
 on:
-  pull_request:
-    branches: '*'
   push:
     branches: '*'
+    paths:
+      - '!**'
+      - '.github/workflows/triggers/fixturenet-eth-test'
 
 jobs:
   test:

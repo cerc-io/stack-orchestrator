@@ -15,42 +15,49 @@ server {
 }
 
 upstream geth-pool {
-  keepalive 100;
-  hash $user_id consistent;
-  server server-a:8545;
-  server server-b:8545;
-  server server-c:8545;
+  server server-a:8545 max_fails=10 fail_timeout=2s;
+  server server-c:8545 max_fails=10 fail_timeout=2s backup;
+  server server-b:8545 max_fails=10 fail_timeout=2s backup;
+  keepalive 200;
 }
 
-# self-reg happens on one server for clarity
 upstream reg-ui-pool {
-  keepalive 100;
+  keepalive 2;
   server server-a:8085;
 }
 
 upstream reg-api-pool {
-  keepalive 100;
+  keepalive 2;
   server server-a:8086;
 }
 
-# auth uses server-a if available
+# auth uses the reg server when available
 upstream auth-pool {
-  keepalive 100;
+  keepalive 10;
   server server-a:8080;
   server server-b:8080 backup;
   server server-c:8080 backup;
 }
 
-log_format upstreamlog '[$time_local] $remote_addr $user_id - $server_name $host to: $upstream_addr: $request $status upstream_response_time $upstream_response_time msec $msec request_time $request_time';
-proxy_cache_path                /var/cache/nginx/auth_cache levels=1 keys_zone=auth_cache:1m max_size=5m inactive=60m;
+
+log_format upstreamlog '[$time_local] $msec $remote_addr $user_id - $server_name($host) to $upstream_addr: $request $status upstream_response_time $upstream_response_time request_time $request_time';
+proxy_cache_path /var/cache/nginx/auth_cache levels=1 keys_zone=auth_cache:1m max_size=5m inactive=60m;
+
 server {
     listen 443 ssl http2;
     server_name my.example.com;
+    keepalive_requests 500000;
+    keepalive_timeout 90s;
+    http2_max_requests 5000000;
+    http2_max_concurrent_streams 1024;
+    http2_idle_timeout 3m;
+    http2_recv_timeout 30s;
     access_log /var/log/nginx/my.example.com-access.log upstreamlog;
     error_log /var/log/nginx/my.example.com-error.log;
 
     ssl_certificate /etc/nginx/ssl/my.example.com/cert.pem;
     ssl_certificate_key /etc/nginx/ssl/my.example.com/key.pem;
+    ssl_session_cache shared:SSL:10m;
 
     error_page 500 502 503 504 /50x.html;
     location = /50x.html {
@@ -59,7 +66,6 @@ server {
 
     #rewrite ^/?$ /newuser/;
     rewrite ^/?$ https://www.example.com/;
-
 
     # geth-pool ETH API
     location ~ ^/v1/eth/?([^/]*)$ {
@@ -71,8 +77,8 @@ server {
         auth_request_set $user_id $sent_http_x_user_id;
         rewrite /.*$ / break;
 
-        client_max_body_size 3m;
-        client_body_buffer_size 3m;
+        client_max_body_size       3m;
+        client_body_buffer_size    3m;
         proxy_buffer_size          32k;
         proxy_buffers              16 32k;
         proxy_busy_buffers_size    96k;
@@ -80,8 +86,10 @@ server {
         proxy_pass  http://geth-pool;
         proxy_set_header X-Original-Remote-Addr $remote_addr;
         proxy_set_header X-User-Id $user_id;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
     }
-    
+
     # keycloak
     location = /auth {
         internal;
@@ -95,6 +103,8 @@ server {
         proxy_set_header X-Original-URI $request_uri;
         proxy_set_header X-Original-Remote-Addr $remote_addr;
         proxy_set_header X-Original-Host $host;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
     }
 
     location /newuser/ {

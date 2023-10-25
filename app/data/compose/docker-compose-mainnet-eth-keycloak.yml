@@ -6,7 +6,7 @@ services:
     env_file:
       - ../config/mainnet-eth-keycloak/keycloak.env
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      test: ["CMD", "nc", "-v", "localhost", "35432"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -14,7 +14,7 @@ services:
     volumes:
       - mainnet_eth_keycloak_db:/var/lib/postgresql/data
     ports:
-      - 5432
+      - 35432
 
   keycloak:
     image: cerc/keycloak:local

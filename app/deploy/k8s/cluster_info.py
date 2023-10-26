@@ -23,6 +23,8 @@ from app.util import get_yaml
 class ClusterInfo:
     parsed_pod_yaml_map: Any = {}
     image_set: Set[str] = set()
+    app_name: str = "test-app"
+    deployment_name: str = "test-deployment"
 
     def __init__(self) -> None:
         pass
@@ -46,32 +48,37 @@ class ClusterInfo:
             print(f"image_set: {self.image_set}")
 
     def get_deployment(self):
-
-        container = client.V1Container(
-            name="container-name",
-            image="image-tag",
-            ports=[client.V1ContainerPort(container_port=80)],
-            resources=client.V1ResourceRequirements(
-                requests={"cpu": "100m", "memory": "200Mi"},
-                limits={"cpu": "500m", "memory": "500Mi"},
-            ),
-        )
-
+        containers = []
+        for pod_name in self.parsed_pod_yaml_map:
+            pod = self.parsed_pod_yaml_map[pod_name]
+            services = pod["services"]
+            for service_name in services:
+                container_name = service_name
+                service_info = services[service_name]
+                image = service_info["image"]
+                container = client.V1Container(
+                    name=container_name,
+                    image=image,
+                    ports=[client.V1ContainerPort(container_port=80)],
+                    resources=client.V1ResourceRequirements(
+                        requests={"cpu": "100m", "memory": "200Mi"},
+                        limits={"cpu": "500m", "memory": "500Mi"},
+                    ),
+                )
+                containers.append(container)
         template = client.V1PodTemplateSpec(
-            metadata=client.V1ObjectMeta(labels={"app": "app-name"}),
-            spec=client.V1PodSpec(containers=[container]),
+            metadata=client.V1ObjectMeta(labels={"app": self.app_name}),
+            spec=client.V1PodSpec(containers=containers),
         )
-
         spec = client.V1DeploymentSpec(
             replicas=3, template=template, selector={
                 "matchLabels":
-                {"app": "app-name"}})
+                {"app": self.app_name}})
 
         deployment = client.V1Deployment(
             api_version="apps/v1",
             kind="Deployment",
-            metadata=client.V1ObjectMeta(name="deployment-name"),
+            metadata=client.V1ObjectMeta(name=self.deployment_name),
             spec=spec,
         )
-
         return deployment

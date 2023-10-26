@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+from kubernetes import client
 from typing import Any, List, Set
 
 from app.opts import opts
@@ -43,3 +44,34 @@ class ClusterInfo:
                 self.image_set.add(image)
         if opts.o.debug:
             print(f"image_set: {self.image_set}")
+
+    def get_deployment(self):
+
+        container = client.V1Container(
+            name="container-name",
+            image="image-tag",
+            ports=[client.V1ContainerPort(container_port=80)],
+            resources=client.V1ResourceRequirements(
+                requests={"cpu": "100m", "memory": "200Mi"},
+                limits={"cpu": "500m", "memory": "500Mi"},
+            ),
+        )
+
+        template = client.V1PodTemplateSpec(
+            metadata=client.V1ObjectMeta(labels={"app": "app-name"}),
+            spec=client.V1PodSpec(containers=[container]),
+        )
+
+        spec = client.V1DeploymentSpec(
+            replicas=3, template=template, selector={
+                "matchLabels":
+                {"app": "app-name"}})
+
+        deployment = client.V1Deployment(
+            api_version="apps/v1",
+            kind="Deployment",
+            metadata=client.V1ObjectMeta(name="deployment-name"),
+            spec=spec,
+        )
+
+        return deployment

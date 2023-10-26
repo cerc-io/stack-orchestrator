@@ -39,6 +39,7 @@ class K8sDeployer(Deployer):
     def connect_api(self):
         config.load_kube_config(context=f"kind-{self.kind_cluster_name}")
         self.k8s_client = client.CoreV1Api()
+        self.k8s_api = client.AppsV1Api()
 
     def up(self, detach, services):
         # Create the kind cluster
@@ -47,7 +48,16 @@ class K8sDeployer(Deployer):
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
         # Process compose files into a Deployment
+        deployment = self.cluster_info.get_deployment()
         # Create the k8s objects
+        resp = self.k8s_api.create_namespaced_deployment(
+            body=deployment, namespace="default"
+        )
+
+        if opts.o.debug:
+            print("Deployment created.\n")
+            print(f"{resp.metadata.namespace} {resp.metadata.name} \
+                  {resp.metadata.generation} {resp.spec.template.spec.containers[0].image}")
 
     def down(self, timeout, volumes):
         # Delete the k8s objects

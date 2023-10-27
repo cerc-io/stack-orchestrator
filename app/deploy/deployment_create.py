@@ -22,7 +22,7 @@ import random
 from shutil import copy, copyfile, copytree
 import sys
 from app.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml,
-                      get_pod_list, get_pod_file_path, pod_has_scripts, get_pod_script_paths, get_plugin_code_path)
+                      get_pod_list, get_pod_file_path, pod_has_scripts, get_pod_script_paths, get_plugin_code_paths)
 from app.deploy.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
 
 
@@ -106,9 +106,10 @@ def _fixup_pod_file(pod, spec, compose_dir):
                 pod["services"][container_name]["ports"] = container_ports
 
 
-def _commands_plugin_path(ctx: DeployCommandContext):
-    plugin_path = get_plugin_code_path(ctx.stack)
-    return plugin_path.joinpath("deploy", "commands.py")
+def _commands_plugin_paths(ctx: DeployCommandContext):
+    plugin_paths = get_plugin_code_paths(ctx.stack)
+    ret = [p.joinpath("deploy", "commands.py") for p in plugin_paths]
+    return ret
 
 
 # See: https://stackoverflow.com/a/54625079/1701505
@@ -120,15 +121,23 @@ def call_stack_deploy_init(deploy_command_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = _commands_plugin_path(deploy_command_context)
-    if python_file_path.exists():
-        spec = util.spec_from_file_location("commands", python_file_path)
-        imported_stack = util.module_from_spec(spec)
-        spec.loader.exec_module(imported_stack)
-        if _has_method(imported_stack, "init"):
-            return imported_stack.init(deploy_command_context)
-    else:
-        return None
+    python_file_paths = _commands_plugin_paths(deploy_command_context)
+
+    ret = None
+    init_done = False
+    for python_file_path in python_file_paths:
+        if python_file_path.exists():
+            spec = util.spec_from_file_location("commands", python_file_path)
+            imported_stack = util.module_from_spec(spec)
+            spec.loader.exec_module(imported_stack)
+            if _has_method(imported_stack, "init"):
+                if not init_done:
+                    ret = imported_stack.init(deploy_command_context)
+                    init_done = True
+                else:
+                    # TODO: remove this restriction
+                    print(f"Skipping init() from plugin {python_file_path}. Only one init() is allowed.")
+    return ret
 
 
 # TODO: fold this with function above
@@ -136,16 +145,14 @@ def call_stack_deploy_setup(deploy_command_context, parameters: LaconicStackSetu
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = _commands_plugin_path(deploy_command_context)
-    print(f"Path: {python_file_path}")
-    if python_file_path.exists():
-        spec = util.spec_from_file_location("commands", python_file_path)
-        imported_stack = util.module_from_spec(spec)
-        spec.loader.exec_module(imported_stack)
-        if _has_method(imported_stack, "setup"):
-            return imported_stack.setup(deploy_command_context, parameters, extra_args)
-    else:
-        return None
+    python_file_paths = _commands_plugin_paths(deploy_command_context)
+    for python_file_path in python_file_paths:
+        if python_file_path.exists():
+            spec = util.spec_from_file_location("commands", python_file_path)
+            imported_stack = util.module_from_spec(spec)
+            spec.loader.exec_module(imported_stack)
+            if _has_method(imported_stack, "setup"):
+                imported_stack.setup(deploy_command_context, parameters, extra_args)
 
 
 # TODO: fold this with function above
@@ -153,15 +160,14 @@ def call_stack_deploy_create(deployment_context, extra_args):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_path = _commands_plugin_path(deployment_context.command_context)
-    if python_file_path.exists():
-        spec = util.spec_from_file_location("commands", python_file_path)
-        imported_stack = util.module_from_spec(spec)
-        spec.loader.exec_module(imported_stack)
-        if _has_method(imported_stack, "create"):
-            return imported_stack.create(deployment_context, extra_args)
-    else:
-        return None
+    python_file_paths = _commands_plugin_paths(deployment_context.command_context)
+    for python_file_path in python_file_paths:
+        if python_file_path.exists():
+            spec = util.spec_from_file_location("commands", python_file_path)
+            imported_stack = util.module_from_spec(spec)
+            spec.loader.exec_module(imported_stack)
+            if _has_method(imported_stack, "create"):
+                imported_stack.create(deployment_context, extra_args)
 
 
 # Inspect the pod yaml to find config files referenced in subdirectories
@@ -336,7 +342,7 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
         if global_options(ctx).debug:
             print(f"extra config dirs: {extra_config_dirs}")
         _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
-        with open(os.path.join(destination_compose_dir, os.path.basename(pod_file_path)), "w") as output_file:
+        with open(os.path.join(destination_compose_dir, "docker-compose-%s.yml" % pod), "w") as output_file:
             yaml.dump(parsed_pod_file, output_file)
         # Copy the config files for the pod, if any
         config_dirs = {pod}

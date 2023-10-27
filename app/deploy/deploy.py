@@ -307,7 +307,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
                 compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_path}.yml")
             else:
                 if deployment:
-                    compose_file_name = os.path.join(compose_dir, "docker-compose.yml")
+                    compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_name}.yml")
                     pod_pre_start_command = pod["pre_start_command"]
                     pod_post_start_command = pod["post_start_command"]
                     script_dir = compose_dir.parent.joinpath("pods", pod_name, "scripts")
@@ -317,7 +317,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
                         post_start_commands.append(os.path.join(script_dir, pod_post_start_command))
                 else:
                     pod_root_dir = os.path.join(dev_root_path, pod_repository.split("/")[-1], pod["path"])
-                    compose_file_name = os.path.join(pod_root_dir, "docker-compose.yml")
+                    compose_file_name = os.path.join(pod_root_dir, f"docker-compose-{pod_name}.yml")
                     pod_pre_start_command = pod["pre_start_command"]
                     pod_post_start_command = pod["post_start_command"]
                     if pod_pre_start_command is not None:

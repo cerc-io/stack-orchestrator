@@ -84,11 +84,11 @@ def get_plugin_code_paths(stack):
     pods = parsed_stack["pods"]
     result = []
     for pod in pods:
-      if type(pod) is str:
-          result.append(get_stack_file_path(stack).parent)
-      else:
-          pod_root_dir = os.path.join(get_dev_root_path(None), pod["repository"].split("/")[-1], pod["path"])
-          result.append(Path(os.path.join(pod_root_dir, "stack")))
+        if type(pod) is str:
+            result.append(get_stack_file_path(stack).parent)
+        else:
+            pod_root_dir = os.path.join(get_dev_root_path(None), pod["repository"].split("/")[-1], pod["path"])
+            result.append(Path(os.path.join(pod_root_dir, "stack")))
     return result
 
 

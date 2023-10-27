@@ -121,7 +121,7 @@ def call_stack_deploy_init(deploy_command_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_paths  = _commands_plugin_paths(deploy_command_context)
+    python_file_paths = _commands_plugin_paths(deploy_command_context)
 
     ret = None
     init_done = False
@@ -135,7 +135,7 @@ def call_stack_deploy_init(deploy_command_context):
                     ret = imported_stack.init(deploy_command_context)
                     init_done = True
                 else:
-                    #TODO: remove this restriction
+                    # TODO: remove this restriction
                     print(f"Skipping init() from plugin {python_file_path}. Only one init() is allowed.")
     return ret
 

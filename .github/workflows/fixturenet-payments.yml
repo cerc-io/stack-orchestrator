@@ -27,3 +27,4 @@ jobs:
         run: ./scripts/build_shiv_package.sh
       - name: "Run fixturenet-payments tests"
         run: ./tests/fixturenet-payments/run-test.sh
+        

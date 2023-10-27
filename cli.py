@@ -22,6 +22,7 @@ from app.build import build_npms
 from app.deploy import deploy
 from app import version
 from app.deploy import deployment
+from app import opts
 from app import update
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -39,7 +40,9 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.pass_context
 def cli(ctx, stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error):
     """Laconic Stack Orchestrator"""
-    ctx.obj = CommandOptions(stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error)
+    command_options = CommandOptions(stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error)
+    opts.opts.o = command_options
+    ctx.obj = command_options
 
 
 cli.add_command(setup_repositories.command, "setup-repositories")

@@ -71,7 +71,7 @@ class ClusterInfo:
             spec=client.V1PodSpec(containers=containers),
         )
         spec = client.V1DeploymentSpec(
-            replicas=3, template=template, selector={
+            replicas=1, template=template, selector={
                 "matchLabels":
                 {"app": self.app_name}})
 

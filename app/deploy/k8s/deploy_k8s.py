@@ -17,6 +17,7 @@ from kubernetes import client, config
 
 from app.deploy.deployer import Deployer
 from app.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
+from app.deploy.k8s.helpers import pods_in_deployment
 from app.deploy.k8s.cluster_info import ClusterInfo
 from app.opts import opts
 
@@ -24,6 +25,7 @@ from app.opts import opts
 class K8sDeployer(Deployer):
     name: str = "k8s"
     k8s_client: client
+    k8s_api: client.AppsV1Api
     kind_cluster_name: str
     cluster_info : ClusterInfo
 
@@ -84,8 +86,13 @@ class K8sDeployer(Deployer):
         pass
 
     def logs(self, services, tail, follow, stream):
-        # Call the API to get logs
-        pass
+        self.connect_api()
+        pods = pods_in_deployment(self.k8s_api, "test-deployment")
+        if len(pods) > 1:
+            print("Warning: more than one pod in the deployment")
+        k8s_pod_name = pods[0]
+        log_data = self.k8s_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container="test")
+        print(log_data)
 
     def run(self, image, command, user, volumes, entrypoint=None):
         # We need to figure out how to do this -- check why we're being called first

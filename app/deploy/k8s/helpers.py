@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+from kubernetes import client
 import subprocess
 from typing import Set
 
@@ -38,3 +39,11 @@ def destroy_cluster(name: str):
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
     for image in image_set:
         _run_command(f"kind load docker-image {image} --name {kind_cluster_name}")
+
+
+def pods_in_deployment(api: client.AppsV1Api, deployment_name: str):
+    # See: https://stackoverflow.com/a/73525759/1701505
+    deployment_info = api.read_namespaced_deployment(deployment_name, "default")
+    if opts.o.debug:
+        print(f"deployment: {deployment_info}")
+    return []

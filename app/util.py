@@ -79,16 +79,16 @@ def get_pod_list(parsed_stack):
     return result
 
 
-def get_plugin_code_path(stack):
+def get_plugin_code_paths(stack):
     parsed_stack = get_parsed_stack_config(stack)
     pods = parsed_stack["pods"]
-    # TODO: Hack
-    pod = pods[0]
-    if type(pod) is str:
-        result = get_stack_file_path(stack).parent
-    else:
-        pod_root_dir = os.path.join(get_dev_root_path(None), pod["repository"].split("/")[-1], pod["path"])
-        result = Path(os.path.join(pod_root_dir, "stack"))
+    result = []
+    for pod in pods:
+      if type(pod) is str:
+          result.append(get_stack_file_path(stack).parent)
+      else:
+          pod_root_dir = os.path.join(get_dev_root_path(None), pod["repository"].split("/")[-1], pod["path"])
+          result.append(Path(os.path.join(pod_root_dir, "stack")))
     return result
 
 

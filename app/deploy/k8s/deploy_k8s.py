@@ -17,15 +17,15 @@ from kubernetes import client, config
 
 from app.deploy.deployer import Deployer
 from app.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
-from app.deploy.k8s.helpers import pods_in_deployment
+from app.deploy.k8s.helpers import pods_in_deployment, log_stream_from_string
 from app.deploy.k8s.cluster_info import ClusterInfo
 from app.opts import opts
 
 
 class K8sDeployer(Deployer):
     name: str = "k8s"
-    k8s_client: client
-    k8s_api: client.AppsV1Api
+    core_api: client.CoreV1Api
+    apps_api: client.AppsV1Api
     kind_cluster_name: str
     cluster_info : ClusterInfo
 
@@ -40,8 +40,8 @@ class K8sDeployer(Deployer):
 
     def connect_api(self):
         config.load_kube_config(context=f"kind-{self.kind_cluster_name}")
-        self.k8s_client = client.CoreV1Api()
-        self.k8s_api = client.AppsV1Api()
+        self.core_api = client.CoreV1Api()
+        self.apps_api = client.AppsV1Api()
 
     def up(self, detach, services):
         # Create the kind cluster
@@ -52,7 +52,7 @@ class K8sDeployer(Deployer):
         # Process compose files into a Deployment
         deployment = self.cluster_info.get_deployment()
         # Create the k8s objects
-        resp = self.k8s_api.create_namespaced_deployment(
+        resp = self.apps_api.create_namespaced_deployment(
             body=deployment, namespace="default"
         )
 
@@ -69,11 +69,11 @@ class K8sDeployer(Deployer):
     def ps(self):
         self.connect_api()
         # Call whatever API we need to get the running container list
-        ret = self.k8s_client.list_pod_for_all_namespaces(watch=False)
+        ret = self.core_api.list_pod_for_all_namespaces(watch=False)
         if ret.items:
             for i in ret.items:
                 print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
-        ret = self.k8s_client.list_node(pretty=True, watch=False)
+        ret = self.core_api.list_node(pretty=True, watch=False)
         return []
 
     def port(self, service, private_port):
@@ -87,12 +87,12 @@ class K8sDeployer(Deployer):
 
     def logs(self, services, tail, follow, stream):
         self.connect_api()
-        pods = pods_in_deployment(self.k8s_api, "test-deployment")
+        pods = pods_in_deployment(self.core_api, "test-deployment")
         if len(pods) > 1:
             print("Warning: more than one pod in the deployment")
         k8s_pod_name = pods[0]
-        log_data = self.k8s_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container="test")
-        print(log_data)
+        log_data = self.core_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container="test")
+        return log_stream_from_string(log_data)
 
     def run(self, image, command, user, volumes, entrypoint=None):
         # We need to figure out how to do this -- check why we're being called first

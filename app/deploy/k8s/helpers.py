@@ -41,9 +41,17 @@ def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
         _run_command(f"kind load docker-image {image} --name {kind_cluster_name}")
 
 
-def pods_in_deployment(api: client.AppsV1Api, deployment_name: str):
-    # See: https://stackoverflow.com/a/73525759/1701505
-    deployment_info = api.read_namespaced_deployment(deployment_name, "default")
+def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
+    pods = []
+    pod_response = core_api.list_namespaced_pod(namespace="default", label_selector="app=test-app")
     if opts.o.debug:
-        print(f"deployment: {deployment_info}")
-    return []
+        print(f"pod_response: {pod_response}")
+    for pod_info in pod_response.items:
+        pod_name = pod_info.metadata.name
+        pods.append(pod_name)
+    return pods
+
+
+def log_stream_from_string(s: str):
+    # Note response has to be UTF-8 encoded because the caller expects to decode it
+    yield ("ignore", s.encode())

@@ -81,7 +81,7 @@ class K8sDeployer(Deployer):
         # Also look into whether it makes sense to get ports for k8s
         pass
 
-    def execute(self, service_name, command, envs):
+    def execute(self, service_name, command, tty, envs):
         # Call the API to execute a command in a running container
         pass
 

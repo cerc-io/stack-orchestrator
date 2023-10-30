@@ -48,9 +48,9 @@ class DockerDeployer(Deployer):
         except DockerException as e:
             raise DeployerException(e)
 
-    def execute(self, service, command, envs):
+    def execute(self, service, command, tty, envs):
         try:
-            return self.docker.compose.execute(service=service, command=command, envs=envs)
+            return self.docker.compose.execute(service=service, command=command, tty=tty, envs=envs)
         except DockerException as e:
             raise DeployerException(e)
 

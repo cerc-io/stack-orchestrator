@@ -35,7 +35,7 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def execute(self, service_name, command, envs):
+    def execute(self, service_name, command, tty, envs):
         pass
 
     @abstractmethod

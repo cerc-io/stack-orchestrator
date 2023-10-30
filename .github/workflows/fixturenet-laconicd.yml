@@ -12,12 +12,6 @@ jobs:
     name: "Run fixturenet-laconicd test suite"
     runs-on: ubuntu-latest
     steps:
-      - name: 'Setup jq'
-        run: apt-get install jq -y
-      - name: 'Check jq'
-        run: |
-          which jq
-          jq --version 
       - name: "Clone project repository"
         uses: actions/checkout@v3
       - name: "Install Python"

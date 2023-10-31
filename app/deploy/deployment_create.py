@@ -261,7 +261,7 @@ def init(ctx, config, output, map_ports_to_host):
     config_variables = _parse_config_variables(config)
     if config_variables:
         # Implement merge, since update() overwrites
-        orig_config = spec_file_content["config"]
+        orig_config = spec_file_content.get("config", {})
         new_config = config_variables["config"]
         merged_config = {**new_config, **orig_config}
         spec_file_content.update({"config": merged_config})

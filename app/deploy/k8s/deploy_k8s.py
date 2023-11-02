@@ -26,6 +26,7 @@ class K8sDeployer(Deployer):
     name: str = "k8s"
     core_api: client.CoreV1Api
     apps_api: client.AppsV1Api
+    k8s_namespace: str = "default"
     kind_cluster_name: str
     cluster_info : ClusterInfo
 
@@ -49,17 +50,27 @@ class K8sDeployer(Deployer):
         self.connect_api()
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
+        # Figure out the PVCs for this deployment
+        pvcs = self.cluster_info.get_pvcs()
+        for pvc in pvcs:
+            if opts.o.debug:
+                print(f"Sending this: {pvc}")
+            pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(body=pvc, namespace=self.k8s_namespace)
+            if opts.o.debug:
+                print("PVCs created:")
+                print(f"{pvc_resp}")
         # Process compose files into a Deployment
         deployment = self.cluster_info.get_deployment()
         # Create the k8s objects
-        resp = self.apps_api.create_namespaced_deployment(
-            body=deployment, namespace="default"
-        )
-
         if opts.o.debug:
-            print("Deployment created.\n")
-            print(f"{resp.metadata.namespace} {resp.metadata.name} \
-                  {resp.metadata.generation} {resp.spec.template.spec.containers[0].image}")
+            print(f"Sending this: {deployment}")
+        deployment_resp = self.apps_api.create_namespaced_deployment(
+            body=deployment, namespace=self.k8s_namespace
+        )
+        if opts.o.debug:
+            print("Deployment created:")
+            print(f"{deployment_resp.metadata.namespace} {deployment_resp.metadata.name} \
+                  {deployment_resp.metadata.generation} {deployment_resp.spec.template.spec.containers[0].image}")
 
     def down(self, timeout, volumes):
         # Delete the k8s objects

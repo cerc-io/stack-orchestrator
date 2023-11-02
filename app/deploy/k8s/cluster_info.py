@@ -18,6 +18,7 @@ from typing import Any, List, Set
 
 from app.opts import opts
 from app.util import get_yaml
+from app.deploy.k8s.helpers import named_volumes_from_pod_files, volume_mounts_for_service, volumes_for_pod_files
 
 
 class ClusterInfo:
@@ -47,6 +48,28 @@ class ClusterInfo:
         if opts.o.debug:
             print(f"image_set: {self.image_set}")
 
+    def get_pvcs(self):
+        result = []
+        volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        if opts.o.debug:
+            print(f"Volumes: {volumes}")
+        for volume_name in volumes:
+            spec = client.V1PersistentVolumeClaimSpec(
+                storage_class_name="standard",
+                access_modes=["ReadWriteOnce"],
+                resources=client.V1ResourceRequirements(
+                    requests={"storage": "2Gi"}
+                )
+            )
+            pvc = client.V1PersistentVolumeClaim(
+                metadata=client.V1ObjectMeta(name=volume_name,
+                                             labels={"volume-label": volume_name}),
+                spec=spec,
+            )
+            result.append(pvc)
+        return result
+
+    # to suit the deployment, and also annotate the container specs to point at said volumes
     def get_deployment(self):
         containers = []
         for pod_name in self.parsed_pod_yaml_map:
@@ -56,19 +79,22 @@ class ClusterInfo:
                 container_name = service_name
                 service_info = services[service_name]
                 image = service_info["image"]
+                volume_mounts = volume_mounts_for_service(self.parsed_pod_yaml_map, service_name)
                 container = client.V1Container(
                     name=container_name,
                     image=image,
                     ports=[client.V1ContainerPort(container_port=80)],
+                    volume_mounts=volume_mounts,
                     resources=client.V1ResourceRequirements(
                         requests={"cpu": "100m", "memory": "200Mi"},
                         limits={"cpu": "500m", "memory": "500Mi"},
                     ),
                 )
                 containers.append(container)
+        volumes = volumes_for_pod_files(self.parsed_pod_yaml_map)
         template = client.V1PodTemplateSpec(
             metadata=client.V1ObjectMeta(labels={"app": self.app_name}),
-            spec=client.V1PodSpec(containers=containers),
+            spec=client.V1PodSpec(containers=containers, volumes=volumes),
         )
         spec = client.V1DeploymentSpec(
             replicas=1, template=template, selector={

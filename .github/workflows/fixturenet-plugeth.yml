@@ -1,0 +1,30 @@
+name: Fixturenet-Plugeth Test
+
+on:
+  push:
+    branches: '*'
+    paths:
+      - '!**'
+      - '.github/workflows/triggers/fixturenet-plugeth-test'
+
+jobs:
+  test:
+    name: "Run fixturenet-plugeth test suite"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      - name: "Install Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: "Print Python version"
+        run: python3 --version
+      - name: "Install shiv"
+        run: pip install shiv
+      - name: "Generate build version file"
+        run: ./scripts/create_build_tag_file.sh
+      - name: "Build local shiv package"
+        run: ./scripts/build_shiv_package.sh
+      - name: "Run fixturenet-plugeth tests"
+        run: ./tests/fixturenet-plugeth/run-test.sh

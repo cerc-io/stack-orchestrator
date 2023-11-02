@@ -151,7 +151,7 @@ def exec_operation(ctx, extra_args):
         if global_context.verbose:
             print(f"Running compose exec {service_name} {command_to_exec}")
         try:
-            ctx.obj.deployer.execute(service_name, command_to_exec, envs=container_exec_env)
+            ctx.obj.deployer.execute(service_name, command_to_exec, tty=True, envs=container_exec_env)
         except DeployerException:
             print("container command returned error exit status")
 

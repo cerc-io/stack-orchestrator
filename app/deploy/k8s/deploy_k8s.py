@@ -121,6 +121,7 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
         # Check the file isn't already there
         # Get the config file contents
         content = generate_kind_config()
+        config_file = deployment_dir.joinpath(self.config_file_name)
         # Write the file
-        with open(deployment_dir, "w") as output_file:
+        with open(config_file, "w") as output_file:
             output_file.write(content)

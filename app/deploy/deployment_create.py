@@ -369,7 +369,8 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     deployment_context = DeploymentContext(Path(deployment_dir), deployment_command_context)
     # Call the deployer to generate any deployer-specific files (e.g. for kind)
     deployer_config_generator = getDeployerConfigGenerator(parsed_spec["deploy-to"])
-    deployer_config_generator.generate(deployment_dir)
+    # TODO: make deployment_dir a Path above
+    deployer_config_generator.generate(Path(deployment_dir))
     call_stack_deploy_create(deployment_context, [network_dir, initial_peers])
 
 

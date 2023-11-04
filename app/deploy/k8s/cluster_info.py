@@ -17,8 +17,8 @@ from kubernetes import client
 from typing import Any, List, Set
 
 from app.opts import opts
-from app.util import get_yaml
 from app.deploy.k8s.helpers import named_volumes_from_pod_files, volume_mounts_for_service, volumes_for_pod_files
+from app.deploy.k8s.helpers import parsed_pod_files_map_from_file_names
 
 
 class ClusterInfo:
@@ -31,12 +31,7 @@ class ClusterInfo:
         pass
 
     def int_from_pod_files(self, pod_files: List[str]):
-        for pod_file in pod_files:
-            with open(pod_file, "r") as pod_file_descriptor:
-                parsed_pod_file = get_yaml().load(pod_file_descriptor)
-                self.parsed_pod_yaml_map[pod_file] = parsed_pod_file
-        if opts.o.debug:
-            print(f"parsed_pod_yaml_map: {self.parsed_pod_yaml_map}")
+        self.parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
         # Find the set of images in the pods
         for pod_name in self.parsed_pod_yaml_map:
             pod = self.parsed_pod_yaml_map[pod_name]

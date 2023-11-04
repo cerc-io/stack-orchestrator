@@ -47,7 +47,8 @@ class K8sDeployer(Deployer):
 
     def up(self, detach, services):
         # Create the kind cluster
-        create_cluster(self.kind_cluster_name, )
+        # HACK: pass in the config file path here
+        create_cluster(self.kind_cluster_name, "./test-deployment-dir/kind-config.yml")
         self.connect_api()
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)

@@ -168,7 +168,7 @@ def _generate_kind_port_mappings(parsed_pod_files):
                     for port_string in ports:
                         # TODO handle the complex cases
                         # Looks like: 80 or something more complicated
-                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort:{port_string}")
+                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}")
     return (
         "" if len(port_definitions) == 0 else (
             "  extraPortMappings:\n"

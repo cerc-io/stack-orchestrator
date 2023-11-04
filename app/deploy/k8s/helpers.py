@@ -106,6 +106,19 @@ def volumes_for_pod_files(parsed_pod_files):
     return result
 
 
+def _get_host_paths_for_volumes(parsed_pod_files):
+    result = {}
+    for pod in parsed_pod_files:
+        parsed_pod_file = parsed_pod_files[pod]
+        if "volumes" in parsed_pod_file:
+            volumes = parsed_pod_file["volumes"]
+            for volume_name in volumes.keys():
+                volume_definition = volumes[volume_name]
+                host_path = volume_definition["driver_opts"]["device"]
+                result[volume_name] = host_path
+    return result
+
+
 def parsed_pod_files_map_from_file_names(pod_files):
     parsed_pod_yaml_map : Any = {}
     for pod_file in pod_files:
@@ -119,6 +132,7 @@ def parsed_pod_files_map_from_file_names(pod_files):
 
 def _generate_kind_mounts(parsed_pod_files):
     volume_definitions = []
+    volume_host_path_map = _get_host_paths_for_volumes(parsed_pod_files)
     for pod in parsed_pod_files:
         parsed_pod_file = parsed_pod_files[pod]
         if "services" in parsed_pod_file:
@@ -130,7 +144,9 @@ def _generate_kind_mounts(parsed_pod_files):
                     for mount_string in volumes:
                         # Looks like: test-data:/data
                         (volume_name, mount_path) = mount_string.split(":")
-                        volume_definitions.append(f"  - hostPath: <where-is-this>\n    containerPath:{mount_path}")
+                        volume_definitions.append(
+                            f"  - hostPath: {volume_host_path_map[volume_name]}\n    containerPath: {mount_path}"
+                            )
     return (
         "" if len(volume_definitions) == 0 else (
             "  extraMounts:\n"

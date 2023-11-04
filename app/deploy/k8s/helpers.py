@@ -130,10 +130,10 @@ def _generate_kind_mounts(parsed_pod_files):
                     for mount_string in volumes:
                         # Looks like: test-data:/data
                         (volume_name, mount_path) = mount_string.split(":")
-                        volume_definitions.append(f"- hostPath: <where-is-this>\n  containerPath:{mount_path}")
+                        volume_definitions.append(f"  - hostPath: <where-is-this>\n    containerPath:{mount_path}")
     return (
         "" if len(volume_definitions) == 0 else (
-            "extraMounts:\n"
+            "  extraMounts:\n"
             f"{''.join(volume_definitions)}"
         )
     )
@@ -152,10 +152,10 @@ def _generate_kind_port_mappings(parsed_pod_files):
                     for port_string in ports:
                         # TODO handle the complex cases
                         # Looks like: 80 or something more complicated
-                        port_definitions.append(f"- containerPort: {port_string}\n  hostPort:{port_string}")
+                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort:{port_string}")
     return (
         "" if len(port_definitions) == 0 else (
-            "extraPortMappings:\n"
+            "  extraPortMappings:\n"
             f"{''.join(port_definitions)}"
         )
     )
@@ -190,7 +190,7 @@ def generate_kind_config(deployment_dir: Path):
         "kind: Cluster\n"
         "apiVersion: kind.x-k8s.io/v1alpha4\n"
         "nodes:\n"
-        "   - role: control-plane\n"
+        "- role: control-plane\n"
         f"{port_mappings_yml}\n"
         f"{mounts_yml}\n"
     )

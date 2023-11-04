@@ -47,7 +47,7 @@ class K8sDeployer(Deployer):
 
     def up(self, detach, services):
         # Create the kind cluster
-        create_cluster(self.kind_cluster_name)
+        create_cluster(self.kind_cluster_name, )
         self.connect_api()
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
@@ -120,7 +120,7 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
     def generate(self, deployment_dir: Path):
         # Check the file isn't already there
         # Get the config file contents
-        content = generate_kind_config()
+        content = generate_kind_config(deployment_dir)
         config_file = deployment_dir.joinpath(self.config_file_name)
         # Write the file
         with open(config_file, "w") as output_file:

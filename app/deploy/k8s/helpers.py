@@ -145,7 +145,7 @@ def _generate_kind_mounts(parsed_pod_files):
                         # Looks like: test-data:/data
                         (volume_name, mount_path) = mount_string.split(":")
                         volume_definitions.append(
-                            f"  - hostPath: {volume_host_path_map[volume_name]}\n    containerPath: {mount_path}"
+                            f"  - hostPath: {volume_host_path_map[volume_name]}\n    containerPath: /var/local-path-provisioner"
                             )
     return (
         "" if len(volume_definitions) == 0 else (

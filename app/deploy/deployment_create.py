@@ -24,6 +24,7 @@ import sys
 from app.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config, global_options, get_yaml,
                       get_pod_list, get_pod_file_path, pod_has_scripts, get_pod_script_paths, get_plugin_code_paths)
 from app.deploy.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
+from app.deploy.deployer_factory import getDeployerConfigGenerator
 
 
 def _make_default_deployment_dir():
@@ -366,6 +367,9 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext(Path(deployment_dir), deployment_command_context)
+    # Call the deployer to generate any deployer-specific files (e.g. for kind)
+    deployer_config_generator = getDeployerConfigGenerator(parsed_spec["deploy-to"])
+    deployer_config_generator.generate(deployment_dir)
     call_stack_deploy_create(deployment_context, [network_dir, initial_peers])
 
 

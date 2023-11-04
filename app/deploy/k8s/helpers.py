@@ -102,3 +102,13 @@ def volumes_for_pod_files(parsed_pod_files):
                 volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
                 result.append(volume)
     return result
+
+
+def generate_kind_config():
+    return (
+        '''kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+'''
+    )

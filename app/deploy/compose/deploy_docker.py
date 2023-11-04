@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+from pathlib import Path
 from python_on_whales import DockerClient, DockerException
-from app.deploy.deployer import Deployer, DeployerException
+from app.deploy.deployer import Deployer, DeployerException, DeployerConfigGenerator
 
 
 class DockerDeployer(Deployer):
@@ -65,3 +66,14 @@ class DockerDeployer(Deployer):
             return self.docker.run(image=image, command=command, user=user, volumes=volumes, entrypoint=entrypoint)
         except DockerException as e:
             raise DeployerException(e)
+
+
+class DockerDeployerConfigGenerator(DeployerConfigGenerator):
+    config_file_name: str = "kind-config.yml"
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    # Nothing needed at present for the docker deployer
+    def generate(self, deployment_dir: Path):
+        pass

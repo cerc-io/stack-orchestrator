@@ -13,11 +13,20 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from app.deploy.k8s.deploy_k8s import K8sDeployer
-from app.deploy.compose.deploy_docker import DockerDeployer
+from app.deploy.k8s.deploy_k8s import K8sDeployer, K8sDeployerConfigGenerator
+from app.deploy.compose.deploy_docker import DockerDeployer, DockerDeployerConfigGenerator
 
 
-def getDeployer(type, compose_files, compose_project_name, compose_env_file):
+def getDeployerConfigGenerator(type: str):
+    if type == "compose" or type is None:
+        return DockerDeployerConfigGenerator()
+    elif type == "k8s":
+        return K8sDeployerConfigGenerator()
+    else:
+        print(f"ERROR: deploy-to {type} is not valid")
+
+
+def getDeployer(type: str, compose_files, compose_project_name, compose_env_file):
     if type == "compose" or type is None:
         return DockerDeployer(compose_files, compose_project_name, compose_env_file)
     elif type == "k8s":

@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 
 class Deployer(ABC):
@@ -50,3 +51,10 @@ class Deployer(ABC):
 class DeployerException(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
+
+
+class DeployerConfigGenerator(ABC):
+
+    @abstractmethod
+    def generate(self, deployment_dir: Path):
+        pass

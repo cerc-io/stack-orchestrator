@@ -13,11 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+from pathlib import Path
 from kubernetes import client, config
 
-from app.deploy.deployer import Deployer
+from app.deploy.deployer import Deployer, DeployerConfigGenerator
 from app.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
-from app.deploy.k8s.helpers import pods_in_deployment, log_stream_from_string
+from app.deploy.k8s.helpers import pods_in_deployment, log_stream_from_string, generate_kind_config
 from app.deploy.k8s.cluster_info import ClusterInfo
 from app.opts import opts
 
@@ -46,7 +47,8 @@ class K8sDeployer(Deployer):
 
     def up(self, detach, services):
         # Create the kind cluster
-        create_cluster(self.kind_cluster_name)
+        # HACK: pass in the config file path here
+        create_cluster(self.kind_cluster_name, "./test-deployment-dir/kind-config.yml")
         self.connect_api()
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
@@ -108,3 +110,19 @@ class K8sDeployer(Deployer):
     def run(self, image, command, user, volumes, entrypoint=None):
         # We need to figure out how to do this -- check why we're being called first
         pass
+
+
+class K8sDeployerConfigGenerator(DeployerConfigGenerator):
+    config_file_name: str = "kind-config.yml"
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def generate(self, deployment_dir: Path):
+        # Check the file isn't already there
+        # Get the config file contents
+        content = generate_kind_config(deployment_dir)
+        config_file = deployment_dir.joinpath(self.config_file_name)
+        # Write the file
+        with open(config_file, "w") as output_file:
+            output_file.write(content)

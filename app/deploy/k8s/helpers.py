@@ -14,10 +14,12 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from kubernetes import client
+from pathlib import Path
 import subprocess
-from typing import Set
+from typing import Any, Set
 
 from app.opts import opts
+from app.util import get_yaml
 
 
 def _run_command(command: str):
@@ -28,8 +30,8 @@ def _run_command(command: str):
         print(f"Result: {result}")
 
 
-def create_cluster(name: str):
-    _run_command(f"kind create cluster --name {name}")
+def create_cluster(name: str, config_file: str):
+    _run_command(f"kind create cluster --name {name} --config {config_file}")
 
 
 def destroy_cluster(name: str):
@@ -102,3 +104,109 @@ def volumes_for_pod_files(parsed_pod_files):
                 volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
                 result.append(volume)
     return result
+
+
+def _get_host_paths_for_volumes(parsed_pod_files):
+    result = {}
+    for pod in parsed_pod_files:
+        parsed_pod_file = parsed_pod_files[pod]
+        if "volumes" in parsed_pod_file:
+            volumes = parsed_pod_file["volumes"]
+            for volume_name in volumes.keys():
+                volume_definition = volumes[volume_name]
+                host_path = volume_definition["driver_opts"]["device"]
+                result[volume_name] = host_path
+    return result
+
+
+def parsed_pod_files_map_from_file_names(pod_files):
+    parsed_pod_yaml_map : Any = {}
+    for pod_file in pod_files:
+        with open(pod_file, "r") as pod_file_descriptor:
+            parsed_pod_file = get_yaml().load(pod_file_descriptor)
+            parsed_pod_yaml_map[pod_file] = parsed_pod_file
+    if opts.o.debug:
+        print(f"parsed_pod_yaml_map: {parsed_pod_yaml_map}")
+    return parsed_pod_yaml_map
+
+
+def _generate_kind_mounts(parsed_pod_files):
+    volume_definitions = []
+    volume_host_path_map = _get_host_paths_for_volumes(parsed_pod_files)
+    for pod in parsed_pod_files:
+        parsed_pod_file = parsed_pod_files[pod]
+        if "services" in parsed_pod_file:
+            services = parsed_pod_file["services"]
+            for service_name in services:
+                service_obj = services[service_name]
+                if "volumes" in service_obj:
+                    volumes = service_obj["volumes"]
+                    for mount_string in volumes:
+                        # Looks like: test-data:/data
+                        (volume_name, mount_path) = mount_string.split(":")
+                        volume_definitions.append(
+                            f"  - hostPath: {volume_host_path_map[volume_name]}\n    containerPath: /var/local-path-provisioner"
+                            )
+    return (
+        "" if len(volume_definitions) == 0 else (
+            "  extraMounts:\n"
+            f"{''.join(volume_definitions)}"
+        )
+    )
+
+
+def _generate_kind_port_mappings(parsed_pod_files):
+    port_definitions = []
+    for pod in parsed_pod_files:
+        parsed_pod_file = parsed_pod_files[pod]
+        if "services" in parsed_pod_file:
+            services = parsed_pod_file["services"]
+            for service_name in services:
+                service_obj = services[service_name]
+                if "ports" in service_obj:
+                    ports = service_obj["ports"]
+                    for port_string in ports:
+                        # TODO handle the complex cases
+                        # Looks like: 80 or something more complicated
+                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}")
+    return (
+        "" if len(port_definitions) == 0 else (
+            "  extraPortMappings:\n"
+            f"{''.join(port_definitions)}"
+        )
+    )
+
+
+# This needs to know:
+# The service ports for the cluster
+# The bind mounted volumes for the cluster
+#
+# Make ports like this:
+#  extraPortMappings:
+#  - containerPort: 80
+#    hostPort: 80
+#    # optional: set the bind address on the host
+#    # 0.0.0.0 is the current default
+#    listenAddress: "127.0.0.1"
+#    # optional: set the protocol to one of TCP, UDP, SCTP.
+#    # TCP is the default
+#    protocol: TCP
+# Make bind mounts like this:
+#  extraMounts:
+#  - hostPath: /path/to/my/files
+#    containerPath: /files
+def generate_kind_config(deployment_dir: Path):
+    compose_file_dir = deployment_dir.joinpath("compose")
+    # TODO: this should come from the stack file, not this way
+    pod_files = [p for p in compose_file_dir.iterdir() if p.is_file()]
+    parsed_pod_files_map = parsed_pod_files_map_from_file_names(pod_files)
+    port_mappings_yml = _generate_kind_port_mappings(parsed_pod_files_map)
+    mounts_yml = _generate_kind_mounts(parsed_pod_files_map)
+    return (
+        "kind: Cluster\n"
+        "apiVersion: kind.x-k8s.io/v1alpha4\n"
+        "nodes:\n"
+        "- role: control-plane\n"
+        f"{port_mappings_yml}\n"
+        f"{mounts_yml}\n"
+    )

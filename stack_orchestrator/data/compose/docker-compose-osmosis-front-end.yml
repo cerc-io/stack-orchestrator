@@ -1,0 +1,8 @@
+version: "3.2"
+
+services:
+  osmosis-front-end:
+    image: cerc/osmosis-front-end:local
+    restart: always
+    ports:
+      - "3000:3000" #TODO make `3000` when using the deployment feature

@@ -1,0 +1,8 @@
+version: "0.1"
+name: osmosis-front-end
+repos:
+  - github.com/osmosis-labs/osmosis-frontend
+containers:
+  - cerc/osmosis-front-end
+pods:
+  - osmosis-front-end

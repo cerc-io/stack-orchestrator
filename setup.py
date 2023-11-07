@@ -14,7 +14,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/cerc-io/stack-orchestrator',
-    py_modules=['cli', 'app'],
+    py_modules=['stack_orchestrator'],
     packages=find_packages(),
     install_requires=[requirements],
     python_requires='>=3.7',
@@ -25,6 +25,6 @@ setup(
         "Operating System :: OS Independent",
     ],
     entry_points={
-        'console_scripts': ['laconic-so=cli:cli'],
+        'console_scripts': ['laconic-so=stack_orchestrator.main:cli'],
     }
 )

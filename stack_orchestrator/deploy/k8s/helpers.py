@@ -74,6 +74,10 @@ def named_volumes_from_pod_files(parsed_pod_files):
     return named_volumes
 
 
+def get_node_pv_mount_path(volume_name: str):
+    return f"/mnt/{volume_name}"
+
+
 def volume_mounts_for_service(parsed_pod_files, service):
     result = []
     # Find the service

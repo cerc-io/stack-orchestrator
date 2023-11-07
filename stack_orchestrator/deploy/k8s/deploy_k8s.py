@@ -52,11 +52,22 @@ class K8sDeployer(Deployer):
         self.connect_api()
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
+
+        # Create the host-path-mounted PVs for this deployment
+        pvs = self.cluster_info.get_pvs()
+        for pv in pvs:
+            if opts.o.debug:
+                print(f"Sending this pv: {pv}")
+            pv_resp = self.core_api.create_persistent_volume(body=pv)
+            if opts.o.debug:
+                print("PVs created:")
+                print(f"{pv_resp}")
+
         # Figure out the PVCs for this deployment
         pvcs = self.cluster_info.get_pvcs()
         for pvc in pvcs:
             if opts.o.debug:
-                print(f"Sending this: {pvc}")
+                print(f"Sending this pvc: {pvc}")
             pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(body=pvc, namespace=self.k8s_namespace)
             if opts.o.debug:
                 print("PVCs created:")
@@ -65,7 +76,7 @@ class K8sDeployer(Deployer):
         deployment = self.cluster_info.get_deployment()
         # Create the k8s objects
         if opts.o.debug:
-            print(f"Sending this: {deployment}")
+            print(f"Sending this deployment: {deployment}")
         deployment_resp = self.apps_api.create_namespaced_deployment(
             body=deployment, namespace=self.k8s_namespace
         )

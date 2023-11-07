@@ -13,8 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from app.deploy.k8s.deploy_k8s import K8sDeployer, K8sDeployerConfigGenerator
-from app.deploy.compose.deploy_docker import DockerDeployer, DockerDeployerConfigGenerator
+from stack_orchestrator.deploy.k8s.deploy_k8s import K8sDeployer, K8sDeployerConfigGenerator
+from stack_orchestrator.deploy.compose.deploy_docker import DockerDeployer, DockerDeployerConfigGenerator
 
 
 def getDeployerConfigGenerator(type: str):

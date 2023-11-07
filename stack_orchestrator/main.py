@@ -15,13 +15,13 @@
 
 import click
 
-from app.command_types import CommandOptions
-from app.repos import setup_repositories
-from app.build import build_containers
-from app.build import build_npms
-from app.deploy import deploy
+from stack_orchestrator.command_types import CommandOptions
+from stack_orchestrator.repos import setup_repositories
+from stack_orchestrator.build import build_containers
+from stack_orchestrator.build import build_npms
+from stack_orchestrator.deploy import deploy
 from app import version
-from app.deploy import deployment
+from stack_orchestrator.deploy import deployment
 from app import opts
 from app import update
 

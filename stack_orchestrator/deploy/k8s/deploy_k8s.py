@@ -16,11 +16,11 @@
 from pathlib import Path
 from kubernetes import client, config
 
-from app.deploy.deployer import Deployer, DeployerConfigGenerator
-from app.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
-from app.deploy.k8s.helpers import pods_in_deployment, log_stream_from_string, generate_kind_config
-from app.deploy.k8s.cluster_info import ClusterInfo
-from app.opts import opts
+from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
+from stack_orchestrator.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
+from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, log_stream_from_string, generate_kind_config
+from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
+from stack_orchestrator.opts import opts
 
 
 class K8sDeployer(Deployer):

@@ -18,8 +18,8 @@ from pathlib import Path
 import subprocess
 from typing import Any, Set
 
-from app.opts import opts
-from app.util import get_yaml
+from stack_orchestrator.opts import opts
+from stack_orchestrator.util import get_yaml
 
 
 def _run_command(command: str):

@@ -15,7 +15,7 @@
 
 from pathlib import Path
 from python_on_whales import DockerClient, DockerException
-from app.deploy.deployer import Deployer, DeployerException, DeployerConfigGenerator
+from stack_orchestrator.deploy.deployer import Deployer, DeployerException, DeployerConfigGenerator
 
 
 class DockerDeployer(Deployer):

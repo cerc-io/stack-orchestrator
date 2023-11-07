@@ -23,7 +23,7 @@ import sys
 import stat
 import shutil
 import validators
-from app.util import get_yaml
+from stack_orchestrator.util import get_yaml
 
 
 def _download_url(url: str, file_path: Path):

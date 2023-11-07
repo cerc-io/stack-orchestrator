@@ -16,9 +16,9 @@
 from kubernetes import client
 from typing import Any, List, Set
 
-from app.opts import opts
-from app.deploy.k8s.helpers import named_volumes_from_pod_files, volume_mounts_for_service, volumes_for_pod_files
-from app.deploy.k8s.helpers import parsed_pod_files_map_from_file_names
+from stack_orchestrator.opts import opts
+from stack_orchestrator.deploy.k8s.helpers import named_volumes_from_pod_files, volume_mounts_for_service, volumes_for_pod_files
+from stack_orchestrator.deploy.k8s.helpers import parsed_pod_files_map_from_file_names
 
 
 class ClusterInfo:

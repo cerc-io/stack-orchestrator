@@ -16,8 +16,8 @@
 from typing import List
 from dataclasses import dataclass
 from pathlib import Path
-from app.command_types import CommandOptions
-from app.deploy.deployer import Deployer
+from stack_orchestrator.command_types import CommandOptions
+from stack_orchestrator.deploy.deployer import Deployer
 
 
 @dataclass

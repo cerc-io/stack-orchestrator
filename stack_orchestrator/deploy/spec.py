@@ -15,7 +15,7 @@
 
 from pathlib import Path
 import typing
-from app.util import get_yaml
+from stack_orchestrator.util import get_yaml
 
 
 class Spec:

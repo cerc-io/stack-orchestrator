@@ -25,8 +25,8 @@ from decouple import config
 import click
 import importlib.resources
 from python_on_whales import docker, DockerException
-from app.base import get_stack
-from app.util import include_exclude_check, get_parsed_stack_config
+from stack_orchestrator.base import get_stack
+from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config
 
 builder_js_image_name = "cerc/builder-js:local"
 

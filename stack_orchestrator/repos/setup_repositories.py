@@ -25,7 +25,7 @@ import click
 import importlib.resources
 from pathlib import Path
 import yaml
-from app.util import include_exclude_check
+from stack_orchestrator.util import include_exclude_check
 
 
 class GitProgress(git.RemoteProgress):

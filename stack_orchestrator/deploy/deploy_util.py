@@ -15,8 +15,8 @@
 
 import os
 from typing import List
-from app.deploy.deploy_types import DeployCommandContext, VolumeMapping
-from app.util import get_parsed_stack_config, get_yaml, get_compose_file_dir, get_pod_list
+from stack_orchestrator.deploy.deploy_types import DeployCommandContext, VolumeMapping
+from stack_orchestrator.util import get_parsed_stack_config, get_yaml, get_compose_file_dir, get_pod_list
 
 
 def _container_image_from_service(stack: str, service: str):

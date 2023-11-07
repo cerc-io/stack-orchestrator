@@ -24,13 +24,13 @@ from importlib import resources
 import subprocess
 import click
 from pathlib import Path
-from app.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
-from app.deploy.deployer import Deployer, DeployerException
-from app.deploy.deployer_factory import getDeployer
-from app.deploy.deploy_types import ClusterContext, DeployCommandContext
-from app.deploy.deployment_create import create as deployment_create
-from app.deploy.deployment_create import init as deployment_init
-from app.deploy.deployment_create import setup as deployment_setup
+from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
+from stack_orchestrator.deploy.deployer import Deployer, DeployerException
+from stack_orchestrator.deploy.deployer_factory import getDeployer
+from stack_orchestrator.deploy.deploy_types import ClusterContext, DeployCommandContext
+from stack_orchestrator.deploy.deployment_create import create as deployment_create
+from stack_orchestrator.deploy.deployment_create import init as deployment_init
+from stack_orchestrator.deploy.deployment_create import setup as deployment_setup
 
 
 @click.group()

@@ -16,10 +16,10 @@
 import click
 from pathlib import Path
 import sys
-from app.deploy.deploy import up_operation, down_operation, ps_operation, port_operation
-from app.deploy.deploy import exec_operation, logs_operation, create_deploy_context
-from app.deploy.stack import Stack
-from app.deploy.spec import Spec
+from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_operation, port_operation
+from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context
+from stack_orchestrator.deploy.stack import Stack
+from stack_orchestrator.deploy.spec import Spec
 
 
 class DeploymentContext:

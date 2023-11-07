@@ -67,7 +67,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         print('Dev root directory doesn\'t exist, creating')
 
     # See: https://stackoverflow.com/a/20885799/1701505
-    from app import data
+    from stack_orchestrator import data
     with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
         all_containers = container_list_file.read().splitlines()
 

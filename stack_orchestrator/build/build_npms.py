@@ -83,7 +83,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         os.makedirs(build_root_path)
 
     # See: https://stackoverflow.com/a/20885799/1701505
-    from app import data
+    from stack_orchestrator import data
     with importlib.resources.open_text(data, "npm-package-list.txt") as package_list_file:
         all_packages = package_list_file.read().splitlines()
 

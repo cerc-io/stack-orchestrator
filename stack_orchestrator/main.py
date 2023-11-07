@@ -20,10 +20,10 @@ from stack_orchestrator.repos import setup_repositories
 from stack_orchestrator.build import build_containers
 from stack_orchestrator.build import build_npms
 from stack_orchestrator.deploy import deploy
-from app import version
+from stack_orchestrator import version
 from stack_orchestrator.deploy import deployment
-from app import opts
-from app import update
+from stack_orchestrator import opts
+from stack_orchestrator import update
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 

@@ -273,7 +273,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
             print(f"Using cluster name: {cluster}")
 
     # See: https://stackoverflow.com/a/20885799/1701505
-    from app import data
+    from stack_orchestrator import data
     with resources.open_text(data, "pod-list.txt") as pod_list_file:
         all_pods = pod_list_file.read().splitlines()
 

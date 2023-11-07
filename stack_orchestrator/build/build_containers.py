@@ -33,6 +33,73 @@ from stack_orchestrator.base import get_npm_registry_url
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
 
+def make_container_build_env(dev_root_path: str,
+                             container_build_dir: str,
+                             debug: bool,
+                             force_rebuild: bool,
+                             extra_build_args: str):
+    container_build_env = {
+        "CERC_NPM_REGISTRY_URL": get_npm_registry_url(),
+        "CERC_GO_AUTH_TOKEN": config("CERC_GO_AUTH_TOKEN", default=""),
+        "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default=""),
+        "CERC_REPO_BASE_DIR": dev_root_path,
+        "CERC_CONTAINER_BASE_DIR": container_build_dir,
+        "CERC_HOST_UID": f"{os.getuid()}",
+        "CERC_HOST_GID": f"{os.getgid()}",
+        "DOCKER_BUILDKIT": config("DOCKER_BUILDKIT", default="0")
+    }
+    container_build_env.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
+    container_build_env.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})
+    container_build_env.update({"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args} if extra_build_args else {})
+    docker_host_env = os.getenv("DOCKER_HOST")
+    if docker_host_env:
+        container_build_env.update({"DOCKER_HOST": docker_host_env})
+
+    return container_build_env
+
+
+def process_container(container,
+                      container_build_dir: str,
+                      container_build_env: dict,
+                      dev_root_path: str,
+                      quiet: bool,
+                      verbose: bool,
+                      dry_run: bool,
+                      continue_on_error: bool,
+                      ):
+    if not quiet:
+        print(f"Building: {container}")
+    build_dir = os.path.join(container_build_dir, container.replace("/", "-"))
+    build_script_filename = os.path.join(build_dir, "build.sh")
+    if verbose:
+        print(f"Build script filename: {build_script_filename}")
+    if os.path.exists(build_script_filename):
+        build_command = build_script_filename
+    else:
+        if verbose:
+            print(f"No script file found: {build_script_filename}, using default build script")
+        repo_dir = container.split('/')[1]
+        # TODO: make this less of a hack -- should be specified in some metadata somewhere
+        # Check if we have a repo for this container. If not, set the context dir to the container-build subdir
+        repo_full_path = os.path.join(dev_root_path, repo_dir)
+        repo_dir_or_build_dir = repo_full_path if os.path.exists(repo_full_path) else build_dir
+        build_command = os.path.join(container_build_dir,
+                                     "default-build.sh") + f" {container}:local {repo_dir_or_build_dir}"
+    if not dry_run:
+        if verbose:
+            print(f"Executing: {build_command} with environment: {container_build_env}")
+        build_result = subprocess.run(build_command, shell=True, env=container_build_env)
+        if verbose:
+            print(f"Return code is: {build_result.returncode}")
+        if build_result.returncode != 0:
+            print(f"Error running build for {container}")
+            if not continue_on_error:
+                print("FATAL Error: container build failed and --continue-on-error not set, exiting")
+                sys.exit(1)
+            else:
+                print("****** Container Build Error, continuing because --continue-on-error is set")
+    else:
+        print("Skipped")
 
 @click.command()
 @click.option('--include', help="only build these containers")
@@ -83,61 +150,16 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         if stack:
             print(f"Stack: {stack}")
 
-    # TODO: make this configurable
-    container_build_env = {
-        "CERC_NPM_REGISTRY_URL": get_npm_registry_url(),
-        "CERC_GO_AUTH_TOKEN": config("CERC_GO_AUTH_TOKEN", default=""),
-        "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default=""),
-        "CERC_REPO_BASE_DIR": dev_root_path,
-        "CERC_CONTAINER_BASE_DIR": container_build_dir,
-        "CERC_HOST_UID": f"{os.getuid()}",
-        "CERC_HOST_GID": f"{os.getgid()}",
-        "DOCKER_BUILDKIT": config("DOCKER_BUILDKIT", default="0")
-    }
-    container_build_env.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
-    container_build_env.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})
-    container_build_env.update({"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args} if extra_build_args else {})
-    docker_host_env = os.getenv("DOCKER_HOST")
-    if docker_host_env:
-        container_build_env.update({"DOCKER_HOST": docker_host_env})
-
-    def process_container(container):
-        if not quiet:
-            print(f"Building: {container}")
-        build_dir = os.path.join(container_build_dir, container.replace("/", "-"))
-        build_script_filename = os.path.join(build_dir, "build.sh")
-        if verbose:
-            print(f"Build script filename: {build_script_filename}")
-        if os.path.exists(build_script_filename):
-            build_command = build_script_filename
-        else:
-            if verbose:
-                print(f"No script file found: {build_script_filename}, using default build script")
-            repo_dir = container.split('/')[1]
-            # TODO: make this less of a hack -- should be specified in some metadata somewhere
-            # Check if we have a repo for this container. If not, set the context dir to the container-build subdir
-            repo_full_path = os.path.join(dev_root_path, repo_dir)
-            repo_dir_or_build_dir = repo_full_path if os.path.exists(repo_full_path) else build_dir
-            build_command = os.path.join(container_build_dir, "default-build.sh") + f" {container}:local {repo_dir_or_build_dir}"
-        if not dry_run:
-            if verbose:
-                print(f"Executing: {build_command} with environment: {container_build_env}")
-            build_result = subprocess.run(build_command, shell=True, env=container_build_env)
-            if verbose:
-                print(f"Return code is: {build_result.returncode}")
-            if build_result.returncode != 0:
-                print(f"Error running build for {container}")
-                if not continue_on_error:
-                    print("FATAL Error: container build failed and --continue-on-error not set, exiting")
-                    sys.exit(1)
-                else:
-                    print("****** Container Build Error, continuing because --continue-on-error is set")
-        else:
-            print("Skipped")
+    container_build_env = make_container_build_env(dev_root_path,
+                                                   container_build_dir,
+                                                   debug,
+                                                   force_rebuild,
+                                                   extra_build_args)
 
     for container in containers_in_scope:
         if include_exclude_check(container, include, exclude):
-            process_container(container)
+            process_container(container, container_build_dir, container_build_env,
+                              dev_root_path, quiet, verbose, dry_run, continue_on_error)
         else:
             if verbose:
                 print(f"Excluding: {container}")

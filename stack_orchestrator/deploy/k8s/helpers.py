@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from kubernetes import client
+import os
 from pathlib import Path
 import subprocess
 from typing import Any, Set
@@ -119,6 +120,14 @@ def _get_host_paths_for_volumes(parsed_pod_files):
     return result
 
 
+def _make_absolute_host_path(data_mount_path: Path, deployment_dir: Path) -> Path:
+    if os.path.isabs(data_mount_path):
+        return data_mount_path
+    else:
+        # Python Path voodo that looks pretty odd:
+        return Path.cwd().joinpath(deployment_dir.joinpath("compose").joinpath(data_mount_path)).resolve()
+
+
 def parsed_pod_files_map_from_file_names(pod_files):
     parsed_pod_yaml_map : Any = {}
     for pod_file in pod_files:
@@ -130,9 +139,12 @@ def parsed_pod_files_map_from_file_names(pod_files):
     return parsed_pod_yaml_map
 
 
-def _generate_kind_mounts(parsed_pod_files):
+def _generate_kind_mounts(parsed_pod_files, deployment_dir):
     volume_definitions = []
     volume_host_path_map = _get_host_paths_for_volumes(parsed_pod_files)
+    # Note these paths are relative to the location of the pod files (at present)
+    # So we need to fix up to make them correct and absolute because kind assumes
+    # relative to the cwd.
     for pod in parsed_pod_files:
         parsed_pod_file = parsed_pod_files[pod]
         if "services" in parsed_pod_file:
@@ -145,7 +157,8 @@ def _generate_kind_mounts(parsed_pod_files):
                         # Looks like: test-data:/data
                         (volume_name, mount_path) = mount_string.split(":")
                         volume_definitions.append(
-                            f"  - hostPath: {volume_host_path_map[volume_name]}\n    containerPath: /var/local-path-provisioner"
+                            f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
+                            "    containerPath: /var/local-path-provisioner"
                             )
     return (
         "" if len(volume_definitions) == 0 else (
@@ -201,7 +214,7 @@ def generate_kind_config(deployment_dir: Path):
     pod_files = [p for p in compose_file_dir.iterdir() if p.is_file()]
     parsed_pod_files_map = parsed_pod_files_map_from_file_names(pod_files)
     port_mappings_yml = _generate_kind_port_mappings(parsed_pod_files_map)
-    mounts_yml = _generate_kind_mounts(parsed_pod_files_map)
+    mounts_yml = _generate_kind_mounts(parsed_pod_files_map, deployment_dir)
     return (
         "kind: Cluster\n"
         "apiVersion: kind.x-k8s.io/v1alpha4\n"

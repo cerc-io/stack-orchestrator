@@ -8,7 +8,7 @@ Core to the feature completeness of stack orchestrator is to [decouple the tool 
 
 ## Example
 
-- in `app/data/stacks/my-new-stack/stack.yml` add:
+- in `stack_orchestrator/data/stacks/my-new-stack/stack.yml` add:
 
 ```yaml
 version: "0.1"
@@ -21,7 +21,7 @@ pods:
   - my-new-stack
 ```
 
-- in `app/data/container-build/cerc-my-new-stack/build.sh` add:
+- in `stack_orchestrator/data/container-build/cerc-my-new-stack/build.sh` add:
 
 ```yaml
 #!/usr/bin/env bash
@@ -30,7 +30,7 @@ source ${CERC_CONTAINER_BASE_DIR}/build-base.sh
 docker build -t cerc/my-new-stack:local -f ${CERC_REPO_BASE_DIR}/my-new-stack/Dockerfile ${build_command_args} ${CERC_REPO_BASE_DIR}/my-new-stack
 ```
 
-- in `app/data/compose/docker-compose-my-new-stack.yml` add:
+- in `stack_orchestrator/data/compose/docker-compose-my-new-stack.yml` add:
 
 ```yaml
 version: "3.2"
@@ -43,20 +43,20 @@ services:
       - "0.0.0.0:3000:3000"
 ```
 
-- in `app/data/repository-list.txt` add:
+- in `stack_orchestrator/data/repository-list.txt` add:
 
 ```bash
 github.com/my-org/my-new-stack
 ```
 whereby that repository contains your source code and a `Dockerfile`, and matches the `repos:` field in the `stack.yml`.
 
-- in `app/data/container-image-list.txt` add:
+- in `stack_orchestrator/data/container-image-list.txt` add:
 
 ```bash
 cerc/my-new-stack
 ```
 
-- in `app/data/pod-list.txt` add:
+- in `stack_orchestrator/data/pod-list.txt` add:
 
 ```bash
 my-new-stack

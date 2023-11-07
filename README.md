@@ -64,12 +64,12 @@ laconic-so update
 
 ## Usage
 
-The various [stacks](/app/data/stacks) each contain instructions for running different stacks based on your use case. For example:
+The various [stacks](/stack_orchestrator/data/stacks) each contain instructions for running different stacks based on your use case. For example:
 
-- [self-hosted Gitea](/app/data/stacks/build-support)
-- [an Optimism Fixturenet](/app/data/stacks/fixturenet-optimism)
-- [laconicd with console and CLI](app/data/stacks/fixturenet-laconic-loaded)
-- [kubo (IPFS)](app/data/stacks/kubo)
+- [self-hosted Gitea](/stack_orchestrator/data/stacks/build-support)
+- [an Optimism Fixturenet](/stack_orchestrator/data/stacks/fixturenet-optimism)
+- [laconicd with console and CLI](stack_orchestrator/data/stacks/fixturenet-laconic-loaded)
+- [kubo (IPFS)](stack_orchestrator/data/stacks/kubo)
 
 ## Contributing
 

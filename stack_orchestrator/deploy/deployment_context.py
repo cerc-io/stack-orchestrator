@@ -21,26 +21,26 @@ from stack_orchestrator.deploy.spec import Spec
 
 
 class DeploymentContext:
-    dir: Path
+    deployment_dir: Path
     spec: Spec
     stack: Stack
 
     def get_stack_file(self):
-        return self.dir.joinpath("stack.yml")
+        return self.deployment_dir.joinpath("stack.yml")
 
     def get_spec_file(self):
-        return self.dir.joinpath("spec.yml")
+        return self.deployment_dir.joinpath("spec.yml")
 
     def get_env_file(self):
-        return self.dir.joinpath("config.env")
+        return self.deployment_dir.joinpath("config.env")
 
     # TODO: implement me
     def get_cluster_name(self):
         return None
 
     def init(self, dir):
-        self.dir = dir
-        self.stack = Stack()
-        self.stack.init_from_file(self.get_stack_file())
+        self.deployment_dir = dir
         self.spec = Spec()
         self.spec.init_from_file(self.get_spec_file())
+        self.stack = Stack(self.spec.obj["stack"])
+        self.stack.init_from_file(self.get_stack_file())

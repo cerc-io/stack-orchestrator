@@ -20,10 +20,11 @@ from stack_orchestrator.util import get_yaml
 
 class Stack:
 
+    name: str
     obj: typing.Any
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, name: str) -> None:
+        self.name = name
 
     def init_from_file(self, file_path: Path):
         with file_path:

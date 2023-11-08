@@ -5,4 +5,4 @@ services:
     image: cerc/osmosis-front-end:local
     restart: always
     ports:
-      - "3000:3000" #TODO make `3000` when using the deployment feature
+      - "3002:3002" #TODO make `3000` when using the deployment feature

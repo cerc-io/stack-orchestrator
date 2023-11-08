@@ -24,8 +24,9 @@ import sys
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
                                      get_pod_script_paths, get_plugin_code_paths)
-from stack_orchestrator.deploy.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
+from stack_orchestrator.deploy.deploy_types import LaconicStackSetupCommand
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
+from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
 def _make_default_deployment_dir():
@@ -108,8 +109,8 @@ def _fixup_pod_file(pod, spec, compose_dir):
                 pod["services"][container_name]["ports"] = container_ports
 
 
-def _commands_plugin_paths(ctx: DeployCommandContext):
-    plugin_paths = get_plugin_code_paths(ctx.stack)
+def _commands_plugin_paths(stack_name: str):
+    plugin_paths = get_plugin_code_paths(stack_name)
     ret = [p.joinpath("deploy", "commands.py") for p in plugin_paths]
     return ret
 
@@ -123,7 +124,7 @@ def call_stack_deploy_init(deploy_command_context):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_paths = _commands_plugin_paths(deploy_command_context)
+    python_file_paths = _commands_plugin_paths(deploy_command_context.stack)
 
     ret = None
     init_done = False
@@ -147,7 +148,7 @@ def call_stack_deploy_setup(deploy_command_context, parameters: LaconicStackSetu
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_paths = _commands_plugin_paths(deploy_command_context)
+    python_file_paths = _commands_plugin_paths(deploy_command_context.stack)
     for python_file_path in python_file_paths:
         if python_file_path.exists():
             spec = util.spec_from_file_location("commands", python_file_path)
@@ -162,7 +163,7 @@ def call_stack_deploy_create(deployment_context, extra_args):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
-    python_file_paths = _commands_plugin_paths(deployment_context.command_context)
+    python_file_paths = _commands_plugin_paths(deployment_context.stack.name)
     for python_file_path in python_file_paths:
         if python_file_path.exists():
             spec = util.spec_from_file_location("commands", python_file_path)
@@ -311,7 +312,7 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
 def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     # This function fails with a useful error message if the file doens't exist
     parsed_spec = get_parsed_deployment_spec(spec_file)
-    stack_name = parsed_spec['stack']
+    stack_name = parsed_spec["stack"]
     stack_file = get_stack_file_path(stack_name)
     parsed_stack = get_parsed_stack_config(stack_name)
     if global_options(ctx).debug:
@@ -367,7 +368,8 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     # stack member here.
     deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
-    deployment_context = DeploymentContext(Path(deployment_dir), deployment_command_context)
+    deployment_context = DeploymentContext()
+    deployment_context.init(Path(deployment_dir))
     # Call the deployer to generate any deployer-specific files (e.g. for kind)
     deployer_config_generator = getDeployerConfigGenerator(parsed_spec["deploy-to"])
     # TODO: make deployment_dir a Path above

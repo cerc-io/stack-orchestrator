@@ -21,7 +21,7 @@ from stack_orchestrator.deploy.deployer import Deployer, DeployerException, Depl
 class DockerDeployer(Deployer):
     name: str = "compose"
 
-    def __init__(self, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(self, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
         self.docker = DockerClient(compose_files=compose_files, compose_project_name=compose_project_name,
                                    compose_env_file=compose_env_file)
 

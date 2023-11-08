@@ -18,7 +18,7 @@ from typing import Any, List, Set
 
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.k8s.helpers import named_volumes_from_pod_files, volume_mounts_for_service, volumes_for_pod_files
-from stack_orchestrator.deploy.k8s.helpers import parsed_pod_files_map_from_file_names
+from stack_orchestrator.deploy.k8s.helpers import parsed_pod_files_map_from_file_names, get_node_pv_mount_path
 
 
 class ClusterInfo:
@@ -50,11 +50,12 @@ class ClusterInfo:
             print(f"Volumes: {volumes}")
         for volume_name in volumes:
             spec = client.V1PersistentVolumeClaimSpec(
-                storage_class_name="standard",
                 access_modes=["ReadWriteOnce"],
+                storage_class_name="manual",
                 resources=client.V1ResourceRequirements(
                     requests={"storage": "2Gi"}
-                )
+                ),
+                volume_name=volume_name
             )
             pvc = client.V1PersistentVolumeClaim(
                 metadata=client.V1ObjectMeta(name=volume_name,
@@ -62,6 +63,24 @@ class ClusterInfo:
                 spec=spec,
             )
             result.append(pvc)
+        return result
+
+    def get_pvs(self):
+        result = []
+        volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        for volume_name in volumes:
+            spec = client.V1PersistentVolumeSpec(
+                storage_class_name="manual",
+                access_modes=["ReadWriteOnce"],
+                capacity={"storage": "2Gi"},
+                host_path=client.V1HostPathVolumeSource(path=get_node_pv_mount_path(volume_name))
+            )
+            pv = client.V1PersistentVolume(
+                metadata=client.V1ObjectMeta(name=volume_name,
+                                             labels={"volume-label": volume_name}),
+                spec=spec,
+            )
+            result.append(pv)
         return result
 
     # to suit the deployment, and also annotate the container specs to point at said volumes

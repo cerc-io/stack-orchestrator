@@ -30,12 +30,15 @@ class K8sDeployer(Deployer):
     k8s_namespace: str = "default"
     kind_cluster_name: str
     cluster_info : ClusterInfo
+    deployment_dir: Path
 
-    def __init__(self, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(self, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
         if (opts.o.debug):
+            print(f"Deployment dir: {deployment_dir}")
             print(f"Compose files: {compose_files}")
             print(f"Project name: {compose_project_name}")
             print(f"Env file: {compose_env_file}")
+        self.deployment_dir = deployment_dir
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
         self.cluster_info.int_from_pod_files(compose_files)
@@ -47,16 +50,26 @@ class K8sDeployer(Deployer):
 
     def up(self, detach, services):
         # Create the kind cluster
-        # HACK: pass in the config file path here
-        create_cluster(self.kind_cluster_name, "./test-deployment-dir/kind-config.yml")
+        create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath("kind-config.yml"))
         self.connect_api()
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
+
+        # Create the host-path-mounted PVs for this deployment
+        pvs = self.cluster_info.get_pvs()
+        for pv in pvs:
+            if opts.o.debug:
+                print(f"Sending this pv: {pv}")
+            pv_resp = self.core_api.create_persistent_volume(body=pv)
+            if opts.o.debug:
+                print("PVs created:")
+                print(f"{pv_resp}")
+
         # Figure out the PVCs for this deployment
         pvcs = self.cluster_info.get_pvcs()
         for pvc in pvcs:
             if opts.o.debug:
-                print(f"Sending this: {pvc}")
+                print(f"Sending this pvc: {pvc}")
             pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(body=pvc, namespace=self.k8s_namespace)
             if opts.o.debug:
                 print("PVCs created:")
@@ -65,7 +78,7 @@ class K8sDeployer(Deployer):
         deployment = self.cluster_info.get_deployment()
         # Create the k8s objects
         if opts.o.debug:
-            print(f"Sending this: {deployment}")
+            print(f"Sending this deployment: {deployment}")
         deployment_resp = self.apps_api.create_namespaced_deployment(
             body=deployment, namespace=self.k8s_namespace
         )
@@ -122,6 +135,8 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
         # Check the file isn't already there
         # Get the config file contents
         content = generate_kind_config(deployment_dir)
+        if opts.o.debug:
+            print(f"kind config is: {content}")
         config_file = deployment_dir.joinpath(self.config_file_name)
         # Write the file
         with open(config_file, "w") as output_file:

@@ -18,34 +18,7 @@ from pathlib import Path
 import sys
 from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_operation, port_operation
 from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context
-from stack_orchestrator.deploy.stack import Stack
-from stack_orchestrator.deploy.spec import Spec
-
-
-class DeploymentContext:
-    dir: Path
-    spec: Spec
-    stack: Stack
-
-    def get_stack_file(self):
-        return self.dir.joinpath("stack.yml")
-
-    def get_spec_file(self):
-        return self.dir.joinpath("spec.yml")
-
-    def get_env_file(self):
-        return self.dir.joinpath("config.env")
-
-    # TODO: implement me
-    def get_cluster_name(self):
-        return None
-
-    def init(self, dir):
-        self.dir = dir
-        self.stack = Stack()
-        self.stack.init_from_file(self.get_stack_file())
-        self.spec = Spec()
-        self.spec.init_from_file(self.get_spec_file())
+from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
 @click.group()
@@ -77,7 +50,7 @@ def make_deploy_context(ctx):
     stack_file_path = context.get_stack_file()
     env_file = context.get_env_file()
     cluster_name = context.get_cluster_name()
-    return create_deploy_context(ctx.parent.parent.obj, stack_file_path, None, None, cluster_name, env_file,
+    return create_deploy_context(ctx.parent.parent.obj, context, stack_file_path, None, None, cluster_name, env_file,
                                  context.spec.obj["deploy-to"])
 
 

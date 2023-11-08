@@ -24,8 +24,9 @@ import sys
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
                                      get_pod_script_paths, get_plugin_code_paths)
-from stack_orchestrator.deploy.deploy_types import DeploymentContext, DeployCommandContext, LaconicStackSetupCommand
+from stack_orchestrator.deploy.deploy_types import DeployCommandContext, LaconicStackSetupCommand
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
+from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
 def _make_default_deployment_dir():

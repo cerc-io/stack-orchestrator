@@ -15,7 +15,6 @@
 
 from typing import List
 from dataclasses import dataclass
-from pathlib import Path
 from stack_orchestrator.command_types import CommandOptions
 from stack_orchestrator.deploy.deployer import Deployer
 
@@ -36,12 +35,6 @@ class DeployCommandContext:
     stack: str
     cluster_context: ClusterContext
     deployer: Deployer
-
-
-@dataclass
-class DeploymentContext:
-    deployment_dir: Path
-    command_context: DeployCommandContext
 
 
 @dataclass

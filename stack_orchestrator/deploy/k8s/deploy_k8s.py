@@ -30,12 +30,15 @@ class K8sDeployer(Deployer):
     k8s_namespace: str = "default"
     kind_cluster_name: str
     cluster_info : ClusterInfo
+    deployment_dir: Path
 
-    def __init__(self, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(self, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
         if (opts.o.debug):
+            print(f"Deployment dir: {deployment_dir}")
             print(f"Compose files: {compose_files}")
             print(f"Project name: {compose_project_name}")
             print(f"Env file: {compose_env_file}")
+        self.deployment_dir = deployment_dir
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
         self.cluster_info.int_from_pod_files(compose_files)
@@ -47,8 +50,7 @@ class K8sDeployer(Deployer):
 
     def up(self, detach, services):
         # Create the kind cluster
-        # HACK: pass in the config file path here
-        create_cluster(self.kind_cluster_name, "./test-deployment-dir/kind-config.yml")
+        create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath("kind-config.yml"))
         self.connect_api()
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)

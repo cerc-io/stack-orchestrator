@@ -28,6 +28,7 @@ from stack_orchestrator.util import include_exclude_check, get_parsed_stack_conf
 from stack_orchestrator.deploy.deployer import Deployer, DeployerException
 from stack_orchestrator.deploy.deployer_factory import getDeployer
 from stack_orchestrator.deploy.deploy_types import ClusterContext, DeployCommandContext
+from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.deployment_create import create as deployment_create
 from stack_orchestrator.deploy.deployment_create import init as deployment_init
 from stack_orchestrator.deploy.deployment_create import setup as deployment_setup
@@ -56,14 +57,17 @@ def command(ctx, include, exclude, env_file, cluster, deploy_to):
     if deploy_to is None:
         deploy_to = "compose"
 
-    ctx.obj = create_deploy_context(global_options2(ctx), stack, include, exclude, cluster, env_file, deploy_to)
+    ctx.obj = create_deploy_context(global_options2(ctx), None, stack, include, exclude, cluster, env_file, deploy_to)
     # Subcommand is executed now, by the magic of click
 
 
-def create_deploy_context(global_context, stack, include, exclude, cluster, env_file, deployer):
+def create_deploy_context(
+        global_context, deployment_context: DeploymentContext, stack, include, exclude, cluster, env_file, deployer):
     cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
+    deployment_dir = deployment_context.dir if deployment_context else None
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    deployer = getDeployer(deployer, compose_files=cluster_context.compose_files, compose_project_name=cluster_context.cluster,
+    deployer = getDeployer(deployer, deployment_dir, compose_files=cluster_context.compose_files,
+                           compose_project_name=cluster_context.cluster,
                            compose_env_file=cluster_context.env_file)
     return DeployCommandContext(stack, cluster_context, deployer)
 

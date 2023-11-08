@@ -19,6 +19,7 @@ from stack_orchestrator.command_types import CommandOptions
 from stack_orchestrator.repos import setup_repositories
 from stack_orchestrator.build import build_containers
 from stack_orchestrator.build import build_npms
+from stack_orchestrator.build import build_webapp
 from stack_orchestrator.deploy import deploy
 from stack_orchestrator import version
 from stack_orchestrator.deploy import deployment
@@ -48,6 +49,7 @@ def cli(ctx, stack, quiet, verbose, dry_run, local_stack, debug, continue_on_err
 cli.add_command(setup_repositories.command, "setup-repositories")
 cli.add_command(build_containers.command, "build-containers")
 cli.add_command(build_npms.command, "build-npms")
+cli.add_command(build_webapp.command, "build-webapp")
 cli.add_command(deploy.command, "deploy")  # deploy is an alias for deploy-system
 cli.add_command(deploy.command, "deploy-system")
 cli.add_command(deployment.command, "deployment")

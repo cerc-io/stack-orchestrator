@@ -26,6 +26,8 @@ $TEST_TARGET_SO build-webapp --source-repo $CERC_REPO_BASE_DIR/test-progressive-
 
 UUID=`uuidgen`
 
+set +e
+
 CONTAINER_ID=$(docker run -p 3000:3000 -d cerc/test-progressive-web-app:local)
 sleep 3
 wget -O test.before -m http://localhost:3000
@@ -36,17 +38,25 @@ CONTAINER_ID=$(docker run -p 3000:3000 -e CERC_WEBAPP_DEBUG=$UUID -d cerc/test-p
 sleep 3
 wget -O test.after -m http://localhost:3000
 
-set +e
+docker remove -f $CONTAINER_ID
+
+echo "###########################################################################"
+echo ""
+
 grep "$UUID" test.before > /dev/null
 if [ $? -ne 1 ]; then
-  echo "Found $UUID in before ouput."
+  echo "BEFORE: FAILED"
   exit 1
+else
+  echo "BEFORE: PASSED"
 fi
 
-grep "$UUID" test.after > /dev/null
+grep "`uuidgen`" test.after > /dev/null
 if [ $? -ne 0 ]; then
-  echo "Unable to find $UUID in after ouput."
+  echo "AFTER: FAILED"
   exit 1
+else
+  echo "AFTER: PASSED"
 fi
 
-
+exit 0

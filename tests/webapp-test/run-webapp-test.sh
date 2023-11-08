@@ -44,8 +44,8 @@ if [ $? -ne 1 ]; then
 fi
 
 grep "$UUID" test.after > /dev/null
-if [ $? -ne 1 ]; then
-  echo "Found $UUID in before ouput."
+if [ $? -ne 0 ]; then
+  echo "Unable to find $UUID in after ouput."
   exit 1
 fi
 

@@ -162,7 +162,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir):
                         (volume_name, mount_path) = mount_string.split(":")
                         volume_definitions.append(
                             f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
-                            "    containerPath: /var/local-path-provisioner"
+                            f"    containerPath: {get_node_pv_mount_path(volume_name)}"
                             )
     return (
         "" if len(volume_definitions) == 0 else (

@@ -50,8 +50,8 @@ class ClusterInfo:
             print(f"Volumes: {volumes}")
         for volume_name in volumes:
             spec = client.V1PersistentVolumeClaimSpec(
-                storage_class_name="standard",
                 access_modes=["ReadWriteOnce"],
+                storage_class_name="manual",
                 resources=client.V1ResourceRequirements(
                     requests={"storage": "2Gi"}
                 ),

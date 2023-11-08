@@ -1,4 +1,4 @@
-name: Deploy Test
+name: Webapp Test
 
 on:
   pull_request:

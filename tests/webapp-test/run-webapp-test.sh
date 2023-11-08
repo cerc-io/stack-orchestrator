@@ -51,7 +51,7 @@ else
   echo "BEFORE: PASSED"
 fi
 
-grep "`uuidgen`" test.after > /dev/null
+grep "$UUID" test.after > /dev/null
 if [ $? -ne 0 ]; then
   echo "AFTER: FAILED"
   exit 1

@@ -19,6 +19,8 @@ from typing import Any, List, Set
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.k8s.helpers import named_volumes_from_pod_files, volume_mounts_for_service, volumes_for_pod_files
 from stack_orchestrator.deploy.k8s.helpers import parsed_pod_files_map_from_file_names, get_node_pv_mount_path
+from stack_orchestrator.deploy.k8s.helpers import env_var_map_from_file, envs_from_environment_variables_map
+from stack_orchestrator.deploy.deploy_types import DeployEnvVars
 
 
 class ClusterInfo:
@@ -26,11 +28,12 @@ class ClusterInfo:
     image_set: Set[str] = set()
     app_name: str = "test-app"
     deployment_name: str = "test-deployment"
+    environment_variables: DeployEnvVars
 
     def __init__(self) -> None:
         pass
 
-    def int_from_pod_files(self, pod_files: List[str]):
+    def int(self, pod_files: List[str], compose_env_file):
         self.parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
         # Find the set of images in the pods
         for pod_name in self.parsed_pod_yaml_map:
@@ -42,6 +45,9 @@ class ClusterInfo:
                 self.image_set.add(image)
         if opts.o.debug:
             print(f"image_set: {self.image_set}")
+        self.environment_variables = DeployEnvVars(env_var_map_from_file(compose_env_file))
+        if (opts.o.debug):
+            print(f"Env vars: {self.environment_variables.map}")
 
     def get_pvcs(self):
         result = []
@@ -97,6 +103,7 @@ class ClusterInfo:
                 container = client.V1Container(
                     name=container_name,
                     image=image,
+                    env=envs_from_environment_variables_map(self.environment_variables.map),
                     ports=[client.V1ContainerPort(container_port=80)],
                     volume_mounts=volume_mounts,
                     resources=client.V1ResourceRequirements(

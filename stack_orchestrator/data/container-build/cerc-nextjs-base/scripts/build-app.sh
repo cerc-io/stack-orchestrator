@@ -77,12 +77,18 @@ fi
 
 tail -$(( ${CONFIG_LINES} - ${NEXT_SECTION_LINE} + ${NEXT_SECTION_ADJUSTMENT} )) next.config.js > next.config.js.5
 
-cat next.config.js.* | sed 's/^ *//g' | js-beautify | grep -v 'process\.\env\.' | js-beautify | tee next.config.js
+cat next.config.js.* | sed 's/^ *//g' | js-beautify | grep -v 'process\.\env\.' | js-beautify > next.config.js
 rm next.config.js.*
 
 "${SCRIPT_DIR}/find-env.sh" "$(pwd)" > .env-list.json
 
+if [ ! -f "package.dist" ]; then
+  cp package.json package.dist
+fi
+
+cat package.dist | jq '.scripts.cerc_compile = "next experimental-compile"' | jq '.scripts.cerc_generate = "next experimental-generate"' > package.json
+
 npm install || exit 1
-npm run build || exit 1
+npm run cerc_compile || exit 1
 
 exit 0

@@ -25,12 +25,12 @@ if [ -f ".env" ]; then
 fi
 
 for f in $(find "$TRG_DIR" -regex ".*.[tj]sx?$" -type f | grep -v 'node_modules'); do
-  for e in $(cat "${f}" | tr -s '[:blank:]' '\n' | tr -s '[{},()]' '\n' | egrep -o '^"CERC_RUNTIME_ENV[^\"]+"$'); do
+  for e in $(cat "${f}" | tr -s '[:blank:]' '\n' | tr -s '[{},();]' '\n' | egrep -o '^"CERC_RUNTIME_ENV_[^\"]+"'); do
     orig_name=$(echo -n "${e}" | sed 's/"//g')
     cur_name=$(echo -n "${orig_name}" | sed 's/CERC_RUNTIME_ENV_//g')
     cur_val=$(echo -n "\$${cur_name}" | envsubst)
     esc_val=$(sed 's/[&/\]/\\&/g' <<< "$cur_val")
-    echo "$cur_name=$cur_val"
+    echo "$f: $cur_name=$cur_val"
     sed -i "s/$orig_name/$esc_val/g" $f
   done
 done

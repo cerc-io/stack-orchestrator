@@ -52,4 +52,8 @@ jobs:
       - name: "Install Kind"
         run: go install sigs.k8s.io/kind@v0.20.0
       - name: "Debug Kind"
-        run: kind create cluster --retain && docker logs kind-control-plane
+        continue-on-error: true
+        run: kind create cluster --retain
+      - name: "Get Kind Logs"
+        continue-on-error: true
+        run: docker logs kind-control-plane

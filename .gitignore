@@ -6,5 +6,5 @@ laconic_stack_orchestrator.egg-info
 __pycache__
 *~
 package
-app/data/build_tag.txt
-build
+stack_orchestrator/data/build_tag.txt
+/build

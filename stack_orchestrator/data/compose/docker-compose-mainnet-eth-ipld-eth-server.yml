@@ -1,0 +1,24 @@
+version: "3.7"
+services:
+  ipld-eth-server:
+    restart: always
+    depends_on:
+      ipld-eth-db:
+        condition: service_healthy
+    image: cerc/ipld-eth-server:local
+    env_file:
+      - ../config/mainnet-eth-ipld-eth-db/db.env
+      - ../config/mainnet-eth-ipld-eth-server/srv.env
+    volumes:
+      - ../config/mainnet-eth-ipld-eth-server/config.toml:/app/config.toml:ro
+    ports:
+      - "8081"
+      - "8082"
+      - "8090"
+      - "40001"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "8081"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s

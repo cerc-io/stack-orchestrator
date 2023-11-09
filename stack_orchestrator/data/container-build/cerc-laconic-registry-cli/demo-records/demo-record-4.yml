@@ -1,0 +1,7 @@
+record:
+  type: WebsiteRegistrationRecord
+  url: 'https://dev.osmosis.zone'
+  repo_registration_record_cid: QmPbKkK7gKojnGAgKAE6bK5qBY8BcYp2YDB1e4b28NxvVv
+  build_artifact_cid: '~larryx-woldyr/osmosis:dev'
+  tls_cert_cid: QmWbCv4k9Q9P6XptHNJN6EupDyKVLSLRV6W6T2sAYkfBxr
+  version: 1.3.6

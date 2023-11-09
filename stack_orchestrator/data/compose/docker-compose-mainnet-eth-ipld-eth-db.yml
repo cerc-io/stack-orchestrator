@@ -1,0 +1,29 @@
+version: "3.2"
+
+services:
+  migrations:
+    restart: on-failure
+    depends_on:
+      ipld-eth-db:
+        condition: service_healthy
+    image: cerc/ipld-eth-db:local
+    env_file:
+      - ../config/mainnet-eth-ipld-eth-db/db.env
+
+  ipld-eth-db:
+    image: timescale/timescaledb:2.8.1-pg14
+    restart: always
+    env_file:
+      - ../config/mainnet-eth-ipld-eth-db/db.env
+    volumes:
+      - mainnet_eth_ipld_eth_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+    ports:
+      - "5432"
+volumes:
+  mainnet_eth_ipld_eth_db:

@@ -1,0 +1,49 @@
+version: '3.2'
+
+services:
+
+  erc20-watcher-db:
+    restart: unless-stopped
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=vdbm
+      - POSTGRES_MULTIPLE_DATABASES=erc20-watcher,erc20-watcher-job-queue
+      - POSTGRES_EXTENSION=erc20-watcher-job-queue:pgcrypto
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
+      - erc20_watcher_db_data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:15433:5432"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  erc20-watcher:
+    restart: unless-stopped
+    depends_on:
+      ipld-eth-server:
+        condition: service_healthy
+      erc20-watcher-db:
+        condition: service_healthy
+    image: cerc/watcher-erc20:local
+    environment:
+      - ETH_RPC_URL=http://go-ethereum:8545
+    command: ["sh", "-c", "yarn server"]
+    volumes:
+      - ../config/watcher-erc20/erc20-watcher.toml:/app/environments/local.toml
+    ports:
+      - "0.0.0.0:3002:3001"
+      - "0.0.0.0:9002:9001"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "3001"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+volumes:
+  erc20_watcher_db_data:

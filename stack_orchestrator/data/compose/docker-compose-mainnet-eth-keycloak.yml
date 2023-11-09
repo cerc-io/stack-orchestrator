@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  keycloak-db:
+    image: postgres:14-alpine
+    env_file:
+      - ../config/mainnet-eth-keycloak/keycloak.env
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "35432"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+    volumes:
+      - mainnet_eth_keycloak_db:/var/lib/postgresql/data
+    ports:
+      - 35432
+
+  keycloak:
+    image: cerc/keycloak:local
+    env_file:
+      - ../config/mainnet-eth-keycloak/keycloak.env
+    environment:
+      JAVA_OPTS_APPEND: "-Dkeycloak.migration.action=import -Dkeycloak.migration.provider=dir -Dkeycloak.migration.dir=/import -Dkeycloak.migration.strategy=IGNORE_EXISTING"
+    volumes:
+      - ../config/mainnet-eth-keycloak/import:/import
+    ports:
+      - 8080
+    command: ["start"]
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+  keycloak-reg-ui:
+    image: cerc/keycloak-reg-ui:local
+    env_file:
+      - ../config/mainnet-eth-keycloak/keycloak.env
+    volumes:
+      - ../config/mainnet-eth-keycloak/ui:/config
+    ports:
+      - 80
+
+  keycloak-reg-api:
+    image: cerc/keycloak-reg-api:local
+    env_file:
+      - ../config/mainnet-eth-keycloak/keycloak.env
+    ports:
+      - 9292
+
+volumes:
+  mainnet_eth_keycloak_db:

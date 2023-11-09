@@ -1,0 +1,7 @@
+record:
+  type: WebsiteRegistrationRecord
+  url: 'https://app.osmosis.zone'
+  repo_registration_record_cid: QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D
+  build_artifact_cid: '~larryx-woldyr/osmosis:latest'
+  tls_cert_cid: QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR
+  version: 1.3.5

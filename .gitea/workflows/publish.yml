@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - publish-test
+    paths-ignore:
+      - '.gitea/workflows/triggers/*'
 
 jobs:
   publish:
@@ -18,7 +20,15 @@ jobs:
         run: |
           build_tag=$(./scripts/create_build_tag_file.sh)
           echo "build-tag=v${build_tag}" >> $GITHUB_OUTPUT
-      - name: "Install Python"
+      # At present the stock setup-python action fails on Linux/aarch64
+      # Conditional steps below workaroud this by using deadsnakes for that case only
+      - name: "Install Python for ARM on Linux"
+        if: ${{ runner.arch == 'arm64' && runner.os == 'Linux' }}
+        uses: deadsnakes/action@v3.0.1
+        with:
+          python-version: '3.8'
+      - name: "Install Python cases other than ARM on Linux"
+        if: ${{ ! (runner.arch == 'arm64' && runner.os == 'Linux') }}
         uses: actions/setup-python@v4
         with:
           python-version: '3.8'

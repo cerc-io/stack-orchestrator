@@ -52,7 +52,7 @@ Version: 1.1.0-7a607c2-202304260513
 Save the distribution url to `~/.laconic-so/config.yml`:
 ```bash
 mkdir ~/.laconic-so
-echo "distribution-url: https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so" >  ~/.laconic-so/config.yml"
+echo "distribution-url: https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so" >  ~/.laconic-so/config.yml
 ```
 
 ### Update
@@ -64,12 +64,12 @@ laconic-so update
 
 ## Usage
 
-The various [stacks](/app/data/stacks) each contain instructions for running different stacks based on your use case. For example:
+The various [stacks](/stack_orchestrator/data/stacks) each contain instructions for running different stacks based on your use case. For example:
 
-- [self-hosted Gitea](/app/data/stacks/build-support)
-- [an Optimism Fixturenet](/app/data/stacks/fixturenet-optimism)
-- [laconicd with console and CLI](app/data/stacks/fixturenet-laconic-loaded)
-- [kubo (IPFS)](app/data/stacks/kubo)
+- [self-hosted Gitea](/stack_orchestrator/data/stacks/build-support)
+- [an Optimism Fixturenet](/stack_orchestrator/data/stacks/fixturenet-optimism)
+- [laconicd with console and CLI](stack_orchestrator/data/stacks/fixturenet-laconic-loaded)
+- [kubo (IPFS)](stack_orchestrator/data/stacks/kubo)
 
 ## Contributing
 

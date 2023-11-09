@@ -1,0 +1,10 @@
+{
+    "freeQueriesLimit": 10,
+    "freeQueriesList": [],
+    "queries": {
+      "getLogEvents": "50",
+      "getEthLogs": "50",
+      "getEthBlock": "50"
+    },
+    "mutations": {}
+}

@@ -1,4 +1,5 @@
 python-decouple>=3.8
+python-dotenv==1.0.0
 GitPython>=3.1.32
 tqdm>=4.65.0
 python-on-whales>=0.64.0
@@ -8,3 +9,4 @@ ruamel.yaml>=0.17.32
 pydantic==1.10.9
 tomli==2.0.1
 validators==0.22.0
+kubernetes>=28.1.0

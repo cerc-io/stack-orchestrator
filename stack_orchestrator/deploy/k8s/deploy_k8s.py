@@ -41,7 +41,7 @@ class K8sDeployer(Deployer):
         self.deployment_dir = deployment_dir
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
-        self.cluster_info.int_from_pod_files(compose_files)
+        self.cluster_info.int(compose_files, compose_env_file)
 
     def connect_api(self):
         config.load_kube_config(context=f"kind-{self.kind_cluster_name}")

@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from typing import List
+from typing import List, Mapping
 from dataclasses import dataclass
 from stack_orchestrator.command_types import CommandOptions
 from stack_orchestrator.deploy.deployer import Deployer
@@ -59,3 +59,8 @@ class LaconicStackSetupCommand:
 @dataclass
 class LaconicStackCreateCommand:
     network_dir: str
+
+
+@dataclass
+class DeployEnvVars:
+    map: Mapping[str, str]

@@ -14,10 +14,11 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from kubernetes import client
+from dotenv import dotenv_values
 import os
 from pathlib import Path
 import subprocess
-from typing import Any, Set
+from typing import Any, Set, Mapping, List
 
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import get_yaml
@@ -194,6 +195,13 @@ def _generate_kind_port_mappings(parsed_pod_files):
     )
 
 
+def envs_from_environment_variables_map(map: Mapping[str, str]) -> List[client.V1EnvVar]:
+    result = []
+    for env_var, env_val in map.items():
+        result.append(client.V1EnvVar(env_var, env_val))
+    return result
+
+
 # This needs to know:
 # The service ports for the cluster
 # The bind mounted volumes for the cluster
@@ -227,3 +235,7 @@ def generate_kind_config(deployment_dir: Path):
         f"{port_mappings_yml}\n"
         f"{mounts_yml}\n"
     )
+
+
+def env_var_map_from_file(file: Path) -> Mapping[str, str]:
+    return dotenv_values(file)

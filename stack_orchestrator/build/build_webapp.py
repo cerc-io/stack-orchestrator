@@ -65,6 +65,7 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args):
 
 
     # Now build the target webapp.  We use the same build script, but with a different Dockerfile and work dir.
+    container_build_env["CERC_WEBAPP_BUILD_RUNNING"] = "true"
     container_build_env["CERC_CONTAINER_BUILD_WORK_DIR"] = os.path.abspath(source_repo)
     container_build_env["CERC_CONTAINER_BUILD_DOCKERFILE"] = os.path.join(container_build_dir,
                                                                     base_container.replace("/", "-"),

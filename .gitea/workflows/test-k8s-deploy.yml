@@ -51,5 +51,5 @@ jobs:
           go-version: '1.21'
       - name: "Install Kind"
         run: go install sigs.k8s.io/kind@v0.20.0
-      - name: "Run k8s deploy tests"
-        run: ./tests/k8s-deploy/run-deploy-test.sh
+      - name: "Debug Kind"
+        run: kind create cluster --retain && docker logs kind-control-plane

@@ -8,6 +8,15 @@ WORK_DIR="${1:-./}"
 SRC_DIR="${2:-.next}"
 TRG_DIR="${3:-.next-r}"
 
+CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
+if [ -z "$CERC_BUILD_TOOL" ]; then
+  if [ -f "yarn.lock" ]; then
+    CERC_BUILD_TOOL=npm
+  else
+    CERC_BUILD_TOOL=yarn
+  fi
+fi
+
 cd "${WORK_DIR}" || exit 1
 
 rm -rf "$TRG_DIR"

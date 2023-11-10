@@ -5,6 +5,15 @@ fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
+if [ -z "$CERC_BUILD_TOOL" ]; then
+  if [ -f "yarn.lock" ] && [ ! -f "package-lock.json" ]; then
+    CERC_BUILD_TOOL=yarn
+  else
+    CERC_BUILD_TOOL=npm
+  fi
+fi
+
 CERC_WEBAPP_FILES_DIR="${CERC_WEBAPP_FILES_DIR:-/app}"
 cd "$CERC_WEBAPP_FILES_DIR"
 
@@ -31,4 +40,4 @@ if [ "$CERC_NEXTJS_SKIP_GENERATE" != "true" ]; then
   fi
 fi
 
-npm start . -p ${CERC_LISTEN_PORT:-3000}
+$CERC_BUILD_TOOL start . -p ${CERC_LISTEN_PORT:-3000}

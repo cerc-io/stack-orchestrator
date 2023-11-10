@@ -28,28 +28,15 @@ RUN \
 
 # [Optional] Uncomment this section to install additional OS packages.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends jq gettext-base
-
-# [Optional] Uncomment if you want to install an additional version of node using nvm
-# ARG EXTRA_NODE_VERSION=10
-# RUN su node -c "source /usr/local/share/nvm/nvm.sh && nvm install ${EXTRA_NODE_VERSION}"
-
-# We do this to get a yq binary from the published container, for the correct architecture we're building here
-# COPY --from=docker.io/mikefarah/yq:latest /usr/bin/yq /usr/local/bin/yq
-
-COPY /scripts /scripts
+    && apt-get -y install --no-install-recommends jq gettext-base moreutils
 
 # [Optional] Uncomment if you want to install more global node modules
 # RUN su node -c "npm install -g <your-package-list-here>"
 
-# RUN mkdir -p /config
-# COPY ./config.yml /config
-
-# Install simple web server for now (use nginx perhaps later)
-# RUN yarn global add http-server
-
 # Expose port for http
 EXPOSE 3000
+
+COPY /scripts /scripts
 
 # Default command sleeps forever so docker doesn't kill it
 CMD ["/scripts/start-serving-app.sh"]

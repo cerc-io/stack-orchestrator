@@ -17,6 +17,6 @@ WORKDIR /app
 COPY . .
 
 RUN echo "Building optimism" && \
-  yarn && yarn build
+  pnpm install && pnpm build
 
 WORKDIR /app/packages/contracts-bedrock

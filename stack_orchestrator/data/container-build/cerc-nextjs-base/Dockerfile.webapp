@@ -1,4 +1,8 @@
 FROM cerc/nextjs-base:local
+
+ARG CERC_NEXT_VERSION=latest
+ARG CERC_BUILD_TOOL
+
 WORKDIR /app
 COPY . .
 RUN rm -rf node_modules build .next*

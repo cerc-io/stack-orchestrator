@@ -24,7 +24,7 @@ git clone https://git.vdb.to/cerc-io/test-progressive-web-app.git $CERC_REPO_BAS
 # Test webapp command execution
 $TEST_TARGET_SO build-webapp --source-repo $CERC_REPO_BASE_DIR/test-progressive-web-app
 
-UUID=`uuidgen`
+CHECK="SPECIAL_01234567890_TEST_STRING"
 
 set +e
 
@@ -34,7 +34,7 @@ wget -O test.before -m http://localhost:3000
 
 docker remove -f $CONTAINER_ID
 
-CONTAINER_ID=$(docker run -p 3000:3000 -e CERC_WEBAPP_DEBUG=$UUID -d cerc/test-progressive-web-app:local)
+CONTAINER_ID=$(docker run -p 3000:3000 -e CERC_WEBAPP_DEBUG=$CHECK -d cerc/test-progressive-web-app:local)
 sleep 3
 wget -O test.after -m http://localhost:3000
 
@@ -43,7 +43,7 @@ docker remove -f $CONTAINER_ID
 echo "###########################################################################"
 echo ""
 
-grep "$UUID" test.before > /dev/null
+grep "$CHECK" test.before > /dev/null
 if [ $? -ne 1 ]; then
   echo "BEFORE: FAILED"
   exit 1
@@ -51,7 +51,7 @@ else
   echo "BEFORE: PASSED"
 fi
 
-grep "$UUID" test.after > /dev/null
+grep "$CHECK" test.after > /dev/null
 if [ $? -ne 0 ]; then
   echo "AFTER: FAILED"
   exit 1

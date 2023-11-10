@@ -4,8 +4,17 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+CERC_NEXT_VERSION="${CERC_NEXT_VERSION:-^14.0.2}"
+CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
+if [ -z "$CERC_BUILD_TOOL" ]; then
+  if [ -f "yarn.lock" ] && [ ! -f "package-lock.json" ]; then
+    CERC_BUILD_TOOL=yarn
+  else
+    CERC_BUILD_TOOL=npm
+  fi
+fi
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 WORK_DIR="${1:-/app}"
 
 cd "${WORK_DIR}" || exit 1
@@ -20,6 +29,7 @@ if [ $? -ne 0 ]; then
 fi
 
 js-beautify next.config.dist > next.config.js
+echo "" >> next.config.js
 
 WEBPACK_REQ_LINE=$(grep -n "require([\'\"]webpack[\'\"])" next.config.js | cut -d':' -f1)
 if [ -z "$WEBPACK_REQ_LINE" ]; then
@@ -58,7 +68,7 @@ if [ -n "$WEBPACK_CONF_LINE" ]; then
   cat > next.config.js.3 <<EOF
       $WEBPACK_CONF_VAR.plugins.push(new webpack.DefinePlugin(envMap));
 EOF
-  NEXT_SECTION_LINE=$((WEBPACK_CONF_LINE - 1))
+  NEXT_SECTION_LINE=$((WEBPACK_CONF_LINE))
 elif [ -n "$ENV_LINE" ]; then
   head -$(( ${ENV_LINE} - 1 )) next.config.js > next.config.js.2
   cat > next.config.js.3 <<EOF
@@ -67,7 +77,7 @@ elif [ -n "$ENV_LINE" ]; then
       return config;
     },
 EOF
-  NEXT_SECTION_ADJUSTMENT=2
+  NEXT_SECTION_ADJUSTMENT=1
   NEXT_SECTION_LINE=$ENV_LINE
 else
   echo "WARNING: Cannot find location to insert environment variable map in next.config.js" 1>&2
@@ -88,7 +98,14 @@ fi
 
 cat package.dist | jq '.scripts.cerc_compile = "next experimental-compile"' | jq '.scripts.cerc_generate = "next experimental-generate"' > package.json
 
-npm install || exit 1
-npm run cerc_compile || exit 1
+CUR_NEXT_VERSION="`jq -r '.dependencies.next' package.json`"
+
+if [ "$CERC_NEXT_VERSION" != "keep" ] && [ "$CUR_NEXT_VERSION" != "$CERC_NEXT_VERSION" ]; then
+  echo "Changing 'next' version from $CUR_NEXT_VERSION to $CERC_NEXT_VERSION (set with --build-arg CERC_NEXT_VERSION)"
+  cat package.json | jq ".dependencies.next = \"$CERC_NEXT_VERSION\"" | sponge package.json
+fi
+
+$CERC_BUILD_TOOL install || exit 1
+$CERC_BUILD_TOOL run cerc_compile || exit 1
 
 exit 0

@@ -16,8 +16,5 @@ WATCHER_CONFIG=$(echo "$WATCHER_CONFIG_TEMPLATE" | \
 # Write the modified content to a new file
 echo "$WATCHER_CONFIG" > environments/local.toml
 
-echo "Initializing watcher..."
-yarn fill --start-block $SUSHISWAP_START_BLOCK --end-block $((SUSHISWAP_START_BLOCK + 1))
-
-echo "Running server..."
-DEBUG=vulcanize:* exec node --enable-source-maps dist/server.js
+echo "Running job-runner..."
+DEBUG=vulcanize:* exec node --enable-source-maps dist/job-runner.js

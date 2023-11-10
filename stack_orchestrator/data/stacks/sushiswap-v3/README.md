@@ -1,4 +1,4 @@
-# SushiSwap
+# SushiSwap v3 Watcher
 
 ## Setup
 

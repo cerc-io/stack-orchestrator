@@ -47,11 +47,11 @@
 
 [database]
   type = "postgres"
-  host = "localhost"
+  host = "sushiswap-v3-watcher-db"
   port = 5432
-  database = "sushiswap-v3-watcher-ts"
-  username = "postgres"
-  password = "postgres"
+  database = "sushiswap-v3-watcher"
+  username = "vdbm"
+  password = "password"
   synchronize = true
   logging = false
 
@@ -76,7 +76,7 @@
     deleteOnStart = false
 
 [jobQueue]
-  dbConnectionString = "postgres://postgres:postgres@localhost/sushiswap-v3-watcher-ts-job-queue"
+  dbConnectionString = "postgres://vdbm:password@sushiswap-v3-watcher-db/sushiswap-v3-watcher-job-queue"
   maxCompletionLagInSecs = 300
   jobDelayInMilliSecs = 100
   eventsInBatch = 50

@@ -4,7 +4,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
 
-CERC_NEXT_VERSION="${CERC_NEXT_VERSION:-^14.0.2}"
+CERC_NEXT_VERSION="${CERC_NEXT_VERSION:-keep}"
 CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
 if [ -z "$CERC_BUILD_TOOL" ]; then
   if [ -f "yarn.lock" ] && [ ! -f "package-lock.json" ]; then
@@ -101,8 +101,10 @@ cat package.dist | jq '.scripts.cerc_compile = "next experimental-compile"' | jq
 CUR_NEXT_VERSION="`jq -r '.dependencies.next' package.json`"
 
 if [ "$CERC_NEXT_VERSION" != "keep" ] && [ "$CUR_NEXT_VERSION" != "$CERC_NEXT_VERSION" ]; then
-  echo "Changing 'next' version from $CUR_NEXT_VERSION to $CERC_NEXT_VERSION (set with --build-arg CERC_NEXT_VERSION)"
+  echo "Changing 'next' version specifier from '$CUR_NEXT_VERSION' to '$CERC_NEXT_VERSION' (set with --build-arg CERC_NEXT_VERSION)"
   cat package.json | jq ".dependencies.next = \"$CERC_NEXT_VERSION\"" | sponge package.json
+else
+  echo "'next' version specifier '$CUR_NEXT_VERSION' (override with --build-arg CERC_NEXT_VERSION)"
 fi
 
 $CERC_BUILD_TOOL install || exit 1

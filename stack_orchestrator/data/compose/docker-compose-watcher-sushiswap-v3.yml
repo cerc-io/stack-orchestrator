@@ -13,7 +13,7 @@ services:
       - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
       - sushiswap_v3_watcher_db_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:15432:5432"
+      - "5432"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "5432"]
       interval: 20s
@@ -35,7 +35,7 @@ services:
       - ../config/watcher-sushiswap-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml
       - ../config/watcher-sushiswap-v3/start-job-runner.sh:/app/start-job-runner.sh
     ports:
-      - "127.0.0.1:9000:9000"
+      - "9000"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "9000"]
       interval: 20s
@@ -63,7 +63,7 @@ services:
       - ../config/watcher-sushiswap-v3/start-server.sh:/app/start-server.sh
     ports:
       - "127.0.0.1:3008:3008"
-      - "127.0.0.1:9001:9001"
+      - "9001"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "3008"]
       interval: 20s

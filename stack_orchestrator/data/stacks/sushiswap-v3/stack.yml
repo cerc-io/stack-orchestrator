@@ -2,7 +2,7 @@ version: "1.0"
 name: sushiswap-v3
 description: "SushiSwap v3 watcher stack"
 repos:
-  - github.com/cerc-io/sushiswap-v3-watcher-ts@v0.1.0
+  - github.com/cerc-io/sushiswap-v3-watcher-ts@v0.1.1
 containers:
   - cerc/watcher-sushiswap-v3
 pods:

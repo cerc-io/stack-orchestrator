@@ -47,3 +47,4 @@ github.com/cerc-io/go-nitro
 github.com/cerc-io/ts-nitro
 github.com/cerc-io/mobymask-snap
 github.com/cerc-io/ponder
+github.com/cerc-io/merkl-sushiswap-v3-watcher-ts

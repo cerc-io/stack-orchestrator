@@ -1,6 +1,6 @@
 FROM cerc/nextjs-base:local
 
-ARG CERC_NEXT_VERSION=latest
+ARG CERC_NEXT_VERSION=keep
 ARG CERC_BUILD_TOOL
 
 WORKDIR /app

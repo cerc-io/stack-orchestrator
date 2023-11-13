@@ -1,0 +1,98 @@
+[server]
+  host = "0.0.0.0"
+  port = 3008
+  kind = "active"
+
+  # Checkpointing state.
+  checkpointing = true
+
+  # Checkpoint interval in number of blocks.
+  checkpointInterval = 2000
+
+  # Enable state creation
+  # CAUTION: Disable only if state creation is not desired or can be filled subsequently
+  enableState = false
+
+  subgraphPath = "./subgraph-build"
+
+  # Interval to restart wasm instance periodically
+  wasmRestartBlocksInterval = 20
+
+  # Interval in number of blocks at which to clear entities cache.
+  clearEntitiesCacheInterval = 1000
+
+  # Max block range for which to return events in eventsInRange GQL query.
+  # Use -1 for skipping check on block range.
+  maxEventsBlockRange = 1000
+
+  # Flag to specify whether RPC endpoint supports block hash as block tag parameter
+  rpcSupportsBlockHashParam = false
+
+  # GQL cache settings
+  [server.gqlCache]
+    enabled = true
+
+    # Max in-memory cache size (in bytes) (default 8 MB)
+    # maxCacheSize
+
+    # GQL cache-control max-age settings (in seconds)
+    maxAge = 15
+    timeTravelMaxAge = 86400 # 1 day
+
+[metrics]
+  host = "127.0.0.1"
+  port = 9000
+  [metrics.gql]
+    port = 9001
+
+[database]
+  type = "postgres"
+  host = "sushiswap-v3-watcher-db"
+  port = 5432
+  database = "sushiswap-v3-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+
+[upstream]
+  [upstream.ethServer]
+    rpcProviderEndpoint = "REPLACE_WITH_CERC_ETH_RPC_ENDPOINT"
+
+    # Boolean flag to specify if rpc-eth-client should be used for RPC endpoint instead of ipld-eth-client (ipld-eth-server GQL client)
+    rpcClient = true
+
+    # Boolean flag to specify if rpcProviderEndpoint is an FEVM RPC endpoint
+    isFEVM = true
+
+    # Boolean flag to filter event logs by contracts
+    filterLogsByAddresses = true
+    # Boolean flag to filter event logs by topics
+    filterLogsByTopics = true
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@sushiswap-v3-watcher-db/sushiswap-v3-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 100
+  eventsInBatch = 50
+  subgraphEventsOrder = true
+  blockDelayInMilliSecs = 2000
+  prefetchBlocksInMem = false
+  prefetchBlockCount = 10
+
+  # Boolean to switch between modes of processing events when starting the server.
+  # Setting to true will fetch filtered events and required blocks in a range of blocks and then process them.
+  # Setting to false will fetch blocks consecutively with its events and then process them (Behaviour is followed in realtime processing near head).
+  useBlockRanges = true
+
+  # Block range in which logs are fetched during historical blocks processing
+  historicalLogsBlockRange = 2000
+
+  # Max block range of historical processing after which it waits for completion of events processing
+  # If set to -1 historical processing does not wait for events processing and completes till latest canonical block
+  historicalMaxFetchAhead = 10000

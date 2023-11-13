@@ -43,3 +43,4 @@ nitro-contracts
 mobymask-snap
 ponder
 ipld-eth-server-payments
+merkl-sushiswap-v3

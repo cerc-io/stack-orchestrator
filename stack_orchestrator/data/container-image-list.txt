@@ -57,5 +57,4 @@ cerc/nitro-contracts
 cerc/mobymask-snap
 cerc/ponder
 cerc/nitro-rpc-client
-cerc/my-new-stack
 cerc/watcher-merkl-sushiswap-v3

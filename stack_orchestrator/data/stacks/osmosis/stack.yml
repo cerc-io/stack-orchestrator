@@ -1,5 +1,5 @@
 version: "0.1"
-name: osmosis-front-end
+name: osmosis
 repos:
   - github.com/osmosis-labs/osmosis-frontend
 containers:

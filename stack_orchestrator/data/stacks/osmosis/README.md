@@ -1,4 +1,4 @@
-# self-hosted osmosis front-end
+# self-hosted osmosis
 
 ```
 laconic-so --stack osmosis-front-end setup-repositories

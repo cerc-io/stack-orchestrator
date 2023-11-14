@@ -3,7 +3,16 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
 
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+CERC_MAX_GENERATE_TIME=${CERC_MAX_GENERATE_TIME:-60}
+tpid=""
+
+ctrl_c() {
+    kill $tpid $(ps -ef | grep node | grep next | awk '{print $2}') 2>/dev/null
+}
+
+trap ctrl_c INT
 
 CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
 if [ -z "$CERC_BUILD_TOOL" ]; then
@@ -25,18 +34,32 @@ if [ "$CERC_NEXTJS_SKIP_GENERATE" != "true" ]; then
   jq -e '.scripts.cerc_generate' package.json >/dev/null
   if [ $? -eq 0 ]; then
     npm run cerc_generate > gen.out 2>&1 &
-    tail -n0 -f gen.out | sed '/rendered as static HTML/ q'
+    tail -f gen.out &
+    tpid=$!
+
     count=0
-    while [ $count -lt 10 ]; do
+    generate_done="false"
+    while [ $count -lt $CERC_MAX_GENERATE_TIME ]; do
       sleep 1
-      ps -ef | grep 'node' | grep 'next' | grep 'generate' >/dev/null
-      if [ $? -ne 0 ]; then 
-        break
+      grep 'rendered as static HTML' gen.out > /dev/null
+      if [ $? -eq 0 ]; then
+        generate_done="true"
+        ps -ef | grep 'node' | grep 'next' | grep 'generate' >/dev/null
+        if [ $? -ne 0 ]; then
+          break
+        fi
       else
         count=$((count + 1))
       fi
     done
-    kill $(ps -ef |grep node | grep next | grep generate | awk '{print $2}') 2>/dev/null
+
+    if [ $generate_done != "true" ]; then
+      echo "ERROR: 'npm run cerc_generate' not successful within CERC_MAX_GENERATE_TIME" 1>&2
+      exit 1
+    fi
+
+    kill $tpid $(ps -ef | grep node | grep next | grep generate | awk '{print $2}') 2>/dev/null
+    tpid=""
   fi
 fi
 

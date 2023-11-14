@@ -12,26 +12,28 @@
 
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
+
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from ruamel.yaml import YAML
+
 
 def create(context: DeploymentContext, extra_args):
     # Slightly modify the base fixturenet-eth compose file to replace the startup script for fixturenet-eth-geth-1
     # We need to start geth with the flag to allow non eip-155 compliant transactions in order to publish the
     # deterministic-deployment-proxy contract, which itself is a prereq for Optimism contract deployment
     fixturenet_eth_compose_file = context.deployment_dir.joinpath('compose', 'docker-compose-fixturenet-eth.yml')
-    
+
     with open(fixturenet_eth_compose_file, 'r') as yaml_file:
-        yaml=YAML()
+        yaml = YAML()
         yaml_data = yaml.load(yaml_file)
-    
+
     new_script = '../config/fixturenet-optimism/run-geth.sh:/opt/testnet/run.sh'
 
     if new_script not in yaml_data['services']['fixturenet-eth-geth-1']['volumes']:
         yaml_data['services']['fixturenet-eth-geth-1']['volumes'].append(new_script)
-    
+
     with open(fixturenet_eth_compose_file, 'w') as yaml_file:
-        yaml=YAML()
+        yaml = YAML()
         yaml.dump(yaml_data, yaml_file)
 
     return None

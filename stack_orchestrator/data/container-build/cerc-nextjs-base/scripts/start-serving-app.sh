@@ -3,7 +3,9 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
 
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+CERC_MAX_GENERATE_TIME=${CERC_MAX_GENERATE_TIME:-60}
 
 CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
 if [ -z "$CERC_BUILD_TOOL" ]; then
@@ -25,7 +27,12 @@ if [ "$CERC_NEXTJS_SKIP_GENERATE" != "true" ]; then
   jq -e '.scripts.cerc_generate' package.json >/dev/null
   if [ $? -eq 0 ]; then
     npm run cerc_generate > gen.out 2>&1 &
-    tail -n0 -f gen.out | sed '/rendered as static HTML/ q'
+    timeout $CERC_MAX_GENERATE_TIME bash -c "tail -n0 -f gen.out | sed '/rendered as static HTML/ q'"
+    if [ $? -ne 0 ]; then
+      echo "ERROR: 'npm run cerc_generate' exceeded CERC_MAX_GENERATE_TIME."
+      exit 1
+    fi
+
     count=0
     while [ $count -lt 10 ]; do
       sleep 1

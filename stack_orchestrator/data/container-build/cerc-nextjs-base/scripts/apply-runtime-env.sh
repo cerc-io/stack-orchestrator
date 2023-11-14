@@ -38,6 +38,9 @@ for f in $(find "$TRG_DIR" -regex ".*.[tj]sx?$" -type f | grep -v 'node_modules'
     orig_name=$(echo -n "${e}" | sed 's/"//g')
     cur_name=$(echo -n "${orig_name}" | sed 's/CERC_RUNTIME_ENV_//g')
     cur_val=$(echo -n "\$${cur_name}" | envsubst)
+    if [ "$CERC_RETAIN_QUOTES" != "true" ]; then
+      cur_val=$(sed "s/^[\"']//" <<< "$cur_val" | sed "s/[\"']//")
+    fi
     esc_val=$(sed 's/[&/\]/\\&/g' <<< "$cur_val")
     echo "$f: $cur_name=$cur_val"
     sed -i "s/$orig_name/$esc_val/g" $f

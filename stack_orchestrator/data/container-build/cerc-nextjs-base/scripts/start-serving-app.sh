@@ -39,18 +39,14 @@ if [ "$CERC_NEXTJS_SKIP_GENERATE" != "true" ]; then
 
     count=0
     generate_done="false"
-    while [ $count -lt $CERC_MAX_GENERATE_TIME ]; do
+    while [ $count -lt $CERC_MAX_GENERATE_TIME ] && [ "$generate_done" == "false" ]; do
       sleep 1
       grep 'rendered as static HTML' gen.out > /dev/null
       if [ $? -eq 0 ]; then
         generate_done="true"
-        ps -ef | grep 'node' | grep 'next' | grep 'generate' >/dev/null
-        if [ $? -ne 0 ]; then
-          break
-        fi
-      else
-        count=$((count + 1))
+        sleep 1
       fi
+      count=$((count + 1))
     done
 
     if [ $generate_done != "true" ]; then

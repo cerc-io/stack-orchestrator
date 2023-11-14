@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -e
+
+CERC_SCRIPT_DEBUG=1
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
+
 # Dump environment variables for debugging
 echo "Environment variables:"
 env
@@ -28,14 +31,14 @@ CHECK="SPECIAL_01234567890_TEST_STRING"
 
 set +e
 
-CONTAINER_ID=$(docker run -p 3000:3000 -d cerc/test-progressive-web-app:local)
+CONTAINER_ID=$(docker run -p 3000:3000 -d -e CERC_SCRIPT_DEBUG=$CERC_SCRIPT_DEBUG cerc/test-progressive-web-app:local)
 sleep 3
 wget -t 7 -O test.before -m http://localhost:3000
 
 docker logs $CONTAINER_ID
 docker remove -f $CONTAINER_ID
 
-CONTAINER_ID=$(docker run -p 3000:3000 -e CERC_WEBAPP_DEBUG=$CHECK -d cerc/test-progressive-web-app:local)
+CONTAINER_ID=$(docker run -p 3000:3000 -e CERC_WEBAPP_DEBUG=$CHECK -e CERC_SCRIPT_DEBUG=$CERC_SCRIPT_DEBUG -d cerc/test-progressive-web-app:local)
 sleep 3
 wget -t 7 -O test.after -m http://localhost:3000
 

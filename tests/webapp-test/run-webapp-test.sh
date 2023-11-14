@@ -32,12 +32,14 @@ CONTAINER_ID=$(docker run -p 3000:3000 -d cerc/test-progressive-web-app:local)
 sleep 3
 wget -O test.before -m http://localhost:3000
 
+docker logs $CONTAINER_ID
 docker remove -f $CONTAINER_ID
 
 CONTAINER_ID=$(docker run -p 3000:3000 -e CERC_WEBAPP_DEBUG=$CHECK -d cerc/test-progressive-web-app:local)
 sleep 3
 wget -O test.after -m http://localhost:3000
 
+docker logs $CONTAINER_ID
 docker remove -f $CONTAINER_ID
 
 echo "###########################################################################"

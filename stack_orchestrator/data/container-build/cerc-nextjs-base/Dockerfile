@@ -39,4 +39,4 @@ EXPOSE 3000
 COPY /scripts /scripts
 
 # Default command sleeps forever so docker doesn't kill it
-CMD ["/scripts/start-serving-app.sh"]
+ENTRYPOINT ["/scripts/start-serving-app.sh"]

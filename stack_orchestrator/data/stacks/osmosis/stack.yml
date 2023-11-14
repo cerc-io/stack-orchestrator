@@ -1,8 +1,27 @@
 version: "0.1"
 name: osmosis
 repos:
+  # these are for gitea
+  - git.vdb.to/cerc-io/hosting@names-for-so
+  - gitea.com/gitea/act_runner
+  # add the osmosis FE
   - github.com/osmosis-labs/osmosis-frontend
 containers:
+  - cerc/act-runner
+  - cerc/act-runner-task-executor
+  # note: osmosis builds but doesn't run
   - cerc/osmosis-front-end
 pods:
+  - name: gitea
+    repository: cerc-io/hosting
+    path: gitea
+    pre_start_command: "run-this-first.sh"
+    post_start_command: "initialize-gitea.sh"
+    # todo, e.g., include cloning all of osmosis
+  - name: act-runner
+    repository: cerc-io/hosting
+    path: act-runner
+    pre_start_command: "pre_start.sh"
+    post_start_command: "post_start.sh"
   - osmosis-front-end
+  - kubo

@@ -11,6 +11,11 @@ not their build environment.
 
 ## Building
 
+Building usually requires no additional configuration.  By default, the Next.js version specified in `package.json`
+is used, and either `yarn` or `npm` will be used automatically depending on which lock files are present.  These
+can be overidden with the build arguments `CERC_NEXT_VERSION` and `CERC_BUILD_TOOL` respectively.  For example: `--extra-build-args "--build-arg CERC_NEXT_VERSION=13.4.12"`
+
+**Example**:
 ```
 $ cd ~/cerc
 $ git clone git@git.vdb.to:cerc-io/test-progressive-web-app.git
@@ -29,10 +34,21 @@ To test locally run:
 
 ## Running
 
+With `run-webapp` a new container will be launched with runtime configuration provided by `--env-file` (if specified) and published on an available port.  Multiple instances can be launched with different configuration.
+
+**Example**:
 ```
-$ laconic-so run-webapp --image cerc/test-progressive-web-app:local --env-file ~/tmp/env.igloo
+# Production env
+$ laconic-so run-webapp --image cerc/test-progressive-web-app:local --env-file /path/to/environment/staging.env
 
 Image: cerc/test-progressive-web-app:local
 ID: 4c6e893bf436b3e91a2b92ce37e30e499685131705700bd92a90d2eb14eefd05
 URL: http://localhost:32768
+
+# Dev env
+$ laconic-so run-webapp --image cerc/test-progressive-web-app:local --env-file /path/to/environment/dev.env
+
+Image: cerc/test-progressive-web-app:local
+ID: 9ab96494f563aafb6c057d88df58f9eca81b90f8721a4e068493a289a976051c
+URL: http://localhost:32769
 ```

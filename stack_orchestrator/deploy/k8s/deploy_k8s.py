@@ -120,7 +120,7 @@ class K8sDeployer(Deployer):
         log_data = self.core_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container="test")
         return log_stream_from_string(log_data)
 
-    def run(self, image, command, user, volumes, entrypoint=None):
+    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, detach=False):
         # We need to figure out how to do this -- check why we're being called first
         pass
 

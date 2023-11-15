@@ -23,7 +23,7 @@ Built host container for $CERC_CONTAINER_BUILD_WORK_DIR with tag:
 
 To test locally run:
 
-    docker run -p 3000:3000 --env-file /path/to/environment.env $CERC_CONTAINER_BUILD_TAG
+    laconic-so run-webapp --image $CERC_CONTAINER_BUILD_TAG --env-file /path/to/environment.env
 
 EOF
 fi

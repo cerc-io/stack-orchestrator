@@ -39,7 +39,7 @@ With `run-webapp` a new container will be launched with runtime configuration pr
 **Example**:
 ```
 # Production env
-$ laconic-so run-webapp --image cerc/test-progressive-web-app:local --env-file /path/to/environment/staging.env
+$ laconic-so run-webapp --image cerc/test-progressive-web-app:local --env-file /path/to/environment/production.env
 
 Image: cerc/test-progressive-web-app:local
 ID: 4c6e893bf436b3e91a2b92ce37e30e499685131705700bd92a90d2eb14eefd05

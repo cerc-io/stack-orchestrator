@@ -60,7 +60,7 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args):
     container_build_env = build_containers.make_container_build_env(dev_root_path, container_build_dir, debug,
                                                                     force_rebuild, extra_build_args)
 
-    build_containers.process_container(base_container, container_build_dir, container_build_env, dev_root_path, quiet,
+    build_containers.process_container(None, base_container, container_build_dir, container_build_env, dev_root_path, quiet,
                                        verbose, dry_run, continue_on_error)
 
 
@@ -73,5 +73,5 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args):
     webapp_name = os.path.abspath(source_repo).split(os.path.sep)[-1]
     container_build_env["CERC_CONTAINER_BUILD_TAG"] = f"cerc/{webapp_name}:local"
 
-    build_containers.process_container(base_container, container_build_dir, container_build_env, dev_root_path, quiet,
+    build_containers.process_container(None, base_container, container_build_dir, container_build_env, dev_root_path, quiet,
                                        verbose, dry_run, continue_on_error)

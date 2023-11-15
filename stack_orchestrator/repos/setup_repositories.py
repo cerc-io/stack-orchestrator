@@ -249,8 +249,10 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches, branches
             error_exit(f"stack {stack} does not exist")
         with stack_file_path:
             stack_config = yaml.safe_load(open(stack_file_path, "r"))
-            # TODO: syntax check the input here
-            repos_in_scope = stack_config['repos']
+            if not "repos" in stack_config:
+                error_exit(f"stack {stack} does not define any repositories")
+            else:
+                repos_in_scope = stack_config["repos"]
     else:
         repos_in_scope = all_repos
 

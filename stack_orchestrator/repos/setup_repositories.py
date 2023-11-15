@@ -25,6 +25,7 @@ import click
 import importlib.resources
 from pathlib import Path
 import yaml
+from stack_orchestrator.constants import stack_file_name
 from stack_orchestrator.util import include_exclude_check
 
 
@@ -238,9 +239,12 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches, branches
 
     repos_in_scope = []
     if stack:
-        # In order to be compatible with Python 3.8 we need to use this hack to get the path:
-        # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-        stack_file_path = Path(__file__).absolute().parent.parent.joinpath("data", "stacks", stack, "stack.yml")
+        # Check if the stack argument is a path or a plain string.
+        stack_file_path = Path(stack).joinpath(stack_file_name)
+        if not stack_file_path.exists():
+            # In order to be compatible with Python 3.8 we need to use this hack to get the path:
+            # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
+            stack_file_path = Path(__file__).absolute().parent.parent.joinpath("data", "stacks", stack, stack_file_name)
         with stack_file_path:
             stack_config = yaml.safe_load(open(stack_file_path, "r"))
             # TODO: syntax check the input here

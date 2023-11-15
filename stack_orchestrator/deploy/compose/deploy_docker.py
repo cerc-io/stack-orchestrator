@@ -61,9 +61,10 @@ class DockerDeployer(Deployer):
         except DockerException as e:
             raise DeployerException(e)
 
-    def run(self, image, command, user, volumes, entrypoint=None):
+    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, detach=False):
         try:
-            return self.docker.run(image=image, command=command, user=user, volumes=volumes, entrypoint=entrypoint)
+            return self.docker.run(image=image, command=command, user=user, volumes=volumes,
+                                   entrypoint=entrypoint, envs=env, detach=detach, publish_all=True)
         except DockerException as e:
             raise DeployerException(e)
 

@@ -26,7 +26,7 @@ import importlib.resources
 from pathlib import Path
 import yaml
 from stack_orchestrator.constants import stack_file_name
-from stack_orchestrator.util import include_exclude_check, error_exit
+from stack_orchestrator.util import include_exclude_check, stack_is_external, error_exit
 
 
 class GitProgress(git.RemoteProgress):
@@ -239,9 +239,9 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches, branches
 
     repos_in_scope = []
     if stack:
-        # Check if the stack argument is a path or a plain string.
-        stack_file_path = Path(stack).joinpath(stack_file_name)
-        if not stack_file_path.exists():
+        if stack_is_external(stack):
+            stack_file_path = Path(stack).joinpath(stack_file_name)
+        else:
             # In order to be compatible with Python 3.8 we need to use this hack to get the path:
             # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
             stack_file_path = Path(__file__).absolute().parent.parent.joinpath("data", "stacks", stack, stack_file_name)

@@ -27,7 +27,7 @@ import subprocess
 import click
 import importlib.resources
 from pathlib import Path
-from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config
+from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, stack_is_external
 from stack_orchestrator.base import get_npm_registry_url
 
 # TODO: find a place for this
@@ -58,7 +58,8 @@ def make_container_build_env(dev_root_path: str,
     return container_build_env
 
 
-def process_container(container,
+def process_container(stack: str,
+                      container,
                       container_build_dir: str,
                       container_build_env: dict,
                       dev_root_path: str,
@@ -69,12 +70,29 @@ def process_container(container,
                       ):
     if not quiet:
         print(f"Building: {container}")
-    build_dir = os.path.join(container_build_dir, container.replace("/", "-"))
-    build_script_filename = os.path.join(build_dir, "build.sh")
+
+    default_container_tag = f"{container}:local"
+    container_build_env.update({"CERC_DEFAULT_CONTAINER_IMAGE_TAG": default_container_tag})
+
+    # Check if this is in an external stack
+    if stack_is_external(stack):
+        container_parent_dir = Path(stack).joinpath("container-build")
+        temp_build_dir = container_parent_dir.joinpath(container.replace("/", "-"))
+        temp_build_script_filename = temp_build_dir.joinpath("build.sh")
+        # Now check if the container exists in the external stack.
+        if not temp_build_script_filename.exists():
+            # If not, revert to building an internal container
+            container_parent_dir = container_build_dir
+    else:
+        container_parent_dir = container_build_dir
+
+    build_dir = container_parent_dir.joinpath(container.replace("/", "-"))
+    build_script_filename = build_dir.joinpath("build.sh")
+
     if verbose:
         print(f"Build script filename: {build_script_filename}")
     if os.path.exists(build_script_filename):
-        build_command = build_script_filename
+        build_command = build_script_filename.as_posix()
     else:
         if verbose:
             print(f"No script file found: {build_script_filename}, using default build script")
@@ -84,7 +102,7 @@ def process_container(container,
         repo_full_path = os.path.join(dev_root_path, repo_dir)
         repo_dir_or_build_dir = repo_full_path if os.path.exists(repo_full_path) else build_dir
         build_command = os.path.join(container_build_dir,
-                                     "default-build.sh") + f" {container}:local {repo_dir_or_build_dir}"
+                                     "default-build.sh") + f" {default_container_tag} {repo_dir_or_build_dir}"
     if not dry_run:
         if verbose:
             print(f"Executing: {build_command} with environment: {container_build_env}")
@@ -158,7 +176,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
 
     for container in containers_in_scope:
         if include_exclude_check(container, include, exclude):
-            process_container(container, container_build_dir, container_build_env,
+            process_container(stack, container, container_build_dir, container_build_env,
                               dev_root_path, quiet, verbose, dry_run, continue_on_error)
         else:
             if verbose:

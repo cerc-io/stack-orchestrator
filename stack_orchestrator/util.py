@@ -167,3 +167,8 @@ def global_options(ctx):
 # TODO: hack
 def global_options2(ctx):
     return ctx.parent.obj
+
+
+def error_exit(s):
+    print(f"ERROR: {s}")
+    sys.exit(1)

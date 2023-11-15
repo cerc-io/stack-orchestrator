@@ -35,14 +35,6 @@ from stack_orchestrator.deploy.deployer_factory import getDeployer
 def command(ctx, image, deploy_to, env_file):
     '''build the specified webapp container'''
 
-    quiet = ctx.obj.quiet
-    verbose = ctx.obj.verbose
-    dry_run = ctx.obj.dry_run
-    debug = ctx.obj.debug
-    local_stack = ctx.obj.local_stack
-    stack = ctx.obj.stack
-    continue_on_error = ctx.obj.continue_on_error
-
     env = {}
     if env_file:
         env = dotenv_values(env_file)

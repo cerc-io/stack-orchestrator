@@ -1,25 +1,21 @@
 ### Building and Running Webapps
 
-It is possible to build and run webapps using the `build-webapp` and `run-webapp` subcommand.
+It is possible to build and run Next.js webapps using the `build-webapp` and `run-webapp` subcommands.
 
-To make it easier to build once, and deploy to with varying configuration, compilation and static
-page generation are separated in the `build-webapp` and `run-webapp` steps, and the use of the
-environment variables via `process.env` is detected at compile-time and placeholder substituted
-which will be filled in at runtime.
+To make it easier to build once and deploy into different environments and with different configuration,
+compilation and static page generation are separated in the `build-webapp` and `run-webapp` steps.
 
-This offers much more flexibilty in configuration and deployment than standard build methods.
+This offers much more flexibilty than standard Next.js build methods, since any environment variables accessed
+via `process.env`, whether for pages or for API, will have values drawn from their runtime deployment environment,
+not their build environment. 
 
-## Build
+## Building
 
 ```
 $ cd ~/cerc
 $ git clone git@git.vdb.to:cerc-io/test-progressive-web-app.git
 $ laconic-so build-webapp --source-repo ~/cerc/test-progressive-web-app
 ...
-Successfully tagged cerc/test-progressive-web-app:local
-
-
-#################################################################
 
 Built host container for ~/cerc/test-progressive-web-app with tag:
 
@@ -31,7 +27,7 @@ To test locally run:
 
 ```
 
-## Run
+## Running
 
 ```
 $ laconic-so run-webapp --image cerc/test-progressive-web-app:local --env-file ~/tmp/env.igloo

@@ -4,61 +4,36 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-# TODO: Add in container build or use other tool
-echo "Installing jq"
-apk update && apk add jq
+l2_genesis_file="/l2-config/genesis.json"
 
-# Get Sequencer key from keys.json
-SEQUENCER_KEY=$(jq -r '.Sequencer.privateKey' /l2-accounts/keys.json | tr -d '"')
+# Check for genesis file; if necessary, wait on op-node to generate
+timeout=300 # 5 minutes
+start_time=$(date +%s)
+elapsed_time=0
+echo "Checking for L2 genesis file at location $l2_genesis_file"
+while [ ! -f "$l2_genesis_file" ] && [ $elapsed_time -lt $timeout ]; do
+  echo "Waiting for L2 genesis file to be generated..."
+  sleep 10
+  current_time=$(date +%s)
+  elapsed_time=$((current_time - start_time))
+done
 
-# Initialize op-geth if datadir/geth not found
-if [ -f /op-node/jwt.txt ] && [ -d datadir/geth ]; then
-  echo "Found existing datadir, checking block signer key"
-
-  BLOCK_SIGNER_KEY=$(cat datadir/block-signer-key)
-
-  if [ "$SEQUENCER_KEY" = "$BLOCK_SIGNER_KEY" ]; then
-    echo "Sequencer and block signer keys match, skipping initialization"
-  else
-    echo "Sequencer and block signer keys don't match, please clear L2 geth data volume before starting"
-    exit 1
-  fi
-else
-  echo "Initializing op-geth"
-
-  mkdir -p datadir
-  echo "pwd" > datadir/password
-  echo $SEQUENCER_KEY > datadir/block-signer-key
-
-  geth account import --datadir=datadir --password=datadir/password datadir/block-signer-key
-
-  while [ ! -f "/op-node/jwt.txt" ]
-  do
-    echo "Config files not created. Checking after 5 seconds."
-    sleep 5
-  done
-
-  echo "Config files created by op-node, proceeding with the initialization..."
-
-  geth init --datadir=datadir /op-node/genesis.json
-  echo "Node Initialized"
+if [ ! -f "$l2_genesis_file" ]; then
+  echo "L2 genesis file not found after timeout of $timeout seconds. Exiting..."
+  exit 1
 fi
 
-SEQUENCER_ADDRESS=$(jq -r '.Sequencer.address' /l2-accounts/keys.json | tr -d '"')
-echo "SEQUENCER_ADDRESS: ${SEQUENCER_ADDRESS}"
+# Initialize geth from our generated L2 genesis file (if not already initialized)
+data_dir="/datadir"
+if [ ! -d "$datadir/geth" ]; then
+  geth init --datadir=$data_dir $l2_genesis_file
+fi
 
-cleanup() {
-    echo "Signal received, cleaning up..."
-    kill ${geth_pid}
+# Start op-geth
+jwt_file="/l2-config/l2-jwt.txt"
 
-    wait
-    echo "Done"
-}
-trap 'cleanup' INT TERM
-
-# Run op-geth
 geth \
-  --datadir ./datadir \
+  --datadir=$data_dir \
   --http \
   --http.corsdomain="*" \
   --http.vhosts="*" \
@@ -77,14 +52,5 @@ geth \
   --authrpc.vhosts="*" \
   --authrpc.addr=0.0.0.0 \
   --authrpc.port=8551 \
-  --authrpc.jwtsecret=/op-node/jwt.txt \
-  --rollup.disabletxpoolgossip=true \
-  --password=./datadir/password \
-  --allow-insecure-unlock \
-  --mine \
-  --miner.etherbase=$SEQUENCER_ADDRESS \
-  --unlock=$SEQUENCER_ADDRESS \
-  &
-
-geth_pid=$!
-wait $geth_pid
+  --authrpc.jwtsecret=$jwt_file \
+  --rollup.disabletxpoolgossip=true

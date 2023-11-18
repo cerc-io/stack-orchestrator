@@ -142,12 +142,14 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
         super().__init__()
 
     def generate(self, deployment_dir: Path):
-        # Check the file isn't already there
-        # Get the config file contents
-        content = generate_kind_config(deployment_dir)
-        if opts.o.debug:
-            print(f"kind config is: {content}")
-        config_file = deployment_dir.joinpath(constants.kind_config_filename)
-        # Write the file
-        with open(config_file, "w") as output_file:
-            output_file.write(content)
+        # No need to do this for the remote k8s case
+        if self.type == "k8s-kind":
+            # Check the file isn't already there
+            # Get the config file contents
+            content = generate_kind_config(deployment_dir)
+            if opts.o.debug:
+                print(f"kind config is: {content}")
+            config_file = deployment_dir.joinpath(constants.kind_config_filename)
+            # Write the file
+            with open(config_file, "w") as output_file:
+                output_file.write(content)

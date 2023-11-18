@@ -16,6 +16,7 @@
 from pathlib import Path
 from kubernetes import client, config
 
+from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
 from stack_orchestrator.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
 from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, log_stream_from_string, generate_kind_config
@@ -54,7 +55,7 @@ class K8sDeployer(Deployer):
     def up(self, detach, services):
         if self.is_kind():
             # Create the kind cluster
-            create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath("kind-config.yml"))
+            create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath(constants.kind_config_filename))
         self.connect_api()
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
@@ -134,7 +135,6 @@ class K8sDeployer(Deployer):
 
 
 class K8sDeployerConfigGenerator(DeployerConfigGenerator):
-    config_file_name: str = "kind-config.yml"
     type: str
 
     def __init__(self, type: str) -> None:
@@ -147,7 +147,7 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
         content = generate_kind_config(deployment_dir)
         if opts.o.debug:
             print(f"kind config is: {content}")
-        config_file = deployment_dir.joinpath(self.config_file_name)
+        config_file = deployment_dir.joinpath(constants.kind_config_filename)
         # Write the file
         with open(config_file, "w") as output_file:
             output_file.write(content)

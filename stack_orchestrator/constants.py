@@ -16,3 +16,4 @@
 stack_file_name = "stack.yml"
 k8s_kind_deploy_type = "k8s-kind"
 k8s_deploy_type = "k8s"
+kind_config_filename = "kind-config.yml"

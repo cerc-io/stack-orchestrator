@@ -39,7 +39,7 @@ from stack_orchestrator.deploy.deployment_create import setup as deployment_setu
 @click.option("--exclude", help="don\'t start these components")
 @click.option("--env-file", help="env file to be used")
 @click.option("--cluster", help="specify a non-default cluster name")
-@click.option("--deploy-to", help="cluster system to deploy to (compose or k8s)")
+@click.option("--deploy-to", help="cluster system to deploy to (compose or k8s or k8s-kind)")
 @click.pass_context
 def command(ctx, include, exclude, env_file, cluster, deploy_to):
     '''deploy a stack'''
@@ -62,11 +62,11 @@ def command(ctx, include, exclude, env_file, cluster, deploy_to):
 
 
 def create_deploy_context(
-        global_context, deployment_context: DeploymentContext, stack, include, exclude, cluster, env_file, deployer):
+        global_context, deployment_context: DeploymentContext, stack, include, exclude, cluster, env_file, deploy_to):
     cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
     deployment_dir = deployment_context.deployment_dir if deployment_context else None
     # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    deployer = getDeployer(deployer, deployment_dir, compose_files=cluster_context.compose_files,
+    deployer = getDeployer(deploy_to, deployment_dir, compose_files=cluster_context.compose_files,
                            compose_project_name=cluster_context.cluster,
                            compose_env_file=cluster_context.env_file)
     return DeployCommandContext(stack, cluster_context, deployer)

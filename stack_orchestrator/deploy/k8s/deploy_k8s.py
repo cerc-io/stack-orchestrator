@@ -25,6 +25,7 @@ from stack_orchestrator.opts import opts
 
 class K8sDeployer(Deployer):
     name: str = "k8s"
+    type: str
     core_api: client.CoreV1Api
     apps_api: client.AppsV1Api
     k8s_namespace: str = "default"
@@ -32,12 +33,14 @@ class K8sDeployer(Deployer):
     cluster_info : ClusterInfo
     deployment_dir: Path
 
-    def __init__(self, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(self, type, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
         if (opts.o.debug):
             print(f"Deployment dir: {deployment_dir}")
             print(f"Compose files: {compose_files}")
             print(f"Project name: {compose_project_name}")
             print(f"Env file: {compose_env_file}")
+            print(f"Type: {type}")
+        self.type = type
         self.deployment_dir = deployment_dir
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
@@ -124,11 +127,16 @@ class K8sDeployer(Deployer):
         # We need to figure out how to do this -- check why we're being called first
         pass
 
+    def is_kind(self):
+        return self.type == "k8s-kind"
+
 
 class K8sDeployerConfigGenerator(DeployerConfigGenerator):
     config_file_name: str = "kind-config.yml"
+    type: str
 
-    def __init__(self) -> None:
+    def __init__(self, type: str) -> None:
+        self.type = type
         super().__init__()
 
     def generate(self, deployment_dir: Path):

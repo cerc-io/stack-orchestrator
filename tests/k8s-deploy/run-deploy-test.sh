@@ -21,7 +21,7 @@ mkdir -p $CERC_REPO_BASE_DIR
 # Test basic stack-orchestrator deploy
 test_deployment_dir=$CERC_REPO_BASE_DIR/test-deployment-dir
 test_deployment_spec=$CERC_REPO_BASE_DIR/test-deployment-spec.yml
-$TEST_TARGET_SO --stack test deploy --deploy-to k8s init --output $test_deployment_spec --config CERC_TEST_PARAM_1=PASSED
+$TEST_TARGET_SO --stack test deploy --deploy-to k8s-kind init --output $test_deployment_spec --config CERC_TEST_PARAM_1=PASSED
 # Check the file now exists
 if [ ! -f "$test_deployment_spec" ]; then
     echo "deploy init test: spec file not present"

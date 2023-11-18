@@ -52,8 +52,9 @@ class K8sDeployer(Deployer):
         self.apps_api = client.AppsV1Api()
 
     def up(self, detach, services):
-        # Create the kind cluster
-        create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath("kind-config.yml"))
+        if self.is_kind():
+            # Create the kind cluster
+            create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath("kind-config.yml"))
         self.connect_api()
         # Ensure the referenced containers are copied into kind
         load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
@@ -92,8 +93,9 @@ class K8sDeployer(Deployer):
 
     def down(self, timeout, volumes):
         # Delete the k8s objects
-        # Destroy the kind cluster
-        destroy_cluster(self.kind_cluster_name)
+        if self.is_kind():
+            # Destroy the kind cluster
+            destroy_cluster(self.kind_cluster_name)
 
     def ps(self):
         self.connect_api()

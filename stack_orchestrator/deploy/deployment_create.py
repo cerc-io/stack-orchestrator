@@ -264,6 +264,10 @@ def init(ctx, config, kube_config, output, map_ports_to_host):
     spec_file_content = {"stack": stack, "deploy-to": deployer_type}
     if deployer_type == "k8s":
         spec_file_content.update({constants.kube_config_key: kube_config})
+    else:
+        # Check for --kube-config supplied for non-relevant deployer types
+        if kube_config is not None:
+            error_exit(f"--kube-config is not allowed with a {deployer_type} deployment")
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
     config_variables = _parse_config_variables(config)

@@ -48,7 +48,11 @@ class K8sDeployer(Deployer):
         self.cluster_info.int(compose_files, compose_env_file)
 
     def connect_api(self):
-        config.load_kube_config(context=f"kind-{self.kind_cluster_name}")
+        if self.is_kind():
+            config.load_kube_config(context=f"kind-{self.kind_cluster_name}")
+        else:
+            # Get the config file and pass to load_kube_config()
+            config.load_kube_config(config_file=self.deployment_dir.joinpath(constants.kube_config_filename))
         self.core_api = client.CoreV1Api()
         self.apps_api = client.AppsV1Api()
 

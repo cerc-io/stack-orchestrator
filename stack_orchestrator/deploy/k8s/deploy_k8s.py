@@ -52,7 +52,7 @@ class K8sDeployer(Deployer):
             config.load_kube_config(context=f"kind-{self.kind_cluster_name}")
         else:
             # Get the config file and pass to load_kube_config()
-            config.load_kube_config(config_file=self.deployment_dir.joinpath(constants.kube_config_filename))
+            config.load_kube_config(config_file=self.deployment_dir.joinpath(constants.kube_config_filename).as_posix())
         self.core_api = client.CoreV1Api()
         self.apps_api = client.AppsV1Api()
 

@@ -16,6 +16,7 @@
 import click
 from pathlib import Path
 import sys
+from stack_orchestrator import constants
 from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_operation, port_operation
 from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
@@ -50,8 +51,12 @@ def make_deploy_context(ctx):
     stack_file_path = context.get_stack_file()
     env_file = context.get_env_file()
     cluster_name = context.get_cluster_name()
+    if "deploy-to" in context.spec.obj:
+        deployment_type = context.spec.obj["deploy-to"]
+    else:
+        deployment_type = constants.compose_deploy_type
     return create_deploy_context(ctx.parent.parent.obj, context, stack_file_path, None, None, cluster_name, env_file,
-                                 context.spec.obj["deploy-to"])
+                                 deployment_type)
 
 
 @command.command()

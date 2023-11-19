@@ -60,9 +60,9 @@ class K8sDeployer(Deployer):
         if self.is_kind():
             # Create the kind cluster
             create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath(constants.kind_config_filename))
+            # Ensure the referenced containers are copied into kind
+            load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
         self.connect_api()
-        # Ensure the referenced containers are copied into kind
-        load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
 
         # Create the host-path-mounted PVs for this deployment
         pvs = self.cluster_info.get_pvs()

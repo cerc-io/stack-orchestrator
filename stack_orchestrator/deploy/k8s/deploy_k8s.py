@@ -97,7 +97,35 @@ class K8sDeployer(Deployer):
                   {deployment_resp.metadata.generation} {deployment_resp.spec.template.spec.containers[0].image}")
 
     def down(self, timeout, volumes):
+        self.connect_api()
         # Delete the k8s objects
+        # Create the host-path-mounted PVs for this deployment
+        pvs = self.cluster_info.get_pvs()
+        for pv in pvs:
+            if opts.o.debug:
+                print(f"Deleting this pv: {pv}")
+            pv_resp = self.core_api.delete_persistent_volume(name=pv.metadata.name)
+            if opts.o.debug:
+                print("PV deleted:")
+                print(f"{pv_resp}")
+
+        # Figure out the PVCs for this deployment
+        pvcs = self.cluster_info.get_pvcs()
+        for pvc in pvcs:
+            if opts.o.debug:
+                print(f"Deleting this pvc: {pvc}")
+            pvc_resp = self.core_api.delete_namespaced_persistent_volume_claim(name=pvc.metadata.name, namespace=self.k8s_namespace)
+            if opts.o.debug:
+                print("PVCs deleted:")
+                print(f"{pvc_resp}")
+        # Process compose files into a Deployment
+        deployment = self.cluster_info.get_deployment()
+        # Create the k8s objects
+        if opts.o.debug:
+            print(f"Deleting this deployment: {deployment}")
+        deployment_resp = self.apps_api.delete_namespaced_deployment(
+            name=deployment.metadata.name, namespace=self.k8s_namespace
+        )
         if self.is_kind():
             # Destroy the kind cluster
             destroy_cluster(self.kind_cluster_name)

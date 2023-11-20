@@ -123,7 +123,7 @@ class K8sDeployer(Deployer):
         # Create the k8s objects
         if opts.o.debug:
             print(f"Deleting this deployment: {deployment}")
-        deployment_resp = self.apps_api.delete_namespaced_deployment(
+        self.apps_api.delete_namespaced_deployment(
             name=deployment.metadata.name, namespace=self.k8s_namespace
         )
         if self.is_kind():

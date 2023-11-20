@@ -17,8 +17,10 @@ import click
 from pathlib import Path
 import sys
 from stack_orchestrator import constants
+from stack_orchestrator.deploy.images import push_images_operation
 from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_operation, port_operation
 from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context
+from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
@@ -46,13 +48,13 @@ def command(ctx, dir):
     ctx.obj = deployment_context
 
 
-def make_deploy_context(ctx):
+def make_deploy_context(ctx) -> DeployCommandContext:
     context: DeploymentContext = ctx.obj
     stack_file_path = context.get_stack_file()
     env_file = context.get_env_file()
     cluster_name = context.get_cluster_name()
-    if "deploy-to" in context.spec.obj:
-        deployment_type = context.spec.obj["deploy-to"]
+    if constants.deploy_to_key in context.spec.obj:
+        deployment_type = context.spec.obj[constants.deploy_to_key]
     else:
         deployment_type = constants.compose_deploy_type
     return create_deploy_context(ctx.parent.parent.obj, context, stack_file_path, None, None, cluster_name, env_file,
@@ -107,6 +109,14 @@ def stop(ctx, delete_volumes, extra_args):
 def ps(ctx):
     ctx.obj = make_deploy_context(ctx)
     ps_operation(ctx)
+
+
+@command.command()
+@click.pass_context
+def push_images(ctx):
+    deploy_command_context: DeployCommandContext = make_deploy_context(ctx)
+    deployment_context: DeploymentContext = ctx.obj
+    push_images_operation(deploy_command_context, deployment_context)
 
 
 @command.command()

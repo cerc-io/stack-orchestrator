@@ -21,16 +21,17 @@ from typing import List
 import random
 from shutil import copy, copyfile, copytree
 import sys
+from stack_orchestrator import constants
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
-                                     get_pod_script_paths, get_plugin_code_paths)
+                                     get_pod_script_paths, get_plugin_code_paths, error_exit)
 from stack_orchestrator.deploy.deploy_types import LaconicStackSetupCommand
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
 def _make_default_deployment_dir():
-    return "deployment-001"
+    return Path("deployment-001")
 
 
 def _get_ports(stack):
@@ -248,17 +249,21 @@ def _parse_config_variables(variable_values: str):
 
 @click.command()
 @click.option("--config", help="Provide config variables for the deployment")
+@click.option("--kube-config", help="Provide a config file for a k8s deployment")
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.option("--map-ports-to-host", required=False,
               help="Map ports to the host as one of: any-variable-random (default), "
               "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
 @click.pass_context
-def init(ctx, config, output, map_ports_to_host):
+def init(ctx, config, kube_config, output, map_ports_to_host):
     yaml = get_yaml()
     stack = global_options(ctx).stack
     debug = global_options(ctx).debug
+    deployer_type = ctx.obj.deployer.type
     default_spec_file_content = call_stack_deploy_init(ctx.obj)
-    spec_file_content = {"stack": stack, "deploy-to": ctx.obj.deployer.name}
+    spec_file_content = {"stack": stack, "deploy-to": deployer_type}
+    if deployer_type == "k8s":
+        spec_file_content.update({constants.kube_config_key: kube_config})
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
     config_variables = _parse_config_variables(config)
@@ -296,6 +301,12 @@ def _write_config_file(spec_file: Path, config_env_file: Path):
                     output_file.write(f"{variable_name}={variable_value}\n")
 
 
+def _write_kube_config_file(external_path: Path, internal_path: Path):
+    if not external_path.exists():
+        error_exit(f"Kube config file {external_path} does not exist")
+    copyfile(external_path, internal_path)
+
+
 def _copy_files_to_directory(file_paths: List[Path], directory: Path):
     for path in file_paths:
         # Using copy to preserve the execute bit
@@ -310,29 +321,34 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
 @click.option("--initial-peers", help="Initial set of persistent peers")
 @click.pass_context
 def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
-    # This function fails with a useful error message if the file doens't exist
     parsed_spec = get_parsed_deployment_spec(spec_file)
     stack_name = parsed_spec["stack"]
+    deployment_type = parsed_spec["deploy-to"]
     stack_file = get_stack_file_path(stack_name)
     parsed_stack = get_parsed_stack_config(stack_name)
     if global_options(ctx).debug:
         print(f"parsed spec: {parsed_spec}")
     if deployment_dir is None:
-        deployment_dir = _make_default_deployment_dir()
-    if os.path.exists(deployment_dir):
-        print(f"Error: {deployment_dir} already exists")
-        sys.exit(1)
-    os.mkdir(deployment_dir)
+        deployment_dir_path = _make_default_deployment_dir()
+    else:
+        deployment_dir_path = Path(deployment_dir)
+    if deployment_dir_path.exists():
+        error_exit(f"{deployment_dir_path} already exists")
+    os.mkdir(deployment_dir_path)
     # Copy spec file and the stack file into the deployment dir
-    copyfile(spec_file, os.path.join(deployment_dir, "spec.yml"))
-    copyfile(stack_file, os.path.join(deployment_dir, os.path.basename(stack_file)))
+    copyfile(spec_file, deployment_dir_path.joinpath("spec.yml"))
+    copyfile(stack_file, deployment_dir_path.joinpath(os.path.basename(stack_file)))
     # Copy any config varibles from the spec file into an env file suitable for compose
-    _write_config_file(spec_file, os.path.join(deployment_dir, "config.env"))
+    _write_config_file(spec_file, deployment_dir_path.joinpath("config.env"))
+    # Copy any k8s config file into the deployment dir
+    if deployment_type == "k8s":
+        _write_kube_config_file(Path(parsed_spec[constants.kube_config_key]),
+                                deployment_dir_path.joinpath(constants.kube_config_filename))
     # Copy the pod files into the deployment dir, fixing up content
     pods = get_pod_list(parsed_stack)
-    destination_compose_dir = os.path.join(deployment_dir, "compose")
+    destination_compose_dir = deployment_dir_path.joinpath("compose")
     os.mkdir(destination_compose_dir)
-    destination_pods_dir = os.path.join(deployment_dir, "pods")
+    destination_pods_dir = deployment_dir_path.joinpath("pods")
     os.mkdir(destination_pods_dir)
     data_dir = Path(__file__).absolute().parent.parent.joinpath("data")
     yaml = get_yaml()
@@ -340,12 +356,12 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
         pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
-        destination_pod_dir = os.path.join(destination_pods_dir, pod)
+        destination_pod_dir = destination_pods_dir.joinpath(pod)
         os.mkdir(destination_pod_dir)
         if global_options(ctx).debug:
             print(f"extra config dirs: {extra_config_dirs}")
         _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
-        with open(os.path.join(destination_compose_dir, "docker-compose-%s.yml" % pod), "w") as output_file:
+        with open(destination_compose_dir.joinpath("docker-compose-%s.yml" % pod), "w") as output_file:
             yaml.dump(parsed_pod_file, output_file)
         # Copy the config files for the pod, if any
         config_dirs = {pod}
@@ -353,13 +369,13 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
         for config_dir in config_dirs:
             source_config_dir = data_dir.joinpath("config", config_dir)
             if os.path.exists(source_config_dir):
-                destination_config_dir = os.path.join(deployment_dir, "config", config_dir)
+                destination_config_dir = deployment_dir_path.joinpath("config", config_dir)
                 # If the same config dir appears in multiple pods, it may already have been copied
                 if not os.path.exists(destination_config_dir):
                     copytree(source_config_dir, destination_config_dir)
         # Copy the script files for the pod, if any
         if pod_has_scripts(parsed_stack, pod):
-            destination_script_dir = os.path.join(destination_pod_dir, "scripts")
+            destination_script_dir = destination_pod_dir.joinpath("scripts")
             os.mkdir(destination_script_dir)
             script_paths = get_pod_script_paths(parsed_stack, pod)
             _copy_files_to_directory(script_paths, destination_script_dir)
@@ -369,11 +385,11 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext()
-    deployment_context.init(Path(deployment_dir))
+    deployment_context.init(deployment_dir_path)
     # Call the deployer to generate any deployer-specific files (e.g. for kind)
-    deployer_config_generator = getDeployerConfigGenerator(parsed_spec["deploy-to"])
-    # TODO: make deployment_dir a Path above
-    deployer_config_generator.generate(Path(deployment_dir))
+    deployer_config_generator = getDeployerConfigGenerator(deployment_type)
+    # TODO: make deployment_dir_path a Path above
+    deployer_config_generator.generate(deployment_dir_path)
     call_stack_deploy_create(deployment_context, [network_dir, initial_peers])
 
 

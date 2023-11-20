@@ -16,6 +16,7 @@
 from pathlib import Path
 from kubernetes import client, config
 
+from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
 from stack_orchestrator.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
 from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, log_stream_from_string, generate_kind_config
@@ -25,6 +26,7 @@ from stack_orchestrator.opts import opts
 
 class K8sDeployer(Deployer):
     name: str = "k8s"
+    type: str
     core_api: client.CoreV1Api
     apps_api: client.AppsV1Api
     k8s_namespace: str = "default"
@@ -32,28 +34,35 @@ class K8sDeployer(Deployer):
     cluster_info : ClusterInfo
     deployment_dir: Path
 
-    def __init__(self, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(self, type, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
         if (opts.o.debug):
             print(f"Deployment dir: {deployment_dir}")
             print(f"Compose files: {compose_files}")
             print(f"Project name: {compose_project_name}")
             print(f"Env file: {compose_env_file}")
+            print(f"Type: {type}")
+        self.type = type
         self.deployment_dir = deployment_dir
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
         self.cluster_info.int(compose_files, compose_env_file)
 
     def connect_api(self):
-        config.load_kube_config(context=f"kind-{self.kind_cluster_name}")
+        if self.is_kind():
+            config.load_kube_config(context=f"kind-{self.kind_cluster_name}")
+        else:
+            # Get the config file and pass to load_kube_config()
+            config.load_kube_config(config_file=self.deployment_dir.joinpath(constants.kube_config_filename).as_posix())
         self.core_api = client.CoreV1Api()
         self.apps_api = client.AppsV1Api()
 
     def up(self, detach, services):
-        # Create the kind cluster
-        create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath("kind-config.yml"))
+        if self.is_kind():
+            # Create the kind cluster
+            create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath(constants.kind_config_filename))
+            # Ensure the referenced containers are copied into kind
+            load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
         self.connect_api()
-        # Ensure the referenced containers are copied into kind
-        load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
 
         # Create the host-path-mounted PVs for this deployment
         pvs = self.cluster_info.get_pvs()
@@ -89,8 +98,9 @@ class K8sDeployer(Deployer):
 
     def down(self, timeout, volumes):
         # Delete the k8s objects
-        # Destroy the kind cluster
-        destroy_cluster(self.kind_cluster_name)
+        if self.is_kind():
+            # Destroy the kind cluster
+            destroy_cluster(self.kind_cluster_name)
 
     def ps(self):
         self.connect_api()
@@ -124,20 +134,26 @@ class K8sDeployer(Deployer):
         # We need to figure out how to do this -- check why we're being called first
         pass
 
+    def is_kind(self):
+        return self.type == "k8s-kind"
+
 
 class K8sDeployerConfigGenerator(DeployerConfigGenerator):
-    config_file_name: str = "kind-config.yml"
+    type: str
 
-    def __init__(self) -> None:
+    def __init__(self, type: str) -> None:
+        self.type = type
         super().__init__()
 
     def generate(self, deployment_dir: Path):
-        # Check the file isn't already there
-        # Get the config file contents
-        content = generate_kind_config(deployment_dir)
-        if opts.o.debug:
-            print(f"kind config is: {content}")
-        config_file = deployment_dir.joinpath(self.config_file_name)
-        # Write the file
-        with open(config_file, "w") as output_file:
-            output_file.write(content)
+        # No need to do this for the remote k8s case
+        if self.type == "k8s-kind":
+            # Check the file isn't already there
+            # Get the config file contents
+            content = generate_kind_config(deployment_dir)
+            if opts.o.debug:
+                print(f"kind config is: {content}")
+            config_file = deployment_dir.joinpath(constants.kind_config_filename)
+            # Write the file
+            with open(config_file, "w") as output_file:
+                output_file.write(content)

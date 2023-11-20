@@ -14,3 +14,9 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 stack_file_name = "stack.yml"
+compose_deploy_type = "compose"
+k8s_kind_deploy_type = "k8s-kind"
+k8s_deploy_type = "k8s"
+kube_config_key = "kube-config"
+kind_config_filename = "kind-config.yml"
+kube_config_filename = "kubeconfig.yml"

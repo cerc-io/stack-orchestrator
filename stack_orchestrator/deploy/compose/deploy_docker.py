@@ -20,10 +20,12 @@ from stack_orchestrator.deploy.deployer import Deployer, DeployerException, Depl
 
 class DockerDeployer(Deployer):
     name: str = "compose"
+    type: str
 
-    def __init__(self, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(self, type, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
         self.docker = DockerClient(compose_files=compose_files, compose_project_name=compose_project_name,
                                    compose_env_file=compose_env_file)
+        self.type = type
 
     def up(self, detach, services):
         try:
@@ -70,9 +72,8 @@ class DockerDeployer(Deployer):
 
 
 class DockerDeployerConfigGenerator(DeployerConfigGenerator):
-    config_file_name: str = "kind-config.yml"
 
-    def __init__(self) -> None:
+    def __init__(self, type: str) -> None:
         super().__init__()
 
     # Nothing needed at present for the docker deployer

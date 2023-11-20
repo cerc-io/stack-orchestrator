@@ -20,10 +20,12 @@ from stack_orchestrator.deploy.deployer import Deployer, DeployerException, Depl
 
 class DockerDeployer(Deployer):
     name: str = "compose"
+    type: str
 
     def __init__(self, type, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
         self.docker = DockerClient(compose_files=compose_files, compose_project_name=compose_project_name,
                                    compose_env_file=compose_env_file)
+        self.type = type
 
     def up(self, detach, services):
         try:

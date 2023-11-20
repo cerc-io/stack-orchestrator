@@ -55,4 +55,4 @@ def push_images_operation(command_context: DeployCommandContext, deployment_cont
             remote_tag = _remote_tag_for_image(image, remote_repo_url)
             if opts.o.verbose:
                 print(f"Pushing image {remote_tag}")
-            docker.image.push()
+            docker.image.push(remote_tag)

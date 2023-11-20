@@ -62,7 +62,14 @@ def command(ctx, include, exclude, env_file, cluster, deploy_to):
 
 
 def create_deploy_context(
-        global_context, deployment_context: DeploymentContext, stack, include, exclude, cluster, env_file, deploy_to) -> DeployCommandContext:
+        global_context,
+        deployment_context: DeploymentContext,
+        stack,
+        include,
+        exclude,
+        cluster,
+        env_file,
+        deploy_to) -> DeployCommandContext:
     cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
     deployment_dir = deployment_context.deployment_dir if deployment_context else None
     deployer = getDeployer(deploy_to, deployment_dir, compose_files=cluster_context.compose_files,

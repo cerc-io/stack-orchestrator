@@ -23,6 +23,7 @@ from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deploy_util import images_for_deployment
 
+
 def _image_needs_pushed(image: str):
     # TODO: this needs to be more intelligent
     return image.endswith(":local")

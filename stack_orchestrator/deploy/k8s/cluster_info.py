@@ -102,6 +102,21 @@ class ClusterInfo:
             )
         return ingress
 
+    def get_service(self):
+        service = client.V1Service(
+            metadata=client.V1ObjectMeta(name=f"{self.app_name}-service"),
+            spec=client.V1ServiceSpec(
+                type="ClusterIP",
+                ports=[client.V1ServicePort(
+                    port=80,
+                    target_port=80
+                )],
+                selector={"matchLabels":
+                          {"app": self.app_name}}
+            )
+        )
+        return service
+
     def get_pvcs(self):
         result = []
         volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)

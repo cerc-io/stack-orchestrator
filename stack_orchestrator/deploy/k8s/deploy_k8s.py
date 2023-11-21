@@ -105,6 +105,15 @@ class K8sDeployer(Deployer):
             print(f"{deployment_resp.metadata.namespace} {deployment_resp.metadata.name} \
                   {deployment_resp.metadata.generation} {deployment_resp.spec.template.spec.containers[0].image}")
 
+        service: client.V1Service = self.cluster_info.get_service()
+        service_resp = self.core_api.create_namespaced_service(
+            namespace=self.k8s_namespace,
+            body=service
+        )
+        if opts.o.debug:
+            print("Service created:")
+            print(f"{service_resp}")
+
         # TODO: disable ingress for kind
         ingress: client.V1Ingress = self.cluster_info.get_ingress()
 
@@ -143,6 +152,14 @@ class K8sDeployer(Deployer):
             print(f"Deleting this deployment: {deployment}")
         self.apps_api.delete_namespaced_deployment(
             name=deployment.metadata.name, namespace=self.k8s_namespace
+        )
+
+        service: client.V1Service = self.cluster_info.get_service()
+        if opts.o.debug:
+            print(f"Deleting service: {service}")
+        self.core_api.delete_namespaced_service(
+            namespace=self.k8s_namespace,
+            body=service
         )
 
         # TODO: disable ingress for kind

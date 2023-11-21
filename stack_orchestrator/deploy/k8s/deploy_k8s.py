@@ -23,6 +23,15 @@ from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, log_stream
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
+from stack_orchestrator.util import error_exit
+
+
+def _check_delete_exception(e: client.exceptions.ApiException):
+    if e.status == 404:
+        if opts.o.debug:
+            print("Failed to delete object, continuing")
+    else:
+        error_exit(f"k8s api error: {e}")
 
 
 class K8sDeployer(Deployer):
@@ -133,42 +142,59 @@ class K8sDeployer(Deployer):
         for pv in pvs:
             if opts.o.debug:
                 print(f"Deleting this pv: {pv}")
-            pv_resp = self.core_api.delete_persistent_volume(name=pv.metadata.name)
-            if opts.o.debug:
-                print("PV deleted:")
-                print(f"{pv_resp}")
+            try:
+                pv_resp = self.core_api.delete_persistent_volume(name=pv.metadata.name)
+                if opts.o.debug:
+                    print("PV deleted:")
+                    print(f"{pv_resp}")
+            except client.exceptions.ApiException as e:
+                _check_delete_exception(e)
 
         # Figure out the PVCs for this deployment
         pvcs = self.cluster_info.get_pvcs()
         for pvc in pvcs:
             if opts.o.debug:
                 print(f"Deleting this pvc: {pvc}")
-            pvc_resp = self.core_api.delete_namespaced_persistent_volume_claim(name=pvc.metadata.name, namespace=self.k8s_namespace)
-            if opts.o.debug:
-                print("PVCs deleted:")
-                print(f"{pvc_resp}")
+            try:
+                pvc_resp = self.core_api.delete_namespaced_persistent_volume_claim(
+                    name=pvc.metadata.name, namespace=self.k8s_namespace
+                )
+                if opts.o.debug:
+                    print("PVCs deleted:")
+                    print(f"{pvc_resp}")
+            except client.exceptions.ApiException as e:
+                _check_delete_exception(e)
         deployment = self.cluster_info.get_deployment()
         if opts.o.debug:
             print(f"Deleting this deployment: {deployment}")
-        self.apps_api.delete_namespaced_deployment(
-            name=deployment.metadata.name, namespace=self.k8s_namespace
-        )
+        try:
+            self.apps_api.delete_namespaced_deployment(
+                name=deployment.metadata.name, namespace=self.k8s_namespace
+            )
+        except client.exceptions.ApiException as e:
+            _check_delete_exception(e)
 
         service: client.V1Service = self.cluster_info.get_service()
         if opts.o.debug:
             print(f"Deleting service: {service}")
-        self.core_api.delete_namespaced_service(
-            namespace=self.k8s_namespace,
-            body=service
-        )
+        try:
+            self.core_api.delete_namespaced_service(
+                namespace=self.k8s_namespace,
+                name=service.metadata.name
+            )
+        except client.exceptions.ApiException as e:
+            _check_delete_exception(e)
 
         # TODO: disable ingress for kind
         ingress: client.V1Ingress = self.cluster_info.get_ingress()
         if opts.o.debug:
             print(f"Deleting this ingress: {ingress}")
-        self.networking_api.delete_namespaced_ingress(
-            name=ingress.metadata.name, namespace=self.k8s_namespace
-        )
+        try:
+            self.networking_api.delete_namespaced_ingress(
+                name=ingress.metadata.name, namespace=self.k8s_namespace
+            )
+        except client.exceptions.ApiException as e:
+            _check_delete_exception(e)
 
         if self.is_kind():
             # Destroy the kind cluster

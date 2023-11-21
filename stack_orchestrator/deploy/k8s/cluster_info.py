@@ -30,7 +30,6 @@ class ClusterInfo:
     parsed_pod_yaml_map: Any
     image_set: Set[str] = set()
     app_name: str = "test-app"
-    deployment_name: str = "test-deployment"
     environment_variables: DeployEnvVars
     spec: Spec
 
@@ -74,7 +73,7 @@ class ClusterInfo:
                     backend=client.V1IngressBackend(
                         service=client.V1IngressServiceBackend(
                             # TODO: this looks wrong
-                            name=self.deployment_name,
+                            name=f"{self.app_name}-service",
                             # TODO: pull port number from the service
                             port=client.V1ServiceBackendPort(number=80)
                         )
@@ -195,7 +194,7 @@ class ClusterInfo:
         deployment = client.V1Deployment(
             api_version="apps/v1",
             kind="Deployment",
-            metadata=client.V1ObjectMeta(name=self.deployment_name),
+            metadata=client.V1ObjectMeta(name=f"{self.app_name}-deployment"),
             spec=spec,
         )
         return deployment

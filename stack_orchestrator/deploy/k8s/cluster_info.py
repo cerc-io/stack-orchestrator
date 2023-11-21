@@ -22,6 +22,7 @@ from stack_orchestrator.deploy.k8s.helpers import get_node_pv_mount_path
 from stack_orchestrator.deploy.k8s.helpers import env_var_map_from_file, envs_from_environment_variables_map
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names, images_for_deployment
 from stack_orchestrator.deploy.deploy_types import DeployEnvVars
+from stack_orchestrator.deploy.images import remote_tag_for_image
 
 
 class ClusterInfo:
@@ -30,15 +31,17 @@ class ClusterInfo:
     app_name: str = "test-app"
     deployment_name: str = "test-deployment"
     environment_variables: DeployEnvVars
+    remote_image_repo: str
 
     def __init__(self) -> None:
         pass
 
-    def int(self, pod_files: List[str], compose_env_file):
+    def int(self, pod_files: List[str], compose_env_file, remote_image_repo):
         self.parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
         # Find the set of images in the pods
         self.image_set = images_for_deployment(pod_files)
         self.environment_variables = DeployEnvVars(env_var_map_from_file(compose_env_file))
+        self.remote_image_repo = remote_image_repo
         if (opts.o.debug):
             print(f"Env vars: {self.environment_variables.map}")
 
@@ -92,10 +95,12 @@ class ClusterInfo:
                 container_name = service_name
                 service_info = services[service_name]
                 image = service_info["image"]
+                # Re-write the image tag for remote deployment
+                image_to_use = remote_tag_for_image(image, self.remote_image_repo) if self.remote_image_repo is not None else image
                 volume_mounts = volume_mounts_for_service(self.parsed_pod_yaml_map, service_name)
                 container = client.V1Container(
                     name=container_name,
-                    image=image,
+                    image=image_to_use,
                     env=envs_from_environment_variables_map(self.environment_variables.map),
                     ports=[client.V1ContainerPort(container_port=80)],
                     volume_mounts=volume_mounts,

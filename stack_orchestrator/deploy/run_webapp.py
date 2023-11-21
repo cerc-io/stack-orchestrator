@@ -44,7 +44,7 @@ def command(ctx, image, deploy_to, env_file):
     cluster = f"laconic-webapp-{hash}"
 
     deployer = getDeployer(deploy_to,
-                           deployment_dir=None,
+                           deployment_context=None,
                            compose_files=None,
                            compose_project_name=cluster,
                            compose_env_file=None)

@@ -29,11 +29,14 @@ def _image_needs_pushed(image: str):
     return image.endswith(":local")
 
 
-def _remote_tag_for_image(image: str, remote_repo_url: str):
+def remote_tag_for_image(image: str, remote_repo_url: str):
     # Turns image tags of the form: foo/bar:local into remote.repo/org/bar:deploy
     (org, image_name_with_version) = image.split("/")
     (image_name, image_version) = image_name_with_version.split(":")
-    return f"{remote_repo_url}/{image_name}:deploy"
+    if image_version == "local":
+        return f"{remote_repo_url}/{image_name}:deploy"
+    else:
+        return image
 
 
 # TODO: needs lots of error handling
@@ -46,14 +49,14 @@ def push_images_operation(command_context: DeployCommandContext, deployment_cont
     docker = DockerClient()
     for image in images:
         if _image_needs_pushed(image):
-            remote_tag = _remote_tag_for_image(image, remote_repo_url)
+            remote_tag = remote_tag_for_image(image, remote_repo_url)
             if opts.o.verbose:
                 print(f"Tagging {image} to {remote_tag}")
             docker.image.tag(image, remote_tag)
     # Run docker push commands to upload
     for image in images:
         if _image_needs_pushed(image):
-            remote_tag = _remote_tag_for_image(image, remote_repo_url)
+            remote_tag = remote_tag_for_image(image, remote_repo_url)
             if opts.o.verbose:
                 print(f"Pushing image {remote_tag}")
             docker.image.push(remote_tag)

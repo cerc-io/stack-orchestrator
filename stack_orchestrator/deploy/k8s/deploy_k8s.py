@@ -23,6 +23,15 @@ from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, log_stream
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
+from stack_orchestrator.util import error_exit
+
+
+def _check_delete_exception(e: client.exceptions.ApiException):
+    if e.status == 404:
+        if opts.o.debug:
+            print("Failed to delete object, continuing")
+    else:
+        error_exit(f"k8s api error: {e}")
 
 
 class K8sDeployer(Deployer):
@@ -30,6 +39,7 @@ class K8sDeployer(Deployer):
     type: str
     core_api: client.CoreV1Api
     apps_api: client.AppsV1Api
+    networking_api: client.NetworkingV1Api
     k8s_namespace: str = "default"
     kind_cluster_name: str
     cluster_info : ClusterInfo
@@ -45,7 +55,7 @@ class K8sDeployer(Deployer):
         self.deployment_context = deployment_context
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
-        self.cluster_info.int(compose_files, compose_env_file, deployment_context.spec.obj[constants.image_resigtry_key])
+        self.cluster_info.int(compose_files, compose_env_file, deployment_context.spec)
         if (opts.o.debug):
             print(f"Deployment dir: {deployment_context.deployment_dir}")
             print(f"Compose files: {compose_files}")
@@ -60,9 +70,11 @@ class K8sDeployer(Deployer):
             # Get the config file and pass to load_kube_config()
             config.load_kube_config(config_file=self.deployment_dir.joinpath(constants.kube_config_filename).as_posix())
         self.core_api = client.CoreV1Api()
+        self.networking_api = client.NetworkingV1Api()
         self.apps_api = client.AppsV1Api()
 
     def up(self, detach, services):
+
         if self.is_kind():
             # Create the kind cluster
             create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath(constants.kind_config_filename))
@@ -102,6 +114,26 @@ class K8sDeployer(Deployer):
             print(f"{deployment_resp.metadata.namespace} {deployment_resp.metadata.name} \
                   {deployment_resp.metadata.generation} {deployment_resp.spec.template.spec.containers[0].image}")
 
+        service: client.V1Service = self.cluster_info.get_service()
+        service_resp = self.core_api.create_namespaced_service(
+            namespace=self.k8s_namespace,
+            body=service
+        )
+        if opts.o.debug:
+            print("Service created:")
+            print(f"{service_resp}")
+
+        # TODO: disable ingress for kind
+        ingress: client.V1Ingress = self.cluster_info.get_ingress()
+
+        ingress_resp = self.networking_api.create_namespaced_ingress(
+            namespace=self.k8s_namespace,
+            body=ingress
+        )
+        if opts.o.debug:
+            print("Ingress created:")
+            print(f"{ingress_resp}")
+
     def down(self, timeout, volumes):
         self.connect_api()
         # Delete the k8s objects
@@ -110,28 +142,60 @@ class K8sDeployer(Deployer):
         for pv in pvs:
             if opts.o.debug:
                 print(f"Deleting this pv: {pv}")
-            pv_resp = self.core_api.delete_persistent_volume(name=pv.metadata.name)
-            if opts.o.debug:
-                print("PV deleted:")
-                print(f"{pv_resp}")
+            try:
+                pv_resp = self.core_api.delete_persistent_volume(name=pv.metadata.name)
+                if opts.o.debug:
+                    print("PV deleted:")
+                    print(f"{pv_resp}")
+            except client.exceptions.ApiException as e:
+                _check_delete_exception(e)
 
         # Figure out the PVCs for this deployment
         pvcs = self.cluster_info.get_pvcs()
         for pvc in pvcs:
             if opts.o.debug:
                 print(f"Deleting this pvc: {pvc}")
-            pvc_resp = self.core_api.delete_namespaced_persistent_volume_claim(name=pvc.metadata.name, namespace=self.k8s_namespace)
-            if opts.o.debug:
-                print("PVCs deleted:")
-                print(f"{pvc_resp}")
-        # Process compose files into a Deployment
+            try:
+                pvc_resp = self.core_api.delete_namespaced_persistent_volume_claim(
+                    name=pvc.metadata.name, namespace=self.k8s_namespace
+                )
+                if opts.o.debug:
+                    print("PVCs deleted:")
+                    print(f"{pvc_resp}")
+            except client.exceptions.ApiException as e:
+                _check_delete_exception(e)
         deployment = self.cluster_info.get_deployment()
-        # Create the k8s objects
         if opts.o.debug:
             print(f"Deleting this deployment: {deployment}")
-        self.apps_api.delete_namespaced_deployment(
-            name=deployment.metadata.name, namespace=self.k8s_namespace
-        )
+        try:
+            self.apps_api.delete_namespaced_deployment(
+                name=deployment.metadata.name, namespace=self.k8s_namespace
+            )
+        except client.exceptions.ApiException as e:
+            _check_delete_exception(e)
+
+        service: client.V1Service = self.cluster_info.get_service()
+        if opts.o.debug:
+            print(f"Deleting service: {service}")
+        try:
+            self.core_api.delete_namespaced_service(
+                namespace=self.k8s_namespace,
+                name=service.metadata.name
+            )
+        except client.exceptions.ApiException as e:
+            _check_delete_exception(e)
+
+        # TODO: disable ingress for kind
+        ingress: client.V1Ingress = self.cluster_info.get_ingress()
+        if opts.o.debug:
+            print(f"Deleting this ingress: {ingress}")
+        try:
+            self.networking_api.delete_namespaced_ingress(
+                name=ingress.metadata.name, namespace=self.k8s_namespace
+            )
+        except client.exceptions.ApiException as e:
+            _check_delete_exception(e)
+
         if self.is_kind():
             # Destroy the kind cluster
             destroy_cluster(self.kind_cluster_name)

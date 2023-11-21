@@ -16,6 +16,7 @@
 from pathlib import Path
 import typing
 from stack_orchestrator.util import get_yaml
+from stack_orchestrator import constants
 
 
 class Spec:
@@ -28,3 +29,14 @@ class Spec:
     def init_from_file(self, file_path: Path):
         with file_path:
             self.obj = get_yaml().load(open(file_path, "r"))
+
+    def get_image_registry(self):
+        return (self.obj[constants.image_resigtry_key]
+                if self.obj and constants.image_resigtry_key in self.obj
+                else None)
+
+    def get_http_proxy(self):
+        return (self.obj[constants.network_key][constants.http_proxy_key]
+                if self.obj and constants.network_key in self.obj
+                and constants.http_proxy_key in self.obj[constants.network_key]
+                else None)

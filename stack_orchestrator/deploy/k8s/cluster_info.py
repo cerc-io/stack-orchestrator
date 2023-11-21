@@ -111,8 +111,7 @@ class ClusterInfo:
                     port=80,
                     target_port=80
                 )],
-                selector={"matchLabels":
-                          {"app": self.app_name}}
+                selector={"app": self.app_name}
             )
         )
         return service

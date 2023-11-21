@@ -48,9 +48,11 @@ class ClusterInfo:
 
     def get_ingress(self):
         # No ingress for a deployment that has no http-proxy defined, for now
-        http_proxy_info = self.spec.get_http_proxy()
+        http_proxy_info_list = self.spec.get_http_proxy()
         ingress = None
-        if http_proxy_info:
+        if http_proxy_info_list:
+            # TODO: handle multiple definitions
+            http_proxy_info = http_proxy_info_list[0]
             if opts.o.debug:
                 print(f"http-proxy: {http_proxy_info}")
             # TODO: good enough parsing for webapp deployment for now

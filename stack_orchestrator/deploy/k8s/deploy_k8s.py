@@ -149,7 +149,7 @@ class K8sDeployer(Deployer):
         ingress: client.V1Ingress = self.cluster_info.get_ingress()
         if opts.o.debug:
             print(f"Deleting this ingress: {ingress}")
-        self.apps_api.delete_namespaced_ingress(
+        self.networking_api.delete_namespaced_ingress(
             name=ingress.metadata.name, namespace=self.k8s_namespace
         )
 

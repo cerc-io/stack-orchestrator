@@ -56,7 +56,6 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT}
-      SUSHISWAP_START_BLOCK: ${SUSHISWAP_START_BLOCK:- 2867560}
     command: ["bash", "./start-server.sh"]
     volumes:
       - ../config/watcher-merkl-sushiswap-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml

@@ -37,18 +37,21 @@ class K8sDeployer(Deployer):
     deployment_context: DeploymentContext
 
     def __init__(self, type, deployment_context: DeploymentContext, compose_files, compose_project_name, compose_env_file) -> None:
+        self.type = type
+        # TODO: workaround pending refactoring above to cope with being created with a null deployment_context
+        if deployment_context is None:
+            return
+        self.deployment_dir = deployment_context.deployment_dir
+        self.deployment_context = deployment_context
+        self.kind_cluster_name = compose_project_name
+        self.cluster_info = ClusterInfo()
+        self.cluster_info.int(compose_files, compose_env_file, deployment_context.spec.obj[constants.image_resigtry_key])
         if (opts.o.debug):
             print(f"Deployment dir: {deployment_context.deployment_dir}")
             print(f"Compose files: {compose_files}")
             print(f"Project name: {compose_project_name}")
             print(f"Env file: {compose_env_file}")
             print(f"Type: {type}")
-        self.type = type
-        self.deployment_dir = deployment_context.deployment_dir
-        self.deployment_context = deployment_context
-        self.kind_cluster_name = compose_project_name
-        self.cluster_info = ClusterInfo()
-        self.cluster_info.int(compose_files, compose_env_file, deployment_context.spec.obj[constants.image_resigtry_key])
 
     def connect_api(self):
         if self.is_kind():

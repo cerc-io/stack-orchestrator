@@ -103,8 +103,8 @@ def _fixup_pod_file(pod, spec, compose_dir):
                                        }
                     pod["volumes"][volume] = new_volume_spec
     # Fix up ports
-    if "ports" in spec:
-        spec_ports = spec["ports"]
+    if "network" in spec and "ports" in spec["network"]:
+        spec_ports = spec["network"]["ports"]
         for container_name, container_ports in spec_ports.items():
             if container_name in pod["services"]:
                 pod["services"][container_name]["ports"] = container_ports
@@ -285,7 +285,7 @@ def init(ctx, config, kube_config, image_registry, output, map_ports_to_host):
         print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
 
     ports = _get_mapped_ports(stack, map_ports_to_host)
-    spec_file_content["ports"] = ports
+    spec_file_content.update({"network": {"ports": ports}})
 
     named_volumes = _get_named_volumes(stack)
     if named_volumes:

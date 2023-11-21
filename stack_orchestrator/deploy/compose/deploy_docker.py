@@ -16,13 +16,14 @@
 from pathlib import Path
 from python_on_whales import DockerClient, DockerException
 from stack_orchestrator.deploy.deployer import Deployer, DeployerException, DeployerConfigGenerator
+from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
 class DockerDeployer(Deployer):
     name: str = "compose"
     type: str
 
-    def __init__(self, type, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(self, type, deployment_context: DeploymentContext, compose_files, compose_project_name, compose_env_file) -> None:
         self.docker = DockerClient(compose_files=compose_files, compose_project_name=compose_project_name,
                                    compose_env_file=compose_env_file)
         self.type = type

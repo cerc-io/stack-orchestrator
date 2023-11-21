@@ -22,6 +22,7 @@ from stack_orchestrator.deploy.k8s.helpers import create_cluster, destroy_cluste
 from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, log_stream_from_string, generate_kind_config
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.opts import opts
+from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
 class K8sDeployer(Deployer):
@@ -33,19 +34,21 @@ class K8sDeployer(Deployer):
     kind_cluster_name: str
     cluster_info : ClusterInfo
     deployment_dir: Path
+    deployment_context: DeploymentContext
 
-    def __init__(self, type, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(self, type, deployment_context: DeploymentContext, compose_files, compose_project_name, compose_env_file) -> None:
         if (opts.o.debug):
-            print(f"Deployment dir: {deployment_dir}")
+            print(f"Deployment dir: {deployment_context.deployment_dir}")
             print(f"Compose files: {compose_files}")
             print(f"Project name: {compose_project_name}")
             print(f"Env file: {compose_env_file}")
             print(f"Type: {type}")
         self.type = type
-        self.deployment_dir = deployment_dir
+        self.deployment_dir = deployment_context.deployment_dir
+        self.deployment_context = deployment_context
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
-        self.cluster_info.int(compose_files, compose_env_file)
+        self.cluster_info.int(compose_files, compose_env_file, deployment_context.spec.obj[constants.image_resigtry_key])
 
     def connect_api(self):
         if self.is_kind():
@@ -97,7 +100,35 @@ class K8sDeployer(Deployer):
                   {deployment_resp.metadata.generation} {deployment_resp.spec.template.spec.containers[0].image}")
 
     def down(self, timeout, volumes):
+        self.connect_api()
         # Delete the k8s objects
+        # Create the host-path-mounted PVs for this deployment
+        pvs = self.cluster_info.get_pvs()
+        for pv in pvs:
+            if opts.o.debug:
+                print(f"Deleting this pv: {pv}")
+            pv_resp = self.core_api.delete_persistent_volume(name=pv.metadata.name)
+            if opts.o.debug:
+                print("PV deleted:")
+                print(f"{pv_resp}")
+
+        # Figure out the PVCs for this deployment
+        pvcs = self.cluster_info.get_pvcs()
+        for pvc in pvcs:
+            if opts.o.debug:
+                print(f"Deleting this pvc: {pvc}")
+            pvc_resp = self.core_api.delete_namespaced_persistent_volume_claim(name=pvc.metadata.name, namespace=self.k8s_namespace)
+            if opts.o.debug:
+                print("PVCs deleted:")
+                print(f"{pvc_resp}")
+        # Process compose files into a Deployment
+        deployment = self.cluster_info.get_deployment()
+        # Create the k8s objects
+        if opts.o.debug:
+            print(f"Deleting this deployment: {deployment}")
+        self.apps_api.delete_namespaced_deployment(
+            name=deployment.metadata.name, namespace=self.k8s_namespace
+        )
         if self.is_kind():
             # Destroy the kind cluster
             destroy_cluster(self.kind_cluster_name)

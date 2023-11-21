@@ -250,20 +250,28 @@ def _parse_config_variables(variable_values: str):
 @click.command()
 @click.option("--config", help="Provide config variables for the deployment")
 @click.option("--kube-config", help="Provide a config file for a k8s deployment")
+@click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.option("--map-ports-to-host", required=False,
               help="Map ports to the host as one of: any-variable-random (default), "
               "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
 @click.pass_context
-def init(ctx, config, kube_config, output, map_ports_to_host):
+def init(ctx, config, kube_config, image_registry, output, map_ports_to_host):
     yaml = get_yaml()
     stack = global_options(ctx).stack
     debug = global_options(ctx).debug
     deployer_type = ctx.obj.deployer.type
     default_spec_file_content = call_stack_deploy_init(ctx.obj)
-    spec_file_content = {"stack": stack, "deploy-to": deployer_type}
+    spec_file_content = {"stack": stack, constants.deploy_to_key: deployer_type}
     if deployer_type == "k8s":
         spec_file_content.update({constants.kube_config_key: kube_config})
+        spec_file_content.update({constants.image_resigtry_key: image_registry})
+    else:
+        # Check for --kube-config supplied for non-relevant deployer types
+        if kube_config is not None:
+            error_exit(f"--kube-config is not allowed with a {deployer_type} deployment")
+        if image_registry is not None:
+            error_exit(f"--image-registry is not allowed with a {deployer_type} deployment")
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
     config_variables = _parse_config_variables(config)
@@ -323,7 +331,7 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
 def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     parsed_spec = get_parsed_deployment_spec(spec_file)
     stack_name = parsed_spec["stack"]
-    deployment_type = parsed_spec["deploy-to"]
+    deployment_type = parsed_spec[constants.deploy_to_key]
     stack_file = get_stack_file_path(stack_name)
     parsed_stack = get_parsed_stack_config(stack_name)
     if global_options(ctx).debug:

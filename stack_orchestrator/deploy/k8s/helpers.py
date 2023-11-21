@@ -18,10 +18,10 @@ from dotenv import dotenv_values
 import os
 from pathlib import Path
 import subprocess
-from typing import Any, Set, Mapping, List
+from typing import Set, Mapping, List
 
 from stack_orchestrator.opts import opts
-from stack_orchestrator.util import get_yaml
+from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names
 
 
 def _run_command(command: str):
@@ -131,17 +131,6 @@ def _make_absolute_host_path(data_mount_path: Path, deployment_dir: Path) -> Pat
     else:
         # Python Path voodo that looks pretty odd:
         return Path.cwd().joinpath(deployment_dir.joinpath("compose").joinpath(data_mount_path)).resolve()
-
-
-def parsed_pod_files_map_from_file_names(pod_files):
-    parsed_pod_yaml_map : Any = {}
-    for pod_file in pod_files:
-        with open(pod_file, "r") as pod_file_descriptor:
-            parsed_pod_file = get_yaml().load(pod_file_descriptor)
-            parsed_pod_yaml_map[pod_file] = parsed_pod_file
-    if opts.o.debug:
-        print(f"parsed_pod_yaml_map: {parsed_pod_yaml_map}")
-    return parsed_pod_yaml_map
 
 
 def _generate_kind_mounts(parsed_pod_files, deployment_dir):

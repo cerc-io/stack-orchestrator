@@ -12,3 +12,4 @@
   [upstream.ethServer]
     gqlApiEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_GQL"
     rpcProviderEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_RPC"
+    rpcClient = true

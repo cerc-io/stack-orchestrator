@@ -22,6 +22,24 @@ services:
       retries: 15
       start_period: 10s
 
+  # Starts the azimuth-watcher job runner
+  azimuth-watcher-job-runner:
+    image: cerc/watcher-azimuth:local
+    restart: unless-stopped
+    depends_on:
+      watcher-db:
+        condition: service_healthy
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
+      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+    working_dir: /app/packages/azimuth-watcher
+    command: "./start-job-runner.sh"
+    volumes:
+      - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/azimuth-watcher/environments/watcher-config-template.toml
+      - ../config/watcher-azimuth/merge-toml.js:/app/packages/azimuth-watcher/merge-toml.js
+      - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/azimuth-watcher/start-job-runner.sh
+
   # Starts the azimuth-watcher server
   azimuth-watcher-server:
     image: cerc/watcher-azimuth:local

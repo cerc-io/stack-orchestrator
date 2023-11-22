@@ -15,14 +15,6 @@ laconic-so --stack azimuth setup-repositories
 NOTE: If the repository already exists and checked out to a different version, `setup-repositories` command will throw an error.
 For getting around this, the `azimuth-watcher-ts` repository can be removed and then run the command.
 
-Checkout to the required versions and branches in repos
-
-```bash
-# azimuth-watcher-ts
-cd ~/cerc/azimuth-watcher-ts
-git checkout v0.1.0
-```
-
 Build the container images:
 
 ```bash

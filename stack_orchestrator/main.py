@@ -20,7 +20,7 @@ from stack_orchestrator.repos import setup_repositories
 from stack_orchestrator.build import build_containers
 from stack_orchestrator.build import build_npms
 from stack_orchestrator.build import build_webapp
-from stack_orchestrator.deploy import run_webapp
+from stack_orchestrator.deploy.webapp import run_webapp
 from stack_orchestrator.deploy import deploy
 from stack_orchestrator import version
 from stack_orchestrator.deploy import deployment

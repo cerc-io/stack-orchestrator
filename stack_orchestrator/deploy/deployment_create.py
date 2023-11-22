@@ -22,6 +22,7 @@ import random
 from shutil import copy, copyfile, copytree
 import sys
 from stack_orchestrator import constants
+from stack_orchestrator import opts
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
                                      get_pod_script_paths, get_plugin_code_paths, error_exit)
@@ -257,13 +258,29 @@ def _parse_config_variables(variable_values: str):
               "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
 @click.pass_context
 def init(ctx, config, kube_config, image_registry, output, map_ports_to_host):
-    yaml = get_yaml()
     stack = global_options(ctx).stack
-    debug = global_options(ctx).debug
     deployer_type = ctx.obj.deployer.type
-    default_spec_file_content = call_stack_deploy_init(ctx.obj)
+    deploy_command_context = ctx.obj
+    return init_operation(
+        deploy_command_context,
+        stack, deployer_type,
+        config, kube_config,
+        image_registry,
+        output,
+        map_ports_to_host)
+
+
+# The init command's implementation is in a separate function so that we can
+# call it from other commands, bypassing the click decoration stuff
+def init_operation(deploy_command_context, stack, deployer_type, config, kube_config, image_registry, output, map_ports_to_host):
+    yaml = get_yaml()
+    default_spec_file_content = call_stack_deploy_init(deploy_command_context)
     spec_file_content = {"stack": stack, constants.deploy_to_key: deployer_type}
     if deployer_type == "k8s":
+        if kube_config is None:
+            error_exit("--kube-config must be supplied with --deploy-to k8s")
+        if image_registry is None:
+            error_exit("--image-registry must be supplied with --deploy-to k8s")
         spec_file_content.update({constants.kube_config_key: kube_config})
         spec_file_content.update({constants.image_resigtry_key: image_registry})
     else:
@@ -281,7 +298,7 @@ def init(ctx, config, kube_config, image_registry, output, map_ports_to_host):
         new_config = config_variables["config"]
         merged_config = {**new_config, **orig_config}
         spec_file_content.update({"config": merged_config})
-    if debug:
+    if opts.o.debug:
         print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
 
     ports = _get_mapped_ports(stack, map_ports_to_host)

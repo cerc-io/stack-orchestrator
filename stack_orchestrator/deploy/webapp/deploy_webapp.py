@@ -37,4 +37,9 @@ def command(ctx):
 @click.pass_context
 def create(ctx, deployment_dir, image, kube_config, image_registry, env_file):
     '''create a deployment for the specified webapp container'''
-    pass
+    # Do the equivalent of:
+    # 1. laconic-so --stack webapp-template deploy --deploy-to k8s init --output webapp-spec.yml
+    #   --config (eqivalent of the contents of my-config.env)
+    # 2. laconic-so  --stack webapp-template deploy --deploy-to k8s create --deployment-dir test-deployment
+    #   --spec-file webapp-spec.yml
+    # 3. Replace the container image tag with the specified image

@@ -29,16 +29,29 @@ services:
     depends_on:
       watcher-db:
         condition: service_healthy
+    env_file:
+      - ../config/watcher-azimuth/watcher-params.env
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
       CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CONTRACT_ADDRESS: 0x223c067F8CF28ae173EE5CafEa60cA44C335fecB
+      CONTRACT_NAME: Azimuth
+      STARTING_BLOCK: 6784880
     working_dir: /app/packages/azimuth-watcher
     command: "./start-job-runner.sh"
     volumes:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/azimuth-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/azimuth-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/azimuth-watcher/start-job-runner.sh
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "9000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Starts the azimuth-watcher server
   azimuth-watcher-server:
@@ -47,8 +60,8 @@ services:
     depends_on:
       watcher-db:
         condition: service_healthy
-    env_file:
-      - ../config/watcher-azimuth/watcher-params.env
+      azimuth-watcher-job-runner:
+        condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}

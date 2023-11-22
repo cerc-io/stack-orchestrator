@@ -1,3 +1,4 @@
+#!/bin/sh
 set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
@@ -19,8 +20,7 @@ echo "$WATCHER_CONFIG" > environments/watcher-config.toml
 # Merge SO watcher config with existing config file
 node merge-toml.js
 
+yarn watch:contract --address $CONTRACT_ADDRESS --kind $CONTRACT_NAME --checkpoint true --starting-block $STARTING_BLOCK
+
 echo 'yarn job-runner'
-
-yarn watch:contract --address 0x223c067F8CF28ae173EE5CafEa60cA44C335fecB --kind Azimuth --checkpoint true --starting-block 6784880
-yarn yarn job-runner
-
+yarn job-runner

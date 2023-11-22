@@ -1,0 +1,7 @@
+version: "1.0"
+name: test
+description: "Webapp deployment stack"
+containers:
+  - cerc/webapp-template-container
+pods:
+  - webapp-template

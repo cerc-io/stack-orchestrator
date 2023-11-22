@@ -31,10 +31,10 @@ def command(ctx):
 @command.command()
 @click.option("--kube-config", help="Provide a config file for a k8s deployment")
 @click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
-@click.option("--deployment-dir", help="Create deployment files in this directory")
+@click.option("--deployment-dir", help="Create deployment files in this directory", required=True)
 @click.option("--image", help="image to deploy", required=True)
 @click.option("--env-file", help="environment file for webapp")
 @click.pass_context
-def create(ctx, image, deploy_to, env_file):
+def create(ctx, deployment_dir, image, kube_config, image_registry, env_file):
     '''create a deployment for the specified webapp container'''
     pass

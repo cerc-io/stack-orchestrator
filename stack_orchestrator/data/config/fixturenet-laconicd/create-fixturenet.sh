@@ -19,7 +19,7 @@ command -v jq > /dev/null 2>&1 || { echo >&2 "jq not installed. More info: https
 
 if [ ! -d "/root/.laconicd/data/blockstore.db" ]; then
   # remove existing daemon and client
-  rm -rf ~/.laconic*
+  rm -rf ~/.laconicd/*
 
   laconicd config keyring-backend $KEYRING
   laconicd config chain-id $CHAINID

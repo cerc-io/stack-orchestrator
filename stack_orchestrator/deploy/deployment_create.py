@@ -346,12 +346,19 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
 @click.option("--initial-peers", help="Initial set of persistent peers")
 @click.pass_context
 def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
+    deployment_command_context = ctx.obj
+    return create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers)
+
+
+# The init command's implementation is in a separate function so that we can
+# call it from other commands, bypassing the click decoration stuff
+def create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers):
     parsed_spec = get_parsed_deployment_spec(spec_file)
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
     stack_file = get_stack_file_path(stack_name)
     parsed_stack = get_parsed_stack_config(stack_name)
-    if global_options(ctx).debug:
+    if opts.o.debug:
         print(f"parsed spec: {parsed_spec}")
     if deployment_dir is None:
         deployment_dir_path = _make_default_deployment_dir()
@@ -383,7 +390,7 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
         destination_pod_dir = destination_pods_dir.joinpath(pod)
         os.mkdir(destination_pod_dir)
-        if global_options(ctx).debug:
+        if opts.o.debug:
             print(f"extra config dirs: {extra_config_dirs}")
         _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
         with open(destination_compose_dir.joinpath("docker-compose-%s.yml" % pod), "w") as output_file:
@@ -407,7 +414,6 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     # Delegate to the stack's Python code
     # The deploy create command doesn't require a --stack argument so we need to insert the
     # stack member here.
-    deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext()
     deployment_context.init(deployment_dir_path)

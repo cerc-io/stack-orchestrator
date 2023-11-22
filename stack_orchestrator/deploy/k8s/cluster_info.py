@@ -29,18 +29,19 @@ from stack_orchestrator.deploy.images import remote_tag_for_image
 class ClusterInfo:
     parsed_pod_yaml_map: Any
     image_set: Set[str] = set()
-    app_name: str = "test-app"
+    app_name: str
     environment_variables: DeployEnvVars
     spec: Spec
 
     def __init__(self) -> None:
         pass
 
-    def int(self, pod_files: List[str], compose_env_file, spec: Spec):
+    def int(self, pod_files: List[str], compose_env_file, deployment_name, spec: Spec):
         self.parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
         # Find the set of images in the pods
         self.image_set = images_for_deployment(pod_files)
         self.environment_variables = DeployEnvVars(env_var_map_from_file(compose_env_file))
+        self.app_name = deployment_name
         self.spec = spec
         if (opts.o.debug):
             print(f"Env vars: {self.environment_variables.map}")

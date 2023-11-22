@@ -55,7 +55,7 @@ class K8sDeployer(Deployer):
         self.deployment_context = deployment_context
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
-        self.cluster_info.int(compose_files, compose_env_file, deployment_context.spec)
+        self.cluster_info.int(compose_files, compose_env_file, compose_project_name, deployment_context.spec)
         if (opts.o.debug):
             print(f"Deployment dir: {deployment_context.deployment_dir}")
             print(f"Compose files: {compose_files}")

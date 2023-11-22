@@ -14,12 +14,17 @@ LOGLEVEL="info"
 TRACE="--trace"
 # TRACE=""
 
-# validate dependencies are installed
-command -v jq > /dev/null 2>&1 || { echo >&2 "jq not installed. More info: https://stedolan.github.io/jq/download/"; exit 1; }
+if [ "$1" == "clean" ] || [ ! -d "$HOME/.laconicd/data/blockstore.db" ]; then
+  # validate dependencies are installed
+  command -v jq > /dev/null 2>&1 || { echo >&2 "jq not installed. More info: https://stedolan.github.io/jq/download/"; exit 1; }
 
-if [ ! -d "/root/.laconicd/data/blockstore.db" ]; then
   # remove existing daemon and client
-  rm -rf ~/.laconicd/*
+  rm -rf $HOME/.laconicd/*
+  rm -rf $HOME/.laconic/*
+
+  if [ -n "`which make`" ]; then
+    make install
+  fi
 
   laconicd config keyring-backend $KEYRING
   laconicd config chain-id $CHAINID
@@ -113,7 +118,7 @@ if [ ! -d "/root/.laconicd/data/blockstore.db" ]; then
     echo "pending mode is on, please wait for the first block committed."
   fi
 else
-  echo "Using existing blockchain database."
+  echo "Using existing database at $HOME/.laconicd.  To replace, run '`basename $0` clean'"
 fi
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)

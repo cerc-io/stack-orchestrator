@@ -17,4 +17,4 @@
     rpcProviderEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_RPC"
 
 [jobQueue]
-  historicalLogsBlockRange = "REPLACE_WITH_CERC_HISTORICAL_BLOCK_RANGE"
+  historicalLogsBlockRange = REPLACE_WITH_CERC_HISTORICAL_BLOCK_RANGE

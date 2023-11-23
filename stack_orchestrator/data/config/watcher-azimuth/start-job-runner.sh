@@ -22,5 +22,7 @@ echo "$WATCHER_CONFIG" > environments/watcher-config.toml
 # Merge SO watcher config with existing config file
 node merge-toml.js
 
-echo 'yarn server'
-yarn server
+yarn watch:contract --address $CONTRACT_ADDRESS --kind $CONTRACT_NAME --checkpoint true --starting-block $STARTING_BLOCK
+
+echo 'yarn job-runner'
+yarn job-runner

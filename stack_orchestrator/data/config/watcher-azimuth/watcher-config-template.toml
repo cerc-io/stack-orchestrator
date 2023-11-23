@@ -2,6 +2,9 @@
   host = "0.0.0.0"
   maxSimultaneousRequests = -1
 
+[metrics]
+  host = "0.0.0.0"
+
 [database]
   host = "watcher-db"
   port = 5432
@@ -12,3 +15,6 @@
   [upstream.ethServer]
     gqlApiEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_GQL"
     rpcProviderEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_RPC"
+
+[jobQueue]
+  historicalLogsBlockRange = "REPLACE_WITH_CERC_HISTORICAL_BLOCK_RANGE"

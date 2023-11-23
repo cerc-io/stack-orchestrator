@@ -22,7 +22,7 @@ import random
 from shutil import copy, copyfile, copytree
 import sys
 from stack_orchestrator import constants
-from stack_orchestrator import opts
+from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
                                      get_pod_script_paths, get_plugin_code_paths, error_exit)

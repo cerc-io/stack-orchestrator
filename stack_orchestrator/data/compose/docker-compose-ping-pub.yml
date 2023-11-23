@@ -5,4 +5,4 @@ services:
     image: cerc/ping-pub:local
     restart: always
     ports:
-      - "5137"
+      - "5173:5173"

@@ -42,6 +42,8 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/azimuth-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/azimuth-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/azimuth-watcher/start-job-runner.sh
+    ports:
+      - "9000"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9000"]
       interval: 20s
@@ -101,6 +103,8 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/censures-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/censures-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/censures-watcher/start-job-runner.sh
+    ports:
+      - "9002"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9002"]
       interval: 20s
@@ -160,6 +164,8 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/claims-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/claims-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/claims-watcher/start-job-runner.sh
+    ports:
+      - "9004"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9004"]
       interval: 20s
@@ -219,6 +225,8 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/conditional-star-release-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/conditional-star-release-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/conditional-star-release-watcher/start-job-runner.sh
+    ports:
+      - "9006"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9006"]
       interval: 20s
@@ -278,6 +286,8 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/delegated-sending-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/delegated-sending-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/delegated-sending-watcher/start-job-runner.sh
+    ports:
+      - "9008"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9008"]
       interval: 20s
@@ -337,6 +347,8 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/ecliptic-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/ecliptic-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/ecliptic-watcher/start-job-runner.sh
+    ports:
+      - "9010"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9010"]
       interval: 20s
@@ -396,6 +408,8 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/linear-star-release-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/linear-star-release-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/linear-star-release-watcher/start-job-runner.sh
+    ports:
+      - "9012"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9012"]
       interval: 20s
@@ -455,6 +469,8 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/polls-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/polls-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/polls-watcher/start-job-runner.sh
+    ports:
+      - "9014"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "9014"]
       interval: 20s

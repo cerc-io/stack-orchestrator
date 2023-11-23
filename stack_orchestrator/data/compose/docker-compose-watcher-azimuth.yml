@@ -102,7 +102,7 @@ services:
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/censures-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/censures-watcher/start-job-runner.sh
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9000"]
+      test: ["CMD", "nc", "-vz", "localhost", "9002"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -161,7 +161,7 @@ services:
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/claims-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/claims-watcher/start-job-runner.sh
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9000"]
+      test: ["CMD", "nc", "-vz", "localhost", "9004"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -220,7 +220,7 @@ services:
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/conditional-star-release-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/conditional-star-release-watcher/start-job-runner.sh
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9000"]
+      test: ["CMD", "nc", "-vz", "localhost", "9006"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -279,7 +279,7 @@ services:
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/delegated-sending-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/delegated-sending-watcher/start-job-runner.sh
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9000"]
+      test: ["CMD", "nc", "-vz", "localhost", "9008"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -338,7 +338,7 @@ services:
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/ecliptic-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/ecliptic-watcher/start-job-runner.sh
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9000"]
+      test: ["CMD", "nc", "-vz", "localhost", "9010"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -397,7 +397,7 @@ services:
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/linear-star-release-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/linear-star-release-watcher/start-job-runner.sh
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9000"]
+      test: ["CMD", "nc", "-vz", "localhost", "9012"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -456,7 +456,7 @@ services:
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/polls-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-job-runner.sh:/app/packages/polls-watcher/start-job-runner.sh
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9000"]
+      test: ["CMD", "nc", "-vz", "localhost", "9014"]
       interval: 20s
       timeout: 5s
       retries: 15

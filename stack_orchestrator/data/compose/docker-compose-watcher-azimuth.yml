@@ -10,6 +10,7 @@ services:
       - POSTGRES_MULTIPLE_DATABASES=azimuth-watcher,azimuth-watcher-job-queue,censures-watcher,censures-watcher-job-queue,claims-watcher,claims-watcher-job-queue,conditional-star-release-watcher,conditional-star-release-watcher-job-queue,delegated-sending-watcher,delegated-sending-watcher-job-queue,ecliptic-watcher,ecliptic-watcher-job-queue,linear-star-release-watcher,linear-star-release-watcher-job-queue,polls-watcher,polls-watcher-job-queue
       - POSTGRES_EXTENSION=azimuth-watcher-job-queue:pgcrypto,censures-watcher-job-queue:pgcrypto,claims-watcher-job-queue:pgcrypto,conditional-star-release-watcher-job-queue:pgcrypto,delegated-sending-watcher-job-queue:pgcrypto,ecliptic-watcher-job-queue:pgcrypto,linear-star-release-watcher-job-queue:pgcrypto,polls-watcher-job-queue:pgcrypto,
       - POSTGRES_PASSWORD=password
+    command: ["postgres", "-c", "max_connections=200"]
     volumes:
       - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
       - watcher_db_data:/var/lib/postgresql/data

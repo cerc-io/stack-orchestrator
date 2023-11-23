@@ -1,0 +1,8 @@
+version: "0.1"
+name: ping-pub
+repos:
+  - github.com/LaconicNetwork/explorer@laconic
+containers:
+  - cerc/ping-pub
+pods:
+  - ping-pub

@@ -18,3 +18,4 @@
 
 [jobQueue]
   historicalLogsBlockRange = REPLACE_WITH_CERC_HISTORICAL_BLOCK_RANGE
+  blockDelayInMilliSecs = 12000

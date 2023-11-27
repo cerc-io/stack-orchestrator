@@ -33,6 +33,22 @@ def _fixup_container_tag(deployment_dir: str, image: str):
         wfile.write(contents)
 
 
+def _fixup_url_spec(spec_file_name: str):
+    http_proxy_spec = '''
+  http-proxy:
+    - host-name: test-app.laconic.servesthe.world
+      routes:
+        - path: '/'
+          proxy-to: webapp:3000
+    '''
+    spec_file_path = Path(spec_file_name)
+    with open(spec_file_path) as rfile:
+        contents = rfile.read()
+        contents = contents + http_proxy_spec
+    with open(spec_file_path, "w") as wfile:
+        wfile.write(contents)
+
+
 @click.group()
 @click.pass_context
 def command(ctx):
@@ -48,9 +64,10 @@ def command(ctx):
 @click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
 @click.option("--deployment-dir", help="Create deployment files in this directory", required=True)
 @click.option("--image", help="image to deploy", required=True)
+@click.option("--url", help="url to serve", required=True)
 @click.option("--env-file", help="environment file for webapp")
 @click.pass_context
-def create(ctx, deployment_dir, image, kube_config, image_registry, env_file):
+def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_file):
     '''create a deployment for the specified webapp container'''
     # Do the equivalent of:
     # 1. laconic-so --stack webapp-template deploy --deploy-to k8s init --output webapp-spec.yml
@@ -80,6 +97,8 @@ def create(ctx, deployment_dir, image, kube_config, image_registry, env_file):
         spec_file_name,
         None
     )
+    # Add the TLS and DNS spec
+    _fixup_url_spec(spec_file_name)
     create_operation(
         deploy_command_context,
         spec_file_name,

@@ -126,6 +126,8 @@ class K8sDeployer(Deployer):
         # TODO: disable ingress for kind
         ingress: client.V1Ingress = self.cluster_info.get_ingress()
 
+        if opts.o.debug:
+            print(f"Sending this ingress: {ingress}")
         ingress_resp = self.networking_api.create_namespaced_ingress(
             namespace=self.k8s_namespace,
             body=ingress

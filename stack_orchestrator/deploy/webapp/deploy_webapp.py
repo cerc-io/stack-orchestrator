@@ -14,8 +14,23 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
+from pathlib import Path
 
-from stack_orchestrator.util import error_exit
+from stack_orchestrator.util import error_exit, global_options2
+from stack_orchestrator.deploy.deployment_create import init_operation, create_operation
+from stack_orchestrator.deploy.deploy import create_deploy_context
+from stack_orchestrator.deploy.deploy_types import DeployCommandContext
+
+
+def _fixup_container_tag(deployment_dir: str, image: str):
+    deployment_dir_path = Path(deployment_dir)
+    compose_file = deployment_dir_path.joinpath("compose", "docker-compose-webapp-template.yml")
+    # replace "cerc/webapp-container:local" in the file with our image tag
+    with open(compose_file) as rfile:
+        contents = rfile.read()
+        contents = contents.replace("cerc/webapp-container:local", image)
+    with open(compose_file, "w") as wfile:
+        wfile.write(contents)
 
 
 @click.group()
@@ -43,3 +58,34 @@ def create(ctx, deployment_dir, image, kube_config, image_registry, env_file):
     # 2. laconic-so  --stack webapp-template deploy --deploy-to k8s create --deployment-dir test-deployment
     #   --spec-file webapp-spec.yml
     # 3. Replace the container image tag with the specified image
+    deployment_dir_path = Path(deployment_dir)
+    # Check the deployment dir does not exist
+    if deployment_dir_path.exists():
+        error_exit(f"Deployment dir {deployment_dir} already exists")
+    # Generate a temporary file name for the spec file
+    spec_file_name = "webapp-spec.yml"
+    # Specify the webapp template stack
+    stack = "webapp-template"
+    # TODO: support env file
+    deploy_command_context: DeployCommandContext = create_deploy_context(
+        global_options2(ctx), None, stack, None, None, None, env_file, "k8s"
+        )
+    init_operation(
+        deploy_command_context,
+        stack,
+        "k8s",
+        None,
+        kube_config,
+        image_registry,
+        spec_file_name,
+        None
+    )
+    create_operation(
+        deploy_command_context,
+        spec_file_name,
+        deployment_dir,
+        None,
+        None
+    )
+    # Fix up the container tag inside the deployment compose file
+    _fixup_container_tag(deployment_dir, image)

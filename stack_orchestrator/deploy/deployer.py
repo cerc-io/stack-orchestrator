@@ -44,7 +44,7 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, detach=False):
+    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
         pass
 
 

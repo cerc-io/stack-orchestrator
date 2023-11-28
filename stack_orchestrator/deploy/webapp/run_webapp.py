@@ -27,13 +27,15 @@ from dotenv import dotenv_values
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer_factory import getDeployer
 
+WEBAPP_PORT = 3000
 
 @click.command()
 @click.option("--image", help="image to deploy", required=True)
 @click.option("--env-file", help="environment file for webapp")
+@click.option("--port", help="port to use (default random)")
 @click.pass_context
-def command(ctx, image, env_file):
-    '''build the specified webapp container'''
+def command(ctx, image, deploy_to, env_file, port):
+    '''run the specified webapp container'''
 
     env = {}
     if env_file:
@@ -49,10 +51,13 @@ def command(ctx, image, env_file):
                            compose_project_name=cluster,
                            compose_env_file=None)
 
-    container = deployer.run(image, command=[], user=None, volumes=[], entrypoint=None, env=env, detach=True)
+    ports = []
+    if port:
+        ports = [(port, WEBAPP_PORT)]
+    container = deployer.run(image, command=[], user=None, volumes=[], entrypoint=None, env=env, ports=ports, detach=True)
 
     # Make configurable?
-    webappPort = "3000/tcp"
+    webappPort = f"{WEBAPP_PORT}/tcp"
     # TODO: This assumes a Docker container object...
     if webappPort in container.network_settings.ports:
         mapping = container.network_settings.ports[webappPort][0]

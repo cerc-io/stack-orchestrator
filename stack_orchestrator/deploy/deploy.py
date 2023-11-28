@@ -276,7 +276,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
         if ctx.debug:
             print(f"pre-hash descriptor: {unique_cluster_descriptor}")
-        hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()
+        hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()[:16]
         cluster = f"laconic-{hash}"
         if ctx.verbose:
             print(f"Using cluster name: {cluster}")

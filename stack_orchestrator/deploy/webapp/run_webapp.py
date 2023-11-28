@@ -22,17 +22,17 @@
 
 import hashlib
 import click
-
 from dotenv import dotenv_values
+
+from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer_factory import getDeployer
 
 
 @click.command()
 @click.option("--image", help="image to deploy", required=True)
-@click.option("--deploy-to", default="compose", help="deployment type ([Docker] 'compose' or 'k8s')")
 @click.option("--env-file", help="environment file for webapp")
 @click.pass_context
-def command(ctx, image, deploy_to, env_file):
+def command(ctx, image, env_file):
     '''build the specified webapp container'''
 
     env = {}
@@ -43,7 +43,7 @@ def command(ctx, image, deploy_to, env_file):
     hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()
     cluster = f"laconic-webapp-{hash}"
 
-    deployer = getDeployer(deploy_to,
+    deployer = getDeployer(type=constants.compose_deploy_type,
                            deployment_context=None,
                            compose_files=None,
                            compose_project_name=cluster,

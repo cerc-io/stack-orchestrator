@@ -55,7 +55,7 @@ class K8sDeployer(Deployer):
         self.deployment_context = deployment_context
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
-        self.cluster_info.int(compose_files, compose_env_file, deployment_context.spec)
+        self.cluster_info.int(compose_files, compose_env_file, compose_project_name, deployment_context.spec)
         if (opts.o.debug):
             print(f"Deployment dir: {deployment_context.deployment_dir}")
             print(f"Compose files: {compose_files}")
@@ -126,6 +126,8 @@ class K8sDeployer(Deployer):
         # TODO: disable ingress for kind
         ingress: client.V1Ingress = self.cluster_info.get_ingress()
 
+        if opts.o.debug:
+            print(f"Sending this ingress: {ingress}")
         ingress_resp = self.networking_api.create_namespaced_ingress(
             namespace=self.k8s_namespace,
             body=ingress

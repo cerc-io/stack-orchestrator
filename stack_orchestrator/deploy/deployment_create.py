@@ -22,6 +22,7 @@ import random
 from shutil import copy, copyfile, copytree
 import sys
 from stack_orchestrator import constants
+from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
                                      get_pod_script_paths, get_plugin_code_paths, error_exit)
@@ -257,13 +258,29 @@ def _parse_config_variables(variable_values: str):
               "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
 @click.pass_context
 def init(ctx, config, kube_config, image_registry, output, map_ports_to_host):
-    yaml = get_yaml()
     stack = global_options(ctx).stack
-    debug = global_options(ctx).debug
     deployer_type = ctx.obj.deployer.type
-    default_spec_file_content = call_stack_deploy_init(ctx.obj)
+    deploy_command_context = ctx.obj
+    return init_operation(
+        deploy_command_context,
+        stack, deployer_type,
+        config, kube_config,
+        image_registry,
+        output,
+        map_ports_to_host)
+
+
+# The init command's implementation is in a separate function so that we can
+# call it from other commands, bypassing the click decoration stuff
+def init_operation(deploy_command_context, stack, deployer_type, config, kube_config, image_registry, output, map_ports_to_host):
+    yaml = get_yaml()
+    default_spec_file_content = call_stack_deploy_init(deploy_command_context)
     spec_file_content = {"stack": stack, constants.deploy_to_key: deployer_type}
     if deployer_type == "k8s":
+        if kube_config is None:
+            error_exit("--kube-config must be supplied with --deploy-to k8s")
+        if image_registry is None:
+            error_exit("--image-registry must be supplied with --deploy-to k8s")
         spec_file_content.update({constants.kube_config_key: kube_config})
         spec_file_content.update({constants.image_resigtry_key: image_registry})
     else:
@@ -281,7 +298,7 @@ def init(ctx, config, kube_config, image_registry, output, map_ports_to_host):
         new_config = config_variables["config"]
         merged_config = {**new_config, **orig_config}
         spec_file_content.update({"config": merged_config})
-    if debug:
+    if opts.o.debug:
         print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
 
     ports = _get_mapped_ports(stack, map_ports_to_host)
@@ -329,12 +346,19 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
 @click.option("--initial-peers", help="Initial set of persistent peers")
 @click.pass_context
 def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
+    deployment_command_context = ctx.obj
+    return create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers)
+
+
+# The init command's implementation is in a separate function so that we can
+# call it from other commands, bypassing the click decoration stuff
+def create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers):
     parsed_spec = get_parsed_deployment_spec(spec_file)
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
     stack_file = get_stack_file_path(stack_name)
     parsed_stack = get_parsed_stack_config(stack_name)
-    if global_options(ctx).debug:
+    if opts.o.debug:
         print(f"parsed spec: {parsed_spec}")
     if deployment_dir is None:
         deployment_dir_path = _make_default_deployment_dir()
@@ -366,7 +390,7 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
         destination_pod_dir = destination_pods_dir.joinpath(pod)
         os.mkdir(destination_pod_dir)
-        if global_options(ctx).debug:
+        if opts.o.debug:
             print(f"extra config dirs: {extra_config_dirs}")
         _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
         with open(destination_compose_dir.joinpath("docker-compose-%s.yml" % pod), "w") as output_file:
@@ -390,7 +414,6 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
     # Delegate to the stack's Python code
     # The deploy create command doesn't require a --stack argument so we need to insert the
     # stack member here.
-    deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext()
     deployment_context.init(deployment_dir_path)

@@ -17,7 +17,7 @@ pods:
     path: gitea
     pre_start_command: "run-this-first.sh"
     post_start_command: "initialize-gitea.sh"
-    # todo, e.g., include cloning all of osmosis
+    # todo, e.g., mirroring all of osmosis repos: https://git.vdb.to/cerc-io/hosting/pulls/42
   - name: act-runner
     repository: cerc-io/hosting
     path: act-runner

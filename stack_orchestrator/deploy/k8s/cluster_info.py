@@ -68,6 +68,8 @@ class ClusterInfo:
                 proxy_to = route["proxy-to"]
                 if opts.o.debug:
                     print(f"proxy config: {path} -> {proxy_to}")
+                # proxy_to has the form <service>:<port>
+                proxy_to_port = int(proxy_to.split(":")[1])
                 paths.append(client.V1HTTPIngressPath(
                     path_type="Prefix",
                     path=path,
@@ -76,7 +78,7 @@ class ClusterInfo:
                             # TODO: this looks wrong
                             name=f"{self.app_name}-service",
                             # TODO: pull port number from the service
-                            port=client.V1ServiceBackendPort(number=80)
+                            port=client.V1ServiceBackendPort(number=proxy_to_port)
                         )
                     )
                 ))
@@ -102,14 +104,23 @@ class ClusterInfo:
             )
         return ingress
 
+    # TODO: suppoprt multiple services
     def get_service(self):
+        for pod_name in self.parsed_pod_yaml_map:
+            pod = self.parsed_pod_yaml_map[pod_name]
+            services = pod["services"]
+            for service_name in services:
+                service_info = services[service_name]
+                port = int(service_info["ports"][0])
+                if opts.o.debug:
+                    print(f"service port: {port}")
         service = client.V1Service(
             metadata=client.V1ObjectMeta(name=f"{self.app_name}-service"),
             spec=client.V1ServiceSpec(
                 type="ClusterIP",
                 ports=[client.V1ServicePort(
-                    port=80,
-                    target_port=80
+                    port=port,
+                    target_port=port
                 )],
                 selector={"app": self.app_name}
             )
@@ -166,6 +177,10 @@ class ClusterInfo:
                 container_name = service_name
                 service_info = services[service_name]
                 image = service_info["image"]
+                port = int(service_info["ports"][0])
+                if opts.o.debug:
+                    print(f"image: {image}")
+                    print(f"service port: {port}")
                 # Re-write the image tag for remote deployment
                 image_to_use = remote_tag_for_image(
                     image, self.spec.get_image_registry()) if self.spec.get_image_registry() is not None else image
@@ -174,7 +189,7 @@ class ClusterInfo:
                     name=container_name,
                     image=image_to_use,
                     env=envs_from_environment_variables_map(self.environment_variables.map),
-                    ports=[client.V1ContainerPort(container_port=80)],
+                    ports=[client.V1ContainerPort(container_port=port)],
                     volume_mounts=volume_mounts,
                     resources=client.V1ResourceRequirements(
                         requests={"cpu": "100m", "memory": "200Mi"},

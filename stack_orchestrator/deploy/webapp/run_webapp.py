@@ -34,7 +34,7 @@ WEBAPP_PORT = 3000
 @click.option("--env-file", help="environment file for webapp")
 @click.option("--port", help="port to use (default random)")
 @click.pass_context
-def command(ctx, image, deploy_to, env_file, port):
+def command(ctx, image, env_file, port):
     '''run the specified webapp container'''
 
     env = {}

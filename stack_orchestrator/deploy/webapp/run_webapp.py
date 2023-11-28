@@ -29,6 +29,7 @@ from stack_orchestrator.deploy.deployer_factory import getDeployer
 
 WEBAPP_PORT = 3000
 
+
 @click.command()
 @click.option("--image", help="image to deploy", required=True)
 @click.option("--env-file", help="environment file for webapp")

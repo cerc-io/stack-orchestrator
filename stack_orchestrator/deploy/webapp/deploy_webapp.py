@@ -15,6 +15,7 @@
 
 import click
 from pathlib import Path
+from urllib.parse import urlparse
 
 from stack_orchestrator.util import error_exit, global_options2
 from stack_orchestrator.deploy.deployment_create import init_operation, create_operation
@@ -33,12 +34,14 @@ def _fixup_container_tag(deployment_dir: str, image: str):
         wfile.write(contents)
 
 
-def _fixup_url_spec(spec_file_name: str):
-    http_proxy_spec = '''
+def _fixup_url_spec(spec_file_name: str, url: str):
+    # url is like: https://example.com/path
+    parsed_url = urlparse(url)
+    http_proxy_spec = f'''
   http-proxy:
-    - host-name: test-app.laconic.servesthe.world
+    - host-name: {parsed_url.hostname}
       routes:
-        - path: '/'
+        - path: '{parsed_url.path if parsed_url.path else "/"}'
           proxy-to: webapp:3000
     '''
     spec_file_path = Path(spec_file_name)
@@ -98,7 +101,7 @@ def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_fil
         None
     )
     # Add the TLS and DNS spec
-    _fixup_url_spec(spec_file_name)
+    _fixup_url_spec(spec_file_name, url)
     create_operation(
         deploy_command_context,
         spec_file_name,

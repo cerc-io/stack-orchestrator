@@ -14,6 +14,8 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 stack_file_name = "stack.yml"
+spec_file_name = "spec.yml"
+config_file_name = "config.env"
 compose_deploy_type = "compose"
 k8s_kind_deploy_type = "k8s-kind"
 k8s_deploy_type = "k8s"

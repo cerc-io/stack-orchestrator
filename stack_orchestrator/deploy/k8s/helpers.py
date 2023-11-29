@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from kubernetes import client
-from dotenv import dotenv_values
 import os
 from pathlib import Path
 import subprocess
@@ -224,7 +223,3 @@ def generate_kind_config(deployment_dir: Path):
         f"{port_mappings_yml}\n"
         f"{mounts_yml}\n"
     )
-
-
-def env_var_map_from_file(file: Path) -> Mapping[str, str]:
-    return dotenv_values(file)

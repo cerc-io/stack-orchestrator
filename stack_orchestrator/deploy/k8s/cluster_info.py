@@ -17,9 +17,10 @@ from kubernetes import client
 from typing import Any, List, Set
 
 from stack_orchestrator.opts import opts
+from stack_orchestrator.util import env_var_map_from_file
 from stack_orchestrator.deploy.k8s.helpers import named_volumes_from_pod_files, volume_mounts_for_service, volumes_for_pod_files
 from stack_orchestrator.deploy.k8s.helpers import get_node_pv_mount_path
-from stack_orchestrator.deploy.k8s.helpers import env_var_map_from_file, envs_from_environment_variables_map
+from stack_orchestrator.deploy.k8s.helpers import envs_from_environment_variables_map
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names, images_for_deployment
 from stack_orchestrator.deploy.deploy_types import DeployEnvVars
 from stack_orchestrator.deploy.spec import Spec

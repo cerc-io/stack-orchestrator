@@ -301,15 +301,16 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
         new_config = config_variables
         merged_config = {**new_config, **orig_config}
         spec_file_content.update({"config": merged_config})
-    config_file_path = Path(config_file)
-    if not config_file_path.exists():
-        error_exit(f"config file: {config_file} does not exist")
-    config_file_variables = env_var_map_from_file(config_file_path)
-    if config_file_variables:
-        orig_config = spec_file_content.get("config", {})
-        new_config = config_file_variables
-        merged_config = {**new_config, **orig_config}
-        spec_file_content.update({"config": merged_config})
+    if config_file:
+        config_file_path = Path(config_file)
+        if not config_file_path.exists():
+            error_exit(f"config file: {config_file} does not exist")
+        config_file_variables = env_var_map_from_file(config_file_path)
+        if config_file_variables:
+            orig_config = spec_file_content.get("config", {})
+            new_config = config_file_variables
+            merged_config = {**new_config, **orig_config}
+            spec_file_content.update({"config": merged_config})
     if opts.o.debug:
         print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
 

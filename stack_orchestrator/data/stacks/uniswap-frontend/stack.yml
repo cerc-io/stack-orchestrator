@@ -9,4 +9,5 @@ containers:
   # TODO: Add container for urbit
 pods:
   - uniswap-interface
+  - urbit
   # TODO: Add pod for urbit

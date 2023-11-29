@@ -14,8 +14,10 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
+import os
 from pathlib import Path
 from urllib.parse import urlparse
+from tempfile import NamedTemporaryFile
 
 from stack_orchestrator.util import error_exit, global_options2
 from stack_orchestrator.deploy.deployment_create import init_operation, create_operation
@@ -83,7 +85,8 @@ def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_fil
     if deployment_dir_path.exists():
         error_exit(f"Deployment dir {deployment_dir} already exists")
     # Generate a temporary file name for the spec file
-    spec_file_name = "webapp-spec.yml"
+    tf = NamedTemporaryFile(prefix="webapp-", suffix=".yml", delete=False)
+    spec_file_name = tf.name
     # Specify the webapp template stack
     stack = "webapp-template"
     # TODO: support env file
@@ -111,3 +114,4 @@ def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_fil
     )
     # Fix up the container tag inside the deployment compose file
     _fixup_container_tag(deployment_dir, image)
+    os.remove(spec_file_name)

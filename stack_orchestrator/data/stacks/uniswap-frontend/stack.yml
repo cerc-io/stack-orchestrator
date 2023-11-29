@@ -1,10 +1,12 @@
 version: "0.1"
 name: urbit-frontend
 repos:
-  # Uniswap frontend
-  - github.com/cerc-io/uniswap-interface
+  # Uniswap interface
+  # TODO: Use release
+  - github.com/cerc-io/uniswap-interface@pm-urbit-hosting
 containers:
   - cerc/uniswap-interface
-  # TODO: Add container foi urbit
-# pods:
-  # TODO: Add compose file and pods
+  # TODO: Add container for urbit
+pods:
+  - uniswap-interface
+  # TODO: Add pod for urbit

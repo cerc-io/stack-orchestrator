@@ -1,0 +1,23 @@
+version: "3.2"
+
+services:
+  uniswap-interface:
+    image: cerc/uniswap-interface:local
+    restart: unless-stopped
+    environment:
+      - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
+    command: ["./build.sh"]
+    volumes:
+      - uniswap_build:/app/build
+      - ../config/uniswap-frontend/build.sh:/app/build.sh
+    ports:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "3000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+volumes:
+  uniswap_build:

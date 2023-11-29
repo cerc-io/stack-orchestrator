@@ -1,5 +1,5 @@
 version: "0.1"
-name: urbit-frontend
+name: uniswap-frontend
 repos:
   # Uniswap interface
   # TODO: Use release

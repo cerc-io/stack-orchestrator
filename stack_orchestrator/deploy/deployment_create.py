@@ -25,7 +25,7 @@ from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
-                                     get_pod_script_paths, get_plugin_code_paths, error_exit)
+                                     get_pod_script_paths, get_plugin_code_paths, error_exit, env_var_map_from_file)
 from stack_orchestrator.deploy.deploy_types import LaconicStackSetupCommand
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
@@ -244,12 +244,13 @@ def _parse_config_variables(variable_values: str):
                 variable_name = variable_value_pair[0]
                 variable_value = variable_value_pair[1]
                 result_values[variable_name] = variable_value
-            result = {"config": result_values}
+            result = result_values
     return result
 
 
 @click.command()
 @click.option("--config", help="Provide config variables for the deployment")
+@click.option("--config-file", help="Provide config variables in a file for the deployment")
 @click.option("--kube-config", help="Provide a config file for a k8s deployment")
 @click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
 @click.option("--output", required=True, help="Write yaml spec file here")
@@ -257,14 +258,15 @@ def _parse_config_variables(variable_values: str):
               help="Map ports to the host as one of: any-variable-random (default), "
               "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
 @click.pass_context
-def init(ctx, config, kube_config, image_registry, output, map_ports_to_host):
+def init(ctx, config, config_file, kube_config, image_registry, output, map_ports_to_host):
     stack = global_options(ctx).stack
     deployer_type = ctx.obj.deployer.type
     deploy_command_context = ctx.obj
     return init_operation(
         deploy_command_context,
         stack, deployer_type,
-        config, kube_config,
+        config, config_file,
+        kube_config,
         image_registry,
         output,
         map_ports_to_host)
@@ -272,7 +274,8 @@ def init(ctx, config, kube_config, image_registry, output, map_ports_to_host):
 
 # The init command's implementation is in a separate function so that we can
 # call it from other commands, bypassing the click decoration stuff
-def init_operation(deploy_command_context, stack, deployer_type, config, kube_config, image_registry, output, map_ports_to_host):
+def init_operation(deploy_command_context, stack, deployer_type, config,
+                   config_file, kube_config, image_registry, output, map_ports_to_host):
     yaml = get_yaml()
     default_spec_file_content = call_stack_deploy_init(deploy_command_context)
     spec_file_content = {"stack": stack, constants.deploy_to_key: deployer_type}
@@ -292,10 +295,19 @@ def init_operation(deploy_command_context, stack, deployer_type, config, kube_co
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
     config_variables = _parse_config_variables(config)
+    # Implement merge, since update() overwrites
     if config_variables:
-        # Implement merge, since update() overwrites
         orig_config = spec_file_content.get("config", {})
-        new_config = config_variables["config"]
+        new_config = config_variables
+        merged_config = {**new_config, **orig_config}
+        spec_file_content.update({"config": merged_config})
+    config_file_path = Path(config_file)
+    if not config_file_path.exists():
+        error_exit(f"config file: {config_file} does not exist")
+    config_file_variables = env_var_map_from_file(config_file_path)
+    if config_file_variables:
+        orig_config = spec_file_content.get("config", {})
+        new_config = config_file_variables
         merged_config = {**new_config, **orig_config}
         spec_file_content.update({"config": merged_config})
     if opts.o.debug:
@@ -368,10 +380,10 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
         error_exit(f"{deployment_dir_path} already exists")
     os.mkdir(deployment_dir_path)
     # Copy spec file and the stack file into the deployment dir
-    copyfile(spec_file, deployment_dir_path.joinpath("spec.yml"))
+    copyfile(spec_file, deployment_dir_path.joinpath(constants.spec_file_name))
     copyfile(stack_file, deployment_dir_path.joinpath(os.path.basename(stack_file)))
     # Copy any config varibles from the spec file into an env file suitable for compose
-    _write_config_file(spec_file, deployment_dir_path.joinpath("config.env"))
+    _write_config_file(spec_file, deployment_dir_path.joinpath(constants.config_file_name))
     # Copy any k8s config file into the deployment dir
     if deployment_type == "k8s":
         _write_kube_config_file(Path(parsed_spec[constants.kube_config_key]),

@@ -98,6 +98,7 @@ def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_fil
         stack,
         "k8s",
         None,
+        env_file,
         kube_config,
         image_registry,
         spec_file_name,

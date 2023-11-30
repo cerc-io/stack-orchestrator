@@ -22,9 +22,7 @@ services:
     command: ["./deploy-to-urbit.sh"]
     volumes:
       - app_builds:/app-builds
-      - urbit_data:/urbit
       - ../config/uniswap-interface/deploy-to-urbit.sh:/app/deploy-to-urbit.sh
 
 volumes:
   app_builds:
-  urbit_data:

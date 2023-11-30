@@ -4,7 +4,7 @@ services:
   urbit-fake-ship:
     restart: unless-stopped
     image: tloncorp/vere
-    entrypoint: ["bash", "-c", "./run-urbit-ship.sh && deploy-uniswap-app.sh"]
+    entrypoint: ["bash", "-c", "./run-urbit-ship.sh && ./deploy-uniswap-app.sh"]
     volumes:
       - urbit_data:/urbit
       - app_builds:/app-builds

@@ -9,7 +9,7 @@ services:
     command: ["./build.sh"]
     volumes:
       - uniswap_build:/app/build
-      - ../config/uniswap-frontend/build.sh:/app/build.sh
+      - ../config/uniswap-interface/build.sh:/app/build.sh
     ports:
       - "3000"
     healthcheck:
@@ -31,7 +31,7 @@ services:
     volumes:
       - uniswap_build:/app/build
       - urbit_data:/urbit
-      - ../config/uniswap-frontend/deploy-to-urbit.sh:/app/deploy-to-urbit.sh
+      - ../config/uniswap-interface/deploy-to-urbit.sh:/app/deploy-to-urbit.sh
 
 volumes:
   uniswap_build:

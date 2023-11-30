@@ -12,7 +12,7 @@ Build and deploy:
 Clone required repositories:
 
 ```bash
-laconic-so --stack uniswap-urbit-app setup-repositories
+laconic-so --stack uniswap-urbit-app setup-repositories --pull
 
 # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories mentioned below and re-run the command
 ```
@@ -82,17 +82,32 @@ laconic-so deployment --dir uniswap-urbit-app-deployment start
 
   ```bash
   laconic-so deployment --dir uniswap-urbit-app-deployment exec urbit-fake-ship "curl -s --data '{\"source\":{\"dojo\":\"+code\"},\"sink\":{\"stdout\":null}}' http://localhost:12321"
+
+  # Expected output: "<PASSWORD>\n"%
   ```
+
+* Open the Urbit web UI at http://localhost:8080 and use the `PASSWORD` from previous step to login
+
+* The uniswap app is not available when starting stack for the first time. Check `urbit-fake-ship` logs to see that app has installed
+  ```
+  laconic-so deployment --dir uniswap-urbit-app-deployment logs -f
+
+  # Expected output:
+  # laconic-3ccf7ee79bdae874-urbit-fake-ship-1    | docket: fetching %http glob for %uniswap desk
+  # laconic-3ccf7ee79bdae874-urbit-fake-ship-1    | ">="">="Uniswap app installed
+  ```
+
+* The uniswap app will be now visible at http://localhost:8080
 
 ## Clean up
 
-To stop all azimuth services running in the background, while preserving chain data:
+To stop all uniswap-urbit-app services running in the background, while preserving chain data:
 
 ```bash
 laconic-so deployment --dir uniswap-urbit-app-deployment stop
 ```
 
-To stop all azimuth services and also delete data:
+To stop all uniswap-urbit-app services and also delete data:
 
 ```bash
 laconic-so deployment --dir uniswap-urbit-app-deployment stop --delete-volumes

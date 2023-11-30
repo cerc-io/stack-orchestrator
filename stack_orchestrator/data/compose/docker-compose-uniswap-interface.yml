@@ -30,9 +30,9 @@ services:
     command: ["./deploy-to-urbit.sh"]
     volumes:
       - uniswap_build:/app/build
-      - pier_data: /app/pier
+      - urbit_data:/urbit
       - ../config/uniswap-frontend/deploy-to-urbit.sh:/app/deploy-to-urbit.sh
 
 volumes:
   uniswap_build:
-  pier_data:
+  urbit_data:

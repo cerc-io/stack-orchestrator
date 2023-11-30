@@ -4,9 +4,10 @@ services:
   urbit-fake-ship:
     restart: unless-stopped
     image: tloncorp/vere
-    entrypoint: ["bash", "-c", "urbit -t -F  zod"]
+    entrypoint: ["bash", "-c", "./run-urbit-ship.sh"]
     volumes:
-      - pier_data:/urbit/zod/
+      - urbit_data:/urbit
+      - ../config/uniswap-frontend/run-urbit-ship.sh:/urbit/run-urbit-ship.sh
     ports:
       - "8080:80"
       - "12321:12321"
@@ -18,4 +19,4 @@ services:
       start_period: 10s
 
 volumes:
-  pier_data:
+  urbit_data:

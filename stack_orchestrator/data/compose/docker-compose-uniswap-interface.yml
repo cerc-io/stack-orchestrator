@@ -6,10 +6,10 @@ services:
     restart: unless-stopped
     environment:
       - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
-    command: ["./build.sh"]
+    command: ["./build-app.sh"]
     volumes:
       - uniswap_build:/app/build
-      - ../config/uniswap-interface/build.sh:/app/build.sh
+      - ../config/uniswap-interface/build-app.sh:/app/build-app.sh
     ports:
       - "3000"
     healthcheck:

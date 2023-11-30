@@ -120,10 +120,10 @@ if [ $? -ne 0 ]; then
 WARNING: 'next' $CUR_NEXT_VERSION < minimum version $CERC_MIN_NEXTVER.
 
 Attempting to build with '^$CERC_MIN_NEXTVER'.  If this fails, you should upgrade
-the dependency in your webapp, or specify an explicit next version to use for
-the build with:
+the dependency in your webapp, or specify an explicit 'next' version
+to use for the build with:
 
-     --extra-build-args \"--build-arg CERC_NEXT_VERSION=<version>\"
+     --extra-build-args "--build-arg CERC_NEXT_VERSION=<version>"
 
 ###############################################################################
 

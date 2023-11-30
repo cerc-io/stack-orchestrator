@@ -16,6 +16,7 @@
 
 from pathlib import Path
 
+from stack_orchestrator import constants
 from stack_orchestrator.deploy.stack import Stack
 from stack_orchestrator.deploy.spec import Spec
 
@@ -26,13 +27,13 @@ class DeploymentContext:
     stack: Stack
 
     def get_stack_file(self):
-        return self.deployment_dir.joinpath("stack.yml")
+        return self.deployment_dir.joinpath(constants.stack_file_name)
 
     def get_spec_file(self):
-        return self.deployment_dir.joinpath("spec.yml")
+        return self.deployment_dir.joinpath(constants.spec_file_name)
 
     def get_env_file(self):
-        return self.deployment_dir.joinpath("config.env")
+        return self.deployment_dir.joinpath(constants.config_file_name)
 
     # TODO: implement me
     def get_cluster_name(self):

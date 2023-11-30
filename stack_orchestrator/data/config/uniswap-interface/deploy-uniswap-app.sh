@@ -97,24 +97,28 @@ rm "${uniswap_desk_dir}/desk.ship"
 hood "commit %uniswap"
 dojo "-landscape!make-glob %uniswap /build"
 
+glob_file=$(ls -1 -c zod/.urb/put | head -1)
+glob_hash=$($glob_file | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
+
+glob_url="http://uniswap-glob-host:3000/${glob_file}"
 # Curl and wait for the glob to be hosted
 
-# From landscape CI:
-# $1: the folder of files to glob
-# $2: the location of the docket file
-# hash=$(ls -1 -c zod/.urb/put | head -1 | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
-# sed -i "s/glob\-[a-z0-9\.]*glob' *[a-z0-9\.]*\]/glob-$hash.glob' $hash]/g" $2
+# Update the docket file
+cat << EOF > "${uniswap_desk_dir}/desk.docket-0"
+:~  title+'Uniswap'
+    info+'Self-hosted uniswap frontend.'
+    color+0xcd.75df
+    image+'https://logowik.com/content/uploads/images/uniswap-uni7403.jpg'
+    base+'uniswap'
+    glob-http+['http://uniswap-glob-host:3000/${glob_file}' ${glob_hash}]
+    version+[0 0 1]
+    website+'https://uniswap.org/'
+    license+'MIT'
+==
+EOF
 
-# :~  title+'Uniswap'
-#     info+'Self-hosted uniswap frontend.'
-#     color+0xcd.75df
-#     image+'https://logowik.com/content/uploads/images/uniswap-uni7403.jpg'
-#     base+'uniswap'
-#     glob-http+['https://urbit-uniswap-laconic.nyc3.digitaloceanspaces.com/glob-0v3.5in3n.an2ft.c89g2.b6nu6.qek41.glob' 0v3.5in3n.an2ft.c89g2.b6nu6.qek41]
-#     version+[0 0 1]
-#     website+'https://uniswap.org/'
-#     license+'MIT'
-# ==
+# Commit changes and install the app
+hood "commit %uniswap"
+hood "install our %uniswap"
 
-# |commit %uniswap
-# |install our %uniswap
+echo "Uniswap app installed"

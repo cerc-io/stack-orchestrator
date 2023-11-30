@@ -39,8 +39,6 @@ Edit `network` in spec file to map container ports to same ports in host
 ...
 network:
   ports:
-    uniswap-interface:
-     - 3000:3000
     urbit-fake-ship:
      - 8080:80
      - 12321:12321
@@ -76,6 +74,11 @@ laconic-so deployment --dir uniswap-urbit-app-deployment start
 ```
 
 * List and check the health status of all the containers using `docker ps` and wait for them to be `healthy`
+
+* Run the following to get login password for urbit web interface
+  ```bash
+  laconic-so deployment --dir uniswap-urbit-app-deployment exec urbit-fake-ship "curl -s --data '{\"source\":{\"dojo\":\"+code\"},\"sink\":{\"stdout\":null}}' http://localhost:12321"
+  ```
 
 ## Clean up
 

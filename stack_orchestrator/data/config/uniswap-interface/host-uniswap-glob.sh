@@ -19,4 +19,5 @@ cp -r /app-globs/uniswap/* ./globs
 
 # Serve the glob file
 cd globs
+echo "Hosting glob file at port 3000"
 python3 -m http.server 3000 --bind 0.0.0.0

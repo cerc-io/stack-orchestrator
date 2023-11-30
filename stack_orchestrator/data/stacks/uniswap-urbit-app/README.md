@@ -35,7 +35,17 @@ laconic-so --stack uniswap-urbit-app deploy init --output uniswap-urbit-app-spec
 
 Edit `network` in spec file to map container ports to same ports in host
 
-<!-- TODO: Provide example -->
+```
+...
+network:
+  ports:
+    uniswap-interface:
+     - 3000:3000
+    urbit-fake-ship:
+     - 8080:80
+     - 12321:12321
+...
+```
 
 ### Data volumes
 Container data volumes are bind-mounted to specified paths in the host filesystem.

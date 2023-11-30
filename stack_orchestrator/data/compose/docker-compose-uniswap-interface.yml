@@ -3,7 +3,7 @@ version: "3.2"
 services:
   uniswap-interface:
     image: cerc/uniswap-interface:local
-    restart: unless-stopped
+    restart: on-failure
     environment:
       - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
     command: ["./build-app.sh"]

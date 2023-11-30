@@ -7,7 +7,7 @@ services:
     entrypoint: ["bash", "-c", "./run-urbit-ship.sh"]
     volumes:
       - urbit_data:/urbit
-      - ../config/uniswap-frontend/run-urbit-ship.sh:/urbit/run-urbit-ship.sh
+      - ../config/uniswap-interface/run-urbit-ship.sh:/urbit/run-urbit-ship.sh
     ports:
       - "8080:80"
       - "12321:12321"

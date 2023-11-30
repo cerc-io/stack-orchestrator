@@ -8,6 +8,7 @@ services:
     volumes:
       - urbit_data:/urbit
       - app_builds:/app-builds
+      - app_globs:/app-globs
       - ../config/urbit/run-urbit-ship.sh:/urbit/run-urbit-ship.sh
       - ../config/uniswap-interface/deploy-uniswap-app.sh:/urbit/deploy-uniswap-app.sh
     ports:
@@ -23,3 +24,4 @@ services:
 volumes:
   urbit_data:
   app_builds:
+  app_globs:

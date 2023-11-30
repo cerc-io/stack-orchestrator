@@ -97,11 +97,30 @@ rm "${uniswap_desk_dir}/desk.ship"
 hood "commit %uniswap"
 dojo "-landscape!make-glob %uniswap /build"
 
-glob_file=$(ls -1 -c zod/.urb/put | head -1)
-glob_hash=$($glob_file | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
+echo "Copying over glob file to mounted volume"
+mkdir -p /app-globs/uniswap
+cp /urbit/zod/.urb/put/* /app-globs/uniswap/
 
-glob_url="http://uniswap-glob-host:3000/${glob_file}"
+glob_file=$(ls -1 -c zod/.urb/put | head -1)
+echo "Glob filename: ${glob_file}"
+
 # Curl and wait for the glob to be hosted
+glob_url="http://uniswap-glob-host:3000/${glob_file}"
+
+echo "Checking if glob file hosted at ${glob_url}"
+while true; do
+  response=$(curl -sL -w "%{http_code}" -o /dev/null "$glob_url")
+
+  if [ $response -eq 200 ]; then
+    echo "File found at $glob_url"
+    break  # Exit the loop if the file is found
+  else
+    echo "File not found. Retrying in a few seconds..."
+    sleep 5
+  fi
+done
+
+glob_hash=$($glob_file | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
 
 # Update the docket file
 cat << EOF > "${uniswap_desk_dir}/desk.docket-0"

@@ -11,18 +11,23 @@ services:
       - app_builds:/app-builds
       - ../config/uniswap-interface/build-app.sh:/app/build-app.sh
 
-  uniswap-urbit-deployment:
-    image: cerc/uniswap-urbit-deployment:local
+  uniswap-glob-host:
+    image: cerc/urbit-globs-host:local
     restart: unless-stopped
     depends_on:
       uniswap-interface:
         condition: service_completed_successfully
-    # environment:
-    #   - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
-    command: ["./deploy-to-urbit.sh"]
+    command: ["./host-uniswap-glob.sh"]
     volumes:
-      - app_builds:/app-builds
-      - ../config/uniswap-interface/deploy-to-urbit.sh:/app/deploy-to-urbit.sh
+      - app_globs:/app-globs
+      - ../config/uniswap-interface/host-uniswap-glob.sh:/app/host-uniswap-glob.sh
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
 
 volumes:
   app_builds:
+  app_globs:

@@ -1,14 +1,10 @@
 version: "0.1"
 name: uniswap-urbit-app
 repos:
-  # Uniswap interface
-  # TODO: Use release
-  - github.com/cerc-io/uniswap-interface@pm-urbit-hosting
+  - github.com/cerc-io/uniswap-interface@laconic # TODO: Use release
 containers:
   - cerc/uniswap-interface
   - cerc/urbit-globs-host
-  # TODO: Add container for urbit
 pods:
   - uniswap-interface
   - urbit
-  # TODO: Add pod for urbit

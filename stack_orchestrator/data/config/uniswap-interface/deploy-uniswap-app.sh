@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
@@ -120,7 +119,7 @@ while true; do
   fi
 done
 
-glob_hash=$($glob_file | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
+glob_hash=$(echo "$glob_file" | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
 
 # Update the docket file
 cat << EOF > "${uniswap_desk_dir}/desk.docket-0"

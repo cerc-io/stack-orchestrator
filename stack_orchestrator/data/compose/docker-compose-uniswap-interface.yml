@@ -8,16 +8,8 @@ services:
       - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
     command: ["./build-app.sh"]
     volumes:
-      - uniswap_build:/app/build
+      - app_builds:/app-builds
       - ../config/uniswap-interface/build-app.sh:/app/build-app.sh
-    ports:
-      - "3000"
-    healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "3000"]
-      interval: 20s
-      timeout: 5s
-      retries: 15
-      start_period: 5s
 
   uniswap-urbit-deployment:
     image: cerc/uniswap-urbit-deployment:local
@@ -29,10 +21,10 @@ services:
     #   - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
     command: ["./deploy-to-urbit.sh"]
     volumes:
-      - uniswap_build:/app/build
+      - app_builds:/app-builds
       - urbit_data:/urbit
       - ../config/uniswap-interface/deploy-to-urbit.sh:/app/deploy-to-urbit.sh
 
 volumes:
-  uniswap_build:
+  app_builds:
   urbit_data:

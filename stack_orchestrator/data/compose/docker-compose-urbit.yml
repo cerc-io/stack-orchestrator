@@ -4,10 +4,12 @@ services:
   urbit-fake-ship:
     restart: unless-stopped
     image: tloncorp/vere
-    entrypoint: ["bash", "-c", "./run-urbit-ship.sh"]
+    entrypoint: ["bash", "-c", "./run-urbit-ship.sh && deploy-uniswap-app.sh"]
     volumes:
       - urbit_data:/urbit
-      - ../config/uniswap-interface/run-urbit-ship.sh:/urbit/run-urbit-ship.sh
+      - app_builds:/app-builds
+      - ../config/urbit/run-urbit-ship.sh:/urbit/run-urbit-ship.sh
+      - ../config/uniswap-interface/deploy-uniswap-app.sh:/urbit/deploy-uniswap-app.sh
     ports:
       - "8080:80"
       - "12321:12321"
@@ -20,3 +22,4 @@ services:
 
 volumes:
   urbit_data:
+  app_builds:

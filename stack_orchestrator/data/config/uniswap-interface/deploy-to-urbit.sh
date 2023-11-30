@@ -8,7 +8,4 @@ fi
 tail -f /dev/null
 
 # TODO:
-# Take urbit endpoint from env
-# Check if urbit endpoint is up
-# Fire curl requests to create/mount a uniswap desk
-# Copy over build to desk data dir
+# Wait for glob to exist, copy it over and host it

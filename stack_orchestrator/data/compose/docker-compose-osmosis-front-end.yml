@@ -5,4 +5,10 @@ services:
     image: cerc/osmosis-front-end:local
     restart: always
     ports:
-      - "3002:3002" #TODO make `3000` when using the deployment feature
+      - "3000"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "3000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s

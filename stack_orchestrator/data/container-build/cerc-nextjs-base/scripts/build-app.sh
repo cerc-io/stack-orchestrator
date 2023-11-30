@@ -9,7 +9,7 @@ CERC_MIN_NEXTVER=13.4.2
 CERC_NEXT_VERSION="${CERC_NEXT_VERSION:-keep}"
 CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
 if [ -z "$CERC_BUILD_TOOL" ]; then
-  if [ -f "yarn.lock" ] && [ ! -f "package-lock.json" ]; then
+  if [ -f "yarn.lock" ]; then
     CERC_BUILD_TOOL=yarn
   else
     CERC_BUILD_TOOL=npm
@@ -113,10 +113,23 @@ CUR_NEXT_VERSION=`jq -r '.version' node_modules/next/package.json`
 
 semver -p -r ">=$CERC_MIN_NEXTVER" $CUR_NEXT_VERSION
 if [ $? -ne 0 ]; then
-  echo ""
-  echo "ERROR: 'next' $CUR_NEXT_VERSION < minimum version $CERC_MIN_NEXTVER.  Upgrade package or override with '--extra-build-args \"--build-arg CERC_NEXT_VERSION=^$CERC_MIN_NEXTVER\"'"
-  echo ""
-  exit 1
+  cat <<EOF
+
+###############################################################################
+
+WARNING: 'next' $CUR_NEXT_VERSION < minimum version $CERC_MIN_NEXTVER.
+
+Attempting to build with '^$CERC_MIN_NEXTVER'.  If this fails, you should upgrade
+the dependency in your webapp, or specify an explicit next version to use for
+the build with:
+
+     --extra-build-args \"--build-arg CERC_NEXT_VERSION=<version>\"
+
+###############################################################################
+
+EOF
+  cat package.json | jq ".dependencies.next = \"^$CERC_MIN_NEXTVER\"" | sponge package.json
+  $CERC_BUILD_TOOL install || exit 1
 fi
 
 $CERC_BUILD_TOOL run cerc_compile || exit 1

@@ -9,7 +9,7 @@ uniswap_app_build='/app-builds/uniswap/build'
 uniswap_desk_dir='/urbit/zod/uniswap'
 
 if [ -d ${uniswap_desk_dir} ]; then
-  echo "Uniswap desk dir already exists, exiting"
+  echo "Uniswap desk dir already exists, skipping deployment..."
   exit 0
 fi
 

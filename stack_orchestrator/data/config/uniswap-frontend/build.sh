@@ -8,7 +8,7 @@ fi
 yarn build
 
 # Create symlink to host built files with correct URL path
-mkdir -p /app/urbit/apps
-ln -s /app/build /app/urbit/apps/uniswap
+# mkdir -p /app/urbit/apps
+# ln -s /app/build /app/urbit/apps/uniswap
 
-node_modules/.bin/serve urbit -s -l 3000
+# node_modules/.bin/serve urbit -s -l 3000

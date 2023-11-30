@@ -19,5 +19,20 @@ services:
       retries: 15
       start_period: 5s
 
+  uniswap-urbit-deployment:
+    image: cerc/uniswap-urbit-deployment:local
+    restart: unless-stopped
+    depends_on:
+      uniswap-interface:
+        condition: service_completed_successfully
+    # environment:
+    #   - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
+    command: ["./deploy-to-urbit.sh"]
+    volumes:
+      - uniswap_build:/app/build
+      - pier_data: /app/pier
+      - ../config/uniswap-frontend/deploy-to-urbit.sh:/app/deploy-to-urbit.sh
+
 volumes:
   uniswap_build:
+  pier_data:

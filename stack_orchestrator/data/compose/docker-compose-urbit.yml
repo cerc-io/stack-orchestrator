@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     image: tloncorp/vere
     entrypoint: ["bash", "-c", "urbit -t -F  zod"]
+    volumes:
+      - pier_data:/urbit/zod/
     ports:
       - "8080:80"
       - "12321:12321"
@@ -15,5 +17,5 @@ services:
       retries: 15
       start_period: 10s
 
-# volumes:
-  # pier:
+volumes:
+  pier_data:

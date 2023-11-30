@@ -6,6 +6,7 @@ repos:
   - github.com/cerc-io/uniswap-interface@pm-urbit-hosting
 containers:
   - cerc/uniswap-interface
+  - cerc/uniswap-urbit-deployment
   # TODO: Add container for urbit
 pods:
   - uniswap-interface

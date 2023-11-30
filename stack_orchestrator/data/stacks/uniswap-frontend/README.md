@@ -26,6 +26,7 @@ laconic-so --stack uniswap-frontend build-containers
 ## Create a deployment
 
 First, create a spec file for the deployment, which will map the stack's ports and volumes to the host:
+
 ```bash
 laconic-so --stack uniswap-frontend deploy init --output uniswap-frontend-spec.yml
 ```

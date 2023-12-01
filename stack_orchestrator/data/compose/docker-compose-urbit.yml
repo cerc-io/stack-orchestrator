@@ -12,8 +12,7 @@ services:
       - ../config/urbit/run-urbit-ship.sh:/urbit/run-urbit-ship.sh
       - ../config/uniswap-interface/deploy-uniswap-app.sh:/urbit/deploy-uniswap-app.sh
     ports:
-      - "8080:80"
-      - "12321:12321"
+      - "80"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "80"]
       interval: 20s

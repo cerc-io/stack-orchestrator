@@ -40,8 +40,10 @@ Edit `network` in spec file to map container ports to same ports in host
 network:
   ports:
     urbit-fake-ship:
-     - 8080:80
-     - 12321:12321
+      - 8080:80
+      - 12321:12321
+    uniswap-glob-host:
+      - 3000:3000
 ...
 ```
 

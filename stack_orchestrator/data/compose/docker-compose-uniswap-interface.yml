@@ -21,6 +21,8 @@ services:
     volumes:
       - app_globs:/app-globs
       - ../config/uniswap-interface/host-uniswap-glob.sh:/app/host-uniswap-glob.sh
+    ports:
+      - "3000"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "3000"]
       interval: 20s

@@ -43,6 +43,8 @@ network:
       - 8080:80
     uniswap-glob-host:
       - 3000:3000
+    uniswap-gql-proxy:
+      - 4000:4000
 ...
 ```
 
@@ -67,6 +69,10 @@ Inside the deployment directory, open the file `config.env` and add variable for
   # External RPC endpoints
   # https://docs.infura.io/getting-started#2-create-an-api-key
   CERC_INFURA_KEY=
+
+  # Uniswap API GQL Endpoint
+  # Set this to GQL proxy server endpoint for uniswap app
+  CERC_UNISWAP_GQL=
   ```
 
 ## Start the stack

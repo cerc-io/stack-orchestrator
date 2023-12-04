@@ -41,10 +41,11 @@ network:
   ports:
     urbit-fake-ship:
       - '8080:80'
-    uniswap-glob-host:
-      - '3000:3000'
     uniswap-gql-proxy:
       - '4000:4000'
+    ipfs-glob-host:
+      - '8081:8080'
+      - '5001:5001'
 ...
 ```
 

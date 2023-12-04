@@ -26,6 +26,12 @@ from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.util import error_exit
 
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
 def _check_delete_exception(e: client.exceptions.ApiException):
     if e.status == 404:
         if opts.o.debug:
@@ -42,7 +48,7 @@ class K8sDeployer(Deployer):
     networking_api: client.NetworkingV1Api
     k8s_namespace: str = "default"
     kind_cluster_name: str
-    cluster_info : ClusterInfo
+    cluster_info: ClusterInfo
     deployment_dir: Path
     deployment_context: DeploymentContext
 
@@ -72,6 +78,7 @@ class K8sDeployer(Deployer):
         self.core_api = client.CoreV1Api()
         self.networking_api = client.NetworkingV1Api()
         self.apps_api = client.AppsV1Api()
+        self.custom_obj_api = client.CustomObjectsApi()
 
     def up(self, detach, services):
 
@@ -205,12 +212,47 @@ class K8sDeployer(Deployer):
     def ps(self):
         self.connect_api()
         # Call whatever API we need to get the running container list
-        ret = self.core_api.list_pod_for_all_namespaces(watch=False)
-        if ret.items:
-            for i in ret.items:
-                print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
-        ret = self.core_api.list_node(pretty=True, watch=False)
-        return []
+        pods = self.core_api.list_pod_for_all_namespaces(watch=False)
+
+        hostname = "?"
+        ip = "?"
+        tls = "?"
+        try:
+            ingress = self.networking_api.read_namespaced_ingress(namespace=self.k8s_namespace,
+                                                                  name=self.cluster_info.get_ingress().metadata.name)
+
+            cert = self.custom_obj_api.get_namespaced_custom_object(
+                group="cert-manager.io",
+                version="v1",
+                namespace=self.k8s_namespace,
+                plural="certificates",
+                name=ingress.spec.tls[0].secret_name
+            )
+
+            hostname = ingress.spec.tls[0].hosts[0]
+            ip = ingress.status.load_balancer.ingress[0].ip
+            tls = "notBefore: %s, notAfter: %s" % (cert["status"]["notBefore"], cert["status"]["notAfter"])
+        except:  # noqa: E722
+            pass
+
+        print("Hostname:", hostname)
+        print("IP:", ip)
+        print("TLS:", tls)
+        print("")
+
+        ret = []
+        if pods.items:
+            for i in pods.items:
+                if self.cluster_info.app_name in i.metadata.name:
+                    ret.append(AttrDict({
+                        "id": i.metadata.name,
+                        "name": i.metadata.name,
+                        "namespace": i.metadata.namespace,
+                        "network_settings": AttrDict({
+                            "ports": {}
+                        })
+                    }))
+        return ret
 
     def port(self, service, private_port):
         # Since we handle the port mapping, need to figure out where this comes from

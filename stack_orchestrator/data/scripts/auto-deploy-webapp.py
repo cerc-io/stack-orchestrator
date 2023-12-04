@@ -79,8 +79,17 @@ def redeploy(app_record, deploy_record, deploy_crn, deployment_dir):
         version = "0.0.%d" % (int(deploy_record["attributes"]["version"].split(".")[-1]) + 1)
 
     meta = {
-        "record": {"type": "WebAppDeploymentRecord", "version": version, "url": f"http://{hostname}", "name": hostname,
-            "application": app_record["id"], "meta": {"config": config_hash(deployment_dir)}, }}
+        "record": {
+            "type": "WebAppDeploymentRecord",
+            "version": version,
+            "url": f"http://{hostname}",
+            "name": hostname,
+            "application": app_record["id"],
+            "meta": {
+                "config": config_hash(deployment_dir)
+            },
+        }
+    }
 
     tmpdir = tempfile.mkdtemp()
     try:
@@ -91,9 +100,9 @@ def redeploy(app_record, deploy_record, deploy_crn, deployment_dir):
         print(open(record_fname, 'r').read())
 
         print("Updating deployment record ...")
-        new_record_id = \
-        json.loads(cmd("laconic", "-c", args.laconic_config, "cns", "record", "publish", "--filename", record_fname))[
-            "id"]
+        new_record_id = json.loads(
+            cmd("laconic", "-c", args.laconic_config, "cns", "record", "publish", "--filename", record_fname)
+        )["id"]
         print("Updating deployment registered name ...")
         cmd("laconic", "-c", args.laconic_config, "cns", "name", "set", deploy_crn, new_record_id)
     finally:
@@ -119,7 +128,7 @@ app_record = json.loads(cmd("laconic", "-c", args.laconic_config, "cns", "name",
 # compare
 try:
     deploy_record = json.loads(cmd("laconic", "-c", args.laconic_config, "cns", "name", "resolve", args.deploy_crn))[0]
-except:
+except:  # noqa: E722
     deploy_record = {}
 
 needs_update = False
@@ -128,7 +137,7 @@ if app_record["id"] == deploy_record.get("attributes", {}).get("application"):
     print("Deployment %s already has latest application: %s" % (args.deploy_crn, app_record["id"]))
 else:
     print("Found updated application record eligible for deployment %s (old: %s, new: %s)" % (
-    args.deploy_crn, deploy_record.get("id"), app_record["id"]))
+        args.deploy_crn, deploy_record.get("id"), app_record["id"]))
     build_image(app_record, args.deployment_dir)
     needs_update = True
 

@@ -30,7 +30,7 @@ services:
       timeout: 5s
       retries: 15
       start_period: 10s
-  
+
   uniswap-gql-proxy:
     image: cerc/uniswap-interface:local
     restart: on-failure
@@ -43,7 +43,6 @@ services:
       timeout: 5s
       retries: 15
       start_period: 10s
-      
 
 volumes:
   app_builds:

@@ -40,11 +40,11 @@ Edit `network` in spec file to map container ports to same ports in host
 network:
   ports:
     urbit-fake-ship:
-      - 8080:80
+      - '8080:80'
     uniswap-glob-host:
-      - 3000:3000
+      - '3000:3000'
     uniswap-gql-proxy:
-      - 4000:4000
+      - '4000:4000'
 ...
 ```
 
@@ -72,6 +72,7 @@ Inside the deployment directory, open the file `config.env` and add variable for
 
   # Uniswap API GQL Endpoint
   # Set this to GQL proxy server endpoint for uniswap app
+  # (Eg. http://localhost:4000/graphql)
   CERC_UNISWAP_GQL=
   ```
 

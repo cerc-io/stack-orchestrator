@@ -271,8 +271,10 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
 
     if cluster is None:
         # Create default unique, stable cluster name from confile file path and stack name if provided
-        # TODO: change this to the config file path
-        path = os.path.realpath(sys.argv[0])
+        if deployment:
+            path = os.path.realpath(os.path.abspath(compose_dir))
+        else:
+            path = "internal"
         unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
         if ctx.debug:
             print(f"pre-hash descriptor: {unique_cluster_descriptor}")

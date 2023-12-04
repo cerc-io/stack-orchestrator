@@ -212,8 +212,18 @@ class K8sDeployer(Deployer):
     def ps(self):
         self.connect_api()
         # Call whatever API we need to get the running container list
-        pods = self.core_api.list_pod_for_all_namespaces(watch=False)
+        all_pods = self.core_api.list_pod_for_all_namespaces(watch=False)
+        pods = []
 
+        if all_pods.items:
+            for p in all_pods.items:
+                if self.cluster_info.app_name in p.metadata.name:
+                    pods.append(p)
+
+        if not pods:
+            return []
+
+        ret = []
         hostname = "?"
         ip = "?"
         tls = "?"
@@ -235,23 +245,38 @@ class K8sDeployer(Deployer):
         except:  # noqa: E722
             pass
 
-        print("Hostname:", hostname)
-        print("IP:", ip)
-        print("TLS:", tls)
+        print("Ingress:")
+        print("\tHostname:", hostname)
+        print("\tIP:", ip)
+        print("\tTLS:", tls)
+        print("")
+        print("Pod Status:")
+
+        for i in pods:
+            if self.cluster_info.app_name in i.metadata.name:
+                if i.metadata.deletion_timestamp:
+                    print(f"\t{i.metadata.name}: Terminating ({i.metadata.deletion_timestamp})")
+                else:
+                    print(f"\t{i.metadata.name}: Running ({i.metadata.creation_timestamp})")
+                pod_ip = i.status.pod_ip
+                ports = AttrDict()
+                for c in i.spec.containers:
+                    for p in c.ports:
+                        ports[str(p.container_port)] = [AttrDict({
+                            "HostIp": pod_ip,
+                            "HostPort": p.container_port
+                        })]
+
+                ret.append(AttrDict({
+                    "id": i.metadata.name,
+                    "name": i.metadata.name,
+                    "namespace": i.metadata.namespace,
+                    "network_settings": AttrDict({
+                        "ports": ports
+                    })
+                }))
         print("")
 
-        ret = []
-        if pods.items:
-            for i in pods.items:
-                if self.cluster_info.app_name in i.metadata.name:
-                    ret.append(AttrDict({
-                        "id": i.metadata.name,
-                        "name": i.metadata.name,
-                        "namespace": i.metadata.namespace,
-                        "network_settings": AttrDict({
-                            "ports": {}
-                        })
-                    }))
         return ret
 
     def port(self, service, private_port):

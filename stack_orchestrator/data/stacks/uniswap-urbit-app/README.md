@@ -75,6 +75,16 @@ Inside the deployment directory, open the file `config.env` and add variable for
   # Set this to GQL proxy server endpoint for uniswap app
   # (Eg. http://localhost:4000/graphql)
   CERC_UNISWAP_GQL=
+
+  # Optional IPFS endpoints:
+
+  # IFPS endpoint to host the glob file on
+  # (Default: http://ipfs-glob-host:5001 pointing to in-stack IPFS node)
+  CERC_IPFS_GLOB_HOST_ENDPOINT=
+
+  # IFPS endpoint to fetch the glob file from
+  # (Default: http://ipfs-glob-host:8080 pointing to in-stack IPFS node)
+  CERC_IPFS_SERVER_ENDPOINT=
   ```
 
 ## Start the stack

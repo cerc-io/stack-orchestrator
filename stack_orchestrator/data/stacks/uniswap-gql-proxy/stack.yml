@@ -1,11 +1,8 @@
 version: "0.1"
-name: uniswap-urbit-app
+name: uniswap-gql-proxy
 repos:
   - github.com/cerc-io/uniswap-interface@laconic # TODO: Use release
 containers:
   - cerc/uniswap-interface
-  - cerc/urbit-globs-host
 pods:
-  - uniswap-interface
   - uniswap-gql-proxy
-  - uniswap-urbit

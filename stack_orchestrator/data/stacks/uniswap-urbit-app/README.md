@@ -120,7 +120,7 @@ laconic-so deployment --dir uniswap-urbit-app-deployment start
 
 ## Clean up
 
-To stop all uniswap-urbit-app services running in the background, while preserving chain data:
+To stop all uniswap-urbit-app services running in the background, while preserving data:
 
 ```bash
 laconic-so deployment --dir uniswap-urbit-app-deployment stop

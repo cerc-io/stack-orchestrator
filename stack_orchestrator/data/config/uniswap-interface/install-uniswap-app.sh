@@ -1,23 +1,22 @@
 #!/bin/bash
 
-# $1: Glob file URL (eg. https://xyz.com/glob-abcd.glob)
-# $2: Urbit ship's pier dir (default: ./zod)
+# $1: Glob file URL (eg. https://xyz.com/glob-0vabcd.glob)
+# $2: Glob file hash (eg. 0vabcd)
+# $3: Urbit ship's pier dir (default: ./zod)
 
-if [ -z "$1" ]; then
-  echo "Glob file URL arg not provided"
+if [ "$#" -lt 2 ]; then
+  echo "Insufficient arguments"
   exit 0
 fi
 
 glob_url=$1
-glob_file=$(basename "$glob_url")
-glob_hash=$(echo "$glob_file" | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
-echo "Using glob file ${glob_file}"
+glob_hash=$2
+echo "Using glob file from ${glob_url} with hash ${glob_hash}"
 
 # Default pier dir: ./zod
 # Default desk dir: ./zod/uniswap
-pier_dir="${2:-./zod}"
+pier_dir="${3:-./zod}"
 uniswap_desk_dir="${pier_dir}/uniswap"
-
 echo "Using ${uniswap_desk_dir} as the Uniswap desk dir path"
 
 # Fire curl requests to perform operations on the ship

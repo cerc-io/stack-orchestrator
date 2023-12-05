@@ -4,6 +4,11 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
+echo "Using IPFS endpoint ${CERC_IPFS_GLOB_HOST_ENDPOINT} for hosting globs"
+echo "Using IPFS server endpoint ${CERC_IPFS_SERVER_ENDPOINT} for reading glob files"
+ipfs_host_endpoint=${CERC_IPFS_GLOB_HOST_ENDPOINT}
+ipfs_server_endpoint=${CERC_IPFS_SERVER_ENDPOINT}
+
 uniswap_app_build='/app-builds/uniswap/build'
 uniswap_desk_dir='/urbit/zod/uniswap'
 
@@ -96,15 +101,17 @@ rm "${uniswap_desk_dir}/desk.ship"
 hood "commit %uniswap"
 dojo "-landscape!make-glob %uniswap /build"
 
-echo "Copying over glob file to mounted volume"
-mkdir -p /app-globs/uniswap
-cp /urbit/zod/.urb/put/* /app-globs/uniswap/
-
 glob_file=$(ls -1 -c zod/.urb/put | head -1)
-echo "Glob filename: ${glob_file}"
+echo "Created glob file: ${glob_file}"
+
+upload_response=$(curl -X POST -F file=@./zod/.urb/put/${glob_file} ${ipfs_host_endpoint}/api/v0/add)
+glob_cid=$(echo "$upload_response" | grep -o '"Hash":"[^"]*' | sed 's/"Hash":"//')
+
+echo "Glob file uploaded to IFPS:"
+echo "{ cid: ${glob_cid}, filename: ${glob_file} }"
 
 # Curl and wait for the glob to be hosted
-glob_url="http://uniswap-glob-host:3000/${glob_file}"
+glob_url="${ipfs_server_endpoint}/ipfs/${glob_cid}?filename=${glob_file}"
 
 echo "Checking if glob file hosted at ${glob_url}"
 while true; do
@@ -128,7 +135,7 @@ cat << EOF > "${uniswap_desk_dir}/desk.docket-0"
     color+0xcd.75df
     image+'https://logowik.com/content/uploads/images/uniswap-uni7403.jpg'
     base+'uniswap'
-    glob-http+['http://uniswap-glob-host:3000/${glob_file}' ${glob_hash}]
+    glob-http+['${glob_url}' ${glob_hash}]
     version+[0 0 1]
     website+'https://uniswap.org/'
     license+'MIT'

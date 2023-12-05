@@ -1,6 +1,18 @@
-#!/usr/bin/env python3
+# Copyright © 2023 Vulcanize
 
-import argparse
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http:#www.gnu.org/licenses/>.
+
 import hashlib
 import json
 import os
@@ -61,7 +73,7 @@ def config_changed(deploy_record, deployment_dir):
     return config_hash(deployment_dir) != old
 
 
-def redeploy(app_record, deploy_record, deploy_crn, deployment_dir):
+def redeploy(laconic_config, app_record, deploy_record, deploy_crn, deployment_dir):
     print("Stopping deployment ...")
     result = subprocess.run(["laconic-so", "deployment", "--dir", deployment_dir, "stop"])
     result.check_returncode()
@@ -101,55 +113,52 @@ def redeploy(app_record, deploy_record, deploy_crn, deployment_dir):
 
         print("Updating deployment record ...")
         new_record_id = json.loads(
-            cmd("laconic", "-c", args.laconic_config, "cns", "record", "publish", "--filename", record_fname)
+            cmd("laconic", "-c", laconic_config, "cns", "record", "publish", "--filename", record_fname)
         )["id"]
         print("Updating deployment registered name ...")
-        cmd("laconic", "-c", args.laconic_config, "cns", "name", "set", deploy_crn, new_record_id)
+        cmd("laconic", "-c", laconic_config, "cns", "name", "set", deploy_crn, new_record_id)
     finally:
         cmd("rm", "-rf", tmpdir)
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--laconic-config", required=True)
-parser.add_argument("--app-crn", required=True)
-parser.add_argument("--deploy-crn", required=True)
-parser.add_argument("--deployment-dir", required=True)
-parser.add_argument("--force", action="store_true")
-args = parser.parse_args()
+def update(ctx, deployment_dir, laconic_config, app_crn, deploy_crn, force=False):
+    '''update the specified webapp deployment'''
 
-# The deployment must already exist
-if not os.path.exists(args.deployment_dir):
-    print("Deployment does not exist:", args.deployment_dir, file=sys.stderr)
-    sys.exit(1)
+    # The deployment must already exist
+    if not os.path.exists(deployment_dir):
+        print("Deployment does not exist:", deployment_dir, file=sys.stderr)
+        sys.exit(1)
 
-# resolve name
-app_record = json.loads(cmd("laconic", "-c", args.laconic_config, "cns", "name", "resolve", args.app_crn))[0]
+    # resolve name
+    app_record = json.loads(cmd("laconic", "-c", laconic_config, "cns", "name", "resolve", app_crn))[0]
 
-# compare
-try:
-    deploy_record = json.loads(cmd("laconic", "-c", args.laconic_config, "cns", "name", "resolve", args.deploy_crn))[0]
-except:  # noqa: E722
-    deploy_record = {}
+    # compare
+    try:
+        deploy_record = json.loads(cmd("laconic", "-c", laconic_config, "cns", "name", "resolve", deploy_crn))[0]
+    except:  # noqa: E722
+        deploy_record = {}
 
-needs_update = False
+    needs_update = False
 
-if app_record["id"] == deploy_record.get("attributes", {}).get("application"):
-    print("Deployment %s already has latest application: %s" % (args.deploy_crn, app_record["id"]))
-else:
-    print("Found updated application record eligible for deployment %s (old: %s, new: %s)" % (
-        args.deploy_crn, deploy_record.get("id"), app_record["id"]))
-    build_image(app_record, args.deployment_dir)
-    needs_update = True
+    if app_record["id"] == deploy_record.get("attributes", {}).get("application"):
+        print("Deployment %s has latest application: %s" % (deploy_crn, app_record["id"]))
+    else:
+        print("Found updated application record eligible for deployment %s (old: %s, new: %s)" % (
+            deploy_crn, deploy_record.get("id"), app_record["id"]))
+        build_image(app_record, deployment_dir)
+        needs_update = True
 
-# check config
-if config_changed(deploy_record, args.deployment_dir):
-    old = json.loads(deploy_record["attributes"]["meta"])["config"]
-    print("Deployment %s has updated config: (old: %s, new: %s)" % (
-        args.deploy_crn, old, config_hash(args.deployment_dir)))
-    needs_update = True
-else:
-    print("Deployment %s already has latest config: %s" % (
-        args.deploy_crn, json.loads(deploy_record["attributes"]["meta"])["config"]))
+    # check config
+    if config_changed(deploy_record, deployment_dir):
+        old = None
+        if deploy_record:
+            old = json.loads(deploy_record["attributes"]["meta"]["config"])
+        print("Deployment %s has changed config: (old: %s, new: %s)" % (
+            deploy_crn, old, config_hash(deployment_dir)))
+        needs_update = True
+    else:
+        print("Deployment %s has latest config: %s" % (
+            deploy_crn, json.loads(deploy_record["attributes"]["meta"])["config"]))
 
-if needs_update or args.force:
-    redeploy(app_record, deploy_record, args.deploy_crn, args.deployment_dir)
+    if needs_update or force:
+        redeploy(laconic_config, app_record, deploy_record, deploy_crn, deployment_dir)

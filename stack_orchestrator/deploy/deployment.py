@@ -22,6 +22,7 @@ from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_op
 from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
+from stack_orchestrator.deploy.webapp import update_from_registry as webapp_update
 
 
 @click.group()
@@ -148,3 +149,15 @@ def logs(ctx, tail, follow, extra_args):
 @click.pass_context
 def status(ctx):
     print(f"Context: {ctx.parent.obj}")
+
+
+@command.command()
+@click.option("--laconic-config", help="laconic-cli config file", required=True)
+# TODO: Add to spec.yml?
+@click.option("--app-crn", help="application CRN", required=True)
+@click.option("--deployment-crn", help="webapp deployment CRN", required=True)
+@click.option("--force", help="force redeployment", is_flag=True, default=False)
+@click.pass_context
+def update_from_registry(ctx, laconic_config, app_crn, deployment_crn, force):
+    ctx.obj = make_deploy_context(ctx)
+    webapp_update.update(ctx, str(ctx.obj.stack.parent), laconic_config, app_crn, deployment_crn, force)

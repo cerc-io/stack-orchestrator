@@ -1,8 +1,0 @@
-version: "0.1"
-name: uniswap-gql-proxy
-repos:
-  - github.com/cerc-io/uniswap-interface@laconic # TODO: Use release
-containers:
-  - cerc/uniswap-interface
-pods:
-  - uniswap-gql-proxy

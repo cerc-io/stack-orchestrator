@@ -1,0 +1,19 @@
+version: "3.2"
+
+services:
+  proxy-server:
+    image: cerc/watcher-ts:local
+    restart: unless-stopped
+    working_dir: /app/packages/cli
+    environment:
+      PROXY_UPSTREAM: ${CERC_PROXY_UPSTREAM}
+      PROXY_ORIGIN_HEADER: ${CERC_PROXY_ORIGIN_HEADER}
+    command: ["sh", "-c", "yarn proxy"]
+    ports:
+      - "4000"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "4000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s

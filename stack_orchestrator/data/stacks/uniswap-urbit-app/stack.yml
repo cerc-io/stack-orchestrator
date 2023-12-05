@@ -7,5 +7,5 @@ containers:
   - cerc/urbit-globs-host
 pods:
   - uniswap-interface
-  - uniswap-gql-proxy
+  - proxy-server
   - uniswap-urbit

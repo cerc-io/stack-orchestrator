@@ -64,7 +64,7 @@ laconic-so --stack uniswap-urbit-app deploy create --spec-file uniswap-urbit-app
 
 ## Set env variables
 
-Inside the deployment directory, open the file `config.env` and add variable for infura key :
+Inside the deployment directory, open the file `config.env` and set the following env variables:
 
   ```bash
   # External RPC endpoints
@@ -73,10 +73,25 @@ Inside the deployment directory, open the file `config.env` and add variable for
 
   # Uniswap API GQL Endpoint
   # Set this to GQL proxy server endpoint for uniswap app
-  # (Eg. http://localhost:4000/graphql)
+  # (Eg. http://localhost:4000/v1/graphql)
   CERC_UNISWAP_GQL=
 
-  # Optional IPFS endpoints:
+  # Optional
+
+  # Whether to run the proxy GQL server
+  # (Disable only if proxy not required to be run) (Default: true)
+  ENABLE_PROXY=
+
+  # Proxy server configuration
+  # Used only if proxy is enabled
+
+  # Upstream API URL
+  PROXY_UPSTREAM=https://api.uniswap.org
+
+  # Origin header to be used in the proxy
+  PROXY_ORIGIN_HEADER=https://app.uniswap.org
+
+  # IPFS configuration
 
   # IFPS endpoint to host the glob file on
   # (Default: http://ipfs-glob-host:5001 pointing to in-stack IPFS node)

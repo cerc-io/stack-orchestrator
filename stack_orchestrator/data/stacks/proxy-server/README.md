@@ -46,6 +46,9 @@ laconic-so --stack proxy-server build-containers
 * Inside the deployment directory, open the file `config.env` and set the following env variables:
 
   ```bash
+  # Whether to run the proxy server (Optional) (Default: true)
+  ENABLE_PROXY=
+
   # Upstream endpoint
   CERC_PROXY_UPSTREAM=
 

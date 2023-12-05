@@ -3,12 +3,15 @@ version: "3.2"
 services:
   proxy-server:
     image: cerc/watcher-ts:local
-    restart: unless-stopped
+    restart: on-failure
     working_dir: /app/packages/cli
     environment:
+      ENABLE_PROXY: ${ENABLE_PROXY:-true}
       PROXY_UPSTREAM: ${CERC_PROXY_UPSTREAM}
       PROXY_ORIGIN_HEADER: ${CERC_PROXY_ORIGIN_HEADER}
-    command: ["sh", "-c", "yarn proxy"]
+    command: ["sh", "-c", "./run.sh"]
+    volumes:
+      - ../config/proxy-server/run.sh:/app/packages/cli/run.sh
     ports:
       - "4000"
     healthcheck:

@@ -32,8 +32,9 @@ from stack_orchestrator.build import build_containers
 @click.option('--source-repo', help="directory containing the webapp to build", required=True)
 @click.option("--force-rebuild", is_flag=True, default=False, help="Override dependency checking -- always rebuild")
 @click.option("--extra-build-args", help="Supply extra arguments to build")
+@click.option("--tag", help="Container tag (default: cerc/<app_name>:local)")
 @click.pass_context
-def command(ctx, base_container, source_repo, force_rebuild, extra_build_args):
+def command(ctx, base_container, source_repo, force_rebuild, extra_build_args, tag):
     '''build the specified webapp container'''
 
     quiet = ctx.obj.quiet
@@ -70,8 +71,11 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args):
     container_build_env["CERC_CONTAINER_BUILD_DOCKERFILE"] = os.path.join(container_build_dir,
                                                                     base_container.replace("/", "-"),
                                                                     "Dockerfile.webapp")
-    webapp_name = os.path.abspath(source_repo).split(os.path.sep)[-1]
-    container_build_env["CERC_CONTAINER_BUILD_TAG"] = f"cerc/{webapp_name}:local"
+    if not tag:
+        webapp_name = os.path.abspath(source_repo).split(os.path.sep)[-1]
+        container_build_env["CERC_CONTAINER_BUILD_TAG"] = f"cerc/{webapp_name}:local"
+    else:
+        container_build_env["CERC_CONTAINER_BUILD_TAG"] = tag
 
     build_containers.process_container(None, base_container, container_build_dir, container_build_env, dev_root_path, quiet,
                                        verbose, dry_run, continue_on_error)

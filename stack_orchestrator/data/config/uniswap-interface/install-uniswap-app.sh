@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # $1: Glob file URL (eg. https://xyz.com/glob-abcd.glob)
-# $2: Uniswap desk dir (default: ./zod/uniswap)
+# $2: Urbit ship's pier dir (default: ./zod)
 
 if [ -z "$1" ]; then
   echo "Glob file URL arg not provided"
@@ -13,8 +13,10 @@ glob_file=$(basename "$glob_url")
 glob_hash=$(echo "$glob_file" | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
 echo "Using glob file ${glob_file}"
 
+# Default pier dir: ./zod
 # Default desk dir: ./zod/uniswap
-uniswap_desk_dir="${2:-./zod/uniswap}"
+pier_dir="${2:-./zod}"
+uniswap_desk_dir="${pier_dir}/uniswap"
 
 echo "Using ${uniswap_desk_dir} as the Uniswap desk dir path"
 

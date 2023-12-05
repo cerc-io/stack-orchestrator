@@ -24,6 +24,7 @@ from importlib import resources
 import subprocess
 import click
 from pathlib import Path
+from stack_orchestrator.opts import opts
 from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
 from stack_orchestrator.deploy.deployer import Deployer, DeployerException
 from stack_orchestrator.deploy.deployer_factory import getDeployer
@@ -253,6 +254,22 @@ def _make_runtime_env(ctx):
     return container_exec_env
 
 
+def _make_default_cluster_name(deployment, compose_dir, stack, include, exclude):
+    # Create default unique, stable cluster name from confile file path and stack name if provided
+    if deployment:
+        path = os.path.realpath(os.path.abspath(compose_dir))
+    else:
+        path = "internal"
+        unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
+        if opts.o.debug:
+            print(f"pre-hash descriptor: {unique_cluster_descriptor}")
+        hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()[:16]
+        cluster = f"laconic-{hash}"
+        if opts.o.debug:
+            print(f"Using cluster name: {cluster}")
+    return cluster
+
+
 # stack has to be either PathLike pointing to a stack yml file, or a string with the name of a known stack
 def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
 
@@ -270,18 +287,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         compose_dir = Path(__file__).absolute().parent.parent.joinpath("data", "compose")
 
     if cluster is None:
-        # Create default unique, stable cluster name from confile file path and stack name if provided
-        if deployment:
-            path = os.path.realpath(os.path.abspath(compose_dir))
-        else:
-            path = "internal"
-        unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
-        if ctx.debug:
-            print(f"pre-hash descriptor: {unique_cluster_descriptor}")
-        hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()[:16]
-        cluster = f"laconic-{hash}"
-        if ctx.verbose:
-            print(f"Using cluster name: {cluster}")
+        cluster = _make_default_cluster_name(deployment, compose_dir, stack, include, exclude)
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from stack_orchestrator import data

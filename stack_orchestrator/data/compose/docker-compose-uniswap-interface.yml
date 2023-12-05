@@ -1,0 +1,49 @@
+version: "3.2"
+
+services:
+  uniswap-interface:
+    image: cerc/uniswap-interface:local
+    restart: on-failure
+    environment:
+      - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
+      - REACT_APP_AWS_API_ENDPOINT=${CERC_UNISWAP_GQL}
+    command: ["./build-app.sh"]
+    volumes:
+      - app_builds:/app-builds
+      - ../config/uniswap-interface/build-app.sh:/app/build-app.sh
+
+  uniswap-glob-host:
+    image: cerc/urbit-globs-host:local
+    restart: unless-stopped
+    depends_on:
+      uniswap-interface:
+        condition: service_completed_successfully
+    command: ["./host-uniswap-glob.sh"]
+    volumes:
+      - app_globs:/app-globs
+      - ../config/uniswap-interface/host-uniswap-glob.sh:/app/host-uniswap-glob.sh
+    ports:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  uniswap-gql-proxy:
+    image: cerc/uniswap-interface:local
+    restart: on-failure
+    command: ["bash", "-c", "yarn proxy-gql"]
+    ports:
+      - "4000"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "4000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+volumes:
+  app_builds:
+  app_globs:

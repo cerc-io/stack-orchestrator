@@ -1,0 +1,26 @@
+version: '3.7'
+
+services:
+  urbit-fake-ship:
+    restart: unless-stopped
+    image: tloncorp/vere
+    entrypoint: ["bash", "-c", "./run-urbit-ship.sh && ./deploy-uniswap-app.sh && tail -f /dev/null"]
+    volumes:
+      - urbit_data:/urbit
+      - app_builds:/app-builds
+      - app_globs:/app-globs
+      - ../config/urbit/run-urbit-ship.sh:/urbit/run-urbit-ship.sh
+      - ../config/uniswap-interface/deploy-uniswap-app.sh:/urbit/deploy-uniswap-app.sh
+    ports:
+      - "80"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "80"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+volumes:
+  urbit_data:
+  app_builds:
+  app_globs:

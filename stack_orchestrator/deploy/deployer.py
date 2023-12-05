@@ -28,6 +28,10 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
+    def update(self):
+        pass
+
+    @abstractmethod
     def ps(self):
         pass
 

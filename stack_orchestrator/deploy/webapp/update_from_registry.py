@@ -74,12 +74,8 @@ def config_changed(deploy_record, deployment_dir):
 
 
 def redeploy(laconic_config, app_record, deploy_record, deploy_crn, deployment_dir):
-    print("Stopping deployment ...")
-    result = subprocess.run(["laconic-so", "deployment", "--dir", deployment_dir, "stop"])
-    result.check_returncode()
-
-    print("Starting deployment ...")
-    result = subprocess.run(["laconic-so", "deployment", "--dir", deployment_dir, "start"])
+    print("Updating deployment ...")
+    result = subprocess.run(["laconic-so", "deployment", "--dir", deployment_dir, "update"])
     result.check_returncode()
 
     spec = yaml.full_load(open(os.path.join(deployment_dir, "spec.yml")))
@@ -143,19 +139,20 @@ def update(ctx, deployment_dir, laconic_config, app_crn, deploy_crn, force=False
     if app_record["id"] == deploy_record.get("attributes", {}).get("application"):
         print("Deployment %s has latest application: %s" % (deploy_crn, app_record["id"]))
     else:
+        needs_update = True
         print("Found updated application record eligible for deployment %s (old: %s, new: %s)" % (
             deploy_crn, deploy_record.get("id"), app_record["id"]))
         build_image(app_record, deployment_dir)
-        needs_update = True
 
     # check config
     if config_changed(deploy_record, deployment_dir):
+        needs_update = True
         old = None
         if deploy_record:
-            old = json.loads(deploy_record["attributes"]["meta"]["config"])
+            print(deploy_record)
+            old = json.loads(deploy_record["attributes"]["meta"])["config"]
         print("Deployment %s has changed config: (old: %s, new: %s)" % (
             deploy_crn, old, config_hash(deployment_dir)))
-        needs_update = True
     else:
         print("Deployment %s has latest config: %s" % (
             deploy_crn, json.loads(deploy_record["attributes"]["meta"])["config"]))

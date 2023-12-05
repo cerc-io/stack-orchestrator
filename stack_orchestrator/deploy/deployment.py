@@ -19,7 +19,7 @@ import sys
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.images import push_images_operation
 from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_operation, port_operation
-from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context
+from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context, update_operation
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.webapp import update_from_registry as webapp_update
@@ -161,3 +161,10 @@ def status(ctx):
 def update_from_registry(ctx, laconic_config, app_crn, deployment_crn, force):
     ctx.obj = make_deploy_context(ctx)
     webapp_update.update(ctx, str(ctx.obj.stack.parent), laconic_config, app_crn, deployment_crn, force)
+
+
+@command.command()
+@click.pass_context
+def update(ctx):
+    ctx.obj = make_deploy_context(ctx)
+    update_operation(ctx)

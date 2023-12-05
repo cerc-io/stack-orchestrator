@@ -107,6 +107,14 @@ def down_operation(ctx, delete_volumes, extra_args_list):
         ctx.obj.deployer.down(timeout=timeout_arg, volumes=delete_volumes)
 
 
+def update_operation(ctx):
+    global_context = ctx.parent.parent.obj
+    if not global_context.dry_run:
+        if global_context.verbose:
+            print("Running compose update")
+        ctx.obj.deployer.update()
+
+
 def ps_operation(ctx):
     global_context = ctx.parent.parent.obj
     if not global_context.dry_run:

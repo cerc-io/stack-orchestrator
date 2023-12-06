@@ -17,7 +17,7 @@ $ laconic-so --stack keycloak build-containers
 ## Create a deployment
 
 ```
-$ laconic-so --stack keycloak deploy init --map-ports-to-host any-same --outputkeycloak-spec.yml
+$ laconic-so --stack keycloak deploy init --map-ports-to-host any-same --output keycloak-spec.yml
 $ laconic-so deploy create --spec-file keycloak-spec.yml --deployment-dir keycloak-deployment
 ```
 ## Start the stack

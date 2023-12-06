@@ -1,9 +1,0 @@
-services:
-  laconic-console:
-    restart: unless-stopped
-    image: cerc/laconic-console-host:local
-    environment:
-      - CERC_WEBAPP_FILES_DIR=${CERC_WEBAPP_FILES_DIR:-/usr/local/share/.config/yarn/global/node_modules/@cerc-io/console-app/dist/production}
-      - LACONIC_HOSTED_ENDPOINT=${LACONIC_HOSTED_ENDPOINT:-http://localhost}
-    ports:
-      - "80"

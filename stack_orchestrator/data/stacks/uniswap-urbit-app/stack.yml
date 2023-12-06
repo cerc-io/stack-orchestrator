@@ -1,0 +1,13 @@
+version: "0.1"
+name: uniswap-urbit-app
+repos:
+  - github.com/cerc-io/uniswap-interface@laconic # TODO: Use release
+  - github.com/cerc-io/watcher-ts@v0.2.78
+containers:
+  - cerc/uniswap-interface
+  - cerc/watcher-ts
+  - cerc/urbit-globs-host
+pods:
+  - uniswap-interface
+  - proxy-server
+  - uniswap-urbit

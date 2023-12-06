@@ -256,7 +256,6 @@ class K8sDeployer(Deployer):
                 print(f"\t{i.metadata.name}: Terminating ({i.metadata.deletion_timestamp})")
             else:
                 print(f"\t{i.metadata.name}: Running ({i.metadata.creation_timestamp})")
-        print("")
 
     def ps(self):
         self.connect_api()

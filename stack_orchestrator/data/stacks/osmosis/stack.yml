@@ -12,10 +12,13 @@ containers:
   # - cerc/act-runner-task-executor
   - cerc/watcher-ts
   - cerc/osmosis-front-end
+  - cerc/urbit-globs-host
 pods:
-  - kubo
   - proxy-server
   - osmosis-front-end
+  - fixturenet-urbit
+  # TODO: Use kubo instead of ipfs in fixturenet-urbit pod
+  # - kubo
   # TODO: Fix pod config for deployment command
   # TODO: mirroring all of osmosis repos: https://git.vdb.to/cerc-io/hosting/pulls/42
   # - name: gitea

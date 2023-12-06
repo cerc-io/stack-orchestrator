@@ -10,7 +10,10 @@ services:
     command: ["./build-app.sh"]
     volumes:
       - ../config/osmosis/build-app.sh:/app/packages/web/build-app.sh
-      - app_builds:/app-builds
+      - urbit_app_builds:/app-builds
+      # TODO: Refactor common mar files
+      - ../config/osmosis/urbit-files/mar:/app/packages/web/mar
+      - ../config/osmosis/urbit-files/desk.docket-0:/app/packages/web/desk.docket-0
 
   nginx:
     image: nginx:1.23-alpine
@@ -20,7 +23,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - ../config/osmosis/nginx:/etc/nginx/conf.d
-      - app_builds:/usr/share/nginx
+      - urbit_app_builds:/app-builds
     ports:
       - "80"
     healthcheck:
@@ -31,4 +34,4 @@ services:
       start_period: 5s
 
 volumes:
-  app_builds:
+  urbit_app_builds:

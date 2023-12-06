@@ -1,17 +1,20 @@
 # self-hosted osmosis
 
 Instructions to build and deploy:
-- self-hosted gitea
-- an ipfs node
-- the osmosis front end
-- a laconicd chain
+- Self-hosted gitea
+- An ipfs node
+- Urbit
+- The osmosis front end
+  - Hosted on python server
+  - Deployed on urbit
+- A laconicd chain
 
 ## Setup
 
 Clone required repositories:
 
 ```bash
-laconic-so --stack osmosis setup-repositories
+laconic-so --stack osmosis setup-repositories --pull
 
 # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories and re-run the command
 ```
@@ -40,10 +43,15 @@ Edit `network` in spec file to map container ports to same ports in host
 ...
 network:
   ports:
+    urbit-fake-ship:
+      - '8080:80'
     proxy-server:
       - '4000:4000'
     nginx:
       - '3000:80'
+    ipfs-glob-host:
+      - '8081:8080'
+      - '5001:5001'
 ```
 
 ### Data volumes
@@ -65,6 +73,9 @@ Inside the deployment directory, open the file `config.env` and set the followin
   (Note: Following config can be used as is if the stack is being run locally)
 
   ```bash
+  # App to be installed (Do not change)
+  CERC_URBIT_APP=osmosis
+
   # Osmosis API base URL
   # Set this to proxy server endpoint for osmosis app
   # (Eg. http://localhost:4000 - in case stack is being run locally with proxy enabled)
@@ -72,6 +83,10 @@ Inside the deployment directory, open the file `config.env` and set the followin
   CERC_WEB_API_BASE_URL=http://localhost:4000
 
   # Optional
+
+  # Whether to enable app installation on Urbit
+  # (just builds and uploads the glob file if disabled) (Default: true)
+  CERC_ENABLE_APP_INSTALL=
 
   # Whether to run the proxy server
   # (Disable only if proxy not required to be run) (Default: true)
@@ -82,6 +97,16 @@ Inside the deployment directory, open the file `config.env` and set the followin
 
   # Upstream API URL
   CERC_PROXY_UPSTREAM=https://app.osmosis.zone
+
+  # IPFS configuration
+
+  # IFPS endpoint to host the glob file on
+  # (Default: http://ipfs-glob-host:5001 pointing to in-stack IPFS node)
+  CERC_IPFS_GLOB_HOST_ENDPOINT=
+
+  # IFPS endpoint to fetch the glob file from
+  # (Default: http://ipfs-glob-host:8080 pointing to in-stack IPFS node)
+  CERC_IPFS_SERVER_ENDPOINT=
   ```
 
 ## Start the stack
@@ -101,6 +126,27 @@ laconic-so deployment --dir osmosis-deployment start
 * List and check the health status of all the containers using `docker ps` and wait for them to be `healthy`
 
 * The web app can be accessed at http://localhost:3000
+
+* Run the following to get login password for Urbit web interface:
+
+  ```bash
+  laconic-so deployment --dir osmosis-deployment exec urbit-fake-ship "curl -s --data '{\"source\":{\"dojo\":\"+code\"},\"sink\":{\"stdout\":null}}' http://localhost:12321"
+
+  # Expected output: "<PASSWORD>\n"%
+  ```
+
+* Open the Urbit web UI at http://localhost:8080 and use the `PASSWORD` from previous step to login
+
+* The osmosis app is not available when starting stack for the first time. Check `urbit-fake-ship` logs to see that app has installed
+  ```
+  laconic-so deployment --dir osmosis-deployment logs -f
+
+  # Expected output:
+  # laconic-3ccf7ee79bdae874-urbit-fake-ship-1    | docket: fetching %http glob for %uniswap desk
+  # laconic-3ccf7ee79bdae874-urbit-fake-ship-1    | ">="">="Osmosis app installed
+  ```
+
+* The osmosis app will be now visible at http://localhost:8080
 
 ## Laconic registry
 

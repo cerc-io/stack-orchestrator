@@ -16,3 +16,6 @@ yarn build:static
 # Move build to app-builds
 mkdir -p /app-builds/osmosis
 cp -r ./out /app-builds/osmosis/build
+
+cp -r mar /app-builds/osmosis/
+cp desk.docket-0 /app-builds/osmosis/

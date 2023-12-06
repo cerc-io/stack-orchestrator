@@ -3,7 +3,24 @@ version: "3.2"
 services:
   osmosis-front-end:
     image: cerc/osmosis-front-end:local
-    restart: always
+    restart: on-failure
+    environment:
+      - NEXT_PUBLIC_WEB_API_BASE_URL=${CERC_WEB_API_BASE_URL}
+    working_dir: /app/packages/web
+    command: ["./build-app.sh"]
+    volumes:
+      - ../config/osmosis/build-app.sh:/app/packages/web/build-app.sh
+      - app_builds:/app-builds
+
+  python-server:
+    image: python:3
+    depends_on:
+      osmosis-front-end:
+        condition: service_completed_successfully
+    restart: on-failure
+    command: ["python3", "-m", "http.server", "-d" ,"/app-builds/osmosis/build", "4000"]
+    volumes:
+      - app_builds:/app-builds
     ports:
       - "3000"
     healthcheck:
@@ -12,3 +29,6 @@ services:
       timeout: 5s
       retries: 15
       start_period: 5s
+
+volumes:
+  app_builds:

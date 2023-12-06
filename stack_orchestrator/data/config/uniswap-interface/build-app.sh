@@ -14,5 +14,5 @@ fi
 yarn build
 
 # Move build to app-builds so urbit can deploy it
-mkdir /app-builds/uniswap
+mkdir -p /app-builds/uniswap
 cp -r ./build /app-builds/uniswap/

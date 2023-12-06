@@ -4,18 +4,38 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-echo "Using IPFS endpoint ${CERC_IPFS_GLOB_HOST_ENDPOINT} for hosting globs"
-echo "Using IPFS server endpoint ${CERC_IPFS_SERVER_ENDPOINT} for reading glob files"
-ipfs_host_endpoint=${CERC_IPFS_GLOB_HOST_ENDPOINT}
-ipfs_server_endpoint=${CERC_IPFS_SERVER_ENDPOINT}
-
-uniswap_app_build='/app-builds/uniswap/build'
-uniswap_desk_dir='/urbit/zod/uniswap'
-
-if [ -d ${uniswap_desk_dir} ]; then
-  echo "Uniswap desk dir already exists, skipping deployment..."
+if [ -z "$CERC_URBIT_APP" ]; then
+  echo "CERC_URBIT_APP not set, exiting"
   exit 0
 fi
+
+echo "Creating Urbit application for ${CERC_URBIT_APP}"
+
+app_desk_dir=/urbit/zod/${CERC_URBIT_APP}
+if [ -d ${app_desk_dir} ]; then
+  echo "Desk dir already exists for ${CERC_URBIT_APP}, skipping deployment..."
+  exit 0
+fi
+
+app_build=/app-builds/${CERC_URBIT_APP}/build
+app_mark_files=/app-builds/${CERC_URBIT_APP}/mar
+app_docket_file=/app-builds/${CERC_URBIT_APP}/desk.docket-0
+
+echo "Reading app build from ${app_build}"
+echo "Reading the additional mark files from ${app_mark_files}"
+echo "Reading docket file ${app_docket_file}"
+
+# Loop until the app's build appears
+while [ ! -d ${app_build} ]; do
+  echo "${CERC_URBIT_APP} app build not found, retrying in 5s..."
+  sleep 5
+done
+echo "Build found..."
+
+echo "Using IPFS endpoint ${CERC_IPFS_GLOB_HOST_ENDPOINT} for hosting the ${CERC_URBIT_APP} glob"
+echo "Using IPFS server endpoint ${CERC_IPFS_SERVER_ENDPOINT} for reading ${CERC_URBIT_APP} glob"
+ipfs_host_endpoint=${CERC_IPFS_GLOB_HOST_ENDPOINT}
+ipfs_server_endpoint=${CERC_IPFS_SERVER_ENDPOINT}
 
 # Fire curl requests to perform operations on the ship
 dojo () {
@@ -26,80 +46,22 @@ hood () {
   curl -s --data '{"source":{"dojo":"+hood/'"$1"'"},"sink":{"app":"hood"}}' http://localhost:12321
 }
 
-# Create/mount a uniswap desk
-hood "merge %uniswap our %landscape"
-hood "mount %uniswap"
-
-# Loop until the uniswap build appears
-while [ ! -d ${uniswap_app_build} ]; do
-  echo "Uniswap app build not found, retrying in 5s..."
-  sleep 5
-done
-echo "Build found..."
+# Create / mount the app's desk
+hood "merge %${CERC_URBIT_APP} our %landscape"
+hood "mount %${CERC_URBIT_APP}"
 
 # Copy over build to desk data dir
-cp -r ${uniswap_app_build} ${uniswap_desk_dir}
+cp -r ${app_build} ${app_desk_dir}
 
-# Create a mark file for .map file type
-cat << EOF > "${uniswap_desk_dir}/mar/map.hoon"
-::
-::::  /hoon/map/mar
-  ::  Mark for js source maps
-/?    310
-::
-=,  eyre
-|_  mud=@
-++  grow
-  |%
-  ++  mime  [/application/octet-stream (as-octs:mimes:html (@t mud))]
-  --
-++  grab
-  |%                                                    ::  convert from
-  ++  mime  |=([p=mite q=octs] (@t q.q))
-  ++  noun  cord                                        ::  clam from %noun
-  --
-++  grad  %mime
---
-EOF
+# Copy over the additional mark files
+cp ${app_mark_files}/* ${app_desk_dir}/mar/
 
-# Create a mark file for .woff file type
-cat << EOF > "${uniswap_desk_dir}/mar/woff.hoon"
-|_  dat=octs
-++  grow
-  |%
-  ++  mime  [/font/woff dat]
-  --
-++  grab
-  |%
-  ++  mime  |=([=mite =octs] octs)
-  ++  noun  octs
-  --
-++  grad  %mime
---
-EOF
-
-# Create a mark file for .ttf file type
-cat << EOF > "${uniswap_desk_dir}/mar/ttf.hoon"
-|_  dat=octs
-++  grow
-  |%
-  ++  mime  [/font/ttf dat]
-  --
-++  grab
-  |%
-  ++  mime  |=([=mite =octs] octs)
-  ++  noun  octs
-  --
-++  grad  %mime
---
-EOF
-
-rm "${uniswap_desk_dir}/desk.bill"
-rm "${uniswap_desk_dir}/desk.ship"
+rm "${app_desk_dir}/desk.bill"
+rm "${app_desk_dir}/desk.ship"
 
 # Commit changes and create a glob
-hood "commit %uniswap"
-dojo "-landscape!make-glob %uniswap /build"
+hood "commit %${CERC_URBIT_APP}"
+dojo "-landscape!make-glob %${CERC_URBIT_APP} /build"
 
 glob_file=$(ls -1 -c zod/.urb/put | head -1)
 echo "Created glob file: ${glob_file}"
@@ -109,6 +71,9 @@ glob_cid=$(echo "$upload_response" | grep -o '"Hash":"[^"]*' | sed 's/"Hash":"//
 
 echo "Glob file uploaded to IFPS:"
 echo "{ cid: ${glob_cid}, filename: ${glob_file} }"
+
+# Flag to skip installation
+# Exit here if the installation not required
 
 # Curl and wait for the glob to be hosted
 glob_url="${ipfs_server_endpoint}/ipfs/${glob_cid}?filename=${glob_file}"
@@ -128,19 +93,13 @@ done
 
 glob_hash=$(echo "$glob_file" | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
 
-# Update the docket file
-cat << EOF > "${uniswap_desk_dir}/desk.docket-0"
-:~  title+'Uniswap'
-    info+'Self-hosted uniswap frontend.'
-    color+0xcd.75df
-    image+'https://logowik.com/content/uploads/images/uniswap-uni7403.jpg'
-    base+'uniswap'
-    glob-http+['${glob_url}' ${glob_hash}]
-    version+[0 0 1]
-    website+'https://uniswap.org/'
-    license+'MIT'
-==
-EOF
+# Take the docket file from a volume (/app-builds/uniswap/desk.docket-0)
+# Replace glob_url and glob_hash in that (refer landscape CI)
+
+# Replace the docket file for app
+# Substitue the glob URL and hash
+cp ${app_docket_file} ${app_desk_dir}/
+sed -i "s|REPLACE_WITH_GLOB_URL|${glob_url}|g; s|REPLACE_WITH_GLOB_HASH|${glob_hash}|g" desk.docket-0
 
 # Commit changes and install the app
 hood "commit %uniswap"

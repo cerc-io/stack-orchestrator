@@ -9,9 +9,10 @@ services:
       - REACT_APP_AWS_API_ENDPOINT=${CERC_UNISWAP_GQL}
     command: ["./build-app.sh"]
     volumes:
-      - app_builds:/app-builds
       - ../config/uniswap-interface/build-app.sh:/app/build-app.sh
+      - urbit_app_builds:/app-builds
+      - ../config/uniswap-interface/urbit-files/mar:/app-builds/uniswap/mar
+      - ../config/uniswap-interface/urbit-files/desk.docket-0:/app-builds/uniswap/desk.docket-0
 
 volumes:
-  app_builds:
-  app_globs:
+  urbit_app_builds:

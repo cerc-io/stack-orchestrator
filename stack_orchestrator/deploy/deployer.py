@@ -36,6 +36,10 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
+    def status(self):
+        pass
+
+    @abstractmethod
     def port(self, service, private_port):
         pass
 

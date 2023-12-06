@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import List
 import random
 from shutil import copy, copyfile, copytree
+from secrets import token_hex
 import sys
 from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
@@ -276,7 +277,7 @@ def init(ctx, config, config_file, kube_config, image_registry, output, map_port
 # call it from other commands, bypassing the click decoration stuff
 def init_operation(deploy_command_context, stack, deployer_type, config,
                    config_file, kube_config, image_registry, output, map_ports_to_host):
-    yaml = get_yaml()
+
     default_spec_file_content = call_stack_deploy_init(deploy_command_context)
     spec_file_content = {"stack": stack, constants.deploy_to_key: deployer_type}
     if deployer_type == "k8s":
@@ -311,8 +312,6 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
             new_config = config_file_variables
             merged_config = {**new_config, **orig_config}
             spec_file_content.update({"config": merged_config})
-    if opts.o.debug:
-        print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
 
     ports = _get_mapped_ports(stack, map_ports_to_host)
     spec_file_content.update({"network": {"ports": ports}})
@@ -324,8 +323,11 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
             volume_descriptors[named_volume] = f"./data/{named_volume}"
         spec_file_content["volumes"] = volume_descriptors
 
+    if opts.o.debug:
+        print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
+
     with open(output, "w") as output_file:
-        yaml.dump(spec_file_content, output_file)
+        get_yaml().dump(spec_file_content, output_file)
 
 
 def _write_config_file(spec_file: Path, config_env_file: Path):
@@ -349,6 +351,13 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
     for path in file_paths:
         # Using copy to preserve the execute bit
         copy(path, os.path.join(directory, os.path.basename(path)))
+
+
+def _create_deployment_file(deployment_dir: Path):
+    deployment_file_path = deployment_dir.joinpath(constants.deployment_file_name)
+    cluster = f"{constants.cluster_name_prefix}{token_hex(8)}"
+    with open(deployment_file_path, "w") as output_file:
+        output_file.write(f"{constants.cluster_id_key}: {cluster}\n")
 
 
 @click.command()
@@ -383,6 +392,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
     # Copy spec file and the stack file into the deployment dir
     copyfile(spec_file, deployment_dir_path.joinpath(constants.spec_file_name))
     copyfile(stack_file, deployment_dir_path.joinpath(os.path.basename(stack_file)))
+    _create_deployment_file(deployment_dir_path)
     # Copy any config varibles from the spec file into an env file suitable for compose
     _write_config_file(spec_file, deployment_dir_path.joinpath(constants.config_file_name))
     # Copy any k8s config file into the deployment dir

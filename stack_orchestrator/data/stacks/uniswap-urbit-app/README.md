@@ -41,10 +41,11 @@ network:
   ports:
     urbit-fake-ship:
       - '8080:80'
-    uniswap-glob-host:
-      - '3000:3000'
-    uniswap-gql-proxy:
+    proxy-server:
       - '4000:4000'
+    ipfs-glob-host:
+      - '8081:8080'
+      - '5001:5001'
 ...
 ```
 
@@ -63,7 +64,7 @@ laconic-so --stack uniswap-urbit-app deploy create --spec-file uniswap-urbit-app
 
 ## Set env variables
 
-Inside the deployment directory, open the file `config.env` and add variable for infura key :
+Inside the deployment directory, open the file `config.env` and set the following env variables:
 
   ```bash
   # External RPC endpoints
@@ -72,8 +73,36 @@ Inside the deployment directory, open the file `config.env` and add variable for
 
   # Uniswap API GQL Endpoint
   # Set this to GQL proxy server endpoint for uniswap app
-  # (Eg. http://localhost:4000/graphql)
+  # (Eg. http://localhost:4000/v1/graphql)
+  # (Eg. https://abc.xyz.com/v1/graphql)
   CERC_UNISWAP_GQL=
+
+  # Optional
+
+  # Whether to run the proxy GQL server
+  # (Disable only if proxy not required to be run) (Default: true)
+  ENABLE_PROXY=
+
+  # Proxy server configuration
+  # Used only if proxy is enabled
+
+  # Upstream API URL
+  # (Eg. https://api.example.org)
+  CERC_PROXY_UPSTREAM=https://api.uniswap.org
+
+  # Origin header to be used in the proxy
+  # (Eg. https://app.example.org)
+  CERC_PROXY_ORIGIN_HEADER=https://app.uniswap.org
+
+  # IPFS configuration
+
+  # IFPS endpoint to host the glob file on
+  # (Default: http://ipfs-glob-host:5001 pointing to in-stack IPFS node)
+  CERC_IPFS_GLOB_HOST_ENDPOINT=
+
+  # IFPS endpoint to fetch the glob file from
+  # (Default: http://ipfs-glob-host:8080 pointing to in-stack IPFS node)
+  CERC_IPFS_SERVER_ENDPOINT=
   ```
 
 ## Start the stack
@@ -109,7 +138,7 @@ laconic-so deployment --dir uniswap-urbit-app-deployment start
 
 ## Clean up
 
-To stop all uniswap-urbit-app services running in the background, while preserving chain data:
+To stop all uniswap-urbit-app services running in the background, while preserving data:
 
 ```bash
 laconic-so deployment --dir uniswap-urbit-app-deployment stop

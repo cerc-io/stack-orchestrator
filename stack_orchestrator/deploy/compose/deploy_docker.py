@@ -46,6 +46,13 @@ class DockerDeployer(Deployer):
         except DockerException as e:
             raise DeployerException(e)
 
+    def status(self):
+        try:
+            for p in self.docker.compose.ps():
+                print(f"{p.name}\t{p.state.status}")
+        except DockerException as e:
+            raise DeployerException(e)
+
     def ps(self):
         try:
             return self.docker.compose.ps()

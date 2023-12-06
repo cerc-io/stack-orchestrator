@@ -22,7 +22,7 @@ Build the container images:
 # support image for the gitea package registry
 laconic-so --stack build-support build-containers
 
-laconic-so --stack osmosis build-containers 
+laconic-so --stack osmosis build-containers
 ```
 
 ## Create a deployment
@@ -38,11 +38,12 @@ Edit `network` in spec file to map container ports to same ports in host
 
 ```
 ...
-ports:
-  proxy-server:
-    - '4000:4000'
-  python-server:
-    - '3000:3000'
+network:
+  ports:
+    proxy-server:
+      - '4000:4000'
+    python-server:
+      - '3000:3000'
 ```
 
 ### Data volumes
@@ -90,6 +91,8 @@ laconic-so deployment --dir osmosis-deployment start
 ```
 
 * List and check the health status of all the containers using `docker ps` and wait for them to be `healthy`
+
+* The web app can be accessed at http://localhost:3000
 
 ## Laconic registry
 

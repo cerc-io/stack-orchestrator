@@ -18,7 +18,7 @@ services:
       osmosis-front-end:
         condition: service_completed_successfully
     restart: on-failure
-    command: ["python3", "-m", "http.server", "-d" ,"/app-builds/osmosis/build", "4000"]
+    command: ["python3", "-m", "http.server", "-d" ,"/app-builds/osmosis/build", "3000"]
     volumes:
       - app_builds:/app-builds
     ports:

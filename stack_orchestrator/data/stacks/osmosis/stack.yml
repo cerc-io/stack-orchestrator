@@ -5,6 +5,7 @@ repos:
   - git.vdb.to/cerc-io/hosting@names-for-so
   - gitea.com/gitea/act_runner
   # For osmosis frontend
+  - github.com/cerc-io/watcher-ts@v0.2.78
   - github.com/cerc-io/osmosis-frontend@ng-export-static # TODO: Update branch after merge
 containers:
   - cerc/act-runner

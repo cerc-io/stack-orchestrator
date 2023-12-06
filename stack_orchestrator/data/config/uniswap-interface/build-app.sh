@@ -13,6 +13,9 @@ fi
 
 yarn build
 
-# Move build to app-builds so urbit can deploy it
+# Copy over build and other files to app-builds for urbit deployment
 mkdir -p /app-builds/uniswap
 cp -r ./build /app-builds/uniswap/
+
+cp -r mar /app-builds/uniswap/
+cp desk.docket-0 /app-builds/uniswap/

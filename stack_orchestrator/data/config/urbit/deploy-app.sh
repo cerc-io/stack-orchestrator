@@ -22,7 +22,7 @@ app_mark_files=/app-builds/${CERC_URBIT_APP}/mar
 app_docket_file=/app-builds/${CERC_URBIT_APP}/desk.docket-0
 
 echo "Reading app build from ${app_build}"
-echo "Reading the additional mark files from ${app_mark_files}"
+echo "Reading additional mark files from ${app_mark_files}"
 echo "Reading docket file ${app_docket_file}"
 
 # Loop until the app's build appears
@@ -72,9 +72,6 @@ glob_cid=$(echo "$upload_response" | grep -o '"Hash":"[^"]*' | sed 's/"Hash":"//
 echo "Glob file uploaded to IFPS:"
 echo "{ cid: ${glob_cid}, filename: ${glob_file} }"
 
-# Flag to skip installation
-# Exit here if the installation not required
-
 # Curl and wait for the glob to be hosted
 glob_url="${ipfs_server_endpoint}/ipfs/${glob_cid}?filename=${glob_file}"
 
@@ -86,20 +83,17 @@ while true; do
     echo "File found at $glob_url"
     break  # Exit the loop if the file is found
   else
-    echo "File not found. Retrying in a few seconds..."
+    echo "File not found, retrying in a 5s..."
     sleep 5
   fi
 done
 
 glob_hash=$(echo "$glob_file" | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
 
-# Take the docket file from a volume (/app-builds/uniswap/desk.docket-0)
-# Replace glob_url and glob_hash in that (refer landscape CI)
-
 # Replace the docket file for app
 # Substitue the glob URL and hash
 cp ${app_docket_file} ${app_desk_dir}/
-sed -i "s|REPLACE_WITH_GLOB_URL|${glob_url}|g; s|REPLACE_WITH_GLOB_HASH|${glob_hash}|g" desk.docket-0
+sed -i "s|REPLACE_WITH_GLOB_URL|${glob_url}|g; s|REPLACE_WITH_GLOB_HASH|${glob_hash}|g" ${app_desk_dir}/desk.docket-0
 
 # Commit changes and install the app
 hood "commit %uniswap"

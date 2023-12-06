@@ -67,6 +67,9 @@ laconic-so --stack uniswap-urbit-app deploy create --spec-file uniswap-urbit-app
 Inside the deployment directory, open the file `config.env` and set the following env variables:
 
   ```bash
+  # App to be installed (Do not change)
+  CERC_URBIT_APP=uniswap
+
   # External RPC endpoints
   # https://docs.infura.io/getting-started#2-create-an-api-key
   CERC_INFURA_KEY=

@@ -11,8 +11,8 @@ services:
     volumes:
       - ../config/uniswap-interface/build-app.sh:/app/build-app.sh
       - urbit_app_builds:/app-builds
-      - ../config/uniswap-interface/urbit-files/mar:/app-builds/uniswap/mar
-      - ../config/uniswap-interface/urbit-files/desk.docket-0:/app-builds/uniswap/desk.docket-0
+      - ../config/uniswap-interface/urbit-files/mar:/app/mar
+      - ../config/uniswap-interface/urbit-files/desk.docket-0:/app/desk.docket-0
 
 volumes:
   urbit_app_builds:

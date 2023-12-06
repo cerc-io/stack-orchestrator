@@ -10,4 +10,4 @@ containers:
 pods:
   - uniswap-interface
   - proxy-server
-  - uniswap-urbit
+  - fixturenet-urbit

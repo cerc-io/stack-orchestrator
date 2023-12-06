@@ -251,11 +251,11 @@ class K8sDeployer(Deployer):
         print("")
         print("Pods:")
 
-        for i in pods:
-            if i.metadata.deletion_timestamp:
-                print(f"\t{i.metadata.name}: Terminating ({i.metadata.deletion_timestamp})")
+        for p in pods:
+            if p.metadata.deletion_timestamp:
+                print(f"\t{p.metadata.namespace}/{p.metadata.name}: Terminating ({p.metadata.deletion_timestamp})")
             else:
-                print(f"\t{i.metadata.name}: Running ({i.metadata.creation_timestamp})")
+                print(f"\t{p.metadata.namespace}/{p.metadata.name}: Running ({p.metadata.creation_timestamp})")
 
     def ps(self):
         self.connect_api()
@@ -276,7 +276,7 @@ class K8sDeployer(Deployer):
                             })]
 
                 ret.append(AttrDict({
-                    "id": f"{self.k8s_namespace}/{p.metadata.name}",
+                    "id": f"{p.metadata.namespace}/{p.metadata.name}",
                     "name": p.metadata.name,
                     "namespace": p.metadata.namespace,
                     "network_settings": AttrDict({

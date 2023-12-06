@@ -1,7 +1,12 @@
 version: '3.7'
 
 services:
-  # TODO: Describe usage
+  # Runs an Urbit fake ship and attempts an app installation using given data
+  # Uploads the app glob to given IPFS endpoint
+  # From urbit_app_builds volume:
+  # - takes app build from ${CERC_URBIT_APP}/build (waits for it to appear)
+  # - takes additional mark files from ${CERC_URBIT_APP}/mar
+  # - takes the docket file from ${CERC_URBIT_APP}/desk.docket-0
   urbit-fake-ship:
     restart: unless-stopped
     image: tloncorp/vere

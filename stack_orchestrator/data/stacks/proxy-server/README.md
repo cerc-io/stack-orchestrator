@@ -47,7 +47,7 @@ laconic-so --stack proxy-server build-containers
 
   ```bash
   # Whether to run the proxy server (Optional) (Default: true)
-  ENABLE_PROXY=
+  CERC_ENABLE_PROXY=
 
   # Upstream endpoint
   # (Eg. https://api.example.org)

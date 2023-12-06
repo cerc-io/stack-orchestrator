@@ -82,9 +82,13 @@ Inside the deployment directory, open the file `config.env` and set the followin
 
   # Optional
 
+  # Whether to enable app installation on Urbit
+  # (just builds and uploads the glob file if disabled) (Default: true)
+  CERC_ENABLE_APP_INSTALL=
+
   # Whether to run the proxy GQL server
-  # (Disable only if proxy not required to be run) (Default: true)
-  ENABLE_PROXY=
+  # (disable only if proxy not required to be run) (Default: true)
+  CERC_ENABLE_PROXY=
 
   # Proxy server configuration
   # Used only if proxy is enabled

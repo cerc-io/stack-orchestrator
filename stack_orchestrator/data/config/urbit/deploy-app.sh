@@ -66,15 +66,25 @@ dojo "-landscape!make-glob %${CERC_URBIT_APP} /build"
 glob_file=$(ls -1 -c zod/.urb/put | head -1)
 echo "Created glob file: ${glob_file}"
 
+# Upload the glob file to IPFS
+echo "Uploading glob file to ${ipfs_host_endpoint}"
 upload_response=$(curl -X POST -F file=@./zod/.urb/put/${glob_file} ${ipfs_host_endpoint}/api/v0/add)
 glob_cid=$(echo "$upload_response" | grep -o '"Hash":"[^"]*' | sed 's/"Hash":"//')
 
+glob_url="${ipfs_server_endpoint}/ipfs/${glob_cid}?filename=${glob_file}"
+glob_hash=$(echo "$glob_file" | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
+
 echo "Glob file uploaded to IFPS:"
 echo "{ cid: ${glob_cid}, filename: ${glob_file} }"
+echo "{ url: ${glob_url}, hash: ${glob_hash} }"
+
+# Exit if the installation not required
+if [ "$CERC_ENABLE_APP_INSTALL" = "false" ]; then
+  echo "CERC_ENABLE_APP_INSTALL set to false, skipping app installation"
+  exit 0
+fi
 
 # Curl and wait for the glob to be hosted
-glob_url="${ipfs_server_endpoint}/ipfs/${glob_cid}?filename=${glob_file}"
-
 echo "Checking if glob file hosted at ${glob_url}"
 while true; do
   response=$(curl -sL -w "%{http_code}" -o /dev/null "$glob_url")
@@ -88,15 +98,13 @@ while true; do
   fi
 done
 
-glob_hash=$(echo "$glob_file" | sed "s/glob-\([a-z0-9\.]*\).glob/\1/")
-
 # Replace the docket file for app
 # Substitue the glob URL and hash
 cp ${app_docket_file} ${app_desk_dir}/
 sed -i "s|REPLACE_WITH_GLOB_URL|${glob_url}|g; s|REPLACE_WITH_GLOB_HASH|${glob_hash}|g" ${app_desk_dir}/desk.docket-0
 
 # Commit changes and install the app
-hood "commit %uniswap"
-hood "install our %uniswap"
+hood "commit %${CERC_URBIT_APP}"
+hood "install our %${CERC_URBIT_APP}"
 
-echo "Uniswap app installed"
+echo "${CERC_URBIT_APP} app installed"

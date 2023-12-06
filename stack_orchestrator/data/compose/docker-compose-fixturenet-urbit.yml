@@ -8,6 +8,7 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_URBIT_APP: ${CERC_URBIT_APP}
+      CERC_ENABLE_APP_INSTALL: ${CERC_ENABLE_APP_INSTALL:-true}
       CERC_IPFS_GLOB_HOST_ENDPOINT: ${CERC_IPFS_GLOB_HOST_ENDPOINT:-http://ipfs-glob-host:5001}
       CERC_IPFS_SERVER_ENDPOINT: ${CERC_IPFS_SERVER_ENDPOINT:-http://ipfs-glob-host:8080}
     entrypoint: ["bash", "-c", "./run-urbit-ship.sh && ./deploy-app.sh && tail -f /dev/null"]

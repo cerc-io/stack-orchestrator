@@ -276,7 +276,7 @@ class K8sDeployer(Deployer):
                             })]
 
                 ret.append(AttrDict({
-                    "id": p.metadata.name,
+                    "id": f"{self.k8s_namespace}/{p.metadata.name}",
                     "name": p.metadata.name,
                     "namespace": p.metadata.namespace,
                     "network_settings": AttrDict({

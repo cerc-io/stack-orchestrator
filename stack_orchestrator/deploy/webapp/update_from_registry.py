@@ -52,11 +52,11 @@ def build_image(app_record, deployment_dir):
             result.check_returncode()
 
         print("Building webapp ...")
-        result = subprocess.run(["laconic-so", "build-webapp", "--source-repo", clone_dir, "--tag", f"{name}:local"])
+        result = subprocess.run([sys.argv[0], "build-webapp", "--source-repo", clone_dir, "--tag", f"{name}:local"])
         result.check_returncode()
 
         print("Pushing image ...")
-        result = subprocess.run(["laconic-so", "deployment", "--dir", deployment_dir, "push-images"])
+        result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, "push-images"])
         result.check_returncode()
     finally:
         cmd("rm", "-rf", tmpdir)
@@ -75,7 +75,7 @@ def config_changed(deploy_record, deployment_dir):
 
 def redeploy(laconic_config, app_record, deploy_record, deploy_crn, deployment_dir):
     print("Updating deployment ...")
-    result = subprocess.run(["laconic-so", "deployment", "--dir", deployment_dir, "update"])
+    result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, "update"])
     result.check_returncode()
 
     spec = yaml.full_load(open(os.path.join(deployment_dir, "spec.yml")))
@@ -149,7 +149,6 @@ def update(ctx, deployment_dir, laconic_config, app_crn, deploy_crn, force=False
         needs_update = True
         old = None
         if deploy_record:
-            print(deploy_record)
             old = json.loads(deploy_record["attributes"]["meta"])["config"]
         print("Deployment %s has changed config: (old: %s, new: %s)" % (
             deploy_crn, old, config_hash(deployment_dir)))

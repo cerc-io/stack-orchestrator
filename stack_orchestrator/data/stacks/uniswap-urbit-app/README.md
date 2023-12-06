@@ -41,7 +41,7 @@ network:
   ports:
     urbit-fake-ship:
       - '8080:80'
-    uniswap-gql-proxy:
+    proxy-server:
       - '4000:4000'
     ipfs-glob-host:
       - '8081:8080'
@@ -74,6 +74,7 @@ Inside the deployment directory, open the file `config.env` and set the followin
   # Uniswap API GQL Endpoint
   # Set this to GQL proxy server endpoint for uniswap app
   # (Eg. http://localhost:4000/v1/graphql)
+  # (Eg. https://abc.xyz.com/v1/graphql)
   CERC_UNISWAP_GQL=
 
   # Optional
@@ -86,10 +87,12 @@ Inside the deployment directory, open the file `config.env` and set the followin
   # Used only if proxy is enabled
 
   # Upstream API URL
-  PROXY_UPSTREAM=https://api.uniswap.org
+  # (Eg. https://api.example.org)
+  CERC_PROXY_UPSTREAM=https://api.uniswap.org
 
   # Origin header to be used in the proxy
-  PROXY_ORIGIN_HEADER=https://app.uniswap.org
+  # (Eg. https://app.example.org)
+  CERC_PROXY_ORIGIN_HEADER=https://app.uniswap.org
 
   # IPFS configuration
 

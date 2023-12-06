@@ -50,9 +50,11 @@ laconic-so --stack proxy-server build-containers
   ENABLE_PROXY=
 
   # Upstream endpoint
+  # (Eg. https://api.example.org)
   CERC_PROXY_UPSTREAM=
 
   # Origin header to be used (Optional)
+  # (Eg. https://app.example.org)
   CERC_PROXY_ORIGIN_HEADER=
   ```
 

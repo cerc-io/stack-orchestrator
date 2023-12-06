@@ -24,6 +24,7 @@ from importlib import resources
 import subprocess
 import click
 from pathlib import Path
+from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
 from stack_orchestrator.deploy.deployer import Deployer, DeployerException
@@ -71,6 +72,9 @@ def create_deploy_context(
         cluster,
         env_file,
         deploy_to) -> DeployCommandContext:
+    # Extract the cluster name from the deployment, if we have one
+    if deployment_context and cluster is None:
+        cluster = deployment_context.get_cluster_id()
     cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
     deployer = getDeployer(deploy_to, deployment_context, compose_files=cluster_context.compose_files,
                            compose_project_name=cluster_context.cluster,
@@ -260,13 +264,13 @@ def _make_default_cluster_name(deployment, compose_dir, stack, include, exclude)
         path = os.path.realpath(os.path.abspath(compose_dir))
     else:
         path = "internal"
-        unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
-        if opts.o.debug:
-            print(f"pre-hash descriptor: {unique_cluster_descriptor}")
-        hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()[:16]
-        cluster = f"laconic-{hash}"
-        if opts.o.debug:
-            print(f"Using cluster name: {cluster}")
+    unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
+    if opts.o.debug:
+        print(f"pre-hash descriptor: {unique_cluster_descriptor}")
+    hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()[:16]
+    cluster = f"{constants.cluster_name_prefix}{hash}"
+    if opts.o.debug:
+        print(f"Using cluster name: {cluster}")
     return cluster
 
 
@@ -288,6 +292,8 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
 
     if cluster is None:
         cluster = _make_default_cluster_name(deployment, compose_dir, stack, include, exclude)
+    else:
+        _make_default_cluster_name(deployment, compose_dir, stack, include, exclude)
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from stack_orchestrator import data

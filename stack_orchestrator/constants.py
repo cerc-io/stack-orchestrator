@@ -13,12 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+cluster_name_prefix = "laconic-"
 stack_file_name = "stack.yml"
 spec_file_name = "spec.yml"
 config_file_name = "config.env"
+deployment_file_name = "deployment.yml"
+compose_dir_name = "compose"
 compose_deploy_type = "compose"
 k8s_kind_deploy_type = "k8s-kind"
 k8s_deploy_type = "k8s"
+cluster_id_key = "cluster-id"
 kube_config_key = "kube-config"
 deploy_to_key = "deploy-to"
 network_key = "network"

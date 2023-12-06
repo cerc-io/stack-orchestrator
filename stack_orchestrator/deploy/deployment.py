@@ -52,7 +52,7 @@ def make_deploy_context(ctx) -> DeployCommandContext:
     context: DeploymentContext = ctx.obj
     stack_file_path = context.get_stack_file()
     env_file = context.get_env_file()
-    cluster_name = context.get_cluster_name()
+    cluster_name = context.get_cluster_id()
     if constants.deploy_to_key in context.spec.obj:
         deployment_type = context.spec.obj[constants.deploy_to_key]
     else:

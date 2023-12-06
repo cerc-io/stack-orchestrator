@@ -33,7 +33,7 @@ laconic-so --stack uniswap-urbit-app deploy init --output uniswap-urbit-app-spec
 
 ### Ports
 
-Edit `network` in spec file to map container ports to same ports in host
+Edit `network` in spec file to map container ports to same ports in host:
 
 ```
 ...
@@ -43,11 +43,13 @@ network:
       - '8080:80'
     proxy-server:
       - '4000:4000'
-    ipfs-glob-host:
+    ipfs:
       - '8081:8080'
       - '5001:5001'
 ...
 ```
+
+Note: Skip the `ipfs` ports if need to use an externally running IPFS node
 
 ### Data volumes
 
@@ -104,11 +106,11 @@ Inside the deployment directory, open the file `config.env` and set the followin
   # IPFS configuration
 
   # IFPS endpoint to host the glob file on
-  # (Default: http://ipfs-glob-host:5001 pointing to in-stack IPFS node)
+  # (Default: http://ipfs:5001 pointing to in-stack IPFS node)
   CERC_IPFS_GLOB_HOST_ENDPOINT=
 
   # IFPS endpoint to fetch the glob file from
-  # (Default: http://ipfs-glob-host:8080 pointing to in-stack IPFS node)
+  # (Default: http://ipfs:8080 pointing to in-stack IPFS node)
   CERC_IPFS_SERVER_ENDPOINT=
   ```
 

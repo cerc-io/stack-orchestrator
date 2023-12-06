@@ -11,3 +11,4 @@ pods:
   - uniswap-interface
   - proxy-server
   - fixturenet-urbit
+  - kubo

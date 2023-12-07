@@ -6,7 +6,6 @@ repos:
 containers:
   - cerc/uniswap-interface
   - cerc/watcher-ts
-  - cerc/urbit-globs-host
 pods:
   - uniswap-interface
   - proxy-server

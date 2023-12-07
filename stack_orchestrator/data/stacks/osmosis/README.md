@@ -65,16 +65,15 @@ Inside the deployment directory, open the file `config.env` and set the followin
   ```bash
   # Osmosis API base URL
   # Set this to proxy server endpoint for uniswap app
-  # (Eg. http://localhost:4000)
-  # (Eg. https://abc.xyz.com)
-  CERC_WEB_API_BASE_URL=
+  # (Eg. http://localhost:4000 - in case stack is being run locally with proxy enabled)
+  # (Eg. https://abc.xyz.com - in case https://abc.xyz.com is pointed to the proxy endpoint)
+  CERC_WEB_API_BASE_URL=http://localhost:4000
 
   # Optional
 
-  # TODO: Change to CERC_ENABLE_PROXY after rebase
   # Whether to run the proxy server
   # (Disable only if proxy not required to be run) (Default: true)
-  ENABLE_PROXY=
+  CERC_ENABLE_PROXY=
 
   # Proxy server configuration
   # Used only if proxy is enabled
@@ -113,16 +112,23 @@ then `docker exec` into the `laconicd` container and either export the private k
 
 ## Clean up
 
-To stop all osmosis services running in the background, while preserving chain data:
+To stop all osmosis services running in the background, while preserving data:
 
 ```bash
+# Only stop the docker containers
 laconic-so deployment --dir osmosis-deployment stop
+
+# Run 'start' to restart the deployment
 ```
 
 To stop all osmosis services and also delete data:
 
 ```bash
+# Stop the docker containers
 laconic-so deployment --dir osmosis-deployment stop --delete-volumes
+
+# Remove deployment directory (deployment will have to be recreated for a re-run)
+rm -r osmosis-deployment
 ```
 
 To stop stack running Laconic registry

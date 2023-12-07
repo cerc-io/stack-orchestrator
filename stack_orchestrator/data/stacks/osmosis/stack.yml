@@ -2,14 +2,14 @@ version: "0.1"
 name: osmosis
 repos:
   # For gitea
-  - git.vdb.to/cerc-io/hosting@names-for-so
-  - gitea.com/gitea/act_runner
+  # - git.vdb.to/cerc-io/hosting@names-for-so
+  # - gitea.com/gitea/act_runner
   # For osmosis frontend
   - github.com/cerc-io/watcher-ts@v0.2.78
-  - github.com/cerc-io/osmosis-frontend@ng-export-static # TODO: Update branch after merge
+  - github.com/cerc-io/osmosis-frontend@laconic
 containers:
-  - cerc/act-runner
-  - cerc/act-runner-task-executor
+  # - cerc/act-runner
+  # - cerc/act-runner-task-executor
   - cerc/watcher-ts
   - cerc/osmosis-front-end
 pods:

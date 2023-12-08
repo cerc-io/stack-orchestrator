@@ -42,8 +42,8 @@ network:
   ports:
     proxy-server:
       - '4000:4000'
-    python-server:
-      - '3000:3000'
+    niginx:
+      - '3000:80'
 ```
 
 ### Data volumes

@@ -1,0 +1,14 @@
+record:
+  type: ApplicationDeploymentRecord
+  version: 1.2.3
+  name: name
+  description: description
+  application: application
+  url: url
+  dns: dns
+  request: request
+  meta:
+    foo: bar
+  tags:
+    - a
+    - b 

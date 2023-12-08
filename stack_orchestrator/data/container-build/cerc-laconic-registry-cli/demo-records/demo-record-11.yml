@@ -1,0 +1,12 @@
+record:
+  type: GeneralRecord
+  version: 1.2.3
+  name: name
+  description: description
+  category: category
+  value: value
+  meta:
+    foo: bar
+  tags:
+    - a
+    - b 

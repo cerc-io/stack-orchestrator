@@ -6,7 +6,7 @@ services:
     restart: on-failure
     working_dir: /app/packages/cli
     environment:
-      ENABLE_PROXY: ${ENABLE_PROXY:-true}
+      ENABLE_PROXY: ${CERC_ENABLE_PROXY:-true}
       PROXY_UPSTREAM: ${CERC_PROXY_UPSTREAM}
       PROXY_ORIGIN_HEADER: ${CERC_PROXY_ORIGIN_HEADER}
     command: ["sh", "-c", "./run.sh"]

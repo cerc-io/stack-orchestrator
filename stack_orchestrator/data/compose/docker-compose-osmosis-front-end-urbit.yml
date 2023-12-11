@@ -6,6 +6,8 @@ services:
     restart: on-failure
     environment:
       - NEXT_PUBLIC_WEB_API_BASE_URL=${CERC_WEB_API_BASE_URL}
+      - NEXT_PUBLIC_BASEPATH='/apps/osmosis'
+      - NEXT_PUBLIC_URBIT_DEPLOYMENT=true
     working_dir: /app/packages/web
     command: ["./build-app-for-urbit.sh"]
     volumes:

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
@@ -12,6 +12,7 @@ if [ -d /app-builds/osmosis/build ]; then
 fi
 
 yarn build:static
+./build.sh
 
 # Move build to app-builds
 mkdir -p /app-builds/osmosis

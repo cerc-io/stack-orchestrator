@@ -78,9 +78,9 @@ Inside the deployment directory, open the file `config.env` and set the followin
 
   # Uniswap API GQL Endpoint
   # Set this to GQL proxy server endpoint for uniswap app
-  # (Eg. http://localhost:4000/v1/graphql)
-  # (Eg. https://abc.xyz.com/v1/graphql)
-  CERC_UNISWAP_GQL=
+  # (Eg. http://localhost:4000/v1/graphql - in case stack is being run locally with proxy enabled)
+  # (Eg. https://abc.xyz.com/v1/graphql - in case https://abc.xyz.com is pointed to the proxy endpoint)
+  CERC_UNISWAP_GQL=http://localhost:4000/v1/graphql
 
   # Optional
 
@@ -150,11 +150,18 @@ laconic-so deployment --dir uniswap-urbit-app-deployment start
 To stop all uniswap-urbit-app services running in the background, while preserving data:
 
 ```bash
+# Only stop the docker containers
 laconic-so deployment --dir uniswap-urbit-app-deployment stop
+
+# Run 'start' to restart the deployment
 ```
 
 To stop all uniswap-urbit-app services and also delete data:
 
 ```bash
+# Stop the docker containers
 laconic-so deployment --dir uniswap-urbit-app-deployment stop --delete-volumes
+
+# Remove deployment directory (deployment will have to be recreated for a re-run)
+rm -r uniswap-urbit-app-deployment
 ```

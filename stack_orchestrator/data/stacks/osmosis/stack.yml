@@ -1,0 +1,30 @@
+version: "0.1"
+name: osmosis
+repos:
+  # For gitea
+  # - git.vdb.to/cerc-io/hosting@names-for-so
+  # - gitea.com/gitea/act_runner
+  # For osmosis frontend
+  - github.com/cerc-io/watcher-ts@v0.2.78
+  - github.com/cerc-io/osmosis-frontend@laconic
+containers:
+  # - cerc/act-runner
+  # - cerc/act-runner-task-executor
+  - cerc/watcher-ts
+  - cerc/osmosis-front-end
+pods:
+  - kubo
+  - proxy-server
+  - osmosis-front-end
+  # TODO: Fix pod config for deployment command
+  # TODO: mirroring all of osmosis repos: https://git.vdb.to/cerc-io/hosting/pulls/42
+  # - name: gitea
+  #   repository: cerc-io/hosting
+  #   path: gitea
+  #   pre_start_command: "run-this-first.sh"
+  #   post_start_command: "initialize-gitea.sh"
+  # - name: act-runner
+  #   repository: cerc-io/hosting
+  #   path: act-runner
+  #   pre_start_command: "pre_start.sh"
+  #   post_start_command: "post_start.sh"

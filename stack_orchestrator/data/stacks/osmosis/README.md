@@ -42,7 +42,7 @@ network:
   ports:
     proxy-server:
       - '4000:4000'
-    niginx:
+    nginx:
       - '3000:80'
 ```
 

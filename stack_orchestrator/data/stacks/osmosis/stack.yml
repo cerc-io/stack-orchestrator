@@ -6,7 +6,7 @@ repos:
   # - gitea.com/gitea/act_runner
   # For osmosis frontend
   - github.com/cerc-io/watcher-ts@v0.2.78
-  - github.com/cerc-io/osmosis-frontend@laconic
+  - github.com/cerc-io/osmosis-frontend@laconic # TODO: Use release
 containers:
   # - cerc/act-runner
   # - cerc/act-runner-task-executor

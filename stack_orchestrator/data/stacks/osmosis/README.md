@@ -18,9 +18,9 @@ laconic-so --stack osmosis setup-repositories
 
 Build the container images:
 
-```
-# support image for the gitea package registry
-laconic-so --stack build-support build-containers
+```bash
+# TODO: support image for the gitea package registry
+# laconic-so --stack build-support build-containers
 
 laconic-so --stack osmosis build-containers
 ```
@@ -62,9 +62,11 @@ laconic-so --stack osmosis deploy create --spec-file osmosis-spec.yml --deployme
 
 Inside the deployment directory, open the file `config.env` and set the following env variables:
 
+  (Note: Following config can be used as is if the stack is being run locally)
+
   ```bash
   # Osmosis API base URL
-  # Set this to proxy server endpoint for uniswap app
+  # Set this to proxy server endpoint for osmosis app
   # (Eg. http://localhost:4000 - in case stack is being run locally with proxy enabled)
   # (Eg. https://abc.xyz.com - in case https://abc.xyz.com is pointed to the proxy endpoint)
   CERC_WEB_API_BASE_URL=http://localhost:4000
@@ -85,9 +87,16 @@ Inside the deployment directory, open the file `config.env` and set the followin
 ## Start the stack
 
 Start the deployment:
+
 ```bash
 laconic-so deployment --dir osmosis-deployment start
 ```
+
+* The `osmosis-front-end` container will take some time to run to completion as it builds the front-end app with given configuration; same can be tracked in the logs:
+
+  ```bash
+  laconic-so deployment --dir osmosis-deployment logs -f osmosis-front-end
+  ```
 
 * List and check the health status of all the containers using `docker ps` and wait for them to be `healthy`
 
@@ -96,7 +105,8 @@ laconic-so deployment --dir osmosis-deployment start
 ## Laconic registry
 
 Setup a test chain:
-```
+
+```bash
 export CERC_NPM_REGISTRY_URL=https://git.vdb.to/api/packages/cerc-io/npm/
 
 laconic-so --stack fixturenet-laconic-loaded setup-repositories --include git.vdb.to/cerc-io/laconicd,git.vdb.to/cerc-io/laconic-sdk,git.vdb.to/cerc-io/laconic-registry-cli,git.vdb.to/cerc-io/laconic-console

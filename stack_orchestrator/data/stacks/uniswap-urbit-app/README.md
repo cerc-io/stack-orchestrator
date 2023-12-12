@@ -33,7 +33,7 @@ laconic-so --stack uniswap-urbit-app deploy init --output uniswap-urbit-app-spec
 
 ### Ports
 
-Edit `network` in spec file to map container ports to same ports in host
+Edit `network` in spec file to map container ports to same ports in host:
 
 ```
 ...
@@ -43,11 +43,13 @@ network:
       - '8080:80'
     proxy-server:
       - '4000:4000'
-    ipfs-glob-host:
+    ipfs:
       - '8081:8080'
       - '5001:5001'
 ...
 ```
+
+Note: Skip the `ipfs` ports if need to use an externally running IPFS node
 
 ### Data volumes
 
@@ -67,21 +69,28 @@ laconic-so --stack uniswap-urbit-app deploy create --spec-file uniswap-urbit-app
 Inside the deployment directory, open the file `config.env` and set the following env variables:
 
   ```bash
+  # App to be installed (Do not change)
+  CERC_URBIT_APP=uniswap
+
   # External RPC endpoints
   # https://docs.infura.io/getting-started#2-create-an-api-key
   CERC_INFURA_KEY=
 
   # Uniswap API GQL Endpoint
   # Set this to GQL proxy server endpoint for uniswap app
-  # (Eg. http://localhost:4000/v1/graphql)
-  # (Eg. https://abc.xyz.com/v1/graphql)
-  CERC_UNISWAP_GQL=
+  # (Eg. http://localhost:4000/v1/graphql - in case stack is being run locally with proxy enabled)
+  # (Eg. https://abc.xyz.com/v1/graphql - in case https://abc.xyz.com is pointed to the proxy endpoint)
+  CERC_UNISWAP_GQL=http://localhost:4000/v1/graphql
 
   # Optional
 
+  # Whether to enable app installation on Urbit
+  # (just builds and uploads the glob file if disabled) (Default: true)
+  CERC_ENABLE_APP_INSTALL=
+
   # Whether to run the proxy GQL server
-  # (Disable only if proxy not required to be run) (Default: true)
-  ENABLE_PROXY=
+  # (disable only if proxy not required to be run) (Default: true)
+  CERC_ENABLE_PROXY=
 
   # Proxy server configuration
   # Used only if proxy is enabled
@@ -97,11 +106,11 @@ Inside the deployment directory, open the file `config.env` and set the followin
   # IPFS configuration
 
   # IFPS endpoint to host the glob file on
-  # (Default: http://ipfs-glob-host:5001 pointing to in-stack IPFS node)
+  # (Default: http://ipfs:5001 pointing to in-stack IPFS node)
   CERC_IPFS_GLOB_HOST_ENDPOINT=
 
   # IFPS endpoint to fetch the glob file from
-  # (Default: http://ipfs-glob-host:8080 pointing to in-stack IPFS node)
+  # (Default: http://ipfs:8080 pointing to in-stack IPFS node)
   CERC_IPFS_SERVER_ENDPOINT=
   ```
 
@@ -141,11 +150,18 @@ laconic-so deployment --dir uniswap-urbit-app-deployment start
 To stop all uniswap-urbit-app services running in the background, while preserving data:
 
 ```bash
+# Only stop the docker containers
 laconic-so deployment --dir uniswap-urbit-app-deployment stop
+
+# Run 'start' to restart the deployment
 ```
 
 To stop all uniswap-urbit-app services and also delete data:
 
 ```bash
+# Stop the docker containers
 laconic-so deployment --dir uniswap-urbit-app-deployment stop --delete-volumes
+
+# Remove deployment directory (deployment will have to be recreated for a re-run)
+rm -r uniswap-urbit-app-deployment
 ```

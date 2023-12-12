@@ -1,0 +1,14 @@
+version: "3.7"
+
+services:
+  grafana:
+    image: grafana/grafana
+    restart: always
+    volumes:
+      - ../config/metrics/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_storage:/var/lib/grafana
+    ports:
+      - "3000:3000"
+
+volumes:
+  grafana_storage:

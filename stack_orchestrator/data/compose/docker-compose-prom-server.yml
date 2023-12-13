@@ -6,9 +6,11 @@ services:
     restart: always
     volumes:
       - ../config/monitoring/prometheus:/etc/prometheus
-      # TODO: persist data
-      # - prometheus_data:/prometheus
+      - prometheus_data:/prometheus
     ports:
       - "9090:9090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+volumes:
+  prometheus_data:

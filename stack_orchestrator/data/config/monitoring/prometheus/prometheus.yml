@@ -18,6 +18,13 @@ scrape_configs:
       - targets: ['host.docker.internal:9000']
         labels:
           instance: 'azimuth'
-      - targets: ['host.docker.internal:9002']
+      - targets: ['host.docker.internal:9010']
         labels:
           instance: 'ecliptic'
+
+  - job_name: sushiswap
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      # TODO: Replace address programmatically
+      - targets: ['host.docker.internal:9016']

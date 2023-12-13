@@ -704,20 +704,19 @@
       "type": "row"
     }
   ],
-  "refresh": "30s",
+  "refresh": "5s",
   "schemaVersion": 38,
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Azimuth Watchers",
-  "uid": "d5d3f22b-d452-47cc-8f17-d456da9cc843",
   "version": 4,
   "weekStart": ""
 }

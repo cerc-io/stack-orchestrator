@@ -180,7 +180,6 @@ def build_container_image(app_record, tag, extra_build_args=[]):
 
     try:
         record_id = app_record["id"]
-        name = app_record.attributes.name.replace("@", "")
         ref = app_record.attributes.repository_ref
         repo = random.choice(app_record.attributes.repository)
         clone_dir = os.path.join(tmpdir, record_id)

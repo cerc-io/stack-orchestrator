@@ -5,7 +5,8 @@ services:
     image: grafana/grafana
     restart: always
     volumes:
-      - ../config/metrics/grafana/provisioning:/etc/grafana/provisioning
+      - ../config/monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ../config/monitoring/grafana/dashboards:/etc/grafana/dashboards
       - grafana_storage:/var/lib/grafana
     ports:
       - "3000:3000"

@@ -5,8 +5,10 @@ services:
     image: prom/prometheus
     restart: always
     volumes:
-      - ../config/metrics/prometheus:/etc/prometheus
+      - ../config/monitoring/prometheus:/etc/prometheus
       # TODO: persist data
       # - prometheus_data:/prometheus
     ports:
       - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

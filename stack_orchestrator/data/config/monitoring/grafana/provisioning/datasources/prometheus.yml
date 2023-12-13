@@ -13,4 +13,4 @@ datasources:
     jsonData:
       httpMethod: POST
     version: 1
-    editable: false
+    editable: true

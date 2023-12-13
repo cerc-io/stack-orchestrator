@@ -26,7 +26,8 @@ import click
 from stack_orchestrator.deploy.webapp import deploy_webapp
 from stack_orchestrator.deploy.webapp.util import (AttrDict, LaconicRegistryClient,
                                                    build_container_image, push_container_image,
-                                                   file_hash, deploy_to_k8s, publish_deployment)
+                                                   file_hash, deploy_to_k8s, publish_deployment,
+                                                   hostname_for_deployment_request, generate_hostname_for_app)
 
 
 def process_app_deployment_request(
@@ -54,6 +55,26 @@ def process_app_deployment_request(
     container_tag = "%s:local" % app.attributes.name.replace("@", "")
 
     # 3. check ownership of existing dnsrecord vs this request
+    # TODO: Support foreign DNS
+    dns_crn = f"{dns_record_namespace}/{fqdn}"
+    dns_record = laconic.get_record(dns_crn)
+    if dns_record:
+        dns_record_owners = dns_record.owners
+        dns_request_owners = []
+        if dns_record.request:
+            prev_request = laconic.get_record(dns_record.request, require=True)
+            dns_request_owners = prev_request.owners
+
+        owner_match = None
+
+        for owner in app_deployment_request.owners:
+            if owner in dns_request_owners or owner in dns_record_owners:
+                owner_match = owner
+        if owner_match:
+            print("Matched DnsRecord ownership to", owner)
+        else:
+            raise Exception("Unable to confirm ownership of DnsRecord %s for request %s" %
+                            (dns_record.id, app_deployment_request.id))
 
     # 4. get build and runtime config from request
     env_filename = None
@@ -109,32 +130,11 @@ def process_app_deployment_request(
         app,
         deployment_record,
         app_deployment_crn,
+        dns_record,
+        dns_crn,
         deployment_dir,
         app_deployment_request
     )
-
-
-def hostname_for_deployment_request(app_deployment_request, laconic):
-    dns_name = app_deployment_request.attributes.dns
-    if not dns_name:
-        app = laconic.get_record(app_deployment_request.attributes.application, require=True)
-        dns_name = generate_hostname_for_app(app)
-    elif dns_name.startswith("crn://"):
-        record = laconic.get_record(dns_name, require=True)
-        dns_name = record.attributes.name
-    return dns_name
-
-
-def generate_hostname_for_app(app):
-    last_part = app.attributes.name.split("/")[-1]
-    m = hashlib.sha256()
-    m.update(app.attributes.name.encode())
-    m.update(b"|")
-    if isinstance(app.attributes.repository, list):
-        m.update(app.attributes.repository[0].encode())
-    else:
-        m.update(app.attributes.repository.encode())
-    return "%s-%s" % (last_part, m.hexdigest()[0:10])
 
 
 def load_known_requests(filename):

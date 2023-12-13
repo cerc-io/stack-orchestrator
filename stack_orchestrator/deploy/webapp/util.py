@@ -20,6 +20,8 @@ import random
 import subprocess
 import sys
 import tempfile
+import uuid
+
 import yaml
 
 
@@ -219,28 +221,84 @@ def deploy_to_k8s(deploy_record, deployment_dir):
     result.check_returncode()
 
 
-def publish_deployment(laconic: LaconicRegistryClient, app_record, deploy_record, deployment_crn, deployment_dir, app_deployment_request=None):
+def publish_deployment(laconic: LaconicRegistryClient,
+                       app_record,
+                       deploy_record,
+                       deployment_crn,
+                       dns_record,
+                       dns_crn,
+                       deployment_dir,
+                       app_deployment_request=None):
     if not deploy_record:
-        version = "0.0.1"
+        deploy_ver = "0.0.1"
     else:
-        version = "0.0.%d" % (int(deploy_record["attributes"]["version"].split(".")[-1]) + 1)
+        deploy_ver = "0.0.%d" % (int(deploy_record.attributes.version.split(".")[-1]) + 1)
+
+    if not dns_record:
+        dns_ver = "0.0.1"
+    else:
+        dns_ver = "0.0.%d" % (int(dns_record.attributes.version.split(".")[-1]) + 1)
 
     spec = yaml.full_load(open(os.path.join(deployment_dir, "spec.yml")))
-    hostname = spec["network"]["http-proxy"][0]["host-name"]
+    fqdn = spec["network"]["http-proxy"][0]["host-name"]
 
-    record = {
+    uniq = uuid.uuid4()
+
+    new_dns_record = {
         "record": {
-            "type": "ApplicationDeploymentRecord",
-            "version": version,
-            "url": f"https://{hostname}",
-            "name": hostname,
-            "application": app_record["id"],
+            "type": "DnsRecord",
+            "version": dns_ver,
+            "name": fqdn,
+            "resource_type": "A",
             "meta": {
-                "config": file_hash(os.path.join(deployment_dir, "config.env"))
+                "so": uniq.hex
             },
         }
     }
     if app_deployment_request:
-        record["record"]["request"] = app_deployment_request.id
+        new_dns_record["record"]["request"] = app_deployment_request.id
 
-    return laconic.publish(record, [deployment_crn])
+    dns_id = laconic.publish(new_dns_record, [dns_crn])
+
+    new_deployment_record = {
+        "record": {
+            "type": "ApplicationDeploymentRecord",
+            "version": deploy_ver,
+            "url": f"https://{fqdn}",
+            "name": app_record.attributes.name,
+            "application": app_record.id,
+            "dns": dns_id,
+            "meta": {
+                "config": file_hash(os.path.join(deployment_dir, "config.env")),
+                "so": uniq.hex
+            },
+        }
+    }
+    if app_deployment_request:
+        new_deployment_record["record"]["request"] = app_deployment_request.id
+
+    deployment_id = laconic.publish(new_deployment_record, [deployment_crn])
+    return {"dns": dns_id, "deployment": deployment_id}
+
+
+def hostname_for_deployment_request(app_deployment_request, laconic):
+    dns_name = app_deployment_request.attributes.dns
+    if not dns_name:
+        app = laconic.get_record(app_deployment_request.attributes.application, require=True)
+        dns_name = generate_hostname_for_app(app)
+    elif dns_name.startswith("crn://"):
+        record = laconic.get_record(dns_name, require=True)
+        dns_name = record.attributes.name
+    return dns_name
+
+
+def generate_hostname_for_app(app):
+    last_part = app.attributes.name.split("/")[-1]
+    m = hashlib.sha256()
+    m.update(app.attributes.name.encode())
+    m.update(b"|")
+    if isinstance(app.attributes.repository, list):
+        m.update(app.attributes.repository[0].encode())
+    else:
+        m.update(app.attributes.repository.encode())
+    return "%s-%s" % (last_part, m.hexdigest()[0:10])

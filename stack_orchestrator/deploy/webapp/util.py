@@ -209,7 +209,7 @@ def push_container_image(deployment_dir):
     result.check_returncode()
 
 
-def deploy_to_k8s(laconic: LaconicRegistryClient, app_record, deploy_record, deployment_crn, deployment_dir, app_deployment_request=None):
+def deploy_to_k8s(deploy_record, deployment_dir):
     if not deploy_record:
         command = "up"
     else:

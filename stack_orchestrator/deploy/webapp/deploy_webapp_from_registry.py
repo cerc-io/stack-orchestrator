@@ -35,6 +35,7 @@ def process_app_deployment_request(
     app_deployment_request,
     deployment_record_namespace,
     dns_record_namespace,
+    dns_suffix,
     deployment_parent_dir,
     kube_config,
     image_registry
@@ -44,12 +45,12 @@ def process_app_deployment_request(
 
     # 2. determine dns
     requested_name = hostname_for_deployment_request(app_deployment_request, laconic)
+
     # HACK
     if "." in requested_name:
         raise Exception("Only unqualified hostnames allowed at this time.")
 
-    # HACK
-    fqdn = f"{requested_name}.laconic.servesthe.world"
+    fqdn = f"{requested_name}.{dns_suffix}"
     container_tag = "%s:local" % app.attributes.name.replace("@", "")
 
     # 3. check ownership of existing dnsrecord vs this request
@@ -99,12 +100,8 @@ def process_app_deployment_request(
     if needs_k8s_deploy:
         print("Deploying to k8s")
         deploy_to_k8s(
-            laconic,
-            app,
             deployment_record,
-            app_deployment_crn,
             deployment_dir,
-            app_deployment_request
         )
 
     publish_deployment(
@@ -157,6 +154,7 @@ def dump_known_requests(filename, requests):
 
 @click.command()
 @click.option("--kube-config", help="Provide a config file for a k8s deployment")
+@click.option("--kube-config", help="Provide a config file for a k8s deployment")
 @click.option("--laconic-config", help="Provide a config file for laconicd", required=True)
 @click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
 @click.option("--deployment-parent-dir", help="Create deployment directories beneath this directory", required=True)
@@ -164,8 +162,13 @@ def dump_known_requests(filename, requests):
 @click.option("--discover", help="Discover and process all pending ApplicationDeploymentRequests", is_flag=True, default=False)
 @click.option("--state-file", help="File to store state about previously seen requests.")
 @click.option("--only-update-state", help="Only update the state file, don't process any requests anything.", is_flag=True)
+@click.option("--dns-suffix", help="DNS domain to use eg, laconic.servesthe.world")
+@click.option("--record-namespace-dns", help="eg, crn://laconic/dns")
+@click.option("--record-namespace-deployments", help="eg, crn://laconic/deployments")
 @click.pass_context
-def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir, request_id, discover, state_file, only_update_state):
+def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,
+            request_id, discover, state_file, only_update_state,
+            dns_suffix, record_namespace_dns, record_namespace_deployments):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)
@@ -177,6 +180,11 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
     if only_update_state and not state_file:
         print("--only-update-state requires --state-file", file=sys.stderr)
         sys.exit(2)
+
+    if not only_update_state:
+        if not record_namespace_dns or not record_namespace_deployments or not dns_suffix:
+            print("--dns-suffix, --record-namespace-dns, and --record-namespace-deployments are all required", file=sys.stderr)
+            sys.exit(2)
 
     laconic = LaconicRegistryClient(laconic_config)
 
@@ -239,7 +247,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     f"Skipping unsatisfied request {r.id} because we have seen it before."
                 )
         else:
-            print(f"Found satisfied request {r.id}")
+            print(f"Found satisfied request {r.id} at {deployments_by_request[r.id].names[0]}")
 
     print("Found %d unsatisfied request(s) to process." % len(requests_to_execute))
 
@@ -249,8 +257,9 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                 ctx,
                 laconic,
                 r,
-                "crn://cerc-io/deployments",
-                "crn://cerc-io/dns",
+                record_namespace_deployments,
+                record_namespace_dns,
+                dns_suffix,
                 deployment_parent_dir,
                 kube_config,
                 image_registry

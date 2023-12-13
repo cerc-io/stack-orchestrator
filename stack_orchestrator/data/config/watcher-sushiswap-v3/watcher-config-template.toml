@@ -41,7 +41,7 @@
     timeTravelMaxAge = 86400 # 1 day
 
 [metrics]
-  host = "127.0.0.1"
+  host = "0.0.0.0"
   port = 9000
   [metrics.gql]
     port = 9001

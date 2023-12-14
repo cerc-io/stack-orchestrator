@@ -189,6 +189,7 @@ class ClusterInfo:
                 container = client.V1Container(
                     name=container_name,
                     image=image_to_use,
+                    image_pull_policy="Always",
                     env=envs_from_environment_variables_map(self.environment_variables.map),
                     ports=[client.V1ContainerPort(container_port=port)],
                     volume_mounts=volume_mounts,

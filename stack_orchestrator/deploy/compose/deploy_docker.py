@@ -40,6 +40,12 @@ class DockerDeployer(Deployer):
         except DockerException as e:
             raise DeployerException(e)
 
+    def update(self):
+        try:
+            return self.docker.compose.restart()
+        except DockerException as e:
+            raise DeployerException(e)
+
     def status(self):
         try:
             for p in self.docker.compose.ps():

@@ -19,7 +19,7 @@ import sys
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.images import push_images_operation
 from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_operation, port_operation, status_operation
-from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context
+from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context, update_operation
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
@@ -149,3 +149,10 @@ def logs(ctx, tail, follow, extra_args):
 def status(ctx):
     ctx.obj = make_deploy_context(ctx)
     status_operation(ctx)
+
+
+@command.command()
+@click.pass_context
+def update(ctx):
+    ctx.obj = make_deploy_context(ctx)
+    update_operation(ctx)

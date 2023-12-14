@@ -54,26 +54,7 @@ def _fixup_url_spec(spec_file_name: str, url: str):
         wfile.write(contents)
 
 
-@click.group()
-@click.pass_context
-def command(ctx):
-    '''manage a webapp deployment'''
-
-    # Check that --stack wasn't supplied
-    if ctx.parent.obj.stack:
-        error_exit("--stack can't be supplied with the deploy-webapp command")
-
-
-@command.command()
-@click.option("--kube-config", help="Provide a config file for a k8s deployment")
-@click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
-@click.option("--deployment-dir", help="Create deployment files in this directory", required=True)
-@click.option("--image", help="image to deploy", required=True)
-@click.option("--url", help="url to serve", required=True)
-@click.option("--env-file", help="environment file for webapp")
-@click.pass_context
-def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_file):
-    '''create a deployment for the specified webapp container'''
+def create_deployment(ctx, deployment_dir, image, url, kube_config, image_registry, env_file):
     # Do the equivalent of:
     # 1. laconic-so --stack webapp-template deploy --deploy-to k8s init --output webapp-spec.yml
     #   --config (eqivalent of the contents of my-config.env)
@@ -92,7 +73,7 @@ def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_fil
     # TODO: support env file
     deploy_command_context: DeployCommandContext = create_deploy_context(
         global_options2(ctx), None, stack, None, None, None, env_file, "k8s"
-        )
+    )
     init_operation(
         deploy_command_context,
         stack,
@@ -116,3 +97,27 @@ def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_fil
     # Fix up the container tag inside the deployment compose file
     _fixup_container_tag(deployment_dir, image)
     os.remove(spec_file_name)
+
+
+@click.group()
+@click.pass_context
+def command(ctx):
+    '''manage a webapp deployment'''
+
+    # Check that --stack wasn't supplied
+    if ctx.parent.obj.stack:
+        error_exit("--stack can't be supplied with the deploy-webapp command")
+
+
+@command.command()
+@click.option("--kube-config", help="Provide a config file for a k8s deployment")
+@click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
+@click.option("--deployment-dir", help="Create deployment files in this directory", required=True)
+@click.option("--image", help="image to deploy", required=True)
+@click.option("--url", help="url to serve", required=True)
+@click.option("--env-file", help="environment file for webapp")
+@click.pass_context
+def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_file):
+    '''create a deployment for the specified webapp container'''
+
+    return create_deployment(ctx, deployment_dir, image, url, kube_config, image_registry, env_file)

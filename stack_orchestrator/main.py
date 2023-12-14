@@ -20,7 +20,7 @@ from stack_orchestrator.repos import setup_repositories
 from stack_orchestrator.build import build_containers
 from stack_orchestrator.build import build_npms
 from stack_orchestrator.build import build_webapp
-from stack_orchestrator.deploy.webapp import run_webapp, deploy_webapp
+from stack_orchestrator.deploy.webapp import run_webapp, deploy_webapp, deploy_webapp_from_registry
 from stack_orchestrator.deploy import deploy
 from stack_orchestrator import version
 from stack_orchestrator.deploy import deployment
@@ -53,6 +53,7 @@ cli.add_command(build_npms.command, "build-npms")
 cli.add_command(build_webapp.command, "build-webapp")
 cli.add_command(run_webapp.command, "run-webapp")
 cli.add_command(deploy_webapp.command, "deploy-webapp")
+cli.add_command(deploy_webapp_from_registry.command, "deploy-webapp-from-registry")
 cli.add_command(deploy.command, "deploy")  # deploy is an alias for deploy-system
 cli.add_command(deploy.command, "deploy-system")
 cli.add_command(deployment.command, "deployment")

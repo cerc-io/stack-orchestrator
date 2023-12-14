@@ -120,6 +120,14 @@ def status_operation(ctx):
         ctx.obj.deployer.status()
 
 
+def update_operation(ctx):
+    global_context = ctx.parent.parent.obj
+    if not global_context.dry_run:
+        if global_context.verbose:
+            print("Running compose update")
+        ctx.obj.deployer.update()
+
+
 def ps_operation(ctx):
     global_context = ctx.parent.parent.obj
     if not global_context.dry_run:

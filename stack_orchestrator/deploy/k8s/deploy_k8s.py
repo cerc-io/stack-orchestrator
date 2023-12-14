@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+from datetime import datetime, timezone
+
 from pathlib import Path
 from kubernetes import client, config
 
@@ -303,6 +305,33 @@ class K8sDeployer(Deployer):
         k8s_pod_name = pods[0]
         log_data = self.core_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container="test")
         return log_stream_from_string(log_data)
+
+    def update(self):
+        self.connect_api()
+        ref_deployment = self.cluster_info.get_deployment()
+
+        deployment = self.apps_api.read_namespaced_deployment(
+            name=ref_deployment.metadata.name,
+            namespace=self.k8s_namespace
+        )
+
+        new_env = ref_deployment.spec.template.spec.containers[0].env
+        for container in deployment.spec.template.spec.containers:
+            old_env = container.env
+            if old_env != new_env:
+                container.env = new_env
+
+        deployment.spec.template.metadata.annotations = {
+            "kubectl.kubernetes.io/restartedAt": datetime.utcnow()
+            .replace(tzinfo=timezone.utc)
+            .isoformat()
+        }
+
+        self.apps_api.patch_namespaced_deployment(
+            name=ref_deployment.metadata.name,
+            namespace=self.k8s_namespace,
+            body=deployment
+        )
 
     def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
         # We need to figure out how to do this -- check why we're being called first

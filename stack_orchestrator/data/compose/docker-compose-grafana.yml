@@ -10,6 +10,12 @@ services:
       - grafana_storage:/var/lib/grafana
     ports:
       - "3000"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 3s
 
 volumes:
   grafana_storage:

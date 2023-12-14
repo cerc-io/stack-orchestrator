@@ -58,7 +58,7 @@ Note: Use `host.docker.internal` as host to access ports on the host machine
 
 ### Grafana Config
 
-Place the dashboard configs files (json) in grafana dashboards config directory (`monitoring-deployment/config/monitoring/grafana/dashboards`) in the deployment folder
+Place the dashboard json files in grafana dashboards config directory (`monitoring-deployment/config/monitoring/grafana/dashboards`) in the deployment folder
 
 ## Start the stack
 

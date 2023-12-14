@@ -93,7 +93,7 @@ def process_app_deployment_request(
     deployment_record = laconic.get_record(app_deployment_crn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
     deployment_config_file = os.path.join(deployment_dir, "config.env")
-    deployment_container_tag = "%s:local" % hashlib.sha256(deployment_dir).hexdigest()
+    deployment_container_tag = "%s:local" % hashlib.sha256(deployment_dir.encode()).hexdigest()
     #   b. check for deployment directory (create if necessary)
     if not os.path.exists(deployment_dir):
         if deployment_record:
@@ -251,8 +251,8 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
     print("Found %d unsatisfied request(s) to process." % len(requests_to_execute))
 
     for r in requests_to_execute:
-        try:
-            process_app_deployment_request(
+        try(:
+            process_app_deployment_request
                 ctx,
                 laconic,
                 r,

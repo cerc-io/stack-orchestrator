@@ -104,7 +104,8 @@ CUR_NEXT_VERSION="`jq -r '.dependencies.next' package.json`"
 
 if [ "$CERC_NEXT_VERSION" != "keep" ] && [ "$CUR_NEXT_VERSION" != "$CERC_NEXT_VERSION" ]; then
   echo "Changing 'next' version specifier from '$CUR_NEXT_VERSION' to '$CERC_NEXT_VERSION' (set with '--extra-build-args \"--build-arg CERC_NEXT_VERSION=$CERC_NEXT_VERSION\"')"
-  cat package.json | jq ".dependencies.next = \"$CERC_NEXT_VERSION\"" | sponge package.json
+  cat package.json | jq ".dependencies.next = \"$CERC_NEXT_VERSION\"" > package.json.$$
+  mv package.json.$$ package.json
 fi
 
 $CERC_BUILD_TOOL install || exit 1
@@ -128,7 +129,8 @@ to use for the build with:
 ###############################################################################
 
 EOF
-  cat package.json | jq ".dependencies.next = \"^$CERC_MIN_NEXTVER\"" | sponge package.json
+  cat package.json | jq ".dependencies.next = \"^$CERC_MIN_NEXTVER\"" > package.json.$$
+  mv package.json.$$ package.json
   $CERC_BUILD_TOOL install || exit 1
 fi
 

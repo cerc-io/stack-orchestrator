@@ -1,6 +1,6 @@
 # Originally from: https://github.com/devcontainers/images/blob/main/src/javascript-node/.devcontainer/Dockerfile
 # [Choice] Node.js version (use -bullseye variants on local arm64/Apple Silicon): 18, 16, 14, 18-bullseye, 16-bullseye, 14-bullseye, 18-buster, 16-buster, 14-buster
-ARG VARIANT=20-bullseye
+ARG VARIANT=20-bullseye-slim
 FROM node:${VARIANT}
 
 ARG USERNAME=node
@@ -30,7 +30,7 @@ RUN \
 
 # [Optional] Uncomment this section to install additional OS packages.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends jq gettext-base moreutils
+    && apt-get -y install --no-install-recommends jq gettext-base
 
 # [Optional] Uncomment if you want to install more global node modules
 # RUN su node -c "npm install -g <your-package-list-here>"

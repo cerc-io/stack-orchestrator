@@ -1,7 +1,7 @@
 version: "0.1"
 name: osmosis-urbit-app
 repos:
-  - github.com/cerc-io/osmosis-frontend@pm-urbit-compat # TODO: Use release
+  - github.com/cerc-io/osmosis-frontend@laconic
   - github.com/cerc-io/watcher-ts@v0.2.78
 containers:
   - cerc/osmosis-front-end-urbit

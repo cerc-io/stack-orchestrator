@@ -1,0 +1,22 @@
+version: "3.7"
+
+services:
+  prometheus:
+    image: prom/prometheus
+    restart: always
+    volumes:
+      - ../config/monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    ports:
+      - "9090"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "9090"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 3s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  prometheus_data:

@@ -18,9 +18,27 @@ scrape_configs:
       - targets: ['host.docker.internal:9000']
         labels:
           instance: 'azimuth'
+      - targets: ['host.docker.internal:9002']
+        labels:
+          instance: 'censures'
+      - targets: ['host.docker.internal:9004']
+        labels:
+          instance: 'claims'
+      - targets: ['host.docker.internal:9006']
+        labels:
+          instance: 'conditional_star_release'
+      - targets: ['host.docker.internal:9008']
+        labels:
+          instance: 'delegated_sending_watcher'
       - targets: ['host.docker.internal:9010']
         labels:
           instance: 'ecliptic'
+      - targets: ['host.docker.internal:9012']
+        labels:
+          instance: 'linear_star_release'
+      - targets: ['host.docker.internal:9014']
+        labels:
+          instance: 'polls'
 
   - job_name: sushi
     metrics_path: /metrics

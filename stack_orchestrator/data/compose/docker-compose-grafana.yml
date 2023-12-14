@@ -9,7 +9,7 @@ services:
       - ../config/monitoring/grafana/dashboards:/etc/grafana/dashboards
       - grafana_storage:/var/lib/grafana
     ports:
-      - "3000:3000"
+      - "3000"
 
 volumes:
   grafana_storage:

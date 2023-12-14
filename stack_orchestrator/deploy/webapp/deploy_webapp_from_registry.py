@@ -90,10 +90,10 @@ def process_app_deployment_request(
     if not app_deployment_crn.startswith(deployment_record_namespace):
         raise Exception("Deployment CRN %s is not in a supported namespace" % app_deployment_request.attributes.deployment)
 
-    deployment_container_tag = "%s:local" % hashlib.sha256(app_deployment_crn.encode()).hexdigest()
     deployment_record = laconic.get_record(app_deployment_crn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
     deployment_config_file = os.path.join(deployment_dir, "config.env")
+    deployment_container_tag = "%s:local" % hashlib.sha256(deployment_dir).hexdigest()
     #   b. check for deployment directory (create if necessary)
     if not os.path.exists(deployment_dir):
         if deployment_record:

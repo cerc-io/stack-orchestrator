@@ -93,11 +93,11 @@ def process_app_deployment_request(
     deployment_record = laconic.get_record(app_deployment_crn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
     deployment_config_file = os.path.join(deployment_dir, "config.env")
-    deployment_container_tag = "%s:local" % hashlib.sha256(deployment_dir.encode()).hexdigest()
+    deployment_container_tag = "laconic/%s:local" % hashlib.sha256(deployment_dir.encode()).hexdigest()
     #   b. check for deployment directory (create if necessary)
     if not os.path.exists(deployment_dir):
         if deployment_record:
-            raise ("Deployment record %s exists, but not deployment dir %s. Please remove name." %
+            raise Exception("Deployment record %s exists, but not deployment dir %s. Please remove name." %
                    (app_deployment_crn, deployment_dir))
         print("deploy_webapp", deployment_dir)
         deploy_webapp.create_deployment(ctx, deployment_dir, deployment_container_tag,
@@ -268,3 +268,4 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                 )
             finally:
                 dump_known_requests(state_file, [r])
+

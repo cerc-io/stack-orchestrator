@@ -1,5 +1,5 @@
 # Copyright ©2023 Vulcanize
-
+import hashlib
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -51,7 +51,6 @@ def process_app_deployment_request(
         raise Exception("Only unqualified hostnames allowed at this time.")
 
     fqdn = f"{requested_name}.{dns_suffix}"
-    container_tag = "%s:local" % app.attributes.name.replace("@", "")
 
     # 3. check ownership of existing dnsrecord vs this request
     # TODO: Support foreign DNS
@@ -91,6 +90,7 @@ def process_app_deployment_request(
     if not app_deployment_crn.startswith(deployment_record_namespace):
         raise Exception("Deployment CRN %s is not in a supported namespace" % app_deployment_request.attributes.deployment)
 
+    deployment_container_tag = "%s:local" % hashlib.sha256(app_deployment_crn.encode()).hexdigest()
     deployment_record = laconic.get_record(app_deployment_crn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
     deployment_config_file = os.path.join(deployment_dir, "config.env")
@@ -100,7 +100,7 @@ def process_app_deployment_request(
             raise ("Deployment record %s exists, but not deployment dir %s. Please remove name." %
                    (app_deployment_crn, deployment_dir))
         print("deploy_webapp", deployment_dir)
-        deploy_webapp.create_deployment(ctx, deployment_dir, container_tag,
+        deploy_webapp.create_deployment(ctx, deployment_dir, deployment_container_tag,
                                         f"https://{fqdn}", kube_config, image_registry, env_filename)
     elif env_filename:
         shutil.copyfile(env_filename, deployment_config_file)
@@ -108,7 +108,7 @@ def process_app_deployment_request(
     needs_k8s_deploy = False
     # 6. build container (if needed)
     if not deployment_record or deployment_record.attributes.application != app.id:
-        build_container_image(app, container_tag)
+        build_container_image(app, deployment_container_tag)
         push_container_image(deployment_dir)
         needs_k8s_deploy = True
 

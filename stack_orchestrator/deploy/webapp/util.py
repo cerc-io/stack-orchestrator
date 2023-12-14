@@ -186,8 +186,10 @@ def build_container_image(app_record, tag, extra_build_args=[]):
 
         print(f"Cloning repository {repo} to {clone_dir} ...")
         if ref:
-            result = subprocess.run(["git", "clone", "--depth", "1", "--branch", ref, repo, clone_dir])
+            # TODO: Determing branch or hash, and use depth 1 if we can.
+            result = subprocess.run(["git", "clone", repo, clone_dir])
             result.check_returncode()
+            subprocess.check_call(["git", "checkout", ref], cwd=clone_dir)
         else:
             result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir])
             result.check_returncode()

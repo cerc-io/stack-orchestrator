@@ -136,13 +136,4 @@ fi
 
 $CERC_BUILD_TOOL run cerc_compile || exit 1
 
-case $CERC_BUILD_TOOL in
-  yarn)
-    yarn install --production --frozen-lockfile --force
-    ;;
-  npm)
-    npm prune --omit=dev
-    ;;
-esac
-
 exit 0

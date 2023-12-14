@@ -44,9 +44,6 @@ network:
       - '4000:4000'
     nginx:
       - '3000:80'
-    ipfs-glob-host:
-      - '8081:8080'
-      - '5001:5001'
 ```
 
 ### Data volumes

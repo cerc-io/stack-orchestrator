@@ -259,7 +259,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                 record_namespace_deployments,
                 record_namespace_dns,
                 dns_suffix,
-                deployment_parent_dir,
+                os.path.abspath(deployment_parent_dir),
                 kube_config,
                 image_registry
             )

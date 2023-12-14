@@ -1,17 +1,17 @@
 # self-hosted osmosis
 
 Instructions to build and deploy:
-- self-hosted gitea
-- an ipfs node
-- the osmosis front end
-- a laconicd chain
+- Self-hosted gitea
+- An ipfs node
+- The osmosis front end
+- A laconicd chain
 
 ## Setup
 
 Clone required repositories:
 
 ```bash
-laconic-so --stack osmosis setup-repositories
+laconic-so --stack osmosis setup-repositories --pull
 
 # If this throws an error as a result of being already checked out to a branch/tag in a repo, remove the repositories and re-run the command
 ```

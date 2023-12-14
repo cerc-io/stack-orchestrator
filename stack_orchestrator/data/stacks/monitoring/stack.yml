@@ -1,0 +1,7 @@
+version: "0.1"
+name: monitoring
+repos:
+containers:
+pods:
+  - prom-server
+  - grafana

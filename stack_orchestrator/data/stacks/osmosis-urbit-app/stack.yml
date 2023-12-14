@@ -1,13 +1,13 @@
 version: "0.1"
-name: uniswap-urbit-app
+name: osmosis-urbit-app
 repos:
-  - github.com/cerc-io/uniswap-interface@laconic # TODO: Use release
+  - github.com/cerc-io/osmosis-frontend@laconic
   - github.com/cerc-io/watcher-ts@v0.2.78
 containers:
-  - cerc/uniswap-interface
+  - cerc/osmosis-front-end-urbit
   - cerc/watcher-ts
 pods:
-  - uniswap-interface
+  - osmosis-front-end-urbit
   - proxy-server
   - fixturenet-urbit
   - kubo

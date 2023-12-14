@@ -164,10 +164,11 @@ def dump_known_requests(filename, requests):
 @click.option("--dns-suffix", help="DNS domain to use eg, laconic.servesthe.world")
 @click.option("--record-namespace-dns", help="eg, crn://laconic/dns")
 @click.option("--record-namespace-deployments", help="eg, crn://laconic/deployments")
+@click.option("--dry-run", help="Don't do anything, just report what would be done.", is_flag=True)
 @click.pass_context
 def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,
             request_id, discover, state_file, only_update_state,
-            dns_suffix, record_namespace_dns, record_namespace_deployments):
+            dns_suffix, record_namespace_dns, record_namespace_deployments, dry_run):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)
@@ -196,7 +197,8 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
         requests = laconic.app_deployment_requests()
 
     if only_update_state:
-        dump_known_requests(state_file, requests)
+        if not dry_run:
+            dump_known_requests(state_file, requests)
         return
 
     previous_requests = load_known_requests(state_file)
@@ -250,18 +252,19 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
 
     print("Found %d unsatisfied request(s) to process." % len(requests_to_execute))
 
-    for r in requests_to_execute:
-        try:
-            process_app_deployment_request(
-                ctx,
-                laconic,
-                r,
-                record_namespace_deployments,
-                record_namespace_dns,
-                dns_suffix,
-                os.path.abspath(deployment_parent_dir),
-                kube_config,
-                image_registry
-            )
-        finally:
-            dump_known_requests(state_file, [r])
+    if not dry_run:
+        for r in requests_to_execute:
+            try:
+                process_app_deployment_request(
+                    ctx,
+                    laconic,
+                    r,
+                    record_namespace_deployments,
+                    record_namespace_dns,
+                    dns_suffix,
+                    os.path.abspath(deployment_parent_dir),
+                    kube_config,
+                    image_registry
+                )
+            finally:
+                dump_known_requests(state_file, [r])

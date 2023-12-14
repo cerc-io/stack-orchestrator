@@ -93,7 +93,7 @@ def process_app_deployment_request(
     deployment_record = laconic.get_record(app_deployment_crn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
     deployment_config_file = os.path.join(deployment_dir, "config.env")
-    deployment_container_tag = "laconic/%s:local" % hashlib.sha256(deployment_dir.encode()).hexdigest()
+    deployment_container_tag = "laconic-webapp/%s:local" % hashlib.md5(deployment_dir.encode()).hexdigest()
     #   b. check for deployment directory (create if necessary)
     if not os.path.exists(deployment_dir):
         if deployment_record:

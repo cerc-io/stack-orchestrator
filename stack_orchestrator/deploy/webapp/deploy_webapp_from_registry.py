@@ -98,7 +98,7 @@ def process_app_deployment_request(
     if not os.path.exists(deployment_dir):
         if deployment_record:
             raise Exception("Deployment record %s exists, but not deployment dir %s. Please remove name." %
-                   (app_deployment_crn, deployment_dir))
+                            (app_deployment_crn, deployment_dir))
         print("deploy_webapp", deployment_dir)
         deploy_webapp.create_deployment(ctx, deployment_dir, deployment_container_tag,
                                         f"https://{fqdn}", kube_config, image_registry, env_filename)
@@ -268,4 +268,3 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                 )
             finally:
                 dump_known_requests(state_file, [r])
-

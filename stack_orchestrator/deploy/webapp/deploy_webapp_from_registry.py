@@ -251,8 +251,8 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
     print("Found %d unsatisfied request(s) to process." % len(requests_to_execute))
 
     for r in requests_to_execute:
-        try(:
-            process_app_deployment_request
+        try:
+            process_app_deployment_request(
                 ctx,
                 laconic,
                 r,

@@ -13,7 +13,7 @@ containers:
   - cerc/watcher-ts
   - cerc/osmosis-front-end
 pods:
-  - kubo
+  # - kubo
   - proxy-server
   - osmosis-front-end
   # TODO: Fix pod config for deployment command

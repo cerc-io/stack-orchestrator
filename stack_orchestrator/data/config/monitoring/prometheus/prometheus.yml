@@ -22,9 +22,14 @@ scrape_configs:
         labels:
           instance: 'ecliptic'
 
-  - job_name: sushiswap
+  - job_name: sushi
     metrics_path: /metrics
     scheme: http
     static_configs:
       # TODO: Replace address programmatically
       - targets: ['host.docker.internal:9016']
+        labels:
+          instance: 'sushiswap'
+      - targets: ['host.docker.internal:9018']
+        labels:
+          instance: 'merkl_sushiswap'

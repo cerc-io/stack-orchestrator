@@ -200,9 +200,10 @@ class ClusterInfo:
                 )
                 containers.append(container)
         volumes = volumes_for_pod_files(self.parsed_pod_yaml_map)
+        image_pull_secrets = [client.V1LocalObjectReference(name="laconic-registry")]
         template = client.V1PodTemplateSpec(
             metadata=client.V1ObjectMeta(labels={"app": self.app_name}),
-            spec=client.V1PodSpec(containers=containers, volumes=volumes),
+            spec=client.V1PodSpec(containers=containers, image_pull_secrets=image_pull_secrets, volumes=volumes),
         )
         spec = client.V1DeploymentSpec(
             replicas=1, template=template, selector={

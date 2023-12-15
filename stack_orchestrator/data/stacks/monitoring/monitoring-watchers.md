@@ -40,6 +40,7 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-watchers-spec
 Add the following scrape configs to prometheus config file (`monitoring-watchers-deployment/config/monitoring/prometheus/prometheus.yml`) in the deployment folder:
 
   ```yml
+  ...
   - job_name: 'blackbox'
     ...
     static_configs:

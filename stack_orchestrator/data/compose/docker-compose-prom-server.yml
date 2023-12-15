@@ -18,5 +18,15 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  blackbox:
+    image: prom/blackbox-exporter:latest
+    restart: always
+    volumes:
+      - ../config/monitoring/blackbox.yml:/etc/blackbox_exporter/config.yml
+    ports:
+      - '9115'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   prometheus_data:

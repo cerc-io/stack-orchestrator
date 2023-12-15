@@ -42,7 +42,7 @@ if [ "$CERC_NEXTJS_SKIP_GENERATE" != "true" ]; then
     while [ $count -lt $CERC_MAX_GENERATE_TIME ] && [ "$generate_done" == "false" ]; do
       sleep 1
       count=$((count + 1))
-      grep 'rendered as static HTML' gen.out > /dev/null
+      grep 'rendered as static' gen.out > /dev/null
       if [ $? -eq 0 ]; then
         generate_done="true"
       fi

@@ -749,7 +749,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "pgboss_jobs_total{job=\"azimuth\", instance=\"azimuth\", state=~\"active|failed|cancelled|expired\", name=\"block-processing\"}",
+          "expr": "pgboss_jobs_total{job=\"azimuth\", instance=\"azimuth\", state=~\"active|retry|failed|cancelled|expired\", name=\"block-processing\"}",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -851,7 +851,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "pgboss_jobs_total{job=\"azimuth\", instance=\"azimuth\", state=~\"active|failed|cancelled|expired\", name=\"event-processing\"}",
+          "expr": "pgboss_jobs_total{job=\"azimuth\", instance=\"azimuth\", state=~\"active|retry|failed|cancelled|expired\", name=\"event-processing\"}",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -866,7 +866,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "5s",
+  "refresh": "10s",
   "schemaVersion": 38,
   "tags": [
     "ethereum",

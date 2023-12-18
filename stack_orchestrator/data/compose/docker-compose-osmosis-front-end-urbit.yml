@@ -12,6 +12,7 @@ services:
     command: ["./build-app-for-urbit.sh"]
     volumes:
       - ../config/osmosis/build-app-for-urbit.sh:/app/packages/web/build-app-for-urbit.sh
+      - ../config/osmosis/.env.production:/app/packages/web/.env.production
       - urbit_app_builds:/app-builds
       - ../config/osmosis/urbit-files/mar:/app/packages/web/mar
       - ../config/osmosis/urbit-files/desk.docket-0:/app/packages/web/desk.docket-0

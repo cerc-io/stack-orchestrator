@@ -10,6 +10,7 @@ services:
     command: ["./build-app.sh"]
     volumes:
       - ../config/osmosis/build-app.sh:/app/packages/web/build-app.sh
+      - ../config/osmosis/.env.production:/app/packages/web/.env.production
       - app_builds:/app-builds
 
   nginx:

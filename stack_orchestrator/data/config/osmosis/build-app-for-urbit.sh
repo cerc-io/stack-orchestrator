@@ -12,7 +12,7 @@ if [ -d /app-builds/osmosis/build ]; then
 fi
 
 yarn build:static
-./build.sh
+./build-urbit.sh
 
 # Move build to app-builds
 mkdir -p /app-builds/osmosis

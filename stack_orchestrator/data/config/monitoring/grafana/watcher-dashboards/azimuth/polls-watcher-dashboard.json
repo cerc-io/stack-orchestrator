@@ -95,7 +95,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
-      "description": "Chain head block number of upstream endpoint",
+      "description": "Chain head block number of the upstream endpoint",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -138,6 +138,24 @@
         "wideLayout": true
       },
       "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "latest_upstream_block_number{job=\"azimuth\", instance=\"polls\"}",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
       "title": "Upstream chain head",
       "type": "stat"
     },
@@ -146,7 +164,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
-      "description": "Chain head from a public endpoint (etherscan)",
+      "description": "Chain head from an external public endpoint",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -189,6 +207,24 @@
         "wideLayout": true
       },
       "pluginVersion": "10.2.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "latest_block_number{job=\"chain_heads\", chain=\"ethereum\"}",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
       "title": "External chain head",
       "type": "stat"
     },

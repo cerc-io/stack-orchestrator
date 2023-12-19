@@ -1,7 +1,7 @@
 version: "1.0"
 name: azimuth
 repos:
-  - github.com/cerc-io/azimuth-watcher-ts@v0.1.2
+  - github.com/cerc-io/azimuth-watcher-ts@v0.1.3
 containers:
   - cerc/watcher-azimuth
 pods:

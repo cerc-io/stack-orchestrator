@@ -48,6 +48,7 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
         - <AZIMUTH_GATEWAY_GQL_ENDPOINT>
   ...
   - job_name: azimuth
+    scrape_interval: 10s
     metrics_path: /metrics
     scheme: http
     static_configs:
@@ -77,6 +78,7 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
           instance: 'polls'
 
   - job_name: sushi
+    scrape_interval: 20s
     metrics_path: /metrics
     scheme: http
     static_configs:

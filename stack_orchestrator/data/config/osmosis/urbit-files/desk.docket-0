@@ -1,10 +1,10 @@
 :~  title+'Osmosis'
-    info+'Self-hosted osmosis frontend.'
+    info+'Osmosis DEX Frontend, built and maintained by Laconic'
     color+0xcd.75df
-    image+'https://logowik.com/content/uploads/images/osmosis8548.logowik.com.webp'
+    image+'https://altcoinsbox.com/wp-content/uploads/2023/03/osmosis-logo.png'
     base+'osmosis'
     glob-http+['REPLACE_WITH_GLOB_URL' REPLACE_WITH_GLOB_HASH]
-    version+[0 0 1]
+    version+[0 0 2]
     website+'https://osmosis.zone/'
     license+'MIT'
 ==

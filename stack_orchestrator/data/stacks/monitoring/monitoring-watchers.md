@@ -98,6 +98,15 @@ In the deployment folder, copy over the pre-configured watcher dashboard JSON fi
 cp -r monitoring-watchers-deployment/config/monitoring/grafana/watcher-dashboards/* monitoring-watchers-deployment/config/monitoring/grafana/dashboards/
 ```
 
+### Env
+
+Set the following env variables in the deployment env config file (`monitoring-watchers-deployment/config.env`):
+
+  ```bash
+  # Infura key to be used
+  CERC_INFURA_KEY=
+  ```
+
 ## Start the stack
 
 Start the deployment:

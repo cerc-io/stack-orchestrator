@@ -4,6 +4,7 @@
 * Comes with the following built-in exporters / dashboards:
   * [Prometheus Blackbox Exporter](https://grafana.com/grafana/dashboards/7587-prometheus-blackbox-exporter/) - for tracking HTTP endpoints
   * [NodeJS Application Dashboard](https://grafana.com/grafana/dashboards/11159-nodejs-application-dashboard/) - for default NodeJS metrics
+  * Chain Head Exporter - for tracking chain heads given external ETH RPC endpoints
 * See [monitoring-watchers.md](./monitoring-watchers.md) for an example usage of the stack with pre-configured dashboards for watchers
 
 ## Create a deployment
@@ -75,6 +76,24 @@ Note: Use `host.docker.internal` as host to access ports on the host machine
 ### Grafana Config
 
 Place the dashboard json files in grafana dashboards config directory (`monitoring-deployment/config/monitoring/grafana/dashboards`) in the deployment folder
+
+### Env
+
+Set the following env variables in the deployment env config file (`monitoring-deployment/config.env`):
+
+  ```bash
+  # External ETH RPC endpoint (ethereum)
+  # (Optional, default: https://mainnet.infura.io/v3)
+  CERC_ETH_RPC_ENDPOINT=
+
+  # Infura key to be used
+  # (Optional, used with ETH_RPC_ENDPOINT if provided)
+  CERC_INFURA_KEY=
+
+  # External ETH RPC endpoint (filecoin)
+  # (Optional, default: https://api.node.glif.io/rpc/v1)
+  CERC_FIL_RPC_ENDPOINT=
+  ```
 
 ## Start the stack
 

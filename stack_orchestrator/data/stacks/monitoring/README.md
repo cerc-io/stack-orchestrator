@@ -1,6 +1,9 @@
 # monitoring
 
 * Instructions to setup and run a Prometheus server and Grafana dashboard
+* Comes with the following built-in exporters / dashboards:
+  * [Prometheus Blackbox Exporter](https://grafana.com/grafana/dashboards/7587-prometheus-blackbox-exporter/) - for tracking HTTP endpoints
+  * [NodeJS Application Dashboard](https://grafana.com/grafana/dashboards/11159-nodejs-application-dashboard/) - for default NodeJS metrics
 * See [monitoring-watchers.md](./monitoring-watchers.md) for an example usage of the stack with pre-configured dashboards for watchers
 
 ## Create a deployment
@@ -43,7 +46,7 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-spec.yml --de
 
 ### Prometheus Config
 
-Add desired scrape configs to prometheus config file (`monitoring-deployment/config/monitoring/prometheus/prometheus.yml`) in the deployment folder; for example:
+* Add desired scrape configs to prometheus config file (`monitoring-deployment/config/monitoring/prometheus/prometheus.yml`) in the deployment folder; for example:
 
   ```yml
   ...
@@ -52,6 +55,19 @@ Add desired scrape configs to prometheus config file (`monitoring-deployment/con
     scheme: http
     static_configs:
       - targets: ['<METRICS_ENDPOINT_HOST>:<METRICS_ENDPOINT_PORT>']
+  ```
+
+* Also update the `blackbox` job to add any endpoints to be monitored on the Blackbox dashboard:
+
+  ```yml
+  ...
+  - job_name: 'blackbox'
+    ...
+    static_configs:
+      # Add URLs to be monitored below
+      - targets:
+        - <HTTP_ENDPOINT_1>
+        - <HTTP_ENDPOINT_2>
   ```
 
 Note: Use `host.docker.internal` as host to access ports on the host machine

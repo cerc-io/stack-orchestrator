@@ -7,6 +7,20 @@
   * Chain Head Exporter - for tracking chain heads given external ETH RPC endpoints
 * See [monitoring-watchers.md](./monitoring-watchers.md) for an example usage of the stack with pre-configured dashboards for watchers
 
+## Setup
+
+Clone required repositories:
+
+```bash
+laconic-so --stack monitoring setup-repositories --git-ssh --pull
+```
+
+Build the container images:
+
+```bash
+laconic-so --stack monitoring build-containers
+```
+
 ## Create a deployment
 
 First, create a spec file for the deployment, which will map the stack's ports and volumes to the host:

@@ -4,7 +4,7 @@ Instructions to setup and run monitoring stack with pre-configured watcher dashb
 
 ## Create a deployment
 
-First, create a spec file for the deployment, which will map the stack's ports and volumes to the host:
+After completing [setup](./README.md#setup), create a spec file for the deployment, which will map the stack's ports and volumes to the host:
 
 ```bash
 laconic-so --stack monitoring deploy init --output monitoring-watchers-spec.yml

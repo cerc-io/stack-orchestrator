@@ -1,6 +1,6 @@
 # Monitoring Watchers
 
-Instructions to setup and run monitoring stack with pre-configured watcher dashboards
+Instructions to setup and run monitoring stack with configured Watchers dashboard
 
 ## Create a deployment
 
@@ -98,7 +98,7 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
           chain: 'filecoin'
   ```
 
-Add scrape config as done above for any additional watcher to add it to the watcher dashboard.
+Add scrape config as done above for any additional watcher to add it to the Watchers dashboard.
 
 ### Env
 

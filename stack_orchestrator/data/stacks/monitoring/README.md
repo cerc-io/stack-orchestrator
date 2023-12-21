@@ -2,9 +2,12 @@
 
 * Instructions to setup and run a Prometheus server and Grafana dashboard
 * Comes with the following built-in exporters / dashboards:
-  * [Prometheus Blackbox Exporter](https://grafana.com/grafana/dashboards/7587-prometheus-blackbox-exporter/) - for tracking HTTP endpoints
-  * [NodeJS Application Dashboard](https://grafana.com/grafana/dashboards/11159-nodejs-application-dashboard/) - for default NodeJS metrics
   * Chain Head Exporter - for tracking chain heads given external ETH RPC endpoints
+  * Watchers dashboard
+  * [Prometheus Blackbox](https://grafana.com/grafana/dashboards/7587-prometheus-blackbox-exporter/) - for tracking HTTP endpoints
+  * [NodeJS Application Dashboard](https://grafana.com/grafana/dashboards/11159-nodejs-application-dashboard/) - for default NodeJS metrics
+  * [PostgreSQL Database](https://grafana.com/grafana/dashboards/9628-postgresql-database/) - for monitoring Postgres dbs
+  * [Node Exporter Full](https://grafana.com/grafana/dashboards/1860-node-exporter-full/) - for monitoring system metrics
 * See [monitoring-watchers.md](./monitoring-watchers.md) for an example usage of the stack with pre-configured dashboards for watchers
 
 ## Setup
@@ -72,7 +75,20 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-spec.yml --de
       - targets: ['<METRICS_ENDPOINT_HOST>:<METRICS_ENDPOINT_PORT>']
   ```
 
-* Blackbox: update the `blackbox` job to add any endpoints to be monitored on the Blackbox dashboard:
+* Node exporter: update the `node` job to add any node-exporter targets to be monitored:
+
+  ```yml
+  ...
+  - job_name: 'node'
+    ...
+    static_configs:
+      # Add node-exporter targets to be monitored below
+      - targets: [example-host:9100]
+        labels:
+          instance: 'my-host'
+  ```
+
+* Blackbox (in-stack exporter): update the `blackbox` job to add any endpoints to be monitored on the Blackbox dashboard:
 
   ```yml
   ...
@@ -85,7 +101,7 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-spec.yml --de
         - <HTTP_ENDPOINT_2>
   ```
 
-* Postgres:
+* Postgres (in-stack exporter):
   * Update the `postgres` job to add Postgres db targets to be monitored:
 
     ```yml
@@ -111,6 +127,8 @@ Place the dashboard json files in grafana dashboards config directory (`monitori
 Set the following env variables in the deployment env config file (`monitoring-deployment/config.env`):
 
   ```bash
+  # For chain-head exporter
+
   # External ETH RPC endpoint (ethereum)
   # (Optional, default: https://mainnet.infura.io/v3)
   CERC_ETH_RPC_ENDPOINT=

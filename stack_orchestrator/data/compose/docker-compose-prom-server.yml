@@ -43,5 +43,15 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    restart: always
+    volumes:
+      - ../config/monitoring/postgres-exporter.yml:/postgres_exporter.yml
+    ports:
+      - '9187'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   prometheus_data:

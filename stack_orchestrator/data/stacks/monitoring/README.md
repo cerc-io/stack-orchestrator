@@ -72,7 +72,7 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-spec.yml --de
       - targets: ['<METRICS_ENDPOINT_HOST>:<METRICS_ENDPOINT_PORT>']
   ```
 
-* Also update the `blackbox` job to add any endpoints to be monitored on the Blackbox dashboard:
+* Blackbox: update the `blackbox` job to add any endpoints to be monitored on the Blackbox dashboard:
 
   ```yml
   ...
@@ -84,6 +84,21 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-spec.yml --de
         - <HTTP_ENDPOINT_1>
         - <HTTP_ENDPOINT_2>
   ```
+
+* Postgres:
+  * Update the `postgres` job to add Postgres db targets to be monitored:
+
+    ```yml
+    ...
+    - job_name: 'postgres'
+      ...
+      static_configs:
+        # Add DB targets below
+        - targets: [example-server:5432]
+          labels:
+            instance: 'example-db'
+    ```
+  * Add database credentials to be used in `auth_modules` in the postgres-exporter config file (`monitoring-deployment/config/monitoring/postgres-exporter.yml`)
 
 Note: Use `host.docker.internal` as host to access ports on the host machine
 

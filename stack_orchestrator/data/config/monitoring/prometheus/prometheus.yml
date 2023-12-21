@@ -40,3 +40,21 @@ scrape_configs:
     static_configs:
       - targets: ['chain-head-exporter:5000']
 
+  - job_name: 'postgres'
+    scrape_interval: 30s
+    scrape_timeout: 30s
+    static_configs:
+      # Add DB targets below
+      # - targets: [example-server:5432]
+        # labels:
+          # instance: 'example-label'
+    metrics_path: /probe
+    params:
+      auth_module: [foo]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: postgres-exporter:9187

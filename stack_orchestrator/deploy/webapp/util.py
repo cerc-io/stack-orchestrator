@@ -49,6 +49,14 @@ def cmd(*vargs):
         raise err
 
 
+def match_owner(recordA, *records):
+    for owner in recordA.owners:
+        for otherRecord in records:
+            if owner in otherRecord.owners:
+                return owner
+    return None
+
+
 class LaconicRegistryClient:
     def __init__(self, config_file):
         self.config_file = config_file

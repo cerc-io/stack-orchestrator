@@ -26,7 +26,8 @@ from stack_orchestrator.deploy.webapp import deploy_webapp
 from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient,
                                                    build_container_image, push_container_image,
                                                    file_hash, deploy_to_k8s, publish_deployment,
-                                                   hostname_for_deployment_request, generate_hostname_for_app)
+                                                   hostname_for_deployment_request, generate_hostname_for_app,
+                                                   match_owner)
 
 
 def process_app_deployment_request(
@@ -57,19 +58,12 @@ def process_app_deployment_request(
     dns_crn = f"{dns_record_namespace}/{fqdn}"
     dns_record = laconic.get_record(dns_crn)
     if dns_record:
-        dns_record_owners = dns_record.owners
-        dns_request_owners = []
-        if dns_record.request:
-            prev_request = laconic.get_record(dns_record.request, require=True)
-            dns_request_owners = prev_request.owners
+        matched_owner = match_owner(app_deployment_request, dns_record)
+        if not matched_owner and dns_record.request:
+            matched_owner = match_owner(app_deployment_request, laconic.get_record(dns_record.request, require=True))
 
-        owner_match = None
-
-        for owner in app_deployment_request.owners:
-            if owner in dns_request_owners or owner in dns_record_owners:
-                owner_match = owner
-        if owner_match:
-            print("Matched DnsRecord ownership to", owner)
+        if matched_owner:
+            print("Matched DnsRecord ownership:", matched_owner)
         else:
             raise Exception("Unable to confirm ownership of DnsRecord %s for request %s" %
                             (dns_record.id, app_deployment_request.id))
@@ -237,16 +231,16 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
             deployments_by_request[d.attributes.request] = d
 
     # Find removal requests.
-    removals_by_request = {}
+    cancellation_requests = {}
     removal_requests = laconic.app_deployment_removal_requests()
     for r in removal_requests:
         if r.attributes.request:
-            removals_by_request[r.attributes.request] = r
+            cancellation_requests[r.attributes.request] = r
 
     requests_to_execute = []
     for r in requests_by_name.values():
-        if r.id in removals_by_request:
-            print(f"Found removal request for {r.id} at {removals_by_request[r.id].id}")
+        if r.id in cancellation_requests and match_owner(cancellation_requests[r.id], r):
+            print(f"Found deployment cancellation request for {r.id} at {cancellation_requests[r.id].id}")
         elif r.id in deployments_by_request:
             print(f"Found satisfied request for {r.id} at {deployments_by_request[r.id].id}")
         else:

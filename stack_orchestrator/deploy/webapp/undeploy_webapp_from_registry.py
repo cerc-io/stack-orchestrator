@@ -20,7 +20,7 @@ import sys
 
 import click
 
-from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient
+from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient, match_owner
 
 
 def process_app_removal_request(ctx,
@@ -35,6 +35,19 @@ def process_app_removal_request(ctx,
 
     if not os.path.exists(deployment_dir):
         raise Exception("Deployment directory %s does not exist." % deployment_dir)
+
+    # Check if the removal request is from the owner of the DnsRecord or deployment record.
+    matched_owner = match_owner(app_removal_request, deployment_record, dns_record)
+
+    # Or of the original deployment request.
+    if not matched_owner and deployment_record.request:
+        matched_owner = match_owner(app_removal_request, laconic.get_record(deployment_record.request, require=True))
+
+    if matched_owner:
+        print("Matched deployment ownership:", matched_owner)
+    else:
+        raise Exception("Unable to confirm ownership of deployment %s for removal request %s" %
+                        (deployment_record.id, app_removal_request.id))
 
     # TODO(telackey): Call the function directly.  The easiest way to build the correct click context is to
     # exec the process, but it would be better to refactor so we could just call down_operation with the

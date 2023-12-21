@@ -20,10 +20,15 @@ import sys
 
 import click
 
-from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient, cmd
+from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient
 
 
-def process_app_removal_request(ctx, laconic: LaconicRegistryClient, app_removal_request, deployment_parent_dir, delete_volumes, delete_names):
+def process_app_removal_request(ctx,
+                                laconic: LaconicRegistryClient,
+                                app_removal_request,
+                                deployment_parent_dir,
+                                delete_volumes,
+                                delete_names):
     deployment_record = laconic.get_record(app_removal_request.attributes.deployment, require=True)
     dns_record = laconic.get_record(deployment_record.attributes.dns, require=True)
     deployment_dir = os.path.join(deployment_parent_dir, dns_record.attributes.name)
@@ -82,7 +87,8 @@ def dump_known_requests(filename, requests):
 @click.option("--laconic-config", help="Provide a config file for laconicd", required=True)
 @click.option("--deployment-parent-dir", help="Create deployment directories beneath this directory", required=True)
 @click.option("--request-id", help="The ApplicationDeploymentRemovalRequest to process")
-@click.option("--discover", help="Discover and process all pending ApplicationDeploymentRemovalRequests", is_flag=True, default=False)
+@click.option("--discover", help="Discover and process all pending ApplicationDeploymentRemovalRequests",
+              is_flag=True, default=False)
 @click.option("--state-file", help="File to store state about previously seen requests.")
 @click.option("--only-update-state", help="Only update the state file, don't process any requests anything.", is_flag=True)
 @click.option("--delete-names/--preserve-names", help="Delete all names associated with removed deployments.", default=True)
@@ -144,7 +150,8 @@ def command(ctx, laconic_config, deployment_parent_dir,
             print(f"Found satisfied request for {r.id} at {removals_by_request[r.id].id}")
         elif r.attributes.deployment in removals_by_deployment:
             print(
-                f"Found removal record for indicated deployment {r.attributes.deployment} at {removals_by_deployment[r.attributes.deployment].id}")
+                f"Found removal record for indicated deployment {r.attributes.deployment} at "
+                f"{removals_by_deployment[r.attributes.deployment].id}")
         else:
             if r.id not in previous_requests:
                 print(f"Request {r.id} needs to processed.")

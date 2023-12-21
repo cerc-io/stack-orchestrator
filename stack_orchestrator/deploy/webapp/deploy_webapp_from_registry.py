@@ -245,10 +245,10 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
 
     requests_to_execute = []
     for r in requests_by_name.values():
-        if r.id in deployments_by_request:
-            print(f"Found satisfied request for {r.id} at {deployments_by_request[r.id].names[0]}")
-        elif r.id in removals_by_request:
+        if r.id in removals_by_request:
             print(f"Found removal request for {r.id} at {removals_by_request[r.id].id}")
+        elif r.id in deployments_by_request:
+            print(f"Found satisfied request for {r.id} at {deployments_by_request[r.id].id}")
         else:
             if r.id not in previous_requests:
                 print(f"Request {r.id} needs to processed.")

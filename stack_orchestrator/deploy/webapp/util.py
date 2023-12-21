@@ -146,11 +146,17 @@ class LaconicRegistryClient:
             raise Exception("Cannot locate record:", name_or_id)
         return None
 
-    def app_deployment_requests(self):
-        return self.list_records({"type": "ApplicationDeploymentRequest"}, True)
+    def app_deployment_requests(self, all=True):
+        return self.list_records({"type": "ApplicationDeploymentRequest"}, all)
 
-    def app_deployments(self):
-        return self.list_records({"type": "ApplicationDeploymentRecord"})
+    def app_deployments(self, all=True):
+        return self.list_records({"type": "ApplicationDeploymentRecord"}, all)
+
+    def app_deployment_removal_requests(self, all=True):
+        return self.list_records({"type": "ApplicationDeploymentRemovalRequest"}, all)
+
+    def app_deployment_removals(self, all=True):
+        return self.list_records({"type": "ApplicationDeploymentRemovalRecord"}, all)
 
     def publish(self, record, names=[]):
         tmpdir = tempfile.mkdtemp()
@@ -165,11 +171,16 @@ class LaconicRegistryClient:
                 cmd("laconic", "-c", self.config_file, "cns", "record", "publish", "--filename", record_fname)
             )["id"]
             for name in names:
-                cmd("laconic", "-c", self.config_file, "cns", "name", "set", name, new_record_id)
+                self.set_name(name, new_record_id)
             return new_record_id
         finally:
             cmd("rm", "-rf", tmpdir)
 
+    def set_name(self, name, record_id):
+        cmd("laconic", "-c", self.config_file, "cns", "name", "set", name, record_id)
+
+    def delete_name(self, name):
+        cmd("laconic", "-c", self.config_file, "cns", "name", "delete", name)
 
 def file_hash(filename):
     return hashlib.sha1(open(filename).read().encode()).hexdigest()

@@ -153,7 +153,6 @@ def dump_known_requests(filename, requests):
 
 @click.command()
 @click.option("--kube-config", help="Provide a config file for a k8s deployment")
-@click.option("--kube-config", help="Provide a config file for a k8s deployment")
 @click.option("--laconic-config", help="Provide a config file for laconicd", required=True)
 @click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
 @click.option("--deployment-parent-dir", help="Create deployment directories beneath this directory", required=True)
@@ -237,9 +236,20 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
         if d.attributes.request:
             deployments_by_request[d.attributes.request] = d
 
+    # Find removal requests.
+    removals_by_request = {}
+    removal_requests = laconic.app_deployment_removal_requests()
+    for r in removal_requests:
+        if r.attributes.request:
+            removals_by_request[r.attributes.request] = r
+
     requests_to_execute = []
     for r in requests_by_name.values():
-        if r.id not in deployments_by_request:
+        if r.id in deployments_by_request:
+            print(f"Found satisfied request for {r.id} at {deployments_by_request[r.id].names[0]}")
+        elif r.id in removals_by_request:
+            print(f"Found removal request for {r.id} at {removals_by_request[r.id].id}")
+        else:
             if r.id not in previous_requests:
                 print(f"Request {r.id} needs to processed.")
                 requests_to_execute.append(r)
@@ -247,8 +257,6 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                 print(
                     f"Skipping unsatisfied request {r.id} because we have seen it before."
                 )
-        else:
-            print(f"Found satisfied request {r.id} at {deployments_by_request[r.id].names[0]}")
 
     print("Found %d unsatisfied request(s) to process." % len(requests_to_execute))
 

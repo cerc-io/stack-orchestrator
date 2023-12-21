@@ -182,6 +182,7 @@ class LaconicRegistryClient:
     def delete_name(self, name):
         cmd("laconic", "-c", self.config_file, "cns", "name", "delete", name)
 
+
 def file_hash(filename):
     return hashlib.sha1(open(filename).read().encode()).hexdigest()
 

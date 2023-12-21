@@ -35,8 +35,6 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-watchers-spec
 
 ## Configure
 
-### Prometheus Config
-
 Add the following scrape configs to prometheus config file (`monitoring-watchers-deployment/config/monitoring/prometheus/prometheus.yml`) in the deployment folder:
 
   ```yml
@@ -70,7 +68,7 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
           chain: 'ethereum'
       - targets: ['DELEGATED_SENDING_WATCHER_HOST:DELEGATED_SENDING_WATCHER_PORT']
         labels:
-          instance: 'delegated_sending_watcher'
+          instance: 'delegated_sending'
           chain: 'ethereum'
       - targets: ['ECLIPTIC_WATCHER_HOST:ECLIPTIC_WATCHER_PORT']
         labels:
@@ -100,13 +98,7 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
           chain: 'filecoin'
   ```
 
-### Grafana Config
-
-In the deployment folder, copy over the pre-configured watcher dashboard JSON files to grafana dashboards config directory:
-
-```bash
-cp -r monitoring-watchers-deployment/config/monitoring/grafana/watcher-dashboards/* monitoring-watchers-deployment/config/monitoring/grafana/dashboards/
-```
+Add scrape config as done above for any additional watcher to add it to the watcher dashboard.
 
 ### Env
 

@@ -55,27 +55,35 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
       - targets: ['AZIMUTH_WATCHER_HOST:AZIMUTH_WATCHER_PORT']
         labels:
           instance: 'azimuth'
+          chain: 'ethereum'
       - targets: ['CENSURES_WATCHER_HOST:CENSURES_WATCHER_PORT']
         labels:
           instance: 'censures'
+          chain: 'ethereum'
       - targets: ['CLAIMS_WATCHER_HOST:CLAIMS_WATCHER_PORT']
         labels:
           instance: 'claims'
+          chain: 'ethereum'
       - targets: ['CONDITIONAL_STAR_RELEASE_WATCHER_HOST:CONDITIONAL_STAR_RELEASE_WATCHER_PORT']
         labels:
           instance: 'conditional_star_release'
+          chain: 'ethereum'
       - targets: ['DELEGATED_SENDING_WATCHER_HOST:DELEGATED_SENDING_WATCHER_PORT']
         labels:
           instance: 'delegated_sending_watcher'
+          chain: 'ethereum'
       - targets: ['ECLIPTIC_WATCHER_HOST:ECLIPTIC_WATCHER_PORT']
         labels:
           instance: 'ecliptic'
+          chain: 'ethereum'
       - targets: ['LINEAR_STAR_WATCHER_HOST:LINEAR_STAR_WATCHER_PORT']
         labels:
           instance: 'linear_star_release'
+          chain: 'ethereum'
       - targets: ['POLLS_WATCHER_HOST:POLLS_WATCHER_PORT']
         labels:
           instance: 'polls'
+          chain: 'ethereum'
 
   - job_name: sushi
     scrape_interval: 20s
@@ -85,9 +93,11 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
       - targets: ['SUSHISWAP_WATCHER_HOST:SUSHISWAP_WATCHER_PORT']
         labels:
           instance: 'sushiswap'
+          chain: 'filecoin'
       - targets: ['MERKLE_SUSHISWAP_WATCHER_HOST:MERKLE_SUSHISWAP_WATCHER_PORT']
         labels:
           instance: 'merkl_sushiswap'
+          chain: 'filecoin'
   ```
 
 ### Grafana Config

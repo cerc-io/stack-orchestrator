@@ -1,7 +1,25 @@
 # monitoring
 
 * Instructions to setup and run a Prometheus server and Grafana dashboard
+* Comes with the following built-in exporters / dashboards:
+  * [Prometheus Blackbox Exporter](https://grafana.com/grafana/dashboards/7587-prometheus-blackbox-exporter/) - for tracking HTTP endpoints
+  * [NodeJS Application Dashboard](https://grafana.com/grafana/dashboards/11159-nodejs-application-dashboard/) - for default NodeJS metrics
+  * Chain Head Exporter - for tracking chain heads given external ETH RPC endpoints
 * See [monitoring-watchers.md](./monitoring-watchers.md) for an example usage of the stack with pre-configured dashboards for watchers
+
+## Setup
+
+Clone required repositories:
+
+```bash
+laconic-so --stack monitoring setup-repositories --git-ssh --pull
+```
+
+Build the container images:
+
+```bash
+laconic-so --stack monitoring build-containers
+```
 
 ## Create a deployment
 
@@ -43,7 +61,7 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-spec.yml --de
 
 ### Prometheus Config
 
-Add desired scrape configs to prometheus config file (`monitoring-deployment/config/monitoring/prometheus/prometheus.yml`) in the deployment folder; for example:
+* Add desired scrape configs to prometheus config file (`monitoring-deployment/config/monitoring/prometheus/prometheus.yml`) in the deployment folder; for example:
 
   ```yml
   ...
@@ -54,11 +72,42 @@ Add desired scrape configs to prometheus config file (`monitoring-deployment/con
       - targets: ['<METRICS_ENDPOINT_HOST>:<METRICS_ENDPOINT_PORT>']
   ```
 
+* Also update the `blackbox` job to add any endpoints to be monitored on the Blackbox dashboard:
+
+  ```yml
+  ...
+  - job_name: 'blackbox'
+    ...
+    static_configs:
+      # Add URLs to be monitored below
+      - targets:
+        - <HTTP_ENDPOINT_1>
+        - <HTTP_ENDPOINT_2>
+  ```
+
 Note: Use `host.docker.internal` as host to access ports on the host machine
 
 ### Grafana Config
 
 Place the dashboard json files in grafana dashboards config directory (`monitoring-deployment/config/monitoring/grafana/dashboards`) in the deployment folder
+
+### Env
+
+Set the following env variables in the deployment env config file (`monitoring-deployment/config.env`):
+
+  ```bash
+  # External ETH RPC endpoint (ethereum)
+  # (Optional, default: https://mainnet.infura.io/v3)
+  CERC_ETH_RPC_ENDPOINT=
+
+  # Infura key to be used
+  # (Optional, used with ETH_RPC_ENDPOINT if provided)
+  CERC_INFURA_KEY=
+
+  # External ETH RPC endpoint (filecoin)
+  # (Optional, default: https://api.node.glif.io/rpc/v1)
+  CERC_FIL_RPC_ENDPOINT=
+  ```
 
 ## Start the stack
 

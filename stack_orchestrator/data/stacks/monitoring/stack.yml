@@ -1,7 +1,9 @@
 version: "0.1"
 name: monitoring
 repos:
+  - github.com/cerc-io/watcher-ts@v0.2.79
 containers:
+  - cerc/watcher-ts
 pods:
   - prom-server
   - grafana

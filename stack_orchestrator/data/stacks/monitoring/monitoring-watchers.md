@@ -4,7 +4,7 @@ Instructions to setup and run monitoring stack with pre-configured watcher dashb
 
 ## Create a deployment
 
-First, create a spec file for the deployment, which will map the stack's ports and volumes to the host:
+After completing [setup](./README.md#setup), create a spec file for the deployment, which will map the stack's ports and volumes to the host:
 
 ```bash
 laconic-so --stack monitoring deploy init --output monitoring-watchers-spec.yml
@@ -41,7 +41,14 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
 
   ```yml
   ...
+  - job_name: 'blackbox'
+    ...
+    static_configs:
+      - targets:
+        - <AZIMUTH_GATEWAY_GQL_ENDPOINT>
+  ...
   - job_name: azimuth
+    scrape_interval: 10s
     metrics_path: /metrics
     scheme: http
     static_configs:
@@ -71,6 +78,7 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
           instance: 'polls'
 
   - job_name: sushi
+    scrape_interval: 20s
     metrics_path: /metrics
     scheme: http
     static_configs:
@@ -89,6 +97,15 @@ In the deployment folder, copy over the pre-configured watcher dashboard JSON fi
 ```bash
 cp -r monitoring-watchers-deployment/config/monitoring/grafana/watcher-dashboards/* monitoring-watchers-deployment/config/monitoring/grafana/dashboards/
 ```
+
+### Env
+
+Set the following env variables in the deployment env config file (`monitoring-watchers-deployment/config.env`):
+
+  ```bash
+  # Infura key to be used
+  CERC_INFURA_KEY=
+  ```
 
 ## Start the stack
 

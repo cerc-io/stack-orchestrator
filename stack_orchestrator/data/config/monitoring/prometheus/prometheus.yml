@@ -1,5 +1,5 @@
 global:
-  scrape_interval:     15s
+  scrape_interval:     10s
   evaluation_interval: 15s
 
 rule_files:
@@ -10,3 +10,33 @@ scrape_configs:
   - job_name: prometheus
     static_configs:
       - targets: ['localhost:9090']
+
+  - job_name: 'blackbox'
+    scrape_interval: 10s
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      # Add URLs to be monitored below
+      - targets:
+        # - https://github.com
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: (.*)(:80)?
+        target_label: __param_target
+      - source_labels: [__param_target]
+        regex: (.*)
+        target_label: instance
+        replacement: ${1}
+      - source_labels: []
+        regex: .*
+        target_label: __address__
+        replacement: blackbox:9115
+
+  - job_name: chain_heads
+    scrape_interval: 10s
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ['chain-head-exporter:5000']
+

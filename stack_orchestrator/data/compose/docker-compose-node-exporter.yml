@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  node-exporter:
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.systemd'
+      - '--collector.processes'
+    network_mode: host
+    pid: host
+    ports:
+      - 9100
+    volumes:
+      - '/:/host:ro,rslave'

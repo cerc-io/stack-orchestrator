@@ -49,6 +49,14 @@ def cmd(*vargs):
         raise err
 
 
+def match_owner(recordA, *records):
+    for owner in recordA.owners:
+        for otherRecord in records:
+            if owner in otherRecord.owners:
+                return owner
+    return None
+
+
 class LaconicRegistryClient:
     def __init__(self, config_file):
         self.config_file = config_file
@@ -146,11 +154,17 @@ class LaconicRegistryClient:
             raise Exception("Cannot locate record:", name_or_id)
         return None
 
-    def app_deployment_requests(self):
-        return self.list_records({"type": "ApplicationDeploymentRequest"}, True)
+    def app_deployment_requests(self, all=True):
+        return self.list_records({"type": "ApplicationDeploymentRequest"}, all)
 
-    def app_deployments(self):
-        return self.list_records({"type": "ApplicationDeploymentRecord"})
+    def app_deployments(self, all=True):
+        return self.list_records({"type": "ApplicationDeploymentRecord"}, all)
+
+    def app_deployment_removal_requests(self, all=True):
+        return self.list_records({"type": "ApplicationDeploymentRemovalRequest"}, all)
+
+    def app_deployment_removals(self, all=True):
+        return self.list_records({"type": "ApplicationDeploymentRemovalRecord"}, all)
 
     def publish(self, record, names=[]):
         tmpdir = tempfile.mkdtemp()
@@ -165,10 +179,16 @@ class LaconicRegistryClient:
                 cmd("laconic", "-c", self.config_file, "cns", "record", "publish", "--filename", record_fname)
             )["id"]
             for name in names:
-                cmd("laconic", "-c", self.config_file, "cns", "name", "set", name, new_record_id)
+                self.set_name(name, new_record_id)
             return new_record_id
         finally:
             cmd("rm", "-rf", tmpdir)
+
+    def set_name(self, name, record_id):
+        cmd("laconic", "-c", self.config_file, "cns", "name", "set", name, record_id)
+
+    def delete_name(self, name):
+        cmd("laconic", "-c", self.config_file, "cns", "name", "delete", name)
 
 
 def file_hash(filename):
@@ -187,9 +207,11 @@ def build_container_image(app_record, tag, extra_build_args=[]):
         print(f"Cloning repository {repo} to {clone_dir} ...")
         if ref:
             # TODO: Determing branch or hash, and use depth 1 if we can.
-            result = subprocess.run(["git", "clone", repo, clone_dir])
-            result.check_returncode()
-            subprocess.check_call(["git", "checkout", ref], cwd=clone_dir)
+            git_env = dict(os.environ.copy())
+            # Never prompt
+            git_env["GIT_TERMINAL_PROMPT"] = "0"
+            subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env)
+            subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env)
         else:
             result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir])
             result.check_returncode()

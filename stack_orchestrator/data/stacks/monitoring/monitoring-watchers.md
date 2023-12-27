@@ -35,6 +35,8 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-watchers-spec
 
 ## Configure
 
+### Prometheus scrape config
+
 Add the following scrape configs to prometheus config file (`monitoring-watchers-deployment/config/monitoring/prometheus/prometheus.yml`) in the deployment folder:
 
   ```yml
@@ -99,6 +101,27 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
   ```
 
 Add scrape config as done above for any additional watcher to add it to the Watchers dashboard.
+
+### Grafana alerts config
+
+Place the pre-configured watcher alerts rules in Grafana provisioning directory:
+
+  ```bash
+  cp monitoring-watchers-deployment/config/monitoring/watcher-alert-rules.yml monitoring-watchers-deployment/config/monitoring/grafana/provisioning/alerting/
+  ```
+
+Update the alerting contact points config (`monitoring-watchers-deployment/config/monitoring/grafana/provisioning/alerting/contactpoints.yml`) with desired contact points
+
+Add corresponding routes to the notification policies config (`monitoring-watchers-deployment/monitoring/grafana/provisioning/alerting/policies.yaml`) with appropriate object-matchers:
+
+  ```yml
+  ...
+    routes:
+      - receiver: SlackNotifier
+      object_matchers:
+        # Add matchers below
+        - ['grafana_folder', '=', 'WatcherAlerts']
+  ```
 
 ### Env
 

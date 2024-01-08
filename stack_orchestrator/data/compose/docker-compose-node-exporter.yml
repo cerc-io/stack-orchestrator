@@ -5,12 +5,11 @@ services:
     image: prom/node-exporter:latest
     restart: unless-stopped
     command:
+      - '--web.listen-address=:9100'
       - '--path.rootfs=/host'
       - '--collector.systemd'
       - '--collector.processes'
     network_mode: host
     pid: host
-    ports:
-      - 9100
     volumes:
       - '/:/host:ro,rslave'

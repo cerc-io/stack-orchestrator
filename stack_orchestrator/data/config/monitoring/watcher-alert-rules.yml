@@ -1,0 +1,973 @@
+# https://grafana.com/docs/grafana/latest/alerting/alerting-rules/create-grafana-managed-rule/
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: watcher
+    folder: WatcherAlerts
+    interval: 30s
+    rules:
+      # Azimuth
+      - uid: azimuth_diff_external
+        title: azimuth_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="azimuth", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="ethereum"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="azimuth", instance="azimuth", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false
+      - uid: censures_diff_external
+        title: censures_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="censures", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="ethereum"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="azimuth", instance="censures", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false
+      - uid: claims_diff_external
+        title: claims_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="claims", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="ethereum"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="azimuth", instance="claims", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false
+      - uid: conditional_star_release_diff_external
+        title: conditional_star_release_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="conditional_star_release", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="ethereum"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="azimuth", instance="conditional_star_release", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false
+      - uid: delegated_sending_diff_external
+        title: delegated_sending_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="delegated_sending", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="ethereum"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="azimuth", instance="delegated_sending", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false
+      - uid: ecliptic_diff_external
+        title: ecliptic_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="ecliptic", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="ethereum"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="azimuth", instance="ecliptic", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false
+      - uid: linear_star_release_diff_external
+        title: linear_star_release_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="linear_star_release", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="ethereum"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="azimuth", instance="azimuth", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false
+      - uid: polls_diff_external
+        title: polls_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="polls", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="ethereum"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="azimuth", instance="polls", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false
+
+      # Sushi
+      - uid: sushiswap_diff_external
+        title: sushiswap_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="sushi", instance="sushiswap", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="filecoin"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="sushi", instance="sushiswap", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false
+      - uid: merkl_sushiswap_diff_external
+        title: merkl_sushiswap_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="sushi", instance="merkl_sushiswap", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="filecoin"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: latest_indexed
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: sync_status_block_number{job="sushi", instance="merkl_sushiswap", kind="latest_indexed"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_indexed
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
+        panelId: 24
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
+          __panelId__: "24"
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false

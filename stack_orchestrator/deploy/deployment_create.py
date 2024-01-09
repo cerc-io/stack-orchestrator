@@ -444,7 +444,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
     deployer_config_generator = getDeployerConfigGenerator(deployment_type)
     # TODO: make deployment_dir_path a Path above
     deployer_config_generator.generate(deployment_dir_path)
-    call_stack_deploy_create(deployment_context, [network_dir, initial_peers])
+    call_stack_deploy_create(deployment_context, [network_dir, initial_peers, deployment_command_context])
 
 
 # TODO: this code should be in the stack .py files but

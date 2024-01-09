@@ -4,7 +4,7 @@ description: "Local Package Registry"
 repos:
   - github.com/telackey/gitea@telackey/entrypoint
   - git.vdb.to/cerc-io/hosting@dboreham/fix-dind
-  - gitea.com/gitea/act_runner@telackey/entrypoint
+  - gitea.com/telackey/act_runner@telackey/entrypoint
 containers:
   - cerc/gitea
   - cerc/act-runner

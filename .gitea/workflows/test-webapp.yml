@@ -41,8 +41,7 @@ jobs:
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
-      # 20240109 - Only needed until the executors are updated.
-      - name: "Install wget"
+      - name: "Install wget" # 20240109 - Only needed until the executors are updated.
         run: apt update && apt install -y wget
       - name: Start dockerd # Also needed until we can incorporate into the executor
         run: |

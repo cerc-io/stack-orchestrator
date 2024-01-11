@@ -21,6 +21,10 @@ WORK_DIR="${1:-/app}"
 
 cd "${WORK_DIR}" || exit 1
 
+if [ ! -f "next.config.js" ]; then
+  touch next.config.js
+fi
+
 if [ ! -f "next.config.dist" ]; then
   cp next.config.js next.config.dist
 fi

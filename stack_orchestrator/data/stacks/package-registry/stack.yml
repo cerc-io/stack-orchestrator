@@ -2,11 +2,9 @@ version: "1.1"
 name: package-registry
 description: "Local Package Registry"
 repos:
-  - github.com/telackey/gitea@telackey/entrypoint
-  - git.vdb.to/cerc-io/hosting@dboreham/fix-dind
+  - git.vdb.to/cerc-io/hosting
   - gitea.com/telackey/act_runner@telackey/entrypoint
 containers:
-  - cerc/gitea
   - cerc/act-runner
   - cerc/act-runner-task-executor
 pods:

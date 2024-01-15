@@ -6,6 +6,7 @@ services:
     restart: on-failure
     environment:
       - NEXT_PUBLIC_WEB_API_BASE_URL=${CERC_WEB_API_BASE_URL}
+      - ASSET_LIST_COMMIT_HASH=a326bcefc51372b4912be5a2a2fa84a5d142a438
     working_dir: /app/packages/web
     command: ["./build-app.sh"]
     volumes:

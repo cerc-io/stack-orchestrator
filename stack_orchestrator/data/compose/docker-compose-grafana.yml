@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:10.2.2
     restart: always
     volumes:
       - ../config/monitoring/grafana/provisioning:/etc/grafana/provisioning

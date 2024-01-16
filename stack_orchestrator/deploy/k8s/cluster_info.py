@@ -168,8 +168,8 @@ class ClusterInfo:
             result.append(pv)
         return result
 
-    # to suit the deployment, and also annotate the container specs to point at said volumes
-    def get_deployment(self):
+    # TODO: put things like image pull policy into an object-scope struct
+    def get_deployment(self, image_pull_policy: str = None):
         containers = []
         for pod_name in self.parsed_pod_yaml_map:
             pod = self.parsed_pod_yaml_map[pod_name]
@@ -189,7 +189,7 @@ class ClusterInfo:
                 container = client.V1Container(
                     name=container_name,
                     image=image_to_use,
-                    image_pull_policy="Always",
+                    image_pull_policy=image_pull_policy,
                     env=envs_from_environment_variables_map(self.environment_variables.map),
                     ports=[client.V1ContainerPort(container_port=port)],
                     volume_mounts=volume_mounts,

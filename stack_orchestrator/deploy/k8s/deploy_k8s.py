@@ -111,7 +111,7 @@ class K8sDeployer(Deployer):
                 print("PVCs created:")
                 print(f"{pvc_resp}")
         # Process compose files into a Deployment
-        deployment = self.cluster_info.get_deployment()
+        deployment = self.cluster_info.get_deployment(image_pull_policy = None if self.is_kind() else "Always")
         # Create the k8s objects
         if opts.o.debug:
             print(f"Sending this deployment: {deployment}")
@@ -132,18 +132,18 @@ class K8sDeployer(Deployer):
             print("Service created:")
             print(f"{service_resp}")
 
-        # TODO: disable ingress for kind
-        ingress: client.V1Ingress = self.cluster_info.get_ingress()
+        if not self.is_kind():
+            ingress: client.V1Ingress = self.cluster_info.get_ingress()
 
-        if opts.o.debug:
-            print(f"Sending this ingress: {ingress}")
-        ingress_resp = self.networking_api.create_namespaced_ingress(
-            namespace=self.k8s_namespace,
-            body=ingress
-        )
-        if opts.o.debug:
-            print("Ingress created:")
-            print(f"{ingress_resp}")
+            if opts.o.debug:
+                print(f"Sending this ingress: {ingress}")
+            ingress_resp = self.networking_api.create_namespaced_ingress(
+                namespace=self.k8s_namespace,
+                body=ingress
+            )
+            if opts.o.debug:
+                print("Ingress created:")
+                print(f"{ingress_resp}")
 
     def down(self, timeout, volumes):
         self.connect_api()
@@ -196,16 +196,16 @@ class K8sDeployer(Deployer):
         except client.exceptions.ApiException as e:
             _check_delete_exception(e)
 
-        # TODO: disable ingress for kind
-        ingress: client.V1Ingress = self.cluster_info.get_ingress()
-        if opts.o.debug:
-            print(f"Deleting this ingress: {ingress}")
-        try:
-            self.networking_api.delete_namespaced_ingress(
-                name=ingress.metadata.name, namespace=self.k8s_namespace
-            )
-        except client.exceptions.ApiException as e:
-            _check_delete_exception(e)
+        if not self.is_kind():
+            ingress: client.V1Ingress = self.cluster_info.get_ingress()
+            if opts.o.debug:
+                print(f"Deleting this ingress: {ingress}")
+            try:
+                self.networking_api.delete_namespaced_ingress(
+                    name=ingress.metadata.name, namespace=self.k8s_namespace
+                )
+            except client.exceptions.ApiException as e:
+                check_delete_exception(e)
 
         if self.is_kind():
             # Destroy the kind cluster
@@ -219,7 +219,7 @@ class K8sDeployer(Deployer):
 
         if all_pods.items:
             for p in all_pods.items:
-                if self.cluster_info.app_name in p.metadata.name:
+                if f"{self.cluster_info.app_name}-deployment" in p.metadata.name:
                     pods.append(p)
 
         if not pods:
@@ -266,7 +266,7 @@ class K8sDeployer(Deployer):
         ret = []
 
         for p in pods.items:
-            if self.cluster_info.app_name in p.metadata.name:
+            if f"{self.cluster_info.app_name}-deployment" in p.metadata.name:
                 pod_ip = p.status.pod_ip
                 ports = AttrDict()
                 for c in p.spec.containers:
@@ -299,11 +299,20 @@ class K8sDeployer(Deployer):
 
     def logs(self, services, tail, follow, stream):
         self.connect_api()
-        pods = pods_in_deployment(self.core_api, "test-deployment")
+        pods = pods_in_deployment(self.core_api, self.cluster_info.app_name)
         if len(pods) > 1:
             print("Warning: more than one pod in the deployment")
-        k8s_pod_name = pods[0]
-        log_data = self.core_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container="test")
+        if len(pods) == 0:
+            log_data = "******* Pods not running ********\n"
+        else:
+            k8s_pod_name = pods[0]
+            # If the pod is not yet started, the logs request below will throw an exception
+            try:
+                log_data = self.core_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container="test")
+            except client.exceptions.ApiException as e:
+                if opts.o.debug:
+                    print(f"Error from read_namespaced_pod_log: {e}")
+                log_data = "******* No logs available ********\n"
         return log_stream_from_string(log_data)
 
     def update(self):

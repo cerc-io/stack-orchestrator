@@ -111,7 +111,7 @@ class K8sDeployer(Deployer):
                 print("PVCs created:")
                 print(f"{pvc_resp}")
         # Process compose files into a Deployment
-        deployment = self.cluster_info.get_deployment(image_pull_policy = None if self.is_kind() else "Always")
+        deployment = self.cluster_info.get_deployment(image_pull_policy=None if self.is_kind() else "Always")
         # Create the k8s objects
         if opts.o.debug:
             print(f"Sending this deployment: {deployment}")
@@ -205,7 +205,7 @@ class K8sDeployer(Deployer):
                     name=ingress.metadata.name, namespace=self.k8s_namespace
                 )
             except client.exceptions.ApiException as e:
-                check_delete_exception(e)
+                _check_delete_exception(e)
 
         if self.is_kind():
             # Destroy the kind cluster

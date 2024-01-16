@@ -23,6 +23,7 @@ from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names
 from stack_orchestrator.deploy.deployer import DeployerException
 
+
 def _run_command(command: str):
     if opts.o.debug:
         print(f"Running: {command}")

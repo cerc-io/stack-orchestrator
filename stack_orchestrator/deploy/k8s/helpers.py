@@ -21,6 +21,7 @@ from typing import Set, Mapping, List
 
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names
+from stack_orchestrator.deploy.deployer import DeployerException
 
 
 def _run_command(command: str):
@@ -29,10 +30,13 @@ def _run_command(command: str):
     result = subprocess.run(command, shell=True)
     if opts.o.debug:
         print(f"Result: {result}")
+    return result
 
 
 def create_cluster(name: str, config_file: str):
-    _run_command(f"kind create cluster --name {name} --config {config_file}")
+    result = _run_command(f"kind create cluster --name {name} --config {config_file}")
+    if result.returncode != 0:
+        raise DeployerException(f"kind create cluster failed: {result}")
 
 
 def destroy_cluster(name: str):
@@ -41,12 +45,14 @@ def destroy_cluster(name: str):
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
     for image in image_set:
-        _run_command(f"kind load docker-image {image} --name {kind_cluster_name}")
+        result = _run_command(f"kind load docker-image {image} --name {kind_cluster_name}")
+        if result.returncode != 0:
+            raise DeployerException(f"kind create cluster failed: {result}")
 
 
 def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
     pods = []
-    pod_response = core_api.list_namespaced_pod(namespace="default", label_selector="app=test-app")
+    pod_response = core_api.list_namespaced_pod(namespace="default", label_selector=f"app={deployment_name}")
     if opts.o.debug:
         print(f"pod_response: {pod_response}")
     for pod_info in pod_response.items:

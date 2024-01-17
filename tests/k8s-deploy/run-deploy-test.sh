@@ -63,7 +63,9 @@ echo "Version reported is: ${reported_version_string}"
 echo "Cloning repositories into: $CERC_REPO_BASE_DIR"
 rm -rf $CERC_REPO_BASE_DIR
 mkdir -p $CERC_REPO_BASE_DIR
-# Test basic stack-orchestrator deploy
+$TEST_TARGET_SO --stack test setup-repositories
+$TEST_TARGET_SO --stack test build-containers
+# Test basic stack-orchestrator deploy to k8s
 test_deployment_dir=$CERC_REPO_BASE_DIR/test-deployment-dir
 test_deployment_spec=$CERC_REPO_BASE_DIR/test-deployment-spec.yml
 $TEST_TARGET_SO --stack test deploy --deploy-to k8s-kind init --output $test_deployment_spec --config CERC_TEST_PARAM_1=PASSED

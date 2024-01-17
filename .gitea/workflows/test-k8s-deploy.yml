@@ -44,6 +44,8 @@ jobs:
       - name: Start dockerd # Also needed until we can incorporate into the executor
         run: |
           dockerd -H $DOCKER_HOST --userland-proxy=false &
+      - name: "Check container"
+        run: cat /usr/local/bin/entrypoint.sh
       - name: "Install kind"
         run: ./tests/scripts/install-kind.sh
       - name: "Install Kubectl"

@@ -4,6 +4,8 @@ services:
   grafana:
     image: grafana/grafana:10.2.2
     restart: always
+    environment:
+      GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL}
     volumes:
       - ../config/monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ../config/monitoring/grafana/dashboards:/etc/grafana/dashboards

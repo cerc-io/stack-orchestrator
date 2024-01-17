@@ -95,14 +95,10 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
       - uid: censures_diff_external
@@ -191,14 +187,10 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
       - uid: claims_diff_external
@@ -287,14 +279,10 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
       - uid: conditional_star_release_diff_external
@@ -383,14 +371,10 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
       - uid: delegated_sending_diff_external
@@ -479,14 +463,10 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
       - uid: ecliptic_diff_external
@@ -575,14 +555,10 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
       - uid: linear_star_release_diff_external
@@ -671,14 +647,10 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
       - uid: polls_diff_external
@@ -767,14 +739,10 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
 
@@ -865,14 +833,10 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
       - uid: merkl_sushiswap_diff_external
@@ -961,13 +925,9 @@ groups:
               maxDataPoints: 43200
               refId: condition
               type: math
-        dashboardUid: cb9b746a-9abc-482e-9214-5231e0dd75ca
-        panelId: 24
         noDataState: Alerting
         execErrState: Alerting
         for: 15m
         annotations:
-          __dashboardUid__: cb9b746a-9abc-482e-9214-5231e0dd75ca
-          __panelId__: "24"
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false

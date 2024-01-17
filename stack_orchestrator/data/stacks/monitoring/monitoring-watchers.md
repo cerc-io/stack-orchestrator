@@ -130,6 +130,10 @@ Set the following env variables in the deployment env config file (`monitoring-w
   ```bash
   # Infura key to be used
   CERC_INFURA_KEY=
+
+  # Grafana server host URL to be used
+  # (Optional, default: http://localhost:3000)
+  GF_SERVER_ROOT_URL=
   ```
 
 ## Start the stack

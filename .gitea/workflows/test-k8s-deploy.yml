@@ -1,14 +1,11 @@
 name: K8s Deploy Test
 
 on:
-  pull_request:
-    branches: '*'
   push:
-    branches:
-      - main
-      - ci-test
-    paths-ignore:
-      - '.gitea/workflows/triggers/*'
+    branches: '*'
+    paths:
+      - '!**'
+      - '.gitea/workflows/triggers/fixturenet-laconicd-test'
 
 jobs:
   test:

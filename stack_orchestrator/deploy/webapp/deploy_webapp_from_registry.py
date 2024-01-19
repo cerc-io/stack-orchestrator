@@ -261,7 +261,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
 
     if not dry_run:
         for r in requests_to_execute:
-            dump_known_requests(state_file, [r], "PROCESSING")
+            dump_known_requests(state_file, [r], "DEPLOYING")
             status = "ERROR"
             try:
                 process_app_deployment_request(

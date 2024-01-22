@@ -1,23 +1,16 @@
 name: K8s Deploy Test
 
 on:
-  pull_request:
-    branches: '*'
   push:
-    branches:
-      - main
-      - ci-test
-    paths-ignore:
-      - '.gitea/workflows/triggers/*'
-
-# Needed until we can incorporate docker startup into the executor container
-env:
-  DOCKER_HOST: unix:///var/run/dind.sock
+    branches: '*'
+    paths:
+      - '!**'
+      - '.gitea/workflows/triggers/fixturenet-laconicd-test'
 
 jobs:
   test:
-    name: "Run deploy test suite"
-    runs-on: ubuntu-latest
+    name: "Run deploy test suite on kind/k8s"
+    runs-on: ubuntu-22.04-with-syn-ethdb
     steps:
       - name: "Clone project repository"
         uses: actions/checkout@v3
@@ -41,19 +34,10 @@ jobs:
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
-      - name: Start dockerd # Also needed until we can incorporate into the executor
-        run: |
-          dockerd -H $DOCKER_HOST --userland-proxy=false &
-          sleep 5
-      - name: "Install Go"
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.21'
-      - name: "Install Kind"
-        run: go install sigs.k8s.io/kind@v0.20.0
-      - name: "Debug Kind"
-        continue-on-error: true
-        run: kind create cluster --retain
-      - name: "Get Kind Logs"
-        continue-on-error: true
-        run: docker logs kind-control-plane
+      - name: "Install kind"
+        run: ./tests/scripts/install-kind.sh
+      - name: "Install Kubectl"
+        run: ./tests/scripts/install-kubectl.sh
+      - name: "Run k8s deployment test"
+        run: ./tests/k8s-deploy/run-deploy-test.sh
+

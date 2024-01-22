@@ -20,17 +20,20 @@ from pathlib import Path
 from typing import List
 import random
 from shutil import copy, copyfile, copytree
+from secrets import token_hex
 import sys
+from stack_orchestrator import constants
+from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
-                                     get_pod_script_paths, get_plugin_code_paths)
+                                     get_pod_script_paths, get_plugin_code_paths, error_exit, env_var_map_from_file)
 from stack_orchestrator.deploy.deploy_types import LaconicStackSetupCommand
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
 def _make_default_deployment_dir():
-    return "deployment-001"
+    return Path("deployment-001")
 
 
 def _get_ports(stack):
@@ -102,8 +105,8 @@ def _fixup_pod_file(pod, spec, compose_dir):
                                        }
                     pod["volumes"][volume] = new_volume_spec
     # Fix up ports
-    if "ports" in spec:
-        spec_ports = spec["ports"]
+    if "network" in spec and "ports" in spec["network"]:
+        spec_ports = spec["network"]["ports"]
         for container_name, container_ports in spec_ports.items():
             if container_name in pod["services"]:
                 pod["services"][container_name]["ports"] = container_ports
@@ -242,37 +245,76 @@ def _parse_config_variables(variable_values: str):
                 variable_name = variable_value_pair[0]
                 variable_value = variable_value_pair[1]
                 result_values[variable_name] = variable_value
-            result = {"config": result_values}
+            result = result_values
     return result
 
 
 @click.command()
 @click.option("--config", help="Provide config variables for the deployment")
+@click.option("--config-file", help="Provide config variables in a file for the deployment")
+@click.option("--kube-config", help="Provide a config file for a k8s deployment")
+@click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
 @click.option("--output", required=True, help="Write yaml spec file here")
 @click.option("--map-ports-to-host", required=False,
               help="Map ports to the host as one of: any-variable-random (default), "
               "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
 @click.pass_context
-def init(ctx, config, output, map_ports_to_host):
-    yaml = get_yaml()
+def init(ctx, config, config_file, kube_config, image_registry, output, map_ports_to_host):
     stack = global_options(ctx).stack
-    debug = global_options(ctx).debug
-    default_spec_file_content = call_stack_deploy_init(ctx.obj)
-    spec_file_content = {"stack": stack, "deploy-to": ctx.obj.deployer.name}
+    deployer_type = ctx.obj.deployer.type
+    deploy_command_context = ctx.obj
+    return init_operation(
+        deploy_command_context,
+        stack, deployer_type,
+        config, config_file,
+        kube_config,
+        image_registry,
+        output,
+        map_ports_to_host)
+
+
+# The init command's implementation is in a separate function so that we can
+# call it from other commands, bypassing the click decoration stuff
+def init_operation(deploy_command_context, stack, deployer_type, config,
+                   config_file, kube_config, image_registry, output, map_ports_to_host):
+
+    default_spec_file_content = call_stack_deploy_init(deploy_command_context)
+    spec_file_content = {"stack": stack, constants.deploy_to_key: deployer_type}
+    if deployer_type == "k8s":
+        if kube_config is None:
+            error_exit("--kube-config must be supplied with --deploy-to k8s")
+        if image_registry is None:
+            error_exit("--image-registry must be supplied with --deploy-to k8s")
+        spec_file_content.update({constants.kube_config_key: kube_config})
+        spec_file_content.update({constants.image_resigtry_key: image_registry})
+    else:
+        # Check for --kube-config supplied for non-relevant deployer types
+        if kube_config is not None:
+            error_exit(f"--kube-config is not allowed with a {deployer_type} deployment")
+        if image_registry is not None:
+            error_exit(f"--image-registry is not allowed with a {deployer_type} deployment")
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
     config_variables = _parse_config_variables(config)
+    # Implement merge, since update() overwrites
     if config_variables:
-        # Implement merge, since update() overwrites
         orig_config = spec_file_content.get("config", {})
-        new_config = config_variables["config"]
+        new_config = config_variables
         merged_config = {**new_config, **orig_config}
         spec_file_content.update({"config": merged_config})
-    if debug:
-        print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
+    if config_file:
+        config_file_path = Path(config_file)
+        if not config_file_path.exists():
+            error_exit(f"config file: {config_file} does not exist")
+        config_file_variables = env_var_map_from_file(config_file_path)
+        if config_file_variables:
+            orig_config = spec_file_content.get("config", {})
+            new_config = config_file_variables
+            merged_config = {**new_config, **orig_config}
+            spec_file_content.update({"config": merged_config})
 
     ports = _get_mapped_ports(stack, map_ports_to_host)
-    spec_file_content["ports"] = ports
+    spec_file_content.update({"network": {"ports": ports}})
 
     named_volumes = _get_named_volumes(stack)
     if named_volumes:
@@ -281,8 +323,11 @@ def init(ctx, config, output, map_ports_to_host):
             volume_descriptors[named_volume] = f"./data/{named_volume}"
         spec_file_content["volumes"] = volume_descriptors
 
+    if opts.o.debug:
+        print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
+
     with open(output, "w") as output_file:
-        yaml.dump(spec_file_content, output_file)
+        get_yaml().dump(spec_file_content, output_file)
 
 
 def _write_config_file(spec_file: Path, config_env_file: Path):
@@ -296,10 +341,23 @@ def _write_config_file(spec_file: Path, config_env_file: Path):
                     output_file.write(f"{variable_name}={variable_value}\n")
 
 
+def _write_kube_config_file(external_path: Path, internal_path: Path):
+    if not external_path.exists():
+        error_exit(f"Kube config file {external_path} does not exist")
+    copyfile(external_path, internal_path)
+
+
 def _copy_files_to_directory(file_paths: List[Path], directory: Path):
     for path in file_paths:
         # Using copy to preserve the execute bit
         copy(path, os.path.join(directory, os.path.basename(path)))
+
+
+def _create_deployment_file(deployment_dir: Path):
+    deployment_file_path = deployment_dir.joinpath(constants.deployment_file_name)
+    cluster = f"{constants.cluster_name_prefix}{token_hex(8)}"
+    with open(deployment_file_path, "w") as output_file:
+        output_file.write(f"{constants.cluster_id_key}: {cluster}\n")
 
 
 @click.command()
@@ -310,29 +368,42 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
 @click.option("--initial-peers", help="Initial set of persistent peers")
 @click.pass_context
 def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
-    # This function fails with a useful error message if the file doens't exist
+    deployment_command_context = ctx.obj
+    return create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers)
+
+
+# The init command's implementation is in a separate function so that we can
+# call it from other commands, bypassing the click decoration stuff
+def create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers):
     parsed_spec = get_parsed_deployment_spec(spec_file)
     stack_name = parsed_spec["stack"]
+    deployment_type = parsed_spec[constants.deploy_to_key]
     stack_file = get_stack_file_path(stack_name)
     parsed_stack = get_parsed_stack_config(stack_name)
-    if global_options(ctx).debug:
+    if opts.o.debug:
         print(f"parsed spec: {parsed_spec}")
     if deployment_dir is None:
-        deployment_dir = _make_default_deployment_dir()
-    if os.path.exists(deployment_dir):
-        print(f"Error: {deployment_dir} already exists")
-        sys.exit(1)
-    os.mkdir(deployment_dir)
+        deployment_dir_path = _make_default_deployment_dir()
+    else:
+        deployment_dir_path = Path(deployment_dir)
+    if deployment_dir_path.exists():
+        error_exit(f"{deployment_dir_path} already exists")
+    os.mkdir(deployment_dir_path)
     # Copy spec file and the stack file into the deployment dir
-    copyfile(spec_file, os.path.join(deployment_dir, "spec.yml"))
-    copyfile(stack_file, os.path.join(deployment_dir, os.path.basename(stack_file)))
+    copyfile(spec_file, deployment_dir_path.joinpath(constants.spec_file_name))
+    copyfile(stack_file, deployment_dir_path.joinpath(os.path.basename(stack_file)))
+    _create_deployment_file(deployment_dir_path)
     # Copy any config varibles from the spec file into an env file suitable for compose
-    _write_config_file(spec_file, os.path.join(deployment_dir, "config.env"))
+    _write_config_file(spec_file, deployment_dir_path.joinpath(constants.config_file_name))
+    # Copy any k8s config file into the deployment dir
+    if deployment_type == "k8s":
+        _write_kube_config_file(Path(parsed_spec[constants.kube_config_key]),
+                                deployment_dir_path.joinpath(constants.kube_config_filename))
     # Copy the pod files into the deployment dir, fixing up content
     pods = get_pod_list(parsed_stack)
-    destination_compose_dir = os.path.join(deployment_dir, "compose")
+    destination_compose_dir = deployment_dir_path.joinpath("compose")
     os.mkdir(destination_compose_dir)
-    destination_pods_dir = os.path.join(deployment_dir, "pods")
+    destination_pods_dir = deployment_dir_path.joinpath("pods")
     os.mkdir(destination_pods_dir)
     data_dir = Path(__file__).absolute().parent.parent.joinpath("data")
     yaml = get_yaml()
@@ -340,12 +411,12 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
         pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
-        destination_pod_dir = os.path.join(destination_pods_dir, pod)
+        destination_pod_dir = destination_pods_dir.joinpath(pod)
         os.mkdir(destination_pod_dir)
-        if global_options(ctx).debug:
+        if opts.o.debug:
             print(f"extra config dirs: {extra_config_dirs}")
         _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
-        with open(os.path.join(destination_compose_dir, "docker-compose-%s.yml" % pod), "w") as output_file:
+        with open(destination_compose_dir.joinpath("docker-compose-%s.yml" % pod), "w") as output_file:
             yaml.dump(parsed_pod_file, output_file)
         # Copy the config files for the pod, if any
         config_dirs = {pod}
@@ -353,28 +424,27 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
         for config_dir in config_dirs:
             source_config_dir = data_dir.joinpath("config", config_dir)
             if os.path.exists(source_config_dir):
-                destination_config_dir = os.path.join(deployment_dir, "config", config_dir)
+                destination_config_dir = deployment_dir_path.joinpath("config", config_dir)
                 # If the same config dir appears in multiple pods, it may already have been copied
                 if not os.path.exists(destination_config_dir):
                     copytree(source_config_dir, destination_config_dir)
         # Copy the script files for the pod, if any
         if pod_has_scripts(parsed_stack, pod):
-            destination_script_dir = os.path.join(destination_pod_dir, "scripts")
+            destination_script_dir = destination_pod_dir.joinpath("scripts")
             os.mkdir(destination_script_dir)
             script_paths = get_pod_script_paths(parsed_stack, pod)
             _copy_files_to_directory(script_paths, destination_script_dir)
     # Delegate to the stack's Python code
     # The deploy create command doesn't require a --stack argument so we need to insert the
     # stack member here.
-    deployment_command_context = ctx.obj
     deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext()
-    deployment_context.init(Path(deployment_dir))
+    deployment_context.init(deployment_dir_path)
     # Call the deployer to generate any deployer-specific files (e.g. for kind)
-    deployer_config_generator = getDeployerConfigGenerator(parsed_spec["deploy-to"])
-    # TODO: make deployment_dir a Path above
-    deployer_config_generator.generate(Path(deployment_dir))
-    call_stack_deploy_create(deployment_context, [network_dir, initial_peers])
+    deployer_config_generator = getDeployerConfigGenerator(deployment_type)
+    # TODO: make deployment_dir_path a Path above
+    deployer_config_generator.generate(deployment_dir_path)
+    call_stack_deploy_create(deployment_context, [network_dir, initial_peers, deployment_command_context])
 
 
 # TODO: this code should be in the stack .py files but

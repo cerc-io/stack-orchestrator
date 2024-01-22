@@ -18,6 +18,8 @@ import os.path
 import sys
 import ruamel.yaml
 from pathlib import Path
+from dotenv import dotenv_values
+from typing import Mapping
 
 
 def include_exclude_check(s, include, exclude):
@@ -150,6 +152,12 @@ def get_parsed_deployment_spec(spec_file):
         sys.exit(1)
 
 
+def stack_is_external(stack: str):
+    # Bit of a hack: if the supplied stack string represents
+    # a path that exists then we assume it must be external
+    return Path(stack).exists() if stack is not None else False
+
+
 def get_yaml():
     # See: https://stackoverflow.com/a/45701840/1701505
     yaml = ruamel.yaml.YAML()
@@ -167,3 +175,12 @@ def global_options(ctx):
 # TODO: hack
 def global_options2(ctx):
     return ctx.parent.obj
+
+
+def error_exit(s):
+    print(f"ERROR: {s}")
+    sys.exit(1)
+
+
+def env_var_map_from_file(file: Path) -> Mapping[str, str]:
+    return dotenv_values(file)

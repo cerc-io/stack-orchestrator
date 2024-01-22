@@ -14,14 +14,14 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from kubernetes import client
-from dotenv import dotenv_values
 import os
 from pathlib import Path
 import subprocess
-from typing import Any, Set, Mapping, List
+from typing import Set, Mapping, List
 
 from stack_orchestrator.opts import opts
-from stack_orchestrator.util import get_yaml
+from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names
+from stack_orchestrator.deploy.deployer import DeployerException
 
 
 def _run_command(command: str):
@@ -30,10 +30,13 @@ def _run_command(command: str):
     result = subprocess.run(command, shell=True)
     if opts.o.debug:
         print(f"Result: {result}")
+    return result
 
 
 def create_cluster(name: str, config_file: str):
-    _run_command(f"kind create cluster --name {name} --config {config_file}")
+    result = _run_command(f"kind create cluster --name {name} --config {config_file}")
+    if result.returncode != 0:
+        raise DeployerException(f"kind create cluster failed: {result}")
 
 
 def destroy_cluster(name: str):
@@ -42,12 +45,14 @@ def destroy_cluster(name: str):
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
     for image in image_set:
-        _run_command(f"kind load docker-image {image} --name {kind_cluster_name}")
+        result = _run_command(f"kind load docker-image {image} --name {kind_cluster_name}")
+        if result.returncode != 0:
+            raise DeployerException(f"kind create cluster failed: {result}")
 
 
 def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
     pods = []
-    pod_response = core_api.list_namespaced_pod(namespace="default", label_selector="app=test-app")
+    pod_response = core_api.list_namespaced_pod(namespace="default", label_selector=f"app={deployment_name}")
     if opts.o.debug:
         print(f"pod_response: {pod_response}")
     for pod_info in pod_response.items:
@@ -131,17 +136,6 @@ def _make_absolute_host_path(data_mount_path: Path, deployment_dir: Path) -> Pat
     else:
         # Python Path voodo that looks pretty odd:
         return Path.cwd().joinpath(deployment_dir.joinpath("compose").joinpath(data_mount_path)).resolve()
-
-
-def parsed_pod_files_map_from_file_names(pod_files):
-    parsed_pod_yaml_map : Any = {}
-    for pod_file in pod_files:
-        with open(pod_file, "r") as pod_file_descriptor:
-            parsed_pod_file = get_yaml().load(pod_file_descriptor)
-            parsed_pod_yaml_map[pod_file] = parsed_pod_file
-    if opts.o.debug:
-        print(f"parsed_pod_yaml_map: {parsed_pod_yaml_map}")
-    return parsed_pod_yaml_map
 
 
 def _generate_kind_mounts(parsed_pod_files, deployment_dir):
@@ -235,7 +229,3 @@ def generate_kind_config(deployment_dir: Path):
         f"{port_mappings_yml}\n"
         f"{mounts_yml}\n"
     )
-
-
-def env_var_map_from_file(file: Path) -> Mapping[str, str]:
-    return dotenv_values(file)

@@ -6,22 +6,14 @@ fi
 
 CERC_L1_RPC="${CERC_L1_RPC:-${DEFAULT_CERC_L1_RPC}}"
 
-# Get Batcher key from keys.json
-BATCHER_KEY=$(jq -r '.Batcher.privateKey' /l2-accounts/keys.json | tr -d '"')
+# Start op-batcher
+L2_RPC="http://op-geth:8545"
+ROLLUP_RPC="http://op-node:8547"
+BATCHER_KEY=$(cat /l2-accounts/accounts.json | jq -r .BatcherKey)
 
-cleanup() {
-    echo "Signal received, cleaning up..."
-    kill ${batcher_pid}
-
-    wait
-    echo "Done"
-}
-trap 'cleanup' INT TERM
-
-# Run op-batcher
 op-batcher \
-  --l2-eth-rpc=http://op-geth:8545 \
-  --rollup-rpc=http://op-node:8547 \
+  --l2-eth-rpc=$L2_RPC \
+  --rollup-rpc=$ROLLUP_RPC \
   --poll-interval=1s \
   --sub-safety-margin=6 \
   --num-confirmations=1 \
@@ -32,8 +24,4 @@ op-batcher \
   --rpc.enable-admin \
   --max-channel-duration=1 \
   --l1-eth-rpc=$CERC_L1_RPC \
-  --private-key=$BATCHER_KEY \
-  &
-
-batcher_pid=$!
-wait $batcher_pid
+  --private-key="${BATCHER_KEY#0x}"

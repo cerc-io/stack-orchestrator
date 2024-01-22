@@ -1,4 +1,4 @@
-FROM golang:1.19.0-alpine3.15 as builder
+FROM golang:1.21.0-alpine3.18 as builder
 
 ARG VERSION=v0.0.0
 
@@ -9,7 +9,7 @@ COPY ./op-proposer /app/op-proposer
 COPY ./op-bindings /app/op-bindings
 COPY ./op-node /app/op-node
 COPY ./op-service /app/op-service
-COPY ./op-signer /app/op-signer
+#COPY ./op-signer /app/op-signer
 COPY ./go.mod /app/go.mod
 COPY ./go.sum /app/go.sum
 COPY ./.git /app/.git
@@ -22,7 +22,7 @@ ARG TARGETOS TARGETARCH
 
 RUN make op-proposer VERSION="$VERSION" GOOS=$TARGETOS GOARCH=$TARGETARCH
 
-FROM alpine:3.15
+FROM alpine:3.18
 
 RUN apk add --no-cache jq bash
 

@@ -16,14 +16,17 @@
 from pathlib import Path
 from python_on_whales import DockerClient, DockerException
 from stack_orchestrator.deploy.deployer import Deployer, DeployerException, DeployerConfigGenerator
+from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
 class DockerDeployer(Deployer):
     name: str = "compose"
+    type: str
 
-    def __init__(self, deployment_dir, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(self, type, deployment_context: DeploymentContext, compose_files, compose_project_name, compose_env_file) -> None:
         self.docker = DockerClient(compose_files=compose_files, compose_project_name=compose_project_name,
                                    compose_env_file=compose_env_file)
+        self.type = type
 
     def up(self, detach, services):
         try:
@@ -34,6 +37,19 @@ class DockerDeployer(Deployer):
     def down(self, timeout, volumes):
         try:
             return self.docker.compose.down(timeout=timeout, volumes=volumes)
+        except DockerException as e:
+            raise DeployerException(e)
+
+    def update(self):
+        try:
+            return self.docker.compose.restart()
+        except DockerException as e:
+            raise DeployerException(e)
+
+    def status(self):
+        try:
+            for p in self.docker.compose.ps():
+                print(f"{p.name}\t{p.state.status}")
         except DockerException as e:
             raise DeployerException(e)
 
@@ -61,17 +77,17 @@ class DockerDeployer(Deployer):
         except DockerException as e:
             raise DeployerException(e)
 
-    def run(self, image, command, user, volumes, entrypoint=None):
+    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
         try:
-            return self.docker.run(image=image, command=command, user=user, volumes=volumes, entrypoint=entrypoint)
+            return self.docker.run(image=image, command=command, user=user, volumes=volumes,
+                                   entrypoint=entrypoint, envs=env, detach=detach, publish=ports, publish_all=len(ports) == 0)
         except DockerException as e:
             raise DeployerException(e)
 
 
 class DockerDeployerConfigGenerator(DeployerConfigGenerator):
-    config_file_name: str = "kind-config.yml"
 
-    def __init__(self) -> None:
+    def __init__(self, type: str) -> None:
         super().__init__()
 
     # Nothing needed at present for the docker deployer

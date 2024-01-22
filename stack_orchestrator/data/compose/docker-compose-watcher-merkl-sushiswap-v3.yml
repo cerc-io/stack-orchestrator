@@ -1,0 +1,76 @@
+version: '3.2'
+
+services:
+  merkl-sushiswap-v3-watcher-db:
+    restart: unless-stopped
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=vdbm
+      - POSTGRES_MULTIPLE_DATABASES=merkl-sushiswap-v3-watcher,merkl-sushiswap-v3-watcher-job-queue
+      - POSTGRES_EXTENSION=merkl-sushiswap-v3-watcher-job-queue:pgcrypto
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
+      - merkl_sushiswap_v3_watcher_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  merkl-sushiswap-v3-watcher-job-runner:
+    restart: unless-stopped
+    depends_on:
+      merkl-sushiswap-v3-watcher-db:
+        condition: service_healthy
+    image: cerc/watcher-merkl-sushiswap-v3:local
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT}
+    command: ["bash", "./start-job-runner.sh"]
+    volumes:
+      - ../config/watcher-merkl-sushiswap-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-merkl-sushiswap-v3/start-job-runner.sh:/app/start-job-runner.sh
+    ports:
+      - "9002:9000"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "9000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  merkl-sushiswap-v3-watcher-server:
+    restart: unless-stopped
+    depends_on:
+      merkl-sushiswap-v3-watcher-db:
+        condition: service_healthy
+      merkl-sushiswap-v3-watcher-job-runner:
+        condition: service_healthy
+    image: cerc/watcher-merkl-sushiswap-v3:local
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT}
+    command: ["bash", "./start-server.sh"]
+    volumes:
+      - ../config/watcher-merkl-sushiswap-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-merkl-sushiswap-v3/start-server.sh:/app/start-server.sh
+    ports:
+      - "127.0.0.1:3007:3008"
+      - "9003:9001"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3008"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  merkl_sushiswap_v3_watcher_db_data:

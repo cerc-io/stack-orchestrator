@@ -28,7 +28,15 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
+    def update(self):
+        pass
+
+    @abstractmethod
     def ps(self):
+        pass
+
+    @abstractmethod
+    def status(self):
         pass
 
     @abstractmethod
@@ -44,7 +52,7 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def run(self, image, command, user, volumes, entrypoint):
+    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
         pass
 
 

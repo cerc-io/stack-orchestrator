@@ -8,6 +8,15 @@ WORK_DIR="${1:-./}"
 SRC_DIR="${2:-.next}"
 TRG_DIR="${3:-.next-r}"
 
+CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
+if [ -z "$CERC_BUILD_TOOL" ]; then
+  if [ -f "yarn.lock" ]; then
+    CERC_BUILD_TOOL=npm
+  else
+    CERC_BUILD_TOOL=yarn
+  fi
+fi
+
 cd "${WORK_DIR}" || exit 1
 
 rm -rf "$TRG_DIR"
@@ -25,12 +34,15 @@ if [ -f ".env" ]; then
 fi
 
 for f in $(find "$TRG_DIR" -regex ".*.[tj]sx?$" -type f | grep -v 'node_modules'); do
-  for e in $(cat "${f}" | tr -s '[:blank:]' '\n' | tr -s '[{},()]' '\n' | egrep -o '^"CERC_RUNTIME_ENV[^\"]+"$'); do
+  for e in $(cat "${f}" | tr -s '[:blank:]' '\n' | tr -s '[{},();]' '\n' | egrep -o '^"CERC_RUNTIME_ENV_[^\"]+"'); do
     orig_name=$(echo -n "${e}" | sed 's/"//g')
     cur_name=$(echo -n "${orig_name}" | sed 's/CERC_RUNTIME_ENV_//g')
     cur_val=$(echo -n "\$${cur_name}" | envsubst)
+    if [ "$CERC_RETAIN_ENV_QUOTES" != "true" ]; then
+      cur_val=$(sed "s/^[\"']//" <<< "$cur_val" | sed "s/[\"']//")
+    fi
     esc_val=$(sed 's/[&/\]/\\&/g' <<< "$cur_val")
-    echo "$cur_name=$cur_val"
+    echo "$f: $cur_name=$cur_val"
     sed -i "s/$orig_name/$esc_val/g" $f
   done
 done

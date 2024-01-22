@@ -1,0 +1,17 @@
+record:
+  type: ApplicationArtifact
+  version: 1.2.3
+  name: name
+  description: description
+  application: appidgoeshere
+  content_type: content_type
+  os: os
+  cpu: cpu
+  uri:
+    - uri://a
+    - uri://b
+  meta:
+    foo: bar
+  tags:
+    - a
+    - b

@@ -14,9 +14,10 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import os
-from typing import List
+from typing import List, Any
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext, VolumeMapping
 from stack_orchestrator.util import get_parsed_stack_config, get_yaml, get_compose_file_dir, get_pod_list
+from stack_orchestrator.opts import opts
 
 
 def _container_image_from_service(stack: str, service: str):
@@ -35,6 +36,33 @@ def _container_image_from_service(stack: str, service: str):
                 if "image" in service_definition:
                     image_name = service_definition["image"]
     return image_name
+
+
+def parsed_pod_files_map_from_file_names(pod_files):
+    parsed_pod_yaml_map : Any = {}
+    for pod_file in pod_files:
+        with open(pod_file, "r") as pod_file_descriptor:
+            parsed_pod_file = get_yaml().load(pod_file_descriptor)
+            parsed_pod_yaml_map[pod_file] = parsed_pod_file
+    if opts.o.debug:
+        print(f"parsed_pod_yaml_map: {parsed_pod_yaml_map}")
+    return parsed_pod_yaml_map
+
+
+def images_for_deployment(pod_files: List[str]):
+    image_set = set()
+    parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
+    # Find the set of images in the pods
+    for pod_name in parsed_pod_yaml_map:
+        pod = parsed_pod_yaml_map[pod_name]
+        services = pod["services"]
+        for service_name in services:
+            service_info = services[service_name]
+            image = service_info["image"]
+            image_set.add(image)
+    if opts.o.debug:
+        print(f"image_set: {image_set}")
+    return image_set
 
 
 def _volumes_to_docker(mounts: List[VolumeMapping]):

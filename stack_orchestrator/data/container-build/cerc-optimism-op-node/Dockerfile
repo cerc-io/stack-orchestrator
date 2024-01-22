@@ -1,4 +1,4 @@
-FROM golang:1.19.0-alpine3.15 as builder
+FROM golang:1.21.0-alpine3.18 as builder
 
 ARG VERSION=v0.0.0
 
@@ -21,7 +21,7 @@ ARG TARGETOS TARGETARCH
 
 RUN make op-node VERSION="$VERSION" GOOS=$TARGETOS GOARCH=$TARGETARCH
 
-FROM alpine:3.15
+FROM alpine:3.18
 
 RUN apk add --no-cache openssl jq
 

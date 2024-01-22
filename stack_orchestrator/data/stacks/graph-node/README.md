@@ -59,7 +59,7 @@ ports:
 Create deployment:
 
 ```bash
-laconic-so deploy create --spec-file graph-node-spec.yml --deployment-dir graph-node-deployment
+laconic-so --stack graph-node deploy create --spec-file graph-node-spec.yml --deployment-dir graph-node-deployment
 ```
 
 ## Start the stack

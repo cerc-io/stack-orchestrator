@@ -24,6 +24,8 @@ from importlib import resources
 import subprocess
 import click
 from pathlib import Path
+from stack_orchestrator import constants
+from stack_orchestrator.opts import opts
 from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
 from stack_orchestrator.deploy.deployer import Deployer, DeployerException
 from stack_orchestrator.deploy.deployer_factory import getDeployer
@@ -39,7 +41,7 @@ from stack_orchestrator.deploy.deployment_create import setup as deployment_setu
 @click.option("--exclude", help="don\'t start these components")
 @click.option("--env-file", help="env file to be used")
 @click.option("--cluster", help="specify a non-default cluster name")
-@click.option("--deploy-to", help="cluster system to deploy to (compose or k8s)")
+@click.option("--deploy-to", help="cluster system to deploy to (compose or k8s or k8s-kind)")
 @click.pass_context
 def command(ctx, include, exclude, env_file, cluster, deploy_to):
     '''deploy a stack'''
@@ -62,11 +64,19 @@ def command(ctx, include, exclude, env_file, cluster, deploy_to):
 
 
 def create_deploy_context(
-        global_context, deployment_context: DeploymentContext, stack, include, exclude, cluster, env_file, deployer):
+        global_context,
+        deployment_context: DeploymentContext,
+        stack,
+        include,
+        exclude,
+        cluster,
+        env_file,
+        deploy_to) -> DeployCommandContext:
+    # Extract the cluster name from the deployment, if we have one
+    if deployment_context and cluster is None:
+        cluster = deployment_context.get_cluster_id()
     cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
-    deployment_dir = deployment_context.deployment_dir if deployment_context else None
-    # See: https://gabrieldemarmiesse.github.io/python-on-whales/sub-commands/compose/
-    deployer = getDeployer(deployer, deployment_dir, compose_files=cluster_context.compose_files,
+    deployer = getDeployer(deploy_to, deployment_context, compose_files=cluster_context.compose_files,
                            compose_project_name=cluster_context.cluster,
                            compose_env_file=cluster_context.env_file)
     return DeployCommandContext(stack, cluster_context, deployer)
@@ -100,6 +110,22 @@ def down_operation(ctx, delete_volumes, extra_args_list):
             timeout_arg = extra_args_list[0]
         # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
         ctx.obj.deployer.down(timeout=timeout_arg, volumes=delete_volumes)
+
+
+def status_operation(ctx):
+    global_context = ctx.parent.parent.obj
+    if not global_context.dry_run:
+        if global_context.verbose:
+            print("Running compose status")
+        ctx.obj.deployer.status()
+
+
+def update_operation(ctx):
+    global_context = ctx.parent.parent.obj
+    if not global_context.dry_run:
+        if global_context.verbose:
+            print("Running compose update")
+        ctx.obj.deployer.update()
 
 
 def ps_operation(ctx):
@@ -155,7 +181,7 @@ def exec_operation(ctx, extra_args):
         if global_context.verbose:
             print(f"Running compose exec {service_name} {command_to_exec}")
         try:
-            ctx.obj.deployer.execute(service_name, command_to_exec, envs=container_exec_env)
+            ctx.obj.deployer.execute(service_name, command_to_exec, envs=container_exec_env, tty=True)
         except DeployerException:
             print("container command returned error exit status")
 
@@ -248,6 +274,22 @@ def _make_runtime_env(ctx):
     return container_exec_env
 
 
+def _make_default_cluster_name(deployment, compose_dir, stack, include, exclude):
+    # Create default unique, stable cluster name from confile file path and stack name if provided
+    if deployment:
+        path = os.path.realpath(os.path.abspath(compose_dir))
+    else:
+        path = "internal"
+    unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
+    if opts.o.debug:
+        print(f"pre-hash descriptor: {unique_cluster_descriptor}")
+    hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()[:16]
+    cluster = f"{constants.cluster_name_prefix}{hash}"
+    if opts.o.debug:
+        print(f"Using cluster name: {cluster}")
+    return cluster
+
+
 # stack has to be either PathLike pointing to a stack yml file, or a string with the name of a known stack
 def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
 
@@ -265,16 +307,9 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         compose_dir = Path(__file__).absolute().parent.parent.joinpath("data", "compose")
 
     if cluster is None:
-        # Create default unique, stable cluster name from confile file path and stack name if provided
-        # TODO: change this to the config file path
-        path = os.path.realpath(sys.argv[0])
-        unique_cluster_descriptor = f"{path},{stack},{include},{exclude}"
-        if ctx.debug:
-            print(f"pre-hash descriptor: {unique_cluster_descriptor}")
-        hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()
-        cluster = f"laconic-{hash}"
-        if ctx.verbose:
-            print(f"Using cluster name: {cluster}")
+        cluster = _make_default_cluster_name(deployment, compose_dir, stack, include, exclude)
+    else:
+        _make_default_cluster_name(deployment, compose_dir, stack, include, exclude)
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from stack_orchestrator import data

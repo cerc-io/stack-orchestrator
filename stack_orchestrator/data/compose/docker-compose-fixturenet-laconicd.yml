@@ -2,7 +2,7 @@ services:
   laconicd:
     restart: unless-stopped
     image: cerc/laconicd:local
-    command: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
+    entrypoint: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
     volumes:
       # The cosmos-sdk node's database directory:
       - laconicd-data:/root/.laconicd

@@ -7,7 +7,7 @@ on:
       - '!**'
       - '.gitea/workflows/triggers/fixturenet-laconicd-test'
   schedule:
-    - cron: '10 17 * * *' # TODO: add a run at 01 UTC once this is known to work
+    - cron: '1 13 * * *'
 
 jobs:
   test:

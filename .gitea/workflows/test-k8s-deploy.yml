@@ -5,7 +5,7 @@ on:
     branches: '*'
     paths:
       - '!**'
-      - '.gitea/workflows/triggers/fixturenet-laconicd-test'
+      - '.gitea/workflows/triggers/test-k8s-deploy'
 
 jobs:
   test:

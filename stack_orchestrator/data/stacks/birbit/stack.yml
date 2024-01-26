@@ -1,0 +1,19 @@
+version: "0.1"
+name: birbit
+repos:
+  #- github.com/zramsay/birbit
+  - github.com/mapbox/geojson.io
+containers:
+  #- cerc/birbit
+  - cerc/geojson
+pods:
+    # configurable process that reads from chain and generates a view for the front end
+    # for MVP is basically does nothing, b/c FE view is  reading all records
+    # imagine a 'watcher' for a specific view
+    #- birbit
+    # front end, gets its file from kubo;
+    # https://github.com/mapbox/geojson.io/blob/main/API.md#datadatatextx-url
+    # deployed via kubernetes
+  - geojson
+    # hosts all the dot geojson files that are required to generated views
+  - kubo

@@ -1,0 +1,8 @@
+version: "3.2"
+
+services:
+  geojson:
+    image: cerc/geojson:local
+    restart: always
+    ports:
+      - 0.0.0.0:8080:8080

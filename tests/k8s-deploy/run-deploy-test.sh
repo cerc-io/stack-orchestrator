@@ -9,7 +9,7 @@ fi
 
 # Helper functions: TODO move into a separate file
 wait_for_pods_started () {
-    for i in {1..5}
+    for i in {1..50}
     do
         local ps_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir ps )
 
@@ -27,7 +27,7 @@ wait_for_pods_started () {
 }
 
 wait_for_log_output () {
-    for i in {1..5}
+    for i in {1..50}
     do
 
         local log_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )

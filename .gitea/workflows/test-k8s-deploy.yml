@@ -6,6 +6,8 @@ on:
     paths:
       - '!**'
       - '.gitea/workflows/triggers/test-k8s-deploy'
+      - '.gitea/workflows/test-k8s-deploy.yml'
+      - 'tests/k8s-deploy/run-deploy-test.sh'
 
 jobs:
   test:

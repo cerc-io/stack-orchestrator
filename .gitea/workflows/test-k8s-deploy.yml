@@ -6,6 +6,8 @@ on:
     paths:
       - '!**'
       - '.gitea/workflows/triggers/test-k8s-deploy'
+      - '.gitea/workflows/test-k8s-deploy.yml'
+      - 'tests/k8s-deploy/run-deploy-test.sh'
 
 jobs:
   test:
@@ -39,4 +41,7 @@ jobs:
       - name: "Install Kubectl"
         run: ./tests/scripts/install-kubectl.sh
       - name: "Run k8s deployment test"
-        run: ./tests/k8s-deploy/run-deploy-test.sh
+        run: |
+          source /opt/bash-utils/cgroup-helper.sh
+          join_cgroup
+          ./tests/k8s-deploy/run-deploy-test.sh

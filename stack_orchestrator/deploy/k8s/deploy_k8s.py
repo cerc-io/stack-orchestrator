@@ -135,15 +135,20 @@ class K8sDeployer(Deployer):
         if not self.is_kind():
             ingress: client.V1Ingress = self.cluster_info.get_ingress()
 
-            if opts.o.debug:
-                print(f"Sending this ingress: {ingress}")
-            ingress_resp = self.networking_api.create_namespaced_ingress(
-                namespace=self.k8s_namespace,
-                body=ingress
-            )
-            if opts.o.debug:
-                print("Ingress created:")
-                print(f"{ingress_resp}")
+            if ingress:
+                if opts.o.debug:
+                    print(f"Sending this ingress: {ingress}")
+                ingress_resp = self.networking_api.create_namespaced_ingress(
+                    namespace=self.k8s_namespace,
+                    body=ingress
+                )
+                if opts.o.debug:
+                    print("Ingress created:")
+                    print(f"{ingress_resp}")
+            else:
+                if opts.o.debug:
+                    print(f"No ingress configured")
+
 
     def down(self, timeout, volumes):
         self.connect_api()
@@ -198,14 +203,18 @@ class K8sDeployer(Deployer):
 
         if not self.is_kind():
             ingress: client.V1Ingress = self.cluster_info.get_ingress()
-            if opts.o.debug:
-                print(f"Deleting this ingress: {ingress}")
-            try:
-                self.networking_api.delete_namespaced_ingress(
-                    name=ingress.metadata.name, namespace=self.k8s_namespace
-                )
-            except client.exceptions.ApiException as e:
-                _check_delete_exception(e)
+            if ingress:
+              if opts.o.debug:
+                  print(f"Deleting this ingress: {ingress}")
+              try:
+                  self.networking_api.delete_namespaced_ingress(
+                      name=ingress.metadata.name, namespace=self.k8s_namespace
+                  )
+              except client.exceptions.ApiException as e:
+                  _check_delete_exception(e)
+            else:
+                if opts.o.debug:
+                    print(f"No ingress to delete")
 
         if self.is_kind():
             # Destroy the kind cluster

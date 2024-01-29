@@ -104,6 +104,9 @@ def process_container(stack: str,
         build_command = os.path.join(container_build_dir,
                                      "default-build.sh") + f" {default_container_tag} {repo_dir_or_build_dir}"
     if not dry_run:
+        # No PATH at all causes failures with podman.
+        if "PATH" not in container_build_env:
+            container_build_env["PATH"] = os.environ["PATH"]
         if verbose:
             print(f"Executing: {build_command} with environment: {container_build_env}")
         build_result = subprocess.run(build_command, shell=True, env=container_build_env)

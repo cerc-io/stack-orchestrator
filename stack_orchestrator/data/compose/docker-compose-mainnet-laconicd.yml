@@ -9,9 +9,7 @@ services:
       - laconicd-config:/root/.laconicd/config
       - laconicd-keyring:/root/.laconicd/keyring-test
       # TODO: look at folding these scripts into the container
-      - ../config/mainnet-laconicd/scripts/run-laconicd.sh:/opt/run-laconicd.sh
-      - ../config/mainnet-laconicd/scripts/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
-      - ../config/mainnet-laconicd/scripts/export-myaddress.sh:/docker-entrypoint-scripts.d/export-myaddress.sh
+      - laconicd-scripts:/docker-entrypoint-scripts.d:ro
     # TODO: determine which of the ports below is really needed
     ports:
       - "6060"
@@ -26,9 +24,11 @@ services:
   cli:
     image: cerc/laconic-registry-cli:local
     volumes:
-      - ../config/mainnet-laconicd/registry-cli-config-template.yml:/registry-cli-config-template.yml
+      - cli-config:/registry-cli-config
 
 volumes:
   laconicd-data:
   laconicd-config:
+  laconicd-scripts:
   laconicd-keyring:
+  cli-config:

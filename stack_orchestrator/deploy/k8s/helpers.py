@@ -153,11 +153,19 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir):
                 if "volumes" in service_obj:
                     volumes = service_obj["volumes"]
                     for mount_string in volumes:
-                        # Looks like: test-data:/data
-                        (volume_name, mount_path) = mount_string.split(":")
+                        # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                        if opts.o.debug:
+                            print(f"mount_string is: {mount_string}")
+                        mount_split = mount_string.split(":")
+                        volume_name = mount_split[0]
+                        mount_path = mount_split[1]
+                        if opts.o.debug:
+                            print(f"volumne_name: {volume_name}")
+                            print(f"map: {volume_host_path_map}")
+                            print(f"mount path: {mount_path}")
                         volume_definitions.append(
                             f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
-                            f"    containerPath: {get_node_pv_mount_path(volume_name)}"
+                            f"    containerPath: {get_node_pv_mount_path(volume_name)}\n"
                             )
     return (
         "" if len(volume_definitions) == 0 else (

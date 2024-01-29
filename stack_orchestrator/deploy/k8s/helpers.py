@@ -97,8 +97,15 @@ def volume_mounts_for_service(parsed_pod_files, service):
                     if "volumes" in service_obj:
                         volumes = service_obj["volumes"]
                         for mount_string in volumes:
-                            # Looks like: test-data:/data
-                            (volume_name, mount_path) = mount_string.split(":")
+                            # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                            if opts.o.debug:
+                                print(f"mount_string: {mount_string}")
+                            mount_split = mount_string.split(":")
+                            volume_name = mount_split[0]
+                            mount_path = mount_split[1]
+                            if opts.o.debug:
+                                print(f"volumne_name: {volume_name}")
+                                print(f"mount path: {mount_path}")
                             volume_device = client.V1VolumeMount(mount_path=mount_path, name=volume_name)
                             result.append(volume_device)
     return result
@@ -155,7 +162,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir):
                     for mount_string in volumes:
                         # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
                         if opts.o.debug:
-                            print(f"mount_string is: {mount_string}")
+                            print(f"mount_string: {mount_string}")
                         mount_split = mount_string.split(":")
                         volume_name = mount_split[0]
                         mount_path = mount_split[1]
@@ -188,7 +195,7 @@ def _generate_kind_port_mappings(parsed_pod_files):
                     for port_string in ports:
                         # TODO handle the complex cases
                         # Looks like: 80 or something more complicated
-                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}")
+                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
     return (
         "" if len(port_definitions) == 0 else (
             "  extraPortMappings:\n"

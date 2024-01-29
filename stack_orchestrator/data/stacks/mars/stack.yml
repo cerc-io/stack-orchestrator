@@ -1,0 +1,8 @@
+version: "0.1"
+name: mars
+repos:
+  - github.com/cerc-io/mars-interface
+containers:
+  - cerc/mars
+pods:
+  - mars

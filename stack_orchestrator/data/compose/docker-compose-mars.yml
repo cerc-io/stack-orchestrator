@@ -1,0 +1,8 @@
+version: "3.2"
+
+services:
+  mars:
+    image: cerc/mars:local
+    restart: always
+    ports:
+      - "3000:3000"

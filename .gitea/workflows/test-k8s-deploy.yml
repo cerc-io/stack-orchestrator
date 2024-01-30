@@ -12,7 +12,7 @@ on:
 jobs:
   test:
     name: "Run deploy test suite on kind/k8s"
-    runs-on: ubuntu-22.04-with-syn-ethdb
+    runs-on: ubuntu-22.04
     steps:
       - name: "Clone project repository"
         uses: actions/checkout@v3

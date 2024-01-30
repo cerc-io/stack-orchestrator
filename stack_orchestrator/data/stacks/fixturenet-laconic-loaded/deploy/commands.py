@@ -25,6 +25,7 @@ default_spec_file_content = ""
 def _stack_config_dir(context: DeploymentContext) -> Path:
     return get_config_file_dir().joinpath(context.stack.name)
 
+
 def _deployment_volume_dir(context: DeploymentContext, volume_name: str) -> Path:
     return context.deployment_dir.joinpath("data", volume_name)
 

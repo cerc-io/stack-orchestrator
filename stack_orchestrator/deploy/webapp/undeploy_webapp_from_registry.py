@@ -40,8 +40,8 @@ def process_app_removal_request(ctx,
     matched_owner = match_owner(app_removal_request, deployment_record, dns_record)
 
     # Or of the original deployment request.
-    if not matched_owner and dns_record.attributes.request:
-        matched_owner = match_owner(app_deployment_request, laconic.get_record(dns_record.attributes.request, require=True))
+    if not matched_owner and deployment_record.attributes.request:
+        matched_owner = match_owner(app_removal_request, laconic.get_record(deployment_record.attributes.request, require=True))
 
     if matched_owner:
         print("Matched deployment ownership:", matched_owner)

@@ -31,7 +31,13 @@ def _image_needs_pushed(image: str):
 
 def remote_tag_for_image(image: str, remote_repo_url: str):
     # Turns image tags of the form: foo/bar:local into remote.repo/org/bar:deploy
-    (org, image_name_with_version) = image.split("/")
+    major_parts = image.split("/", 2)
+    org = None
+    if 2 == len(major_parts):
+      org = major_parts[0]
+      image_name_with_version = major_parts[1]
+    else:
+      image_name_with_version = major_parts[0]
     (image_name, image_version) = image_name_with_version.split(":")
     if image_version == "local":
         return f"{remote_repo_url}/{image_name}:deploy"

@@ -36,6 +36,8 @@ jobs:
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
+      - name: "Check cgroups version"
+        run: mount | grep cgroup
       - name: "Install kind"
         run: ./tests/scripts/install-kind.sh
       - name: "Install Kubectl"
@@ -45,3 +47,4 @@ jobs:
           source /opt/bash-utils/cgroup-helper.sh
           join_cgroup
           ./tests/k8s-deploy/run-deploy-test.sh
+

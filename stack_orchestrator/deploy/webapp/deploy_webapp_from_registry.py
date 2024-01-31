@@ -59,8 +59,8 @@ def process_app_deployment_request(
     dns_record = laconic.get_record(dns_crn)
     if dns_record:
         matched_owner = match_owner(app_deployment_request, dns_record)
-        if not matched_owner and dns_record.request:
-            matched_owner = match_owner(app_deployment_request, laconic.get_record(dns_record.request, require=True))
+        if not matched_owner and dns_record.attributes.request:
+            matched_owner = match_owner(app_deployment_request, laconic.get_record(dns_record.attributes.request, require=True))
 
         if matched_owner:
             print("Matched DnsRecord ownership:", matched_owner)

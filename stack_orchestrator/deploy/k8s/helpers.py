@@ -102,7 +102,8 @@ def volume_mounts_for_service(parsed_pod_files, service):
                             volume_name = parts[0]
                             mount_path = parts[1]
                             mount_options = parts[2] if len(parts) == 3 else None
-                            volume_device = client.V1VolumeMount(mount_path=mount_path, name=volume_name, read_only="ro" == mount_options)
+                            volume_device = client.V1VolumeMount(
+                                mount_path=mount_path, name=volume_name, read_only="ro" == mount_options)
                             result.append(volume_device)
     return result
 
@@ -166,7 +167,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir):
                         volume_definitions.append(
                             f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
                             f"    containerPath: {get_node_pv_mount_path(volume_name)}"
-                            )
+                        )
     return (
         "" if len(volume_definitions) == 0 else (
             "  extraMounts:\n"

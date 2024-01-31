@@ -54,7 +54,7 @@ def _get_ports(stack):
 
 def _get_named_volumes(stack):
     # Parse the compose files looking for named volumes
-    named_volumes =  {
+    named_volumes = {
         "rw": [],
         "ro": []
     }
@@ -123,9 +123,9 @@ def _fixup_pod_file(pod, spec, compose_dir):
                     _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
                     new_volume_spec = {"driver": "local",
                                        "driver_opts": {
-                                          "type": "none",
-                                          "device": volume_spec_fixedup,
-                                          "o": "bind"
+                                           "type": "none",
+                                           "device": volume_spec_fixedup,
+                                           "o": "bind"
                                        }
                                        }
                     pod["volumes"][volume] = new_volume_spec

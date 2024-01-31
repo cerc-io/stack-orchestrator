@@ -1,5 +1,4 @@
 # Copyright © 2023 Vulcanize
-import sys
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -12,6 +11,8 @@ import sys
 
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
+
+import sys
 
 from datetime import datetime, timezone
 
@@ -163,7 +164,6 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print(f"No ingress configured")
 
-
     def down(self, timeout, volumes):
         self.connect_api()
         # Delete the k8s objects
@@ -234,14 +234,14 @@ class K8sDeployer(Deployer):
         if not self.is_kind():
             ingress: client.V1Ingress = self.cluster_info.get_ingress()
             if ingress:
-              if opts.o.debug:
-                  print(f"Deleting this ingress: {ingress}")
-              try:
-                  self.networking_api.delete_namespaced_ingress(
-                      name=ingress.metadata.name, namespace=self.k8s_namespace
-                  )
-              except client.exceptions.ApiException as e:
-                  _check_delete_exception(e)
+                if opts.o.debug:
+                    print(f"Deleting this ingress: {ingress}")
+                try:
+                    self.networking_api.delete_namespaced_ingress(
+                        name=ingress.metadata.name, namespace=self.k8s_namespace
+                    )
+                except client.exceptions.ApiException as e:
+                    _check_delete_exception(e)
             else:
                 if opts.o.debug:
                     print(f"No ingress to delete")

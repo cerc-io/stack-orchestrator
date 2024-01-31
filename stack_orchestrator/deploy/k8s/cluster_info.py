@@ -115,9 +115,9 @@ class ClusterInfo:
             for service_name in services:
                 service_info = services[service_name]
                 if "ports" in service_info:
-                  port = int(service_info["ports"][0])
-                  if opts.o.debug:
-                      print(f"service port: {port}")
+                    port = int(service_info["ports"][0])
+                    if opts.o.debug:
+                        print(f"service port: {port}")
         service = client.V1Service(
             metadata=client.V1ObjectMeta(name=f"{self.app_name}-service"),
             spec=client.V1ServiceSpec(
@@ -133,21 +133,27 @@ class ClusterInfo:
 
     def get_pvcs(self):
         result = []
-        volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        spec_volumes = self.spec.get_volumes()
+        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
         if opts.o.debug:
-            print(f"Volumes: {volumes}")
-        for volume_name in volumes:
+            print(f"Spec Volumes: {spec_volumes}")
+            print(f"Named Volumes: {named_volumes}")
+        for volume_name in spec_volumes:
+            if volume_name not in named_volumes:
+                if opts.o.debug:
+                    print(f"{volume_name} not in pod files")
+                continue
             spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=["ReadWriteOnce"],
                 storage_class_name="manual",
                 resources=client.V1ResourceRequirements(
                     requests={"storage": "2Gi"}
                 ),
-                volume_name=volume_name
+                volume_name=f"{self.app_name}-{volume_name}"
             )
             pvc = client.V1PersistentVolumeClaim(
-                metadata=client.V1ObjectMeta(name=volume_name,
-                                             labels={"volume-label": volume_name}),
+                metadata=client.V1ObjectMeta(name=f"{self.app_name}-{volume_name}",
+                                             labels={"volume-label": f"{self.app_name}-{volume_name}"}),
                 spec=spec,
             )
             result.append(pvc)
@@ -172,7 +178,7 @@ class ClusterInfo:
                     data[f] = open(full_path, 'rt').read()
 
             spec = client.V1ConfigMap(
-                metadata=client.V1ObjectMeta(name=cfg_map_name,
+                metadata=client.V1ObjectMeta(name=f"{self.app_name}-{cfg_map_name}",
                                              labels={"configmap-label": cfg_map_name}),
                 data=data
             )
@@ -195,8 +201,8 @@ class ClusterInfo:
                 host_path=client.V1HostPathVolumeSource(path=get_node_pv_mount_path(volume_name))
             )
             pv = client.V1PersistentVolume(
-                metadata=client.V1ObjectMeta(name=volume_name,
-                                             labels={"volume-label": volume_name}),
+                metadata=client.V1ObjectMeta(name=f"{self.app_name}-{volume_name}",
+                                             labels={"volume-label": f"{self.app_name}-{volume_name}"}),
                 spec=spec,
             )
             result.append(pv)

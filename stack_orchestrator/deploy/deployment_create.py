@@ -365,7 +365,8 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
                     configmap_descriptors[named_volume] = f"./data/{named_volume}"
                 else:
                     volume_descriptors[named_volume] = f"./data/{named_volume}"
-        spec_file_content["volumes"] = volume_descriptors
+        if volume_descriptors:
+            spec_file_content["volumes"] = volume_descriptors
         if configmap_descriptors:
             spec_file_content["configmaps"] = configmap_descriptors
 

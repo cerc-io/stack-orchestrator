@@ -120,7 +120,8 @@ fi
 # Stop then start again and check the volume was preserved
 $TEST_TARGET_SO deployment --dir $test_deployment_dir stop
 # Sleep a bit just in case
-sleep 2
+# sleep for longer to check if that's why the subsequent create cluster fails
+sleep 20
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 wait_for_pods_started
 wait_for_log_output

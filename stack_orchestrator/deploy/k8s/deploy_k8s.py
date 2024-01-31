@@ -12,8 +12,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import sys
-
 from datetime import datetime, timezone
 
 from pathlib import Path
@@ -162,9 +160,9 @@ class K8sDeployer(Deployer):
                     print(f"{ingress_resp}")
             else:
                 if opts.o.debug:
-                    print(f"No ingress configured")
+                    print("No ingress configured")
 
-    def down(self, timeout, volumes):
+    def down(self, timeout, volumes):  # noqa: C901
         self.connect_api()
         # Delete the k8s objects
         # Create the host-path-mounted PVs for this deployment
@@ -244,7 +242,7 @@ class K8sDeployer(Deployer):
                     _check_delete_exception(e)
             else:
                 if opts.o.debug:
-                    print(f"No ingress to delete")
+                    print("No ingress to delete")
 
         if self.is_kind():
             # Destroy the kind cluster

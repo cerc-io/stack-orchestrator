@@ -168,9 +168,12 @@ class ClusterInfo:
                 if opts.o.debug:
                     print(f"{cfg_map_name} not in pod files")
                 continue
+
             if not cfg_map_path.startswith("/"):
                 cfg_map_path = os.path.join(os.path.dirname(self.spec.file_path), cfg_map_path)
 
+            # Read in all the files at a single-level of the directory.  This mimics the behavior
+            # of `kubectl create configmap foo --from-file=/path/to/dir`
             data = {}
             for f in os.listdir(cfg_map_path):
                 full_path = os.path.join(cfg_map_path, f)

@@ -9,7 +9,7 @@ fi
 
 # Helper functions: TODO move into a separate file
 wait_for_pods_started () {
-    for i in {1..5}
+    for i in {1..50}
     do
         local ps_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir ps )
 
@@ -27,7 +27,7 @@ wait_for_pods_started () {
 }
 
 wait_for_log_output () {
-    for i in {1..5}
+    for i in {1..50}
     do
 
         local log_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
@@ -63,7 +63,9 @@ echo "Version reported is: ${reported_version_string}"
 echo "Cloning repositories into: $CERC_REPO_BASE_DIR"
 rm -rf $CERC_REPO_BASE_DIR
 mkdir -p $CERC_REPO_BASE_DIR
-# Test basic stack-orchestrator deploy
+$TEST_TARGET_SO --stack test setup-repositories
+$TEST_TARGET_SO --stack test build-containers
+# Test basic stack-orchestrator deploy to k8s
 test_deployment_dir=$CERC_REPO_BASE_DIR/test-deployment-dir
 test_deployment_spec=$CERC_REPO_BASE_DIR/test-deployment-spec.yml
 $TEST_TARGET_SO --stack test deploy --deploy-to k8s-kind init --output $test_deployment_spec --config CERC_TEST_PARAM_1=PASSED
@@ -118,7 +120,8 @@ fi
 # Stop then start again and check the volume was preserved
 $TEST_TARGET_SO deployment --dir $test_deployment_dir stop
 # Sleep a bit just in case
-sleep 2
+# sleep for longer to check if that's why the subsequent create cluster fails
+sleep 20
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 wait_for_pods_started
 wait_for_log_output

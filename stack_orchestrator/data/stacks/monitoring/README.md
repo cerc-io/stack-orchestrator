@@ -140,6 +140,10 @@ Set the following env variables in the deployment env config file (`monitoring-d
   # External ETH RPC endpoint (filecoin)
   # (Optional, default: https://api.node.glif.io/rpc/v1)
   CERC_FIL_RPC_ENDPOINT=
+
+  # Grafana server host URL (used in various links in alerts, etc.)
+  # (Optional, default: http://localhost:3000)
+  GF_SERVER_ROOT_URL=
   ```
 
 ## Start the stack

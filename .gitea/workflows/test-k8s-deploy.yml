@@ -1,23 +1,18 @@
 name: K8s Deploy Test
 
 on:
-  pull_request:
-    branches: '*'
   push:
-    branches:
-      - main
-      - ci-test
-    paths-ignore:
-      - '.gitea/workflows/triggers/*'
-
-# Needed until we can incorporate docker startup into the executor container
-env:
-  DOCKER_HOST: unix:///var/run/dind.sock
+    branches: '*'
+    paths:
+      - '!**'
+      - '.gitea/workflows/triggers/test-k8s-deploy'
+      - '.gitea/workflows/test-k8s-deploy.yml'
+      - 'tests/k8s-deploy/run-deploy-test.sh'
 
 jobs:
   test:
     name: "Run deploy test suite on kind/k8s"
-    runs-on: ubuntu-22.04-with-syn-ethdb
+    runs-on: ubuntu-22.04
     steps:
       - name: "Clone project repository"
         uses: actions/checkout@v3
@@ -41,14 +36,15 @@ jobs:
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
-      - name: Start dockerd # Also needed until we can incorporate into the executor
-        run: |
-          dockerd -H $DOCKER_HOST --userland-proxy=false &
-      - name: "Check container"
-        run: cat /usr/local/bin/entrypoint.sh
+      - name: "Check cgroups version"
+        run: mount | grep cgroup
       - name: "Install kind"
         run: ./tests/scripts/install-kind.sh
       - name: "Install Kubectl"
         run: ./tests/scripts/install-kubectl.sh
       - name: "Run k8s deployment test"
-        run: ./tests/k8s-deploy/run-deploy-test.sh
+        run: |
+          source /opt/bash-utils/cgroup-helper.sh
+          join_cgroup
+          ./tests/k8s-deploy/run-deploy-test.sh
+

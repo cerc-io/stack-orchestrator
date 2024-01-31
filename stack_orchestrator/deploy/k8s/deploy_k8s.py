@@ -1,5 +1,4 @@
 # Copyright © 2023 Vulcanize
-
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -110,6 +109,20 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print("PVCs created:")
                 print(f"{pvc_resp}")
+
+        # Figure out the ConfigMaps for this deployment
+        config_maps = self.cluster_info.get_configmaps()
+        for cfg_map in config_maps:
+            if opts.o.debug:
+                print(f"Sending this ConfigMap: {cfg_map}")
+            cfg_rsp = self.core_api.create_namespaced_config_map(
+                body=cfg_map,
+                namespace=self.k8s_namespace
+            )
+            if opts.o.debug:
+                print("ConfigMap created:")
+                print(f"{cfg_rsp}")
+
         # Process compose files into a Deployment
         deployment = self.cluster_info.get_deployment(image_pull_policy=None if self.is_kind() else "Always")
         # Create the k8s objects
@@ -135,17 +148,21 @@ class K8sDeployer(Deployer):
         if not self.is_kind():
             ingress: client.V1Ingress = self.cluster_info.get_ingress()
 
-            if opts.o.debug:
-                print(f"Sending this ingress: {ingress}")
-            ingress_resp = self.networking_api.create_namespaced_ingress(
-                namespace=self.k8s_namespace,
-                body=ingress
-            )
-            if opts.o.debug:
-                print("Ingress created:")
-                print(f"{ingress_resp}")
+            if ingress:
+                if opts.o.debug:
+                    print(f"Sending this ingress: {ingress}")
+                ingress_resp = self.networking_api.create_namespaced_ingress(
+                    namespace=self.k8s_namespace,
+                    body=ingress
+                )
+                if opts.o.debug:
+                    print("Ingress created:")
+                    print(f"{ingress_resp}")
+            else:
+                if opts.o.debug:
+                    print("No ingress configured")
 
-    def down(self, timeout, volumes):
+    def down(self, timeout, volumes):  # noqa: C901
         self.connect_api()
         # Delete the k8s objects
         # Create the host-path-mounted PVs for this deployment
@@ -175,6 +192,22 @@ class K8sDeployer(Deployer):
                     print(f"{pvc_resp}")
             except client.exceptions.ApiException as e:
                 _check_delete_exception(e)
+
+        # Figure out the ConfigMaps for this deployment
+        cfg_maps = self.cluster_info.get_configmaps()
+        for cfg_map in cfg_maps:
+            if opts.o.debug:
+                print(f"Deleting this ConfigMap: {cfg_map}")
+            try:
+                cfg_map_resp = self.core_api.delete_namespaced_config_map(
+                    name=cfg_map.metadata.name, namespace=self.k8s_namespace
+                )
+                if opts.o.debug:
+                    print("ConfigMap deleted:")
+                    print(f"{cfg_map_resp}")
+            except client.exceptions.ApiException as e:
+                _check_delete_exception(e)
+
         deployment = self.cluster_info.get_deployment()
         if opts.o.debug:
             print(f"Deleting this deployment: {deployment}")
@@ -198,14 +231,18 @@ class K8sDeployer(Deployer):
 
         if not self.is_kind():
             ingress: client.V1Ingress = self.cluster_info.get_ingress()
-            if opts.o.debug:
-                print(f"Deleting this ingress: {ingress}")
-            try:
-                self.networking_api.delete_namespaced_ingress(
-                    name=ingress.metadata.name, namespace=self.k8s_namespace
-                )
-            except client.exceptions.ApiException as e:
-                _check_delete_exception(e)
+            if ingress:
+                if opts.o.debug:
+                    print(f"Deleting this ingress: {ingress}")
+                try:
+                    self.networking_api.delete_namespaced_ingress(
+                        name=ingress.metadata.name, namespace=self.k8s_namespace
+                    )
+                except client.exceptions.ApiException as e:
+                    _check_delete_exception(e)
+            else:
+                if opts.o.debug:
+                    print("No ingress to delete")
 
         if self.is_kind():
             # Destroy the kind cluster

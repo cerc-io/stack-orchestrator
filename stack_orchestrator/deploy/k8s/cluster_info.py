@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import os
+
 from kubernetes import client
 from typing import Any, List, Set
 
@@ -112,9 +114,10 @@ class ClusterInfo:
             services = pod["services"]
             for service_name in services:
                 service_info = services[service_name]
-                port = int(service_info["ports"][0])
-                if opts.o.debug:
-                    print(f"service port: {port}")
+                if "ports" in service_info:
+                    port = int(service_info["ports"][0])
+                    if opts.o.debug:
+                        print(f"service port: {port}")
         service = client.V1Service(
             metadata=client.V1ObjectMeta(name=f"{self.app_name}-service"),
             spec=client.V1ServiceSpec(
@@ -130,30 +133,70 @@ class ClusterInfo:
 
     def get_pvcs(self):
         result = []
-        volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        spec_volumes = self.spec.get_volumes()
+        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
         if opts.o.debug:
-            print(f"Volumes: {volumes}")
-        for volume_name in volumes:
+            print(f"Spec Volumes: {spec_volumes}")
+            print(f"Named Volumes: {named_volumes}")
+        for volume_name in spec_volumes:
+            if volume_name not in named_volumes:
+                if opts.o.debug:
+                    print(f"{volume_name} not in pod files")
+                continue
             spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=["ReadWriteOnce"],
                 storage_class_name="manual",
                 resources=client.V1ResourceRequirements(
                     requests={"storage": "2Gi"}
                 ),
-                volume_name=volume_name
+                volume_name=f"{self.app_name}-{volume_name}"
             )
             pvc = client.V1PersistentVolumeClaim(
-                metadata=client.V1ObjectMeta(name=volume_name,
-                                             labels={"volume-label": volume_name}),
+                metadata=client.V1ObjectMeta(name=f"{self.app_name}-{volume_name}",
+                                             labels={"volume-label": f"{self.app_name}-{volume_name}"}),
                 spec=spec,
             )
             result.append(pvc)
         return result
 
+    def get_configmaps(self):
+        result = []
+        spec_configmaps = self.spec.get_configmaps()
+        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        for cfg_map_name, cfg_map_path in spec_configmaps.items():
+            if cfg_map_name not in named_volumes:
+                if opts.o.debug:
+                    print(f"{cfg_map_name} not in pod files")
+                continue
+
+            if not cfg_map_path.startswith("/"):
+                cfg_map_path = os.path.join(os.path.dirname(self.spec.file_path), cfg_map_path)
+
+            # Read in all the files at a single-level of the directory.  This mimics the behavior
+            # of `kubectl create configmap foo --from-file=/path/to/dir`
+            data = {}
+            for f in os.listdir(cfg_map_path):
+                full_path = os.path.join(cfg_map_path, f)
+                if os.path.isfile(full_path):
+                    data[f] = open(full_path, 'rt').read()
+
+            spec = client.V1ConfigMap(
+                metadata=client.V1ObjectMeta(name=f"{self.app_name}-{cfg_map_name}",
+                                             labels={"configmap-label": cfg_map_name}),
+                data=data
+            )
+            result.append(spec)
+        return result
+
     def get_pvs(self):
         result = []
-        volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
-        for volume_name in volumes:
+        spec_volumes = self.spec.get_volumes()
+        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        for volume_name in spec_volumes:
+            if volume_name not in named_volumes:
+                if opts.o.debug:
+                    print(f"{volume_name} not in pod files")
+                continue
             spec = client.V1PersistentVolumeSpec(
                 storage_class_name="manual",
                 access_modes=["ReadWriteOnce"],
@@ -161,8 +204,8 @@ class ClusterInfo:
                 host_path=client.V1HostPathVolumeSource(path=get_node_pv_mount_path(volume_name))
             )
             pv = client.V1PersistentVolume(
-                metadata=client.V1ObjectMeta(name=volume_name,
-                                             labels={"volume-label": volume_name}),
+                metadata=client.V1ObjectMeta(name=f"{self.app_name}-{volume_name}",
+                                             labels={"volume-label": f"{self.app_name}-{volume_name}"}),
                 spec=spec,
             )
             result.append(pv)
@@ -178,10 +221,11 @@ class ClusterInfo:
                 container_name = service_name
                 service_info = services[service_name]
                 image = service_info["image"]
-                port = int(service_info["ports"][0])
-                if opts.o.debug:
-                    print(f"image: {image}")
-                    print(f"service port: {port}")
+                if "ports" in service_info:
+                    port = int(service_info["ports"][0])
+                    if opts.o.debug:
+                        print(f"image: {image}")
+                        print(f"service port: {port}")
                 # Re-write the image tag for remote deployment
                 image_to_use = remote_tag_for_image(
                     image, self.spec.get_image_registry()) if self.spec.get_image_registry() is not None else image
@@ -199,7 +243,7 @@ class ClusterInfo:
                     ),
                 )
                 containers.append(container)
-        volumes = volumes_for_pod_files(self.parsed_pod_yaml_map)
+        volumes = volumes_for_pod_files(self.parsed_pod_yaml_map, self.spec)
         image_pull_secrets = [client.V1LocalObjectReference(name="laconic-registry")]
         template = client.V1PodTemplateSpec(
             metadata=client.V1ObjectMeta(labels={"app": self.app_name}),

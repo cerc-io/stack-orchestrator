@@ -195,7 +195,7 @@ class ClusterInfo:
                     volume_mounts=volume_mounts,
                     resources=client.V1ResourceRequirements(
                         requests={"cpu": "100m", "memory": "200Mi"},
-                        limits={"cpu": "500m", "memory": "500Mi"},
+                        limits={"cpu": "1000m", "memory": "2000Mi"},
                     ),
                 )
                 containers.append(container)

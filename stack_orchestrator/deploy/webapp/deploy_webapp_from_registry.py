@@ -136,13 +136,17 @@ def load_known_requests(filename):
     return {}
 
 
-def dump_known_requests(filename, requests):
+def dump_known_requests(filename, requests, status="SEEN"):
     if not filename:
         return
     known_requests = load_known_requests(filename)
     for r in requests:
-        known_requests[r.id] = r.createTime
-    json.dump(known_requests, open(filename, "w"))
+        known_requests[r.id] = {
+            "createTime": r.createTime,
+            "status": status
+        }
+    with open(filename, "w") as f:
+        json.dump(known_requests, f)
 
 
 @click.command()
@@ -201,6 +205,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
     requests.reverse()
     requests_by_name = {}
     for r in requests:
+        # TODO: Do this _after_ filtering deployments and cancellations to minimize round trips.
         app = laconic.get_record(r.attributes.application)
         if not app:
             print("Skipping request %s, cannot locate app." % r.id)
@@ -256,6 +261,8 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
 
     if not dry_run:
         for r in requests_to_execute:
+            dump_known_requests(state_file, [r], "DEPLOYING")
+            status = "ERROR"
             try:
                 process_app_deployment_request(
                     ctx,
@@ -268,5 +275,6 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     kube_config,
                     image_registry
                 )
+                status = "DEPLOYED"
             finally:
-                dump_known_requests(state_file, [r])
+                dump_known_requests(state_file, [r], status)

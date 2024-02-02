@@ -49,7 +49,7 @@ COPY ./config.yml /config
 RUN yarn global add http-server
 
 # Expose port for http
-EXPOSE 3000
+EXPOSE 80
 
 # Default command sleeps forever so docker doesn't kill it
 CMD ["/scripts/start-serving-app.sh"]

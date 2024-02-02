@@ -196,7 +196,7 @@ def file_hash(filename):
 
 
 def determine_base_container(clone_dir, app_type="webapp"):
-    if not app_type.startswith("webapp"):
+    if not app_type or not app_type.startswith("webapp"):
         raise Exception(f"Unsupported app_type {app_type}")
 
     base_container = "cerc/webapp-base"

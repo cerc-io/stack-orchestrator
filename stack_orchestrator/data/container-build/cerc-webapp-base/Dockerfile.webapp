@@ -1,0 +1,11 @@
+FROM cerc/webapp-base:local as builder
+
+ARG CERC_BUILD_TOOL
+
+WORKDIR /app
+COPY . .
+RUN rm -rf node_modules build .next*
+RUN /scripts/build-app.sh /app build /data
+
+FROM cerc/webapp-base:local
+COPY --from=builder /data /data

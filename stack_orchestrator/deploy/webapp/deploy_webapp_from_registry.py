@@ -23,8 +23,7 @@ import tempfile
 import click
 
 from stack_orchestrator.deploy.webapp import deploy_webapp
-from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient, determine_base_container,
-                                                   build_container_image, push_container_image,
+from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient, build_container_image, push_container_image,
                                                    file_hash, deploy_to_k8s, publish_deployment,
                                                    hostname_for_deployment_request, generate_hostname_for_app,
                                                    match_owner)

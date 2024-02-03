@@ -108,7 +108,7 @@ def volume_mounts_for_service(parsed_pod_files, service):
     return result
 
 
-def volumes_for_pod_files(parsed_pod_files, spec):
+def volumes_for_pod_files(parsed_pod_files, spec, app_name):
     result = []
     for pod in parsed_pod_files:
         parsed_pod_file = parsed_pod_files[pod]
@@ -116,11 +116,11 @@ def volumes_for_pod_files(parsed_pod_files, spec):
             volumes = parsed_pod_file["volumes"]
             for volume_name in volumes.keys():
                 if volume_name in spec.get_configmaps():
-                    config_map = client.V1ConfigMapVolumeSource(name=volume_name)
+                    config_map = client.V1ConfigMapVolumeSource(name=f"{app_name}-{volume_name}")
                     volume = client.V1Volume(name=volume_name, config_map=config_map)
                     result.append(volume)
                 else:
-                    claim = client.V1PersistentVolumeClaimVolumeSource(claim_name=volume_name)
+                    claim = client.V1PersistentVolumeClaimVolumeSource(claim_name=f"{app_name}-{volume_name}")
                     volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
                     result.append(volume)
     return result

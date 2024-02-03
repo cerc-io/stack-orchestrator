@@ -360,11 +360,10 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
         for named_volume in named_volumes["rw"]:
             volume_descriptors[named_volume] = f"./data/{named_volume}"
         for named_volume in named_volumes["ro"]:
-            if "k8s" in deployer_type:
-                if "config" in named_volume:
-                    configmap_descriptors[named_volume] = f"./data/{named_volume}"
-                else:
-                    volume_descriptors[named_volume] = f"./data/{named_volume}"
+            if "k8s" in deployer_type and "config" in named_volume:
+                configmap_descriptors[named_volume] = f"./data/{named_volume}"
+            else:
+                volume_descriptors[named_volume] = f"./data/{named_volume}"
         if volume_descriptors:
             spec_file_content["volumes"] = volume_descriptors
         if configmap_descriptors:

@@ -1,0 +1,9 @@
+version: "1.0"
+name: webapp-deployment-status-ui
+description: "Deployer for webapps"
+repos:
+  - git.vdb.to:telackey/webapp-deployment-status-ui
+containers:
+  - cerc/webapp-deployment-status-ui
+pods:
+  - webapp-deployment-status-ui

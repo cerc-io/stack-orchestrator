@@ -229,7 +229,7 @@ class ClusterInfo:
                 # Re-write the image tag for remote deployment
                 image_to_use = remote_tag_for_image(
                     image, self.spec.get_image_registry()) if self.spec.get_image_registry() is not None else image
-                volume_mounts = volume_mounts_for_service(self.parsed_pod_yaml_map, service_name, self.app_name)
+                volume_mounts = volume_mounts_for_service(self.parsed_pod_yaml_map, service_name)
                 container = client.V1Container(
                     name=container_name,
                     image=image_to_use,

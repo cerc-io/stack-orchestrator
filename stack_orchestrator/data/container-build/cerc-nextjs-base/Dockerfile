@@ -36,7 +36,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # RUN su node -c "npm install -g <your-package-list-here>"
 
 # Expose port for http
-EXPOSE 3000
+EXPOSE 80
 
 COPY /scripts /scripts
 

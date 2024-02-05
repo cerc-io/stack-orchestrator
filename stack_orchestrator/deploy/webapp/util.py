@@ -195,6 +195,23 @@ def file_hash(filename):
     return hashlib.sha1(open(filename).read().encode()).hexdigest()
 
 
+def determine_base_container(clone_dir, app_type="webapp"):
+    if not app_type or not app_type.startswith("webapp"):
+        raise Exception(f"Unsupported app_type {app_type}")
+
+    base_container = "cerc/webapp-base"
+    if app_type == "webapp/next":
+        base_container = "cerc/nextjs-base"
+    elif app_type == "webapp":
+        pkg_json_path = os.path.join(clone_dir, "package.json")
+        if os.path.exists(pkg_json_path):
+            pkg_json = json.load(open(pkg_json_path))
+            if "next" in pkg_json.get("dependencies", {}):
+                base_container = "cerc/nextjs-base"
+
+    return base_container
+
+
 def build_container_image(app_record, tag, extra_build_args=[]):
     tmpdir = tempfile.mkdtemp()
 
@@ -216,8 +233,15 @@ def build_container_image(app_record, tag, extra_build_args=[]):
             result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir])
             result.check_returncode()
 
+        base_container = determine_base_container(clone_dir, app_record.attributes.app_type)
+
         print("Building webapp ...")
-        build_command = [sys.argv[0], "build-webapp", "--source-repo", clone_dir, "--tag", tag]
+        build_command = [
+            sys.argv[0], "build-webapp",
+            "--source-repo", clone_dir,
+            "--tag", tag,
+            "--base-container", base_container
+        ]
         if extra_build_args:
             build_command.append("--extra-build-args")
             build_command.append(" ".join(extra_build_args))

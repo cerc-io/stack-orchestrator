@@ -22,6 +22,7 @@ from stack_orchestrator import constants
 class Spec:
 
     obj: typing.Any
+    file_path: Path
 
     def __init__(self) -> None:
         pass
@@ -29,11 +30,22 @@ class Spec:
     def init_from_file(self, file_path: Path):
         with file_path:
             self.obj = get_yaml().load(open(file_path, "r"))
+            self.file_path = file_path
 
     def get_image_registry(self):
         return (self.obj[constants.image_resigtry_key]
                 if self.obj and constants.image_resigtry_key in self.obj
                 else None)
+
+    def get_volumes(self):
+        return (self.obj["volumes"]
+                if self.obj and "volumes" in self.obj
+                else {})
+
+    def get_configmaps(self):
+        return (self.obj["configmaps"]
+                if self.obj and "configmaps" in self.obj
+                else {})
 
     def get_http_proxy(self):
         return (self.obj[constants.network_key][constants.http_proxy_key]

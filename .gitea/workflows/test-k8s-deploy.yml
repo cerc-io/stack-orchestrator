@@ -8,6 +8,8 @@ on:
       - '.gitea/workflows/triggers/test-k8s-deploy'
       - '.gitea/workflows/test-k8s-deploy.yml'
       - 'tests/k8s-deploy/run-deploy-test.sh'
+  schedule: # Note: coordinate with other tests to not overload runners at the same time of day
+    - cron: '3 15 * * *'
 
 jobs:
   test:
@@ -36,6 +38,8 @@ jobs:
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
+      - name: "Check cgroups version"
+        run: mount | grep cgroup
       - name: "Install kind"
         run: ./tests/scripts/install-kind.sh
       - name: "Install Kubectl"
@@ -45,3 +49,4 @@ jobs:
           source /opt/bash-utils/cgroup-helper.sh
           join_cgroup
           ./tests/k8s-deploy/run-deploy-test.sh
+

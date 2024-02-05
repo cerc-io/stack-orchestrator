@@ -73,7 +73,7 @@ def named_volumes_from_pod_files(parsed_pod_files):
         parsed_pod_file = parsed_pod_files[pod]
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
-            for volume in volumes.keys():
+            for volume, value in volumes.items():
                 # Volume definition looks like:
                 # 'laconicd-data': None
                 named_volumes.append(volume)
@@ -103,24 +103,32 @@ def volume_mounts_for_service(parsed_pod_files, service):
                             mount_split = mount_string.split(":")
                             volume_name = mount_split[0]
                             mount_path = mount_split[1]
+                            mount_options = mount_split[2] if len(mount_split) == 3 else None
                             if opts.o.debug:
                                 print(f"volumne_name: {volume_name}")
                                 print(f"mount path: {mount_path}")
-                            volume_device = client.V1VolumeMount(mount_path=mount_path, name=volume_name)
+                                print(f"mount options: {mount_options}")
+                            volume_device = client.V1VolumeMount(
+                                mount_path=mount_path, name=volume_name, read_only="ro" == mount_options)
                             result.append(volume_device)
     return result
 
 
-def volumes_for_pod_files(parsed_pod_files):
+def volumes_for_pod_files(parsed_pod_files, spec, app_name):
     result = []
     for pod in parsed_pod_files:
         parsed_pod_file = parsed_pod_files[pod]
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
             for volume_name in volumes.keys():
-                claim = client.V1PersistentVolumeClaimVolumeSource(claim_name=volume_name)
-                volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
-                result.append(volume)
+                if volume_name in spec.get_configmaps():
+                    config_map = client.V1ConfigMapVolumeSource(name=f"{app_name}-{volume_name}")
+                    volume = client.V1Volume(name=volume_name, config_map=config_map)
+                    result.append(volume)
+                else:
+                    claim = client.V1PersistentVolumeClaimVolumeSource(claim_name=f"{app_name}-{volume_name}")
+                    volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
+                    result.append(volume)
     return result
 
 
@@ -173,7 +181,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir):
                         volume_definitions.append(
                             f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
                             f"    containerPath: {get_node_pv_mount_path(volume_name)}\n"
-                            )
+                        )
     return (
         "" if len(volume_definitions) == 0 else (
             "  extraMounts:\n"

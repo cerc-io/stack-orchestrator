@@ -33,6 +33,7 @@ from stack_orchestrator.base import get_npm_registry_url
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
 
+
 def make_container_build_env(dev_root_path: str,
                              container_build_dir: str,
                              debug: bool,
@@ -104,6 +105,9 @@ def process_container(stack: str,
         build_command = os.path.join(container_build_dir,
                                      "default-build.sh") + f" {default_container_tag} {repo_dir_or_build_dir}"
     if not dry_run:
+        # No PATH at all causes failures with podman.
+        if "PATH" not in container_build_env:
+            container_build_env["PATH"] = os.environ["PATH"]
         if verbose:
             print(f"Executing: {build_command} with environment: {container_build_env}")
         build_result = subprocess.run(build_command, shell=True, env=container_build_env)
@@ -118,6 +122,7 @@ def process_container(stack: str,
                 print("****** Container Build Error, continuing because --continue-on-error is set")
     else:
         print("Skipped")
+
 
 @click.command()
 @click.option('--include', help="only build these containers")

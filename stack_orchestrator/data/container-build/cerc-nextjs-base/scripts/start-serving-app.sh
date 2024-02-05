@@ -58,4 +58,4 @@ if [ "$CERC_NEXTJS_SKIP_GENERATE" != "true" ]; then
   fi
 fi
 
-$CERC_BUILD_TOOL start . -p ${CERC_LISTEN_PORT:-3000}
+$CERC_BUILD_TOOL start . -- -p ${CERC_LISTEN_PORT:-80}

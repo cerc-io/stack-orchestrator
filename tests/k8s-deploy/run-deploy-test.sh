@@ -127,7 +127,6 @@ log_output_4=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
 if [[ "$log_output_4" == *"/config/test_config:"* ]] && [[ "$log_output_4" == *"dbfc7a4d-44a7-416d-b5f3-29842cc47650"* ]]; then
     echo "deployment ConfigMap test: passed"
 else
-  $TEST_TARGET_SO deployment --dir $test_deployment_dir logs
     echo "deployment ConfigMap test: FAILED"
     delete_cluster_exit
 fi

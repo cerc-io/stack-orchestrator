@@ -7,8 +7,10 @@ services:
       CERC_TEST_PARAM_1: ${CERC_TEST_PARAM_1:-FAILED}
     volumes:
       - test-data:/data
+      - test-config:/config:ro
     ports:
       - "80"
 
 volumes:
   test-data:
+  test-config:

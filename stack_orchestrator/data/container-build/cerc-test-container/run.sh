@@ -17,5 +17,20 @@ fi
 if [ -n "$CERC_TEST_PARAM_1" ]; then
   echo "Test-param-1: ${CERC_TEST_PARAM_1}"
 fi
+
+if [ -d "/config" ]; then
+  echo "/config: EXISTS"
+  for f in /config/*; do
+    if [[ -f "$f" ]] || [[ -L "$f" ]]; then
+      echo "$f:"
+      cat "$f"
+      echo ""
+      echo ""
+    fi
+  done
+else
+  echo "/config: does NOT EXIST"
+fi
+
 # Run nginx which will block here forever
 /usr/sbin/nginx -g "daemon off;"

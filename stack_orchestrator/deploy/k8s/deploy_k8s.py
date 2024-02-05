@@ -390,8 +390,9 @@ class K8sDeployer(Deployer):
 class K8sDeployerConfigGenerator(DeployerConfigGenerator):
     type: str
 
-    def __init__(self, type: str) -> None:
+    def __init__(self, type: str, deployment_context) -> None:
         self.type = type
+        self.deployment_context = deployment_context
         super().__init__()
 
     def generate(self, deployment_dir: Path):
@@ -399,7 +400,7 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
         if self.type == "k8s-kind":
             # Check the file isn't already there
             # Get the config file contents
-            content = generate_kind_config(deployment_dir)
+            content = generate_kind_config(deployment_dir, self.deployment_context)
             if opts.o.debug:
                 print(f"kind config is: {content}")
             config_file = deployment_dir.joinpath(constants.kind_config_filename)

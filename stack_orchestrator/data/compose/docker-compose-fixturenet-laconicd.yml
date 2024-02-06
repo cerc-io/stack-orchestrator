@@ -7,9 +7,7 @@ services:
       # The cosmos-sdk node's database directory:
       - laconicd-data:/root/.laconicd
       # TODO: look at folding these scripts into the container
-      - ../config/fixturenet-laconicd/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
-      - ../config/fixturenet-laconicd/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
-      - ../config/fixturenet-laconicd/export-myaddress.sh:/docker-entrypoint-scripts.d/export-myaddress.sh
+      - laconicd-scripts:/docker-entrypoint-scripts.d:ro
     # TODO: determine which of the ports below is really needed
     ports:
       - "6060"
@@ -24,7 +22,9 @@ services:
   cli:
     image: cerc/laconic-registry-cli:local
     volumes:
-      - ../config/fixturenet-laconicd/registry-cli-config-template.yml:/registry-cli-config-template.yml
+      - cli-config:/registry-cli-config
 
 volumes:
   laconicd-data:
+  laconicd-scripts:
+  cli-config:

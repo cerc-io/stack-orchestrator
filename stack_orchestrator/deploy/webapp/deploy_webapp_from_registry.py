@@ -203,6 +203,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
             print("--dns-suffix, --record-namespace-dns, and --record-namespace-deployments are all required", file=sys.stderr)
             sys.exit(2)
 
+    # Split CSV and clean up values.
     include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
     exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 

@@ -1,0 +1,16 @@
+services:
+  database:
+    image: cerc/test-database-container:local
+    restart: always
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: "test-user"
+      POSTGRES_DB: "test-db"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+    ports:
+      - "5432"
+
+volumes:
+  db-data:

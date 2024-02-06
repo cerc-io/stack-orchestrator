@@ -189,5 +189,10 @@ def error_exit(s):
     sys.exit(1)
 
 
+def warn_exit(s):
+    print(f"WARN: {s}")
+    sys.exit(0)
+
+
 def env_var_map_from_file(file: Path) -> Mapping[str, str]:
     return dotenv_values(file)

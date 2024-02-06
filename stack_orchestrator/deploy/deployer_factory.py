@@ -18,11 +18,11 @@ from stack_orchestrator.deploy.k8s.deploy_k8s import K8sDeployer, K8sDeployerCon
 from stack_orchestrator.deploy.compose.deploy_docker import DockerDeployer, DockerDeployerConfigGenerator
 
 
-def getDeployerConfigGenerator(type: str):
+def getDeployerConfigGenerator(type: str, deployment_context):
     if type == "compose" or type is None:
         return DockerDeployerConfigGenerator(type)
     elif type == constants.k8s_deploy_type or type == constants.k8s_kind_deploy_type:
-        return K8sDeployerConfigGenerator(type)
+        return K8sDeployerConfigGenerator(type, deployment_context)
     else:
         print(f"ERROR: deploy-to {type} is not valid")
 

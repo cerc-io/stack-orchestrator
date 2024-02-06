@@ -185,7 +185,7 @@ def dump_known_requests(filename, requests, status="SEEN"):
 def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,
             request_id, discover, state_file, only_update_state,
             dns_suffix, record_namespace_dns, record_namespace_deployments, dry_run,
-            include_tags, exclude_tags, log_dir):
+            include_tags, exclude_tags, log_dir):  # noqa: C901
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)

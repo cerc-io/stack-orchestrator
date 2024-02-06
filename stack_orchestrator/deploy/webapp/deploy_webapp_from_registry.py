@@ -182,10 +182,10 @@ def dump_known_requests(filename, requests, status="SEEN"):
 @click.option("--exclude-tags", help="Exclude requests with matching tags (comma-separated).", default="")
 @click.option("--log-dir", help="Output build/deployment logs to directory.", default=None)
 @click.pass_context
-def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,
+def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,  # noqa: C901
             request_id, discover, state_file, only_update_state,
             dns_suffix, record_namespace_dns, record_namespace_deployments, dry_run,
-            include_tags, exclude_tags, log_dir):  # noqa: C901
+            include_tags, exclude_tags, log_dir):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)

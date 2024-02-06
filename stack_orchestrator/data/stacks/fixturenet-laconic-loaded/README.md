@@ -7,11 +7,11 @@ Instructions for deploying a local Laconic blockchain "fixturenet" for developme
 **Note:** For building some NPMs, access to the @lirewine repositories is required. If you don't have access, see [this tutorial](/docs/laconicd-fixturenet.md) to run this stack
 
 ## 1. Install Laconic Stack Orchestrator
-Installation is covered in detail [here](https://github.com/cerc-io/stack-orchestrator#user-mode) but if you're on Linux and already have docker installed it should be as simple as:
+Installation is covered in detail [here](https://git.vdb.to/cerc-io/stack-orchestrator#user-mode) but if you're on Linux and already have docker installed it should be as simple as:
 ```
 $ mkdir my-working-dir
 $ cd my-working-dir
-$ curl -L -o ./laconic-so https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so
+$ curl -L -o ./laconic-so https://git.vdb.to/cerc-io/stack-orchestrator/releases/download/latest/laconic-so
 $ chmod +x ./laconic-so
 $ export PATH=$PATH:$(pwd)  # Or move laconic-so to ~/bin or your favorite on-path directory
 ```

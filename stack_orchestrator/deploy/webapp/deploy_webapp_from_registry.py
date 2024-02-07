@@ -29,7 +29,7 @@ from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient,
                                                    build_container_image, push_container_image,
                                                    file_hash, deploy_to_k8s, publish_deployment,
                                                    hostname_for_deployment_request, generate_hostname_for_app,
-                                                   match_owner)
+                                                   match_owner, skip_by_tag)
 
 
 def process_app_deployment_request(
@@ -222,17 +222,6 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
             dump_known_requests(state_file, requests)
         return
 
-    def skip_by_tag(r):
-        for tag in exclude_tags:
-            if tag and r.attributes.tags and tag in r.attributes.tags:
-                return True
-
-        for tag in include_tags:
-            if tag and (not r.attributes.tags or tag not in r.attributes.tags):
-                return True
-
-        return False
-
     previous_requests = load_known_requests(state_file)
 
     # Collapse related requests.
@@ -256,7 +245,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
             print("Ignoring request %s, it has been superseded." % r.id)
             continue
 
-        if skip_by_tag(r):
+        if skip_by_tag(r, include_tags, exclude_tags):
             print("Skipping request %s, filtered by tag (include %s, exclude %s, present %s)" % (r.id,
                                                                                                  include_tags,
                                                                                                  exclude_tags,

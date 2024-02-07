@@ -28,6 +28,15 @@ from stack_orchestrator.deploy.deploy_types import DeployEnvVars
 from stack_orchestrator.deploy.spec import Spec
 from stack_orchestrator.deploy.images import remote_tag_for_image
 
+DEFAULT_VOLUME_RESOURCES = {
+    "requests": {"storage": "2Gi"}
+}
+
+DEFAULT_CONTAINER_RESOURCES = {
+    "requests": {"cpu": "100m", "memory": "200Mi"},
+    "limits": {"cpu": "1000m", "memory": "2000Mi"},
+}
+
 
 class ClusterInfo:
     parsed_pod_yaml_map: Any
@@ -135,6 +144,9 @@ class ClusterInfo:
         result = []
         spec_volumes = self.spec.get_volumes()
         named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        resources = self.spec.get_volume_resources()
+        if not resources:
+            resources = DEFAULT_VOLUME_RESOURCES
         if opts.o.debug:
             print(f"Spec Volumes: {spec_volumes}")
             print(f"Named Volumes: {named_volumes}")
@@ -147,7 +159,8 @@ class ClusterInfo:
                 access_modes=["ReadWriteOnce"],
                 storage_class_name="manual",
                 resources=client.V1ResourceRequirements(
-                    requests={"storage": "2Gi"}
+                    requests=resources.get("requests"),
+                    limits=resources.get("limits")
                 ),
                 volume_name=f"{self.app_name}-{volume_name}"
             )
@@ -192,6 +205,9 @@ class ClusterInfo:
         result = []
         spec_volumes = self.spec.get_volumes()
         named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        resources = self.spec.get_volume_resources()
+        if not resources:
+            resources = DEFAULT_VOLUME_RESOURCES
         for volume_name in spec_volumes:
             if volume_name not in named_volumes:
                 if opts.o.debug:
@@ -200,7 +216,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeSpec(
                 storage_class_name="manual",
                 access_modes=["ReadWriteOnce"],
-                capacity={"storage": "2Gi"},
+                capacity=resources.get("requests", DEFAULT_VOLUME_RESOURCES["requests"]),
                 host_path=client.V1HostPathVolumeSource(path=get_node_pv_mount_path(volume_name))
             )
             pv = client.V1PersistentVolume(
@@ -214,6 +230,10 @@ class ClusterInfo:
     # TODO: put things like image pull policy into an object-scope struct
     def get_deployment(self, image_pull_policy: str = None):
         containers = []
+        resources = self.spec.get_container_resources()
+        if not resources:
+            resources = DEFAULT_CONTAINER_RESOURCES
+        print(resources)
         for pod_name in self.parsed_pod_yaml_map:
             pod = self.parsed_pod_yaml_map[pod_name]
             services = pod["services"]
@@ -238,8 +258,8 @@ class ClusterInfo:
                     ports=[client.V1ContainerPort(container_port=port)],
                     volume_mounts=volume_mounts,
                     resources=client.V1ResourceRequirements(
-                        requests={"cpu": "100m", "memory": "200Mi"},
-                        limits={"cpu": "1000m", "memory": "2000Mi"},
+                        requests=resources.get("requests"),
+                        limits=resources.get("limits")
                     ),
                 )
                 containers.append(container)

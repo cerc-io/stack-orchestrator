@@ -47,6 +47,12 @@ class Spec:
                 if self.obj and "configmaps" in self.obj
                 else {})
 
+    def get_container_resources(self):
+        return self.obj.get("resources", {}).get("containers")
+
+    def get_volume_resources(self):
+        return self.obj.get("resources", {}).get("volumes")
+
     def get_http_proxy(self):
         return (self.obj[constants.network_key][constants.http_proxy_key]
                 if self.obj and constants.network_key in self.obj

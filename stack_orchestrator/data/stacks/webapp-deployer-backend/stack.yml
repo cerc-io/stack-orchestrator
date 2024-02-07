@@ -2,10 +2,10 @@ version: "1.0"
 name: webapp-deployer-backend
 description: "Deployer for webapps"
 repos:
-  - git.vdb.to:telackey/webapp-deployment-status-api
+  - git.vdb.to/telackey/webapp-deployment-status-api
 containers:
   - cerc/webapp-deployer-backend
 pods:
   - name: webapp-deployer-backend
-    repository: git.vdb.to:telackey/webapp-deployment-status-api
+    repository: git.vdb.to/telackey/webapp-deployment-status-api
     path: ./

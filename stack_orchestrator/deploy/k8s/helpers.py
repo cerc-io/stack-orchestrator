@@ -97,11 +97,17 @@ def volume_mounts_for_service(parsed_pod_files, service):
                     if "volumes" in service_obj:
                         volumes = service_obj["volumes"]
                         for mount_string in volumes:
-                            # Looks like: test-data:/data
-                            parts = mount_string.split(":")
-                            volume_name = parts[0]
-                            mount_path = parts[1]
-                            mount_options = parts[2] if len(parts) == 3 else None
+                            # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                            if opts.o.debug:
+                                print(f"mount_string: {mount_string}")
+                            mount_split = mount_string.split(":")
+                            volume_name = mount_split[0]
+                            mount_path = mount_split[1]
+                            mount_options = mount_split[2] if len(mount_split) == 3 else None
+                            if opts.o.debug:
+                                print(f"volumne_name: {volume_name}")
+                                print(f"mount path: {mount_path}")
+                                print(f"mount options: {mount_options}")
                             volume_device = client.V1VolumeMount(
                                 mount_path=mount_path, name=volume_name, read_only="ro" == mount_options)
                             result.append(volume_device)
@@ -163,12 +169,20 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                 if "volumes" in service_obj:
                     volumes = service_obj["volumes"]
                     for mount_string in volumes:
-                        # Looks like: test-data:/data
-                        volume_name = mount_string.split(":")[0]
+                        # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                        if opts.o.debug:
+                            print(f"mount_string: {mount_string}")
+                        mount_split = mount_string.split(":")
+                        volume_name = mount_split[0]
+                        mount_path = mount_split[1]
+                        if opts.o.debug:
+                            print(f"volumne_name: {volume_name}")
+                            print(f"map: {volume_host_path_map}")
+                            print(f"mount path: {mount_path}")
                         if volume_name not in deployment_context.spec.get_configmaps():
                             volume_definitions.append(
                                 f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
-                                f"    containerPath: {get_node_pv_mount_path(volume_name)}"
+                                f"    containerPath: {get_node_pv_mount_path(volume_name)}\n"
                             )
     return (
         "" if len(volume_definitions) == 0 else (
@@ -191,7 +205,7 @@ def _generate_kind_port_mappings(parsed_pod_files):
                     for port_string in ports:
                         # TODO handle the complex cases
                         # Looks like: 80 or something more complicated
-                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}")
+                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
     return (
         "" if len(port_definitions) == 0 else (
             "  extraPortMappings:\n"

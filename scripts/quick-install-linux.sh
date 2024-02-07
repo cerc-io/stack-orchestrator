@@ -137,7 +137,7 @@ fi
 echo "**************************************************************************************"
 echo "Installing laconic-so"
 # install latest `laconic-so`
-distribution_url=https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so
+distribution_url=https://git.vdb.to/cerc-io/stack-orchestrator/releases/download/latest/laconic-so
 install_filename=${install_dir}/laconic-so
 mkdir -p  ${install_dir}
 curl -L -o ${install_filename} ${distribution_url}

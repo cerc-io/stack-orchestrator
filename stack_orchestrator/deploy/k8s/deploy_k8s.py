@@ -81,69 +81,84 @@ class K8sDeployer(Deployer):
         self.apps_api = client.AppsV1Api()
         self.custom_obj_api = client.CustomObjectsApi()
 
-    def up(self, detach, services):
-
-        if self.is_kind():
-            # Create the kind cluster
-            create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath(constants.kind_config_filename))
-            # Ensure the referenced containers are copied into kind
-            load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
-        self.connect_api()
-
+    def _create_volume_data(self):
         # Create the host-path-mounted PVs for this deployment
         pvs = self.cluster_info.get_pvs()
         for pv in pvs:
             if opts.o.debug:
                 print(f"Sending this pv: {pv}")
-            pv_resp = self.core_api.create_persistent_volume(body=pv)
-            if opts.o.debug:
-                print("PVs created:")
-                print(f"{pv_resp}")
+            if not opts.o.dry_run:
+                pv_resp = self.core_api.create_persistent_volume(body=pv)
+                if opts.o.debug:
+                    print("PVs created:")
+                    print(f"{pv_resp}")
 
         # Figure out the PVCs for this deployment
         pvcs = self.cluster_info.get_pvcs()
         for pvc in pvcs:
             if opts.o.debug:
                 print(f"Sending this pvc: {pvc}")
-            pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(body=pvc, namespace=self.k8s_namespace)
-            if opts.o.debug:
-                print("PVCs created:")
-                print(f"{pvc_resp}")
+
+            if not opts.o.dry_run:
+                pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(body=pvc, namespace=self.k8s_namespace)
+                if opts.o.debug:
+                    print("PVCs created:")
+                    print(f"{pvc_resp}")
 
         # Figure out the ConfigMaps for this deployment
         config_maps = self.cluster_info.get_configmaps()
         for cfg_map in config_maps:
             if opts.o.debug:
                 print(f"Sending this ConfigMap: {cfg_map}")
-            cfg_rsp = self.core_api.create_namespaced_config_map(
-                body=cfg_map,
-                namespace=self.k8s_namespace
-            )
-            if opts.o.debug:
-                print("ConfigMap created:")
-                print(f"{cfg_rsp}")
+            if not opts.o.dry_run:
+                cfg_rsp = self.core_api.create_namespaced_config_map(
+                    body=cfg_map,
+                    namespace=self.k8s_namespace
+                )
+                if opts.o.debug:
+                    print("ConfigMap created:")
+                    print(f"{cfg_rsp}")
 
+    def _create_deployment(self):
         # Process compose files into a Deployment
         deployment = self.cluster_info.get_deployment(image_pull_policy=None if self.is_kind() else "Always")
         # Create the k8s objects
         if opts.o.debug:
             print(f"Sending this deployment: {deployment}")
-        deployment_resp = self.apps_api.create_namespaced_deployment(
-            body=deployment, namespace=self.k8s_namespace
-        )
-        if opts.o.debug:
-            print("Deployment created:")
-            print(f"{deployment_resp.metadata.namespace} {deployment_resp.metadata.name} \
-                  {deployment_resp.metadata.generation} {deployment_resp.spec.template.spec.containers[0].image}")
+        if not opts.o.dry_run:
+            deployment_resp = self.apps_api.create_namespaced_deployment(
+                body=deployment, namespace=self.k8s_namespace
+            )
+            if opts.o.debug:
+                print("Deployment created:")
+                print(f"{deployment_resp.metadata.namespace} {deployment_resp.metadata.name} \
+                    {deployment_resp.metadata.generation} {deployment_resp.spec.template.spec.containers[0].image}")
 
         service: client.V1Service = self.cluster_info.get_service()
-        service_resp = self.core_api.create_namespaced_service(
-            namespace=self.k8s_namespace,
-            body=service
-        )
         if opts.o.debug:
-            print("Service created:")
-            print(f"{service_resp}")
+            print(f"Sending this service: {service}")
+        if not opts.o.dry_run:
+            service_resp = self.core_api.create_namespaced_service(
+                namespace=self.k8s_namespace,
+                body=service
+            )
+            if opts.o.debug:
+                print("Service created:")
+                print(f"{service_resp}")
+
+    def up(self, detach, services):
+        if not opts.o.dry_run:
+            if self.is_kind():
+                # Create the kind cluster
+                create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath(constants.kind_config_filename))
+                # Ensure the referenced containers are copied into kind
+                load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
+            self.connect_api()
+        else:
+            print("Dry run mode enabled, skipping k8s API connect")
+
+        self._create_volume_data()
+        self._create_deployment()
 
         if not self.is_kind():
             ingress: client.V1Ingress = self.cluster_info.get_ingress()
@@ -151,13 +166,14 @@ class K8sDeployer(Deployer):
             if ingress:
                 if opts.o.debug:
                     print(f"Sending this ingress: {ingress}")
-                ingress_resp = self.networking_api.create_namespaced_ingress(
-                    namespace=self.k8s_namespace,
-                    body=ingress
-                )
-                if opts.o.debug:
-                    print("Ingress created:")
-                    print(f"{ingress_resp}")
+                if not opts.o.dry_run:
+                    ingress_resp = self.networking_api.create_namespaced_ingress(
+                        namespace=self.k8s_namespace,
+                        body=ingress
+                    )
+                    if opts.o.debug:
+                        print("Ingress created:")
+                        print(f"{ingress_resp}")
             else:
                 if opts.o.debug:
                     print("No ingress configured")

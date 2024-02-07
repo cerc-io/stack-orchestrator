@@ -150,6 +150,7 @@ class ClusterInfo:
         if opts.o.debug:
             print(f"Spec Volumes: {spec_volumes}")
             print(f"Named Volumes: {named_volumes}")
+            print(f"Resources: {resources}")
         for volume_name in spec_volumes:
             if volume_name not in named_volumes:
                 if opts.o.debug:
@@ -233,7 +234,6 @@ class ClusterInfo:
         resources = self.spec.get_container_resources()
         if not resources:
             resources = DEFAULT_CONTAINER_RESOURCES
-        print(resources)
         for pod_name in self.parsed_pod_yaml_map:
             pod = self.parsed_pod_yaml_map[pod_name]
             services = pod["services"]

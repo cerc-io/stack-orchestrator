@@ -355,11 +355,13 @@ def generate_hostname_for_app(app):
 
 def skip_by_tag(r, include_tags, exclude_tags):
     for tag in exclude_tags:
-        if tag and r.attributes.tags and tag in r.attributes.tags:
+        if r.attributes.tags and tag in r.attributes.tags:
             return True
 
-    for tag in include_tags:
-        if tag and (not r.attributes.tags or tag not in r.attributes.tags):
-            return True
+    if include_tags:
+        for tag in include_tags:
+            if r.attributes.tags and tag in r.attributes.tags:
+                return False
+        return True
 
     return False

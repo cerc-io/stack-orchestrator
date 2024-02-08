@@ -38,7 +38,7 @@ DEFAULT_CONTAINER_RESOURCES = Resources({
 })
 
 
-def get_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequirements:
+def to_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequirements:
     def to_dict(limits: ResourceLimits):
         if not limits:
             return None
@@ -179,7 +179,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=["ReadWriteOnce"],
                 storage_class_name="manual",
-                resources=get_k8s_resource_requirements(resources),
+                resources=to_k8s_resource_requirements(resources),
                 volume_name=f"{self.app_name}-{volume_name}"
             )
             pvc = client.V1PersistentVolumeClaim(
@@ -234,7 +234,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeSpec(
                 storage_class_name="manual",
                 access_modes=["ReadWriteOnce"],
-                capacity=get_k8s_resource_requirements(resources).requests,
+                capacity=to_k8s_resource_requirements(resources).requests,
                 host_path=client.V1HostPathVolumeSource(path=get_node_pv_mount_path(volume_name))
             )
             pv = client.V1PersistentVolume(
@@ -274,7 +274,7 @@ class ClusterInfo:
                     env=envs_from_environment_variables_map(self.environment_variables.map),
                     ports=[client.V1ContainerPort(container_port=port)],
                     volume_mounts=volume_mounts,
-                    resources=get_k8s_resource_requirements(resources),
+                    resources=to_k8s_resource_requirements(resources),
                 )
                 containers.append(container)
         volumes = volumes_for_pod_files(self.parsed_pod_yaml_map, self.spec, self.app_name)

@@ -13,10 +13,58 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from pathlib import Path
 import typing
+import humanfriendly
+
+from pathlib import Path
+
 from stack_orchestrator.util import get_yaml
 from stack_orchestrator import constants
+
+
+class ResourceLimits:
+    cpus: float = None
+    memory: int = None
+    storage: int = None
+
+    def __init__(self, obj={}):
+        if "cpus" in obj:
+            self.cpus = float(obj["cpus"])
+        if "memory" in obj:
+            self.memory = humanfriendly.parse_size(obj["memory"])
+        if "storage" in obj:
+            self.storage = humanfriendly.parse_size(obj["storage"])
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __iter__(self):
+        for k in self.__dict__:
+            yield k, self.__dict__[k]
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+
+class Resources:
+    limits: ResourceLimits = None
+    reservations: ResourceLimits = None
+
+    def __init__(self, obj={}):
+        if "reservations" in obj:
+            self.reservations = ResourceLimits(obj["reservations"])
+        if "limits" in obj:
+            self.limits = ResourceLimits(obj["limits"])
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __iter__(self):
+        for k in self.__dict__:
+            yield k, self.__dict__[k]
+
+    def __repr__(self):
+        return str(self.__dict__)
 
 
 class Spec:
@@ -48,10 +96,10 @@ class Spec:
                 else {})
 
     def get_container_resources(self):
-        return self.obj.get("resources", {}).get("containers")
+        return Resources(self.obj.get("resources", {}).get("containers", {}))
 
     def get_volume_resources(self):
-        return self.obj.get("resources", {}).get("volumes")
+        return Resources(self.obj.get("resources", {}).get("volumes", {}))
 
     def get_http_proxy(self):
         return (self.obj[constants.network_key][constants.http_proxy_key]

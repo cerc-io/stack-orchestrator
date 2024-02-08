@@ -25,17 +25,37 @@ from stack_orchestrator.deploy.k8s.helpers import get_node_pv_mount_path
 from stack_orchestrator.deploy.k8s.helpers import envs_from_environment_variables_map
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names, images_for_deployment
 from stack_orchestrator.deploy.deploy_types import DeployEnvVars
-from stack_orchestrator.deploy.spec import Spec
+from stack_orchestrator.deploy.spec import Spec, Resources, ResourceLimits
 from stack_orchestrator.deploy.images import remote_tag_for_image
 
-DEFAULT_VOLUME_RESOURCES = {
-    "requests": {"storage": "2Gi"}
-}
+DEFAULT_VOLUME_RESOURCES = Resources({
+    "reservations": {"storage": "2Gi"}
+})
 
-DEFAULT_CONTAINER_RESOURCES = {
-    "requests": {"cpu": "100m", "memory": "200Mi"},
-    "limits": {"cpu": "1000m", "memory": "2000Mi"},
-}
+DEFAULT_CONTAINER_RESOURCES = Resources({
+    "reservations": {"cpus": "0.1", "memory": "200M"},
+    "limits": {"cpus": "1.0", "memory": "2000M"},
+})
+
+
+def get_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequirements:
+    def to_dict(limits: ResourceLimits):
+        if not limits:
+            return None
+
+        ret = {}
+        if limits.cpus:
+            ret["cpu"] = str(limits.cpus)
+        if limits.memory:
+            ret["memory"] = f"{int(limits.memory / (1000 * 1000))}M"
+        if limits.storage:
+            ret["storage"] = f"{int(limits.storage / (1000 * 1000))}M"
+        return ret
+
+    return client.V1ResourceRequirements(
+        requests=to_dict(resources.reservations),
+        limits=to_dict(resources.limits)
+    )
 
 
 class ClusterInfo:
@@ -159,10 +179,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=["ReadWriteOnce"],
                 storage_class_name="manual",
-                resources=client.V1ResourceRequirements(
-                    requests=resources.get("requests"),
-                    limits=resources.get("limits")
-                ),
+                resources=get_k8s_resource_requirements(resources),
                 volume_name=f"{self.app_name}-{volume_name}"
             )
             pvc = client.V1PersistentVolumeClaim(
@@ -217,7 +234,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeSpec(
                 storage_class_name="manual",
                 access_modes=["ReadWriteOnce"],
-                capacity=resources.get("requests", DEFAULT_VOLUME_RESOURCES["requests"]),
+                capacity=get_k8s_resource_requirements(resources).requests,
                 host_path=client.V1HostPathVolumeSource(path=get_node_pv_mount_path(volume_name))
             )
             pv = client.V1PersistentVolume(
@@ -257,10 +274,7 @@ class ClusterInfo:
                     env=envs_from_environment_variables_map(self.environment_variables.map),
                     ports=[client.V1ContainerPort(container_port=port)],
                     volume_mounts=volume_mounts,
-                    resources=client.V1ResourceRequirements(
-                        requests=resources.get("requests"),
-                        limits=resources.get("limits")
-                    ),
+                    resources=get_k8s_resource_requirements(resources),
                 )
                 containers.append(container)
         volumes = volumes_for_pod_files(self.parsed_pod_yaml_map, self.spec, self.app_name)

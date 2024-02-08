@@ -22,18 +22,21 @@
 
 import hashlib
 import click
-
 from dotenv import dotenv_values
+
+from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer_factory import getDeployer
+
+WEBAPP_PORT = 80
 
 
 @click.command()
 @click.option("--image", help="image to deploy", required=True)
-@click.option("--deploy-to", default="compose", help="deployment type ([Docker] 'compose' or 'k8s')")
 @click.option("--env-file", help="environment file for webapp")
+@click.option("--port", help="port to use (default random)")
 @click.pass_context
-def command(ctx, image, deploy_to, env_file):
-    '''build the specified webapp container'''
+def command(ctx, image, env_file, port):
+    '''run the specified webapp container'''
 
     env = {}
     if env_file:
@@ -43,16 +46,19 @@ def command(ctx, image, deploy_to, env_file):
     hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()
     cluster = f"laconic-webapp-{hash}"
 
-    deployer = getDeployer(deploy_to,
+    deployer = getDeployer(type=constants.compose_deploy_type,
                            deployment_context=None,
                            compose_files=None,
                            compose_project_name=cluster,
                            compose_env_file=None)
 
-    container = deployer.run(image, command=[], user=None, volumes=[], entrypoint=None, env=env, detach=True)
+    ports = []
+    if port:
+        ports = [(port, WEBAPP_PORT)]
+    container = deployer.run(image, command=[], user=None, volumes=[], entrypoint=None, env=env, ports=ports, detach=True)
 
     # Make configurable?
-    webappPort = "3000/tcp"
+    webappPort = f"{WEBAPP_PORT}/tcp"
     # TODO: This assumes a Docker container object...
     if webappPort in container.network_settings.ports:
         mapping = container.network_settings.ports[webappPort][0]

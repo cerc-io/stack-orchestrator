@@ -1,6 +1,6 @@
 # Originally from: https://github.com/devcontainers/images/blob/main/src/javascript-node/.devcontainer/Dockerfile
 # [Choice] Node.js version (use -bullseye variants on local arm64/Apple Silicon): 18, 16, 14, 18-bullseye, 16-bullseye, 14-bullseye, 18-buster, 16-buster, 14-buster
-ARG VARIANT=20-bullseye
+ARG VARIANT=20-bullseye-slim
 FROM node:${VARIANT}
 
 ARG USERNAME=node
@@ -24,17 +24,19 @@ RUN \
     && su ${USERNAME} -c "npm config -g set prefix ${NPM_GLOBAL}" \
     # Install eslint
     && su ${USERNAME} -c "umask 0002 && npm install -g eslint" \
+    # Install semver
+    && su ${USERNAME} -c "umask 0002 && npm install -g semver" \
     && npm cache clean --force > /dev/null 2>&1
 
 # [Optional] Uncomment this section to install additional OS packages.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends jq gettext-base moreutils
+    && apt-get -y install --no-install-recommends jq gettext-base procps
 
 # [Optional] Uncomment if you want to install more global node modules
 # RUN su node -c "npm install -g <your-package-list-here>"
 
 # Expose port for http
-EXPOSE 3000
+EXPOSE 80
 
 COPY /scripts /scripts
 

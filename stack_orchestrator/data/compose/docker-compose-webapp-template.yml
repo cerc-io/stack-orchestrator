@@ -1,0 +1,8 @@
+services:
+  webapp:
+    image: cerc/webapp-container:local
+    restart: always
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    ports:
+      - "3000"

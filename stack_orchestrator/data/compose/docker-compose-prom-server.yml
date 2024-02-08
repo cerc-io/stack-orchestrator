@@ -1,0 +1,57 @@
+version: "3.7"
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.49.1
+    restart: always
+    volumes:
+      - ../config/monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    ports:
+      - "9090"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "9090"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 3s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  blackbox:
+    image: prom/blackbox-exporter:latest
+    restart: always
+    volumes:
+      - ../config/monitoring/blackbox.yml:/etc/blackbox_exporter/config.yml
+    ports:
+      - '9115'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  chain-head-exporter:
+    image: cerc/watcher-ts:local
+    restart: always
+    working_dir: /app/packages/cli
+    environment:
+      ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT}
+      FIL_RPC_ENDPOINT: ${CERC_FIL_RPC_ENDPOINT}
+      ETH_RPC_API_KEY: ${CERC_INFURA_KEY}
+      PORT: ${CERC_METRICS_PORT}
+    command: ["sh", "-c", "yarn export-metrics:chain-heads"]
+    ports:
+      - '5000'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    restart: always
+    volumes:
+      - ../config/monitoring/postgres-exporter.yml:/postgres_exporter.yml
+    ports:
+      - '9187'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  prometheus_data:

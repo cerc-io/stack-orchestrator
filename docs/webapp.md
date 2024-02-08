@@ -34,7 +34,7 @@ To test locally run:
 
 ## Running
 
-With `run-webapp` a new container will be launched with runtime configuration provided by `--env-file` (if specified) and published on an available port.  Multiple instances can be launched with different configuration.
+With `run-webapp` a new container will be launched on the local machine, with runtime configuration provided by `--env-file` (if specified) and published on an available port.  Multiple instances can be launched with different configuration.
 
 **Example**:
 ```
@@ -51,4 +51,14 @@ $ laconic-so run-webapp --image cerc/test-progressive-web-app:local --env-file /
 Image: cerc/test-progressive-web-app:local
 ID: 9ab96494f563aafb6c057d88df58f9eca81b90f8721a4e068493a289a976051c
 URL: http://localhost:32769
+```
+
+## Deploying
+
+Use the subcommand `deploy-webapp create` to make a deployment directory that can be subsequently deployed to a Kubernetes cluster.
+Example commands are shown below, assuming that the webapp container image `cerc/test-progressive-web-app:local` has already been built:
+```
+$ laconic-so deploy-webapp create --kube-config ~/kubectl/k8s-kubeconfig.yaml --image-registry registry.digitalocean.com/laconic-registry --deployment-dir webapp-k8s-deployment --image cerc/test-progressive-web-app:local --url https://test-pwa-app.hosting.laconic.com/ --env-file test-webapp.env
+$ laconic-so deployment --dir webapp-k8s-deployment push-images
+$ laconic-so deployment --dir webapp-k8s-deployment start
 ```

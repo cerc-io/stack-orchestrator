@@ -18,8 +18,8 @@ from pathlib import Path
 import sys
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.images import push_images_operation
-from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_operation, port_operation
-from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context
+from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_operation, port_operation, status_operation
+from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context, update_operation
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
@@ -52,7 +52,7 @@ def make_deploy_context(ctx) -> DeployCommandContext:
     context: DeploymentContext = ctx.obj
     stack_file_path = context.get_stack_file()
     env_file = context.get_env_file()
-    cluster_name = context.get_cluster_name()
+    cluster_name = context.get_cluster_id()
     if constants.deploy_to_key in context.spec.obj:
         deployment_type = context.spec.obj[constants.deploy_to_key]
     else:
@@ -147,4 +147,12 @@ def logs(ctx, tail, follow, extra_args):
 @command.command()
 @click.pass_context
 def status(ctx):
-    print(f"Context: {ctx.parent.obj}")
+    ctx.obj = make_deploy_context(ctx)
+    status_operation(ctx)
+
+
+@command.command()
+@click.pass_context
+def update(ctx):
+    ctx.obj = make_deploy_context(ctx)
+    update_operation(ctx)

@@ -1,0 +1,18 @@
+record:
+  type: ApplicationRecord
+  version: 0.0.1
+  name: my-demo-app
+  description: "Description of my app"
+  homepage: http://my.demo.app
+  license: license
+  author: author
+  repository:
+    - "https://my.demo.repo"
+  repository_ref: "v0.1.0"
+  app_version: "0.1.0"
+  app_type: "webapp"
+  meta:
+    foo: bar
+  tags:
+    - a
+    - b

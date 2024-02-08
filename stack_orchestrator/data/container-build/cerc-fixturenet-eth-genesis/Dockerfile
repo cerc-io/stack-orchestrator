@@ -10,9 +10,10 @@ COPY genesis /opt/genesis
 COPY --from=ethgen /usr/local/bin/eth2-testnet-genesis /usr/local/bin/
 COPY --from=ethgen /usr/local/bin/eth2-val-tools /usr/local/bin/
 COPY --from=ethgen /apps /apps
-RUN cd /apps/el-gen && pip3 install -r requirements.txt
+RUN cd /apps/el-gen && pip3 install --break-system-packages -r requirements.txt
 # web3==5.24.0 used by el-gen is broken on python 3.11
-RUN pip3 install --upgrade "web3==6.5.0"
+RUN pip3 install --break-system-packages --upgrade "web3==6.5.0"
+RUN pip3 install --break-system-packages --upgrade "typing-extensions"
 
 # Build genesis config
 RUN apk add --no-cache make bash envsubst jq

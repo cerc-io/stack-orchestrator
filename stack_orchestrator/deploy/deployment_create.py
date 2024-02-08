@@ -54,19 +54,44 @@ def _get_ports(stack):
 
 def _get_named_volumes(stack):
     # Parse the compose files looking for named volumes
-    named_volumes = []
+    named_volumes = {
+        "rw": [],
+        "ro": []
+    }
     parsed_stack = get_parsed_stack_config(stack)
     pods = get_pod_list(parsed_stack)
     yaml = get_yaml()
+
+    def find_vol_usage(parsed_pod_file, vol):
+        ret = {}
+        if "services" in parsed_pod_file:
+            for svc_name, svc in parsed_pod_file["services"].items():
+                if "volumes" in svc:
+                    for svc_volume in svc["volumes"]:
+                        parts = svc_volume.split(":")
+                        if parts[0] == vol:
+                            ret[svc_name] = {
+                                "volume": parts[0],
+                                "mount": parts[1],
+                                "options": parts[2] if len(parts) == 3 else None
+                            }
+        return ret
+
     for pod in pods:
         pod_file_path = get_pod_file_path(parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
             for volume in volumes.keys():
-                # Volume definition looks like:
-                # 'laconicd-data': None
-                named_volumes.append(volume)
+                for vu in find_vol_usage(parsed_pod_file, volume).values():
+                    read_only = vu["options"] == "ro"
+                    if read_only:
+                        if vu["volume"] not in named_volumes["rw"] and vu["volume"] not in named_volumes["ro"]:
+                            named_volumes["ro"].append(vu["volume"])
+                    else:
+                        if vu["volume"] not in named_volumes["rw"]:
+                            named_volumes["rw"].append(vu["volume"])
+
     return named_volumes
 
 
@@ -98,12 +123,24 @@ def _fixup_pod_file(pod, spec, compose_dir):
                     _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
                     new_volume_spec = {"driver": "local",
                                        "driver_opts": {
-                                          "type": "none",
-                                          "device": volume_spec_fixedup,
-                                          "o": "bind"
+                                           "type": "none",
+                                           "device": volume_spec_fixedup,
+                                           "o": "bind"
                                        }
                                        }
                     pod["volumes"][volume] = new_volume_spec
+
+    # Fix up configmaps
+    if "configmaps" in spec:
+        spec_cfgmaps = spec["configmaps"]
+        if "volumes" in pod:
+            pod_volumes = pod["volumes"]
+            for volume in pod_volumes.keys():
+                if volume in spec_cfgmaps:
+                    volume_cfg = spec_cfgmaps[volume]
+                    # Just make the dir (if necessary)
+                    _create_bind_dir_if_relative(volume, volume_cfg, compose_dir)
+
     # Fix up ports
     if "network" in spec and "ports" in spec["network"]:
         spec_ports = spec["network"]["ports"]
@@ -319,9 +356,18 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
     named_volumes = _get_named_volumes(stack)
     if named_volumes:
         volume_descriptors = {}
-        for named_volume in named_volumes:
+        configmap_descriptors = {}
+        for named_volume in named_volumes["rw"]:
             volume_descriptors[named_volume] = f"./data/{named_volume}"
-        spec_file_content["volumes"] = volume_descriptors
+        for named_volume in named_volumes["ro"]:
+            if "k8s" in deployer_type and "config" in named_volume:
+                configmap_descriptors[named_volume] = f"./data/{named_volume}"
+            else:
+                volume_descriptors[named_volume] = f"./data/{named_volume}"
+        if volume_descriptors:
+            spec_file_content["volumes"] = volume_descriptors
+        if configmap_descriptors:
+            spec_file_content["configmaps"] = configmap_descriptors
 
     if opts.o.debug:
         print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
@@ -441,7 +487,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
     deployment_context = DeploymentContext()
     deployment_context.init(deployment_dir_path)
     # Call the deployer to generate any deployer-specific files (e.g. for kind)
-    deployer_config_generator = getDeployerConfigGenerator(deployment_type)
+    deployer_config_generator = getDeployerConfigGenerator(deployment_type, deployment_context)
     # TODO: make deployment_dir_path a Path above
     deployer_config_generator.generate(deployment_dir_path)
     call_stack_deploy_create(deployment_context, [network_dir, initial_peers, deployment_command_context])

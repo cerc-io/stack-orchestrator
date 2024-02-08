@@ -41,4 +41,4 @@ runcmd:
   - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
   - systemctl enable docker
   - systemctl start docker
-  - git clone https://github.com/cerc-io/stack-orchestrator.git /home/ubuntu/stack-orchestrator
+  - git clone https://git.vdb.to/cerc-io/stack-orchestrator.git /home/ubuntu/stack-orchestrator

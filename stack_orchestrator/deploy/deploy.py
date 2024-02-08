@@ -85,54 +85,39 @@ def create_deploy_context(
 def up_operation(ctx, services_list, stay_attached=False):
     global_context = ctx.parent.parent.obj
     deploy_context = ctx.obj
-    if not global_context.dry_run:
-        cluster_context = deploy_context.cluster_context
-        container_exec_env = _make_runtime_env(global_context)
-        for attr, value in container_exec_env.items():
-            os.environ[attr] = value
-        if global_context.verbose:
-            print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {services_list}")
-        for pre_start_command in cluster_context.pre_start_commands:
-            _run_command(global_context, cluster_context.cluster, pre_start_command)
-        deploy_context.deployer.up(detach=not stay_attached, services=services_list)
-        for post_start_command in cluster_context.post_start_commands:
-            _run_command(global_context, cluster_context.cluster, post_start_command)
-        _orchestrate_cluster_config(global_context, cluster_context.config, deploy_context.deployer, container_exec_env)
+    cluster_context = deploy_context.cluster_context
+    container_exec_env = _make_runtime_env(global_context)
+    for attr, value in container_exec_env.items():
+        os.environ[attr] = value
+    if global_context.verbose:
+        print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {services_list}")
+    for pre_start_command in cluster_context.pre_start_commands:
+        _run_command(global_context, cluster_context.cluster, pre_start_command)
+    deploy_context.deployer.up(detach=not stay_attached, services=services_list)
+    for post_start_command in cluster_context.post_start_commands:
+        _run_command(global_context, cluster_context.cluster, post_start_command)
+    _orchestrate_cluster_config(global_context, cluster_context.config, deploy_context.deployer, container_exec_env)
 
 
 def down_operation(ctx, delete_volumes, extra_args_list):
-    global_context = ctx.parent.parent.obj
-    if not global_context.dry_run:
-        if global_context.verbose:
-            print("Running compose down")
-        timeout_arg = None
-        if extra_args_list:
-            timeout_arg = extra_args_list[0]
-        # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
-        ctx.obj.deployer.down(timeout=timeout_arg, volumes=delete_volumes)
+    timeout_arg = None
+    if extra_args_list:
+        timeout_arg = extra_args_list[0]
+    # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
+    ctx.obj.deployer.down(timeout=timeout_arg, volumes=delete_volumes)
 
 
 def status_operation(ctx):
-    global_context = ctx.parent.parent.obj
-    if not global_context.dry_run:
-        if global_context.verbose:
-            print("Running compose status")
-        ctx.obj.deployer.status()
+    ctx.obj.deployer.status()
 
 
 def update_operation(ctx):
-    global_context = ctx.parent.parent.obj
-    if not global_context.dry_run:
-        if global_context.verbose:
-            print("Running compose update")
-        ctx.obj.deployer.update()
+    ctx.obj.deployer.update()
 
 
 def ps_operation(ctx):
     global_context = ctx.parent.parent.obj
     if not global_context.dry_run:
-        if global_context.verbose:
-            print("Running compose ps")
         container_list = ctx.obj.deployer.ps()
         if len(container_list) > 0:
             print("Running containers:")
@@ -187,15 +172,11 @@ def exec_operation(ctx, extra_args):
 
 
 def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
-    global_context = ctx.parent.parent.obj
     extra_args_list = list(extra_args) or None
-    if not global_context.dry_run:
-        if global_context.verbose:
-            print("Running compose logs")
-        services_list = extra_args_list if extra_args_list is not None else []
-        logs_stream = ctx.obj.deployer.logs(services=services_list, tail=tail, follow=follow, stream=True)
-        for stream_type, stream_content in logs_stream:
-            print(stream_content.decode("utf-8"), end="")
+    services_list = extra_args_list if extra_args_list is not None else []
+    logs_stream = ctx.obj.deployer.logs(services=services_list, tail=tail, follow=follow, stream=True)
+    for stream_type, stream_content in logs_stream:
+        print(stream_content.decode("utf-8"), end="")
 
 
 @command.command()
@@ -347,8 +328,8 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
             else:
                 if deployment:
                     compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_name}.yml")
-                    pod_pre_start_command = pod["pre_start_command"]
-                    pod_post_start_command = pod["post_start_command"]
+                    pod_pre_start_command = pod.get("pre_start_command")
+                    pod_post_start_command = pod.get("post_start_command")
                     script_dir = compose_dir.parent.joinpath("pods", pod_name, "scripts")
                     if pod_pre_start_command is not None:
                         pre_start_commands.append(os.path.join(script_dir, pod_pre_start_command))
@@ -357,8 +338,8 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
                 else:
                     pod_root_dir = os.path.join(dev_root_path, pod_repository.split("/")[-1], pod["path"])
                     compose_file_name = os.path.join(pod_root_dir, f"docker-compose-{pod_name}.yml")
-                    pod_pre_start_command = pod["pre_start_command"]
-                    pod_post_start_command = pod["post_start_command"]
+                    pod_pre_start_command = pod.get("pre_start_command")
+                    pod_post_start_command = pod.get("post_start_command")
                     if pod_pre_start_command is not None:
                         pre_start_commands.append(os.path.join(pod_root_dir, pod_pre_start_command))
                     if pod_post_start_command is not None:
@@ -463,7 +444,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, deployer, container_exec_en
                                                               tty=False,
                                                               envs=container_exec_env)
                         waiting_for_data = False
-                    if ctx.debug:
+                    if ctx.debug and not waiting_for_data:
                         print(f"destination output: {destination_output}")
 
 

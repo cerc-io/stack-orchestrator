@@ -9,7 +9,7 @@ fi
 
 # Helper functions: TODO move into a separate file
 wait_for_pods_started () {
-    for i in {1..5}
+    for i in {1..50}
     do
         local ps_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir ps )
 
@@ -27,7 +27,7 @@ wait_for_pods_started () {
 }
 
 wait_for_log_output () {
-    for i in {1..5}
+    for i in {1..50}
     do
 
         local log_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
@@ -97,6 +97,10 @@ if [ ! "$create_file_content" == "create-command-output-data"  ]; then
     echo "deploy create test: FAILED"
     exit 1
 fi
+
+# Add a config file to be picked up by the ConfigMap before starting.
+echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/data/test-config/test_config
+
 echo "deploy create output file test: passed"
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
@@ -110,6 +114,7 @@ else
     echo "deployment logs test: FAILED"
     delete_cluster_exit
 fi
+
 # Check the config variable CERC_TEST_PARAM_1 was passed correctly
 if [[ "$log_output_3" == *"Test-param-1: PASSED"* ]]; then
     echo "deployment config test: passed"
@@ -117,15 +122,34 @@ else
     echo "deployment config test: FAILED"
     delete_cluster_exit
 fi
+
+# Check the config variable CERC_TEST_PARAM_2 was passed correctly from the compose file
+if [[ "$log_output_3" == *"Test-param-2: CERC_TEST_PARAM_2_VALUE"* ]]; then
+    echo "deployment compose config test: passed"
+else
+    echo "deployment compose config test: FAILED"
+    exit 1
+fi
+
+# Check that the ConfigMap is mounted and contains the expected content.
+log_output_4=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_4" == *"/config/test_config:"* ]] && [[ "$log_output_4" == *"dbfc7a4d-44a7-416d-b5f3-29842cc47650"* ]]; then
+    echo "deployment ConfigMap test: passed"
+else
+    echo "deployment ConfigMap test: FAILED"
+    delete_cluster_exit
+fi
+
 # Stop then start again and check the volume was preserved
 $TEST_TARGET_SO deployment --dir $test_deployment_dir stop
 # Sleep a bit just in case
-sleep 2
+# sleep for longer to check if that's why the subsequent create cluster fails
+sleep 20
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 wait_for_pods_started
 wait_for_log_output
-log_output_4=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
-if [[ "$log_output_4" == *"Filesystem is old"* ]]; then
+log_output_5=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_5" == *"Filesystem is old"* ]]; then
     echo "Retain volumes test: passed"
 else
     echo "Retain volumes test: FAILED"

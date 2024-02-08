@@ -17,6 +17,7 @@ from kubernetes import client
 import os
 from pathlib import Path
 import subprocess
+import re
 from typing import Set, Mapping, List
 
 from stack_orchestrator.opts import opts
@@ -73,7 +74,7 @@ def named_volumes_from_pod_files(parsed_pod_files):
         parsed_pod_file = parsed_pod_files[pod]
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
-            for volume in volumes.keys():
+            for volume, value in volumes.items():
                 # Volume definition looks like:
                 # 'laconicd-data': None
                 named_volumes.append(volume)
@@ -97,23 +98,38 @@ def volume_mounts_for_service(parsed_pod_files, service):
                     if "volumes" in service_obj:
                         volumes = service_obj["volumes"]
                         for mount_string in volumes:
-                            # Looks like: test-data:/data
-                            (volume_name, mount_path) = mount_string.split(":")
-                            volume_device = client.V1VolumeMount(mount_path=mount_path, name=volume_name)
+                            # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                            if opts.o.debug:
+                                print(f"mount_string: {mount_string}")
+                            mount_split = mount_string.split(":")
+                            volume_name = mount_split[0]
+                            mount_path = mount_split[1]
+                            mount_options = mount_split[2] if len(mount_split) == 3 else None
+                            if opts.o.debug:
+                                print(f"volumne_name: {volume_name}")
+                                print(f"mount path: {mount_path}")
+                                print(f"mount options: {mount_options}")
+                            volume_device = client.V1VolumeMount(
+                                mount_path=mount_path, name=volume_name, read_only="ro" == mount_options)
                             result.append(volume_device)
     return result
 
 
-def volumes_for_pod_files(parsed_pod_files):
+def volumes_for_pod_files(parsed_pod_files, spec, app_name):
     result = []
     for pod in parsed_pod_files:
         parsed_pod_file = parsed_pod_files[pod]
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
             for volume_name in volumes.keys():
-                claim = client.V1PersistentVolumeClaimVolumeSource(claim_name=volume_name)
-                volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
-                result.append(volume)
+                if volume_name in spec.get_configmaps():
+                    config_map = client.V1ConfigMapVolumeSource(name=f"{app_name}-{volume_name}")
+                    volume = client.V1Volume(name=volume_name, config_map=config_map)
+                    result.append(volume)
+                else:
+                    claim = client.V1PersistentVolumeClaimVolumeSource(claim_name=f"{app_name}-{volume_name}")
+                    volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
+                    result.append(volume)
     return result
 
 
@@ -125,8 +141,9 @@ def _get_host_paths_for_volumes(parsed_pod_files):
             volumes = parsed_pod_file["volumes"]
             for volume_name in volumes.keys():
                 volume_definition = volumes[volume_name]
-                host_path = volume_definition["driver_opts"]["device"]
-                result[volume_name] = host_path
+                if volume_definition and "driver_opts" in volume_definition:
+                    host_path = volume_definition["driver_opts"]["device"]
+                    result[volume_name] = host_path
     return result
 
 
@@ -138,7 +155,7 @@ def _make_absolute_host_path(data_mount_path: Path, deployment_dir: Path) -> Pat
         return Path.cwd().joinpath(deployment_dir.joinpath("compose").joinpath(data_mount_path)).resolve()
 
 
-def _generate_kind_mounts(parsed_pod_files, deployment_dir):
+def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_definitions = []
     volume_host_path_map = _get_host_paths_for_volumes(parsed_pod_files)
     # Note these paths are relative to the location of the pod files (at present)
@@ -153,11 +170,20 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir):
                 if "volumes" in service_obj:
                     volumes = service_obj["volumes"]
                     for mount_string in volumes:
-                        # Looks like: test-data:/data
-                        (volume_name, mount_path) = mount_string.split(":")
-                        volume_definitions.append(
-                            f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
-                            f"    containerPath: {get_node_pv_mount_path(volume_name)}"
+                        # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                        if opts.o.debug:
+                            print(f"mount_string: {mount_string}")
+                        mount_split = mount_string.split(":")
+                        volume_name = mount_split[0]
+                        mount_path = mount_split[1]
+                        if opts.o.debug:
+                            print(f"volumne_name: {volume_name}")
+                            print(f"map: {volume_host_path_map}")
+                            print(f"mount path: {mount_path}")
+                        if volume_name not in deployment_context.spec.get_configmaps():
+                            volume_definitions.append(
+                                f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
+                                f"    containerPath: {get_node_pv_mount_path(volume_name)}\n"
                             )
     return (
         "" if len(volume_definitions) == 0 else (
@@ -180,13 +206,40 @@ def _generate_kind_port_mappings(parsed_pod_files):
                     for port_string in ports:
                         # TODO handle the complex cases
                         # Looks like: 80 or something more complicated
-                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}")
+                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
     return (
         "" if len(port_definitions) == 0 else (
             "  extraPortMappings:\n"
             f"{''.join(port_definitions)}"
         )
     )
+
+
+# Note: this makes any duplicate definition in b overwrite a
+def merge_envs(a: Mapping[str, str], b: Mapping[str, str]) -> Mapping[str, str]:
+    result = {**a, **b}
+    return result
+
+
+def _expand_shell_vars(raw_val: str) -> str:
+    # could be: <string> or ${<env-var-name>} or ${<env-var-name>:-<default-value>}
+    # TODO: implement support for variable substitution and default values
+    # if raw_val is like ${<something>} print a warning and substitute an empty string
+    # otherwise return raw_val
+    match = re.search(r"^\$\{(.*)\}$", raw_val)
+    if match:
+        print(f"WARNING: found unimplemented environment variable substitution: {raw_val}")
+    else:
+        return raw_val
+
+
+# TODO: handle the case where the same env var is defined in multiple places
+def envs_from_compose_file(compose_file_envs: Mapping[str, str]) -> Mapping[str, str]:
+    result = {}
+    for env_var, env_val in compose_file_envs.items():
+        expanded_env_val = _expand_shell_vars(env_val)
+        result.update({env_var: expanded_env_val})
+    return result
 
 
 def envs_from_environment_variables_map(map: Mapping[str, str]) -> List[client.V1EnvVar]:
@@ -214,13 +267,13 @@ def envs_from_environment_variables_map(map: Mapping[str, str]) -> List[client.V
 #  extraMounts:
 #  - hostPath: /path/to/my/files
 #    containerPath: /files
-def generate_kind_config(deployment_dir: Path):
+def generate_kind_config(deployment_dir: Path, deployment_context):
     compose_file_dir = deployment_dir.joinpath("compose")
     # TODO: this should come from the stack file, not this way
     pod_files = [p for p in compose_file_dir.iterdir() if p.is_file()]
     parsed_pod_files_map = parsed_pod_files_map_from_file_names(pod_files)
     port_mappings_yml = _generate_kind_port_mappings(parsed_pod_files_map)
-    mounts_yml = _generate_kind_mounts(parsed_pod_files_map, deployment_dir)
+    mounts_yml = _generate_kind_mounts(parsed_pod_files_map, deployment_dir, deployment_context)
     return (
         "kind: Cluster\n"
         "apiVersion: kind.x-k8s.io/v1alpha4\n"

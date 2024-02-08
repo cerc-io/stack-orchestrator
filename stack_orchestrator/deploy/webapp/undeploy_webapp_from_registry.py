@@ -20,7 +20,7 @@ import sys
 
 import click
 
-from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient, match_owner
+from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient, match_owner, skip_by_tag
 
 
 def process_app_removal_request(ctx,
@@ -40,8 +40,8 @@ def process_app_removal_request(ctx,
     matched_owner = match_owner(app_removal_request, deployment_record, dns_record)
 
     # Or of the original deployment request.
-    if not matched_owner and deployment_record.request:
-        matched_owner = match_owner(app_removal_request, laconic.get_record(deployment_record.request, require=True))
+    if not matched_owner and deployment_record.attributes.request:
+        matched_owner = match_owner(app_removal_request, laconic.get_record(deployment_record.attributes.request, require=True))
 
     if matched_owner:
         print("Matched deployment ownership:", matched_owner)
@@ -107,10 +107,12 @@ def dump_known_requests(filename, requests):
 @click.option("--delete-names/--preserve-names", help="Delete all names associated with removed deployments.", default=True)
 @click.option("--delete-volumes/--preserve-volumes", default=True, help="delete data volumes")
 @click.option("--dry-run", help="Don't do anything, just report what would be done.", is_flag=True)
+@click.option("--include-tags", help="Only include requests with matching tags (comma-separated).", default="")
+@click.option("--exclude-tags", help="Exclude requests with matching tags (comma-separated).", default="")
 @click.pass_context
 def command(ctx, laconic_config, deployment_parent_dir,
             request_id, discover, state_file, only_update_state,
-            delete_names, delete_volumes, dry_run):
+            delete_names, delete_volumes, dry_run, include_tags, exclude_tags):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)
@@ -122,6 +124,10 @@ def command(ctx, laconic_config, deployment_parent_dir,
     if only_update_state and not state_file:
         print("--only-update-state requires --state-file", file=sys.stderr)
         sys.exit(2)
+
+    # Split CSV and clean up values.
+    include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
+    exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
     laconic = LaconicRegistryClient(laconic_config)
 
@@ -155,10 +161,22 @@ def command(ctx, laconic_config, deployment_parent_dir,
             # TODO: should we handle CRNs?
             removals_by_deployment[r.attributes.deployment] = r
 
-    requests_to_execute = []
+    one_per_deployment = {}
     for r in requests:
         if not r.attributes.deployment:
             print(f"Skipping removal request {r.id} since it was a cancellation.")
+        elif r.attributes.deployment in one_per_deployment:
+            print(f"Skipping removal request {r.id} since it was superseded.")
+        else:
+            one_per_deployment[r.attributes.deployment] = r
+
+    requests_to_execute = []
+    for r in one_per_deployment.values():
+        if skip_by_tag(r, include_tags, exclude_tags):
+            print("Skipping removal request %s, filtered by tag (include %s, exclude %s, present %s)" % (r.id,
+                                                                                                         include_tags,
+                                                                                                         exclude_tags,
+                                                                                                         r.attributes.tags))
         elif r.id in removals_by_request:
             print(f"Found satisfied request for {r.id} at {removals_by_request[r.id].id}")
         elif r.attributes.deployment in removals_by_deployment:

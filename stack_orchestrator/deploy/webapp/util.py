@@ -195,7 +195,24 @@ def file_hash(filename):
     return hashlib.sha1(open(filename).read().encode()).hexdigest()
 
 
-def build_container_image(app_record, tag, extra_build_args=[]):
+def determine_base_container(clone_dir, app_type="webapp"):
+    if not app_type or not app_type.startswith("webapp"):
+        raise Exception(f"Unsupported app_type {app_type}")
+
+    base_container = "cerc/webapp-base"
+    if app_type == "webapp/next":
+        base_container = "cerc/nextjs-base"
+    elif app_type == "webapp":
+        pkg_json_path = os.path.join(clone_dir, "package.json")
+        if os.path.exists(pkg_json_path):
+            pkg_json = json.load(open(pkg_json_path))
+            if "next" in pkg_json.get("dependencies", {}):
+                base_container = "cerc/nextjs-base"
+
+    return base_container
+
+
+def build_container_image(app_record, tag, extra_build_args=[], log_file=None):
     tmpdir = tempfile.mkdtemp()
 
     try:
@@ -210,37 +227,46 @@ def build_container_image(app_record, tag, extra_build_args=[]):
             git_env = dict(os.environ.copy())
             # Never prompt
             git_env["GIT_TERMINAL_PROMPT"] = "0"
-            subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env)
-            subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env)
+            subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env, stdout=log_file, stderr=log_file)
+            subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env, stdout=log_file, stderr=log_file)
         else:
-            result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir])
+            result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir], stdout=log_file, stderr=log_file)
             result.check_returncode()
 
+        base_container = determine_base_container(clone_dir, app_record.attributes.app_type)
+
         print("Building webapp ...")
-        build_command = [sys.argv[0], "build-webapp", "--source-repo", clone_dir, "--tag", tag]
+        build_command = [
+            sys.argv[0], "build-webapp",
+            "--source-repo", clone_dir,
+            "--tag", tag,
+            "--base-container", base_container
+        ]
         if extra_build_args:
             build_command.append("--extra-build-args")
             build_command.append(" ".join(extra_build_args))
 
-        result = subprocess.run(build_command)
+        result = subprocess.run(build_command, stdout=log_file, stderr=log_file)
         result.check_returncode()
     finally:
         cmd("rm", "-rf", tmpdir)
 
 
-def push_container_image(deployment_dir):
+def push_container_image(deployment_dir, log_file=None):
     print("Pushing image ...")
-    result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, "push-images"])
+    result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, "push-images"],
+                            stdout=log_file, stderr=log_file)
     result.check_returncode()
 
 
-def deploy_to_k8s(deploy_record, deployment_dir):
+def deploy_to_k8s(deploy_record, deployment_dir, log_file=None):
     if not deploy_record:
         command = "up"
     else:
         command = "update"
 
-    result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, command])
+    result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, command],
+                            stdout=log_file, stderr=log_file)
     result.check_returncode()
 
 
@@ -325,3 +351,15 @@ def generate_hostname_for_app(app):
     else:
         m.update(app.attributes.repository.encode())
     return "%s-%s" % (last_part, m.hexdigest()[0:10])
+
+
+def skip_by_tag(r, include_tags, exclude_tags):
+    for tag in exclude_tags:
+        if tag and r.attributes.tags and tag in r.attributes.tags:
+            return True
+
+    for tag in include_tags:
+        if tag and (not r.attributes.tags or tag not in r.attributes.tags):
+            return True
+
+    return False

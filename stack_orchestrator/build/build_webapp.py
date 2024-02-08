@@ -25,10 +25,11 @@ from decouple import config
 import click
 from pathlib import Path
 from stack_orchestrator.build import build_containers
+from stack_orchestrator.deploy.webapp.util import determine_base_container
 
 
 @click.command()
-@click.option('--base-container', default="cerc/nextjs-base")
+@click.option('--base-container')
 @click.option('--source-repo', help="directory containing the webapp to build", required=True)
 @click.option("--force-rebuild", is_flag=True, default=False, help="Override dependency checking -- always rebuild")
 @click.option("--extra-build-args", help="Supply extra arguments to build")
@@ -57,6 +58,9 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args, t
     if not quiet:
         print(f'Dev Root is: {dev_root_path}')
 
+    if not base_container:
+        base_container = determine_base_container(source_repo)
+
     # First build the base container.
     container_build_env = build_containers.make_container_build_env(dev_root_path, container_build_dir, debug,
                                                                     force_rebuild, extra_build_args)
@@ -64,13 +68,12 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args, t
     build_containers.process_container(None, base_container, container_build_dir, container_build_env, dev_root_path, quiet,
                                        verbose, dry_run, continue_on_error)
 
-
     # Now build the target webapp.  We use the same build script, but with a different Dockerfile and work dir.
     container_build_env["CERC_WEBAPP_BUILD_RUNNING"] = "true"
     container_build_env["CERC_CONTAINER_BUILD_WORK_DIR"] = os.path.abspath(source_repo)
     container_build_env["CERC_CONTAINER_BUILD_DOCKERFILE"] = os.path.join(container_build_dir,
-                                                                    base_container.replace("/", "-"),
-                                                                    "Dockerfile.webapp")
+                                                                          base_container.replace("/", "-"),
+                                                                          "Dockerfile.webapp")
     if not tag:
         webapp_name = os.path.abspath(source_repo).split(os.path.sep)[-1]
         container_build_env["CERC_CONTAINER_BUILD_TAG"] = f"cerc/{webapp_name}:local"

@@ -10,3 +10,4 @@ pydantic==1.10.9
 tomli==2.0.1
 validators==0.22.0
 kubernetes>=28.1.0
+humanfriendly>=10.0

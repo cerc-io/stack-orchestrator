@@ -13,7 +13,7 @@ setup(
     description='Orchestrates deployment of the Laconic stack',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/cerc-io/stack-orchestrator',
+    url='https://git.vdb.to/cerc-io/stack-orchestrator',
     py_modules=['stack_orchestrator'],
     packages=find_packages(),
     install_requires=[requirements],

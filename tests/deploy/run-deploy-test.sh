@@ -6,6 +6,12 @@ fi
 # Dump environment variables for debugging
 echo "Environment variables:"
 env
+
+delete_cluster_exit () {
+    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+    exit 1
+}
+
 # Test basic stack-orchestrator deploy
 echo "Running stack-orchestrator deploy test"
 # Bit of a hack, test the most recent package
@@ -106,6 +112,10 @@ if [ ! "$create_file_content" == "create-command-output-data"  ]; then
     echo "deploy create test: FAILED"
     exit 1
 fi
+
+# Add a config file to be picked up by the ConfigMap before starting.
+echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/data/test-config/test_config
+
 echo "deploy create output file test: passed"
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
@@ -124,6 +134,37 @@ else
     echo "deployment config test: FAILED"
     exit 1
 fi
+# Check the config variable CERC_TEST_PARAM_2 was passed correctly from the compose file
+if [[ "$log_output_3" == *"Test-param-2: CERC_TEST_PARAM_2_VALUE"* ]]; then
+    echo "deployment compose config test: passed"
+else
+    echo "deployment compose config test: FAILED"
+    exit 1
+fi
+
+# Check that the ConfigMap is mounted and contains the expected content.
+log_output_4=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_4" == *"/config/test_config:"* ]] && [[ "$log_output_4" == *"dbfc7a4d-44a7-416d-b5f3-29842cc47650"* ]]; then
+    echo "deployment ConfigMap test: passed"
+else
+    echo "deployment ConfigMap test: FAILED"
+    delete_cluster_exit
+fi
+
+# Stop then start again and check the volume was preserved
+$TEST_TARGET_SO deployment --dir $test_deployment_dir stop
+# Sleep a bit just in case
+# sleep for longer to check if that's why the subsequent create cluster fails
+sleep 20
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+log_output_5=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_5" == *"Filesystem is old"* ]]; then
+    echo "Retain volumes test: passed"
+else
+    echo "Retain volumes test: FAILED"
+    delete_cluster_exit
+fi
+
 # Stop and clean up
 $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
 echo "Test passed"

@@ -22,11 +22,40 @@ from stack_orchestrator.opts import opts
 from stack_orchestrator.util import env_var_map_from_file
 from stack_orchestrator.deploy.k8s.helpers import named_volumes_from_pod_files, volume_mounts_for_service, volumes_for_pod_files
 from stack_orchestrator.deploy.k8s.helpers import get_node_pv_mount_path
-from stack_orchestrator.deploy.k8s.helpers import envs_from_environment_variables_map
+from stack_orchestrator.deploy.k8s.helpers import envs_from_environment_variables_map, envs_from_compose_file, merge_envs
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names, images_for_deployment
 from stack_orchestrator.deploy.deploy_types import DeployEnvVars
-from stack_orchestrator.deploy.spec import Spec
+from stack_orchestrator.deploy.spec import Spec, Resources, ResourceLimits
 from stack_orchestrator.deploy.images import remote_tag_for_image
+
+DEFAULT_VOLUME_RESOURCES = Resources({
+    "reservations": {"storage": "2Gi"}
+})
+
+DEFAULT_CONTAINER_RESOURCES = Resources({
+    "reservations": {"cpus": "0.1", "memory": "200M"},
+    "limits": {"cpus": "1.0", "memory": "2000M"},
+})
+
+
+def to_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequirements:
+    def to_dict(limits: ResourceLimits):
+        if not limits:
+            return None
+
+        ret = {}
+        if limits.cpus:
+            ret["cpu"] = str(limits.cpus)
+        if limits.memory:
+            ret["memory"] = f"{int(limits.memory / (1000 * 1000))}M"
+        if limits.storage:
+            ret["storage"] = f"{int(limits.storage / (1000 * 1000))}M"
+        return ret
+
+    return client.V1ResourceRequirements(
+        requests=to_dict(resources.reservations),
+        limits=to_dict(resources.limits)
+    )
 
 
 class ClusterInfo:
@@ -135,9 +164,13 @@ class ClusterInfo:
         result = []
         spec_volumes = self.spec.get_volumes()
         named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        resources = self.spec.get_volume_resources()
+        if not resources:
+            resources = DEFAULT_VOLUME_RESOURCES
         if opts.o.debug:
             print(f"Spec Volumes: {spec_volumes}")
             print(f"Named Volumes: {named_volumes}")
+            print(f"Resources: {resources}")
         for volume_name in spec_volumes:
             if volume_name not in named_volumes:
                 if opts.o.debug:
@@ -146,9 +179,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=["ReadWriteOnce"],
                 storage_class_name="manual",
-                resources=client.V1ResourceRequirements(
-                    requests={"storage": "2Gi"}
-                ),
+                resources=to_k8s_resource_requirements(resources),
                 volume_name=f"{self.app_name}-{volume_name}"
             )
             pvc = client.V1PersistentVolumeClaim(
@@ -192,6 +223,9 @@ class ClusterInfo:
         result = []
         spec_volumes = self.spec.get_volumes()
         named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        resources = self.spec.get_volume_resources()
+        if not resources:
+            resources = DEFAULT_VOLUME_RESOURCES
         for volume_name in spec_volumes:
             if volume_name not in named_volumes:
                 if opts.o.debug:
@@ -200,7 +234,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeSpec(
                 storage_class_name="manual",
                 access_modes=["ReadWriteOnce"],
-                capacity={"storage": "2Gi"},
+                capacity=to_k8s_resource_requirements(resources).requests,
                 host_path=client.V1HostPathVolumeSource(path=get_node_pv_mount_path(volume_name))
             )
             pv = client.V1PersistentVolume(
@@ -214,6 +248,9 @@ class ClusterInfo:
     # TODO: put things like image pull policy into an object-scope struct
     def get_deployment(self, image_pull_policy: str = None):
         containers = []
+        resources = self.spec.get_container_resources()
+        if not resources:
+            resources = DEFAULT_CONTAINER_RESOURCES
         for pod_name in self.parsed_pod_yaml_map:
             pod = self.parsed_pod_yaml_map[pod_name]
             services = pod["services"]
@@ -226,6 +263,13 @@ class ClusterInfo:
                     if opts.o.debug:
                         print(f"image: {image}")
                         print(f"service port: {port}")
+                merged_envs = merge_envs(
+                    envs_from_compose_file(
+                        service_info["environment"]), self.environment_variables.map
+                        ) if "environment" in service_info else self.environment_variables.map
+                envs = envs_from_environment_variables_map(merged_envs)
+                if opts.o.debug:
+                    print(f"Merged envs: {envs}")
                 # Re-write the image tag for remote deployment
                 image_to_use = remote_tag_for_image(
                     image, self.spec.get_image_registry()) if self.spec.get_image_registry() is not None else image
@@ -234,13 +278,10 @@ class ClusterInfo:
                     name=container_name,
                     image=image_to_use,
                     image_pull_policy=image_pull_policy,
-                    env=envs_from_environment_variables_map(self.environment_variables.map),
+                    env=envs,
                     ports=[client.V1ContainerPort(container_port=port)],
                     volume_mounts=volume_mounts,
-                    resources=client.V1ResourceRequirements(
-                        requests={"cpu": "100m", "memory": "200Mi"},
-                        limits={"cpu": "1000m", "memory": "2000Mi"},
-                    ),
+                    resources=to_k8s_resource_requirements(resources),
                 )
                 containers.append(container)
         volumes = volumes_for_pod_files(self.parsed_pod_yaml_map, self.spec, self.app_name)

@@ -19,6 +19,8 @@ import shlex
 import shutil
 import sys
 import tempfile
+import time
+import uuid
 
 import click
 
@@ -27,7 +29,7 @@ from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient,
                                                    build_container_image, push_container_image,
                                                    file_hash, deploy_to_k8s, publish_deployment,
                                                    hostname_for_deployment_request, generate_hostname_for_app,
-                                                   match_owner)
+                                                   match_owner, skip_by_tag)
 
 
 def process_app_deployment_request(
@@ -39,8 +41,19 @@ def process_app_deployment_request(
     dns_suffix,
     deployment_parent_dir,
     kube_config,
-    image_registry
+    image_registry,
+    log_parent_dir
 ):
+    run_id = f"{app_deployment_request.id}-{str(time.time()).split('.')[0]}-{str(uuid.uuid4()).split('-')[0]}"
+    log_file = None
+    if log_parent_dir:
+        log_dir = os.path.join(log_parent_dir, app_deployment_request.id)
+        if not os.path.exists(log_dir):
+            os.mkdir(log_dir)
+        log_file_path = os.path.join(log_dir, f"{run_id}.log")
+        print(f"Directing build logs to: {log_file_path}")
+        log_file = open(log_file_path, "wt")
+
     # 1. look up application
     app = laconic.get_record(app_deployment_request.attributes.application, require=True)
 
@@ -102,8 +115,10 @@ def process_app_deployment_request(
     needs_k8s_deploy = False
     # 6. build container (if needed)
     if not deployment_record or deployment_record.attributes.application != app.id:
-        build_container_image(app, deployment_container_tag)
-        push_container_image(deployment_dir)
+        # TODO: pull from request
+        extra_build_args = []
+        build_container_image(app, deployment_container_tag, extra_build_args, log_file)
+        push_container_image(deployment_dir, log_file)
         needs_k8s_deploy = True
 
     # 7. update config (if needed)
@@ -116,6 +131,7 @@ def process_app_deployment_request(
         deploy_to_k8s(
             deployment_record,
             deployment_dir,
+            log_file
         )
 
     publish_deployment(
@@ -162,10 +178,14 @@ def dump_known_requests(filename, requests, status="SEEN"):
 @click.option("--record-namespace-dns", help="eg, crn://laconic/dns")
 @click.option("--record-namespace-deployments", help="eg, crn://laconic/deployments")
 @click.option("--dry-run", help="Don't do anything, just report what would be done.", is_flag=True)
+@click.option("--include-tags", help="Only include requests with matching tags (comma-separated).", default="")
+@click.option("--exclude-tags", help="Exclude requests with matching tags (comma-separated).", default="")
+@click.option("--log-dir", help="Output build/deployment logs to directory.", default=None)
 @click.pass_context
-def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,
+def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,  # noqa: C901
             request_id, discover, state_file, only_update_state,
-            dns_suffix, record_namespace_dns, record_namespace_deployments, dry_run):
+            dns_suffix, record_namespace_dns, record_namespace_deployments, dry_run,
+            include_tags, exclude_tags, log_dir):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)
@@ -182,6 +202,10 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
         if not record_namespace_dns or not record_namespace_deployments or not dns_suffix:
             print("--dns-suffix, --record-namespace-dns, and --record-namespace-deployments are all required", file=sys.stderr)
             sys.exit(2)
+
+    # Split CSV and clean up values.
+    include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
+    exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
     laconic = LaconicRegistryClient(laconic_config)
 
@@ -204,6 +228,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
     requests.sort(key=lambda r: r.createTime)
     requests.reverse()
     requests_by_name = {}
+    skipped_by_name = {}
     for r in requests:
         # TODO: Do this _after_ filtering deployments and cancellations to minimize round trips.
         app = laconic.get_record(r.attributes.application)
@@ -216,17 +241,20 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
             requested_name = generate_hostname_for_app(app)
             print("Generating name %s for request %s." % (requested_name, r.id))
 
-        if requested_name not in requests_by_name:
-            print(
-                "Found request %s to run application %s on %s."
-                % (r.id, r.attributes.application, requested_name)
-            )
-            requests_by_name[requested_name] = r
-        else:
-            print(
-                "Ignoring request %s, it is superseded by %s."
-                % (r.id, requests_by_name[requested_name].id)
-            )
+        if requested_name in skipped_by_name or requested_name in requests_by_name:
+            print("Ignoring request %s, it has been superseded." % r.id)
+            continue
+
+        if skip_by_tag(r, include_tags, exclude_tags):
+            print("Skipping request %s, filtered by tag (include %s, exclude %s, present %s)" % (r.id,
+                                                                                                 include_tags,
+                                                                                                 exclude_tags,
+                                                                                                 r.attributes.tags))
+            skipped_by_name[requested_name] = r
+            continue
+
+        print("Found request %s to run application %s on %s." % (r.id, r.attributes.application, requested_name))
+        requests_by_name[requested_name] = r
 
     # Find deployments.
     deployments = laconic.app_deployments()
@@ -273,7 +301,8 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     dns_suffix,
                     os.path.abspath(deployment_parent_dir),
                     kube_config,
-                    image_registry
+                    image_registry,
+                    log_dir
                 )
                 status = "DEPLOYED"
             finally:

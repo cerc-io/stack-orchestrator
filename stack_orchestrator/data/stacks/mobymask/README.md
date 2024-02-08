@@ -4,7 +4,7 @@ The MobyMask watcher is a Laconic Network component that provides efficient acce
 
 ## Deploy the MobyMask Watcher
 
-The instructions below show how to deploy a MobyMask watcher using laconic-stack-orchestrator (the installation of which is covered [here](https://github.com/cerc-io/stack-orchestrator#install)).
+The instructions below show how to deploy a MobyMask watcher using laconic-stack-orchestrator (the installation of which is covered [here](https://git.vdb.to/cerc-io/stack-orchestrator#install)).
 
 This deployment expects that ipld-eth-server's endpoints are available on the local machine at http://ipld-eth-server.example.com:8083/graphql and http://ipld-eth-server.example.com:8082. More advanced configurations are supported by modifying the watcher's [config file](../../config/watcher-mobymask/mobymask-watcher.toml).
 

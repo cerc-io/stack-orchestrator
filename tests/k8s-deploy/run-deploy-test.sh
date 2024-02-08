@@ -114,12 +114,21 @@ else
     echo "deployment logs test: FAILED"
     delete_cluster_exit
 fi
+
 # Check the config variable CERC_TEST_PARAM_1 was passed correctly
 if [[ "$log_output_3" == *"Test-param-1: PASSED"* ]]; then
     echo "deployment config test: passed"
 else
     echo "deployment config test: FAILED"
     delete_cluster_exit
+fi
+
+# Check the config variable CERC_TEST_PARAM_2 was passed correctly from the compose file
+if [[ "$log_output_3" == *"Test-param-2: CERC_TEST_PARAM_2_VALUE"* ]]; then
+    echo "deployment compose config test: passed"
+else
+    echo "deployment compose config test: FAILED"
+    exit 1
 fi
 
 # Check that the ConfigMap is mounted and contains the expected content.

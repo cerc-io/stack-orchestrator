@@ -17,6 +17,7 @@ from kubernetes import client
 import os
 from pathlib import Path
 import subprocess
+import re
 from typing import Set, Mapping, List
 
 from stack_orchestrator.opts import opts
@@ -212,6 +213,33 @@ def _generate_kind_port_mappings(parsed_pod_files):
             f"{''.join(port_definitions)}"
         )
     )
+
+
+# Note: this makes any duplicate definition in b overwrite a
+def merge_envs(a: Mapping[str, str], b: Mapping[str, str]) -> Mapping[str, str]:
+    result = {**a, **b}
+    return result
+
+
+def _expand_shell_vars(raw_val: str) -> str:
+    # could be: <string> or ${<env-var-name>} or ${<env-var-name>:-<default-value>}
+    # TODO: implement support for variable substitution and default values
+    # if raw_val is like ${<something>} print a warning and substitute an empty string
+    # otherwise return raw_val
+    match = re.search(r"^\$\{(.*)\}$", raw_val)
+    if match:
+        print(f"WARNING: found unimplemented environment variable substitution: {raw_val}")
+    else:
+        return raw_val
+
+
+# TODO: handle the case where the same env var is defined in multiple places
+def envs_from_compose_file(compose_file_envs: Mapping[str, str]) -> Mapping[str, str]:
+    result = {}
+    for env_var, env_val in compose_file_envs.items():
+        expanded_env_val = _expand_shell_vars(env_val)
+        result.update({env_var: expanded_env_val})
+    return result
 
 
 def envs_from_environment_variables_map(map: Mapping[str, str]) -> List[client.V1EnvVar]:

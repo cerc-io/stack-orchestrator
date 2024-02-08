@@ -17,6 +17,9 @@ fi
 if [ -n "$CERC_TEST_PARAM_1" ]; then
   echo "Test-param-1: ${CERC_TEST_PARAM_1}"
 fi
+if [ -n "$CERC_TEST_PARAM_2" ]; then
+  echo "Test-param-2: ${CERC_TEST_PARAM_2}"
+fi
 
 if [ -d "/config" ]; then
   echo "/config: EXISTS"

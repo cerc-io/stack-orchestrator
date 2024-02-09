@@ -266,7 +266,7 @@ class ClusterInfo:
                 merged_envs = merge_envs(
                     envs_from_compose_file(
                         service_info["environment"]), self.environment_variables.map
-                        ) if "environment" in service_info else self.environment_variables.map
+                ) if "environment" in service_info else self.environment_variables.map
                 envs = envs_from_environment_variables_map(merged_envs)
                 if opts.o.debug:
                     print(f"Merged envs: {envs}")
@@ -281,13 +281,37 @@ class ClusterInfo:
                     env=envs,
                     ports=[client.V1ContainerPort(container_port=port)],
                     volume_mounts=volume_mounts,
+                    security_context=client.V1SecurityContext(
+                        privileged=self.spec.get_privileged(),
+                        capabilities=client.V1Capabilities(
+                            add=self.spec.get_capabilities()
+                        ) if self.spec.get_capabilities() else None
+                    ),
                     resources=to_k8s_resource_requirements(resources),
                 )
                 containers.append(container)
         volumes = volumes_for_pod_files(self.parsed_pod_yaml_map, self.spec, self.app_name)
         image_pull_secrets = [client.V1LocalObjectReference(name="laconic-registry")]
+
+        annotations = None
+        labels = {"app": self.app_name}
+
+        if self.spec.get_annotations():
+            annotations = {}
+            for key, value in self.spec.get_annotations().items():
+                for service_name in services:
+                    annotations[key.replace("{name}", service_name)] = value
+
+        if self.spec.get_labels():
+            for key, value in self.spec.get_labels().items():
+                for service_name in services:
+                    labels[key.replace("{name}", service_name)] = value
+
         template = client.V1PodTemplateSpec(
-            metadata=client.V1ObjectMeta(labels={"app": self.app_name}),
+            metadata=client.V1ObjectMeta(
+                annotations=annotations,
+                labels=labels
+            ),
             spec=client.V1PodSpec(containers=containers, image_pull_secrets=image_pull_secrets, volumes=volumes),
         )
         spec = client.V1DeploymentSpec(

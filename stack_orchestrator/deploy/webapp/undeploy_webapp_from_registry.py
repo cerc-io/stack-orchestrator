@@ -147,6 +147,7 @@ def command(ctx, laconic_config, deployment_parent_dir,
 
     previous_requests = load_known_requests(state_file)
     requests.sort(key=lambda r: r.createTime)
+    requests.reverse()
 
     # Find deployments.
     deployments = {}

@@ -106,3 +106,15 @@ class Spec:
                 if self.obj and constants.network_key in self.obj
                 and constants.http_proxy_key in self.obj[constants.network_key]
                 else None)
+
+    def get_annotations(self):
+        return self.obj.get("annotations", {})
+
+    def get_labels(self):
+        return self.obj.get("labels", {})
+
+    def get_privileged(self):
+        return "true" == str(self.obj.get("security", {}).get("privileged", "false")).lower()
+
+    def get_capabilities(self):
+        return self.obj.get("security", {}).get("capabilities", [])

@@ -44,7 +44,7 @@ def _fixup_url_spec(spec_file_name: str, url: str):
     - host-name: {parsed_url.hostname}
       routes:
         - path: '{parsed_url.path if parsed_url.path else "/"}'
-          proxy-to: webapp:3000
+          proxy-to: webapp:80
     '''
     spec_file_path = Path(spec_file_name)
     with open(spec_file_path) as rfile:

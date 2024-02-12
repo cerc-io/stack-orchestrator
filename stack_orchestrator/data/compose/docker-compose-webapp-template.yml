@@ -5,4 +5,4 @@ services:
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     ports:
-      - "3000"
+      - "80"

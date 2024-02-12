@@ -1,0 +1,9 @@
+version: "0.1"
+name: ping-pub
+repos:
+  # fork, but only for config & Dockerfile reasonsb
+  - github.com/LaconicNetwork/explorer@laconic
+containers:
+  - cerc/ping-pub
+pods:
+  - ping-pub

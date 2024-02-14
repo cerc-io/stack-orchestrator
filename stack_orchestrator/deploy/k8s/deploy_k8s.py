@@ -88,6 +88,16 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print(f"Sending this pv: {pv}")
             if not opts.o.dry_run:
+                try:
+                    pv_resp = self.core_api.read_persistent_volume(name=pv.metadata.name)
+                    if pv_resp:
+                        if opts.o.debug:
+                            print("PVs already present:")
+                            print(f"{pv_resp}")
+                        continue
+                except:  # noqa: E722
+                    pass
+
                 pv_resp = self.core_api.create_persistent_volume(body=pv)
                 if opts.o.debug:
                     print("PVs created:")
@@ -100,6 +110,17 @@ class K8sDeployer(Deployer):
                 print(f"Sending this pvc: {pvc}")
 
             if not opts.o.dry_run:
+                try:
+                    pvc_resp = self.core_api.read_namespaced_persistent_volume_claim(
+                        name=pvc.metadata.name, namespace=self.k8s_namespace)
+                    if pvc_resp:
+                        if opts.o.debug:
+                            print("PVCs already present:")
+                            print(f"{pvc_resp}")
+                        continue
+                except:  # noqa: E722
+                    pass
+
                 pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(body=pvc, namespace=self.k8s_namespace)
                 if opts.o.debug:
                     print("PVCs created:")
@@ -181,33 +202,35 @@ class K8sDeployer(Deployer):
     def down(self, timeout, volumes):  # noqa: C901
         self.connect_api()
         # Delete the k8s objects
-        # Create the host-path-mounted PVs for this deployment
-        pvs = self.cluster_info.get_pvs()
-        for pv in pvs:
-            if opts.o.debug:
-                print(f"Deleting this pv: {pv}")
-            try:
-                pv_resp = self.core_api.delete_persistent_volume(name=pv.metadata.name)
-                if opts.o.debug:
-                    print("PV deleted:")
-                    print(f"{pv_resp}")
-            except client.exceptions.ApiException as e:
-                _check_delete_exception(e)
 
-        # Figure out the PVCs for this deployment
-        pvcs = self.cluster_info.get_pvcs()
-        for pvc in pvcs:
-            if opts.o.debug:
-                print(f"Deleting this pvc: {pvc}")
-            try:
-                pvc_resp = self.core_api.delete_namespaced_persistent_volume_claim(
-                    name=pvc.metadata.name, namespace=self.k8s_namespace
-                )
+        if volumes:
+            # Create the host-path-mounted PVs for this deployment
+            pvs = self.cluster_info.get_pvs()
+            for pv in pvs:
                 if opts.o.debug:
-                    print("PVCs deleted:")
-                    print(f"{pvc_resp}")
-            except client.exceptions.ApiException as e:
-                _check_delete_exception(e)
+                    print(f"Deleting this pv: {pv}")
+                try:
+                    pv_resp = self.core_api.delete_persistent_volume(name=pv.metadata.name)
+                    if opts.o.debug:
+                        print("PV deleted:")
+                        print(f"{pv_resp}")
+                except client.exceptions.ApiException as e:
+                    _check_delete_exception(e)
+
+            # Figure out the PVCs for this deployment
+            pvcs = self.cluster_info.get_pvcs()
+            for pvc in pvcs:
+                if opts.o.debug:
+                    print(f"Deleting this pvc: {pvc}")
+                try:
+                    pvc_resp = self.core_api.delete_namespaced_persistent_volume_claim(
+                        name=pvc.metadata.name, namespace=self.k8s_namespace
+                    )
+                    if opts.o.debug:
+                        print("PVCs deleted:")
+                        print(f"{pvc_resp}")
+                except client.exceptions.ApiException as e:
+                    _check_delete_exception(e)
 
         # Figure out the ConfigMaps for this deployment
         cfg_maps = self.cluster_info.get_configmaps()

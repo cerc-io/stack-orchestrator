@@ -46,7 +46,7 @@ def push_images_operation(command_context: DeployCommandContext, deployment_cont
     cluster_context = command_context.cluster_context
     images: Set[str] = images_for_deployment(cluster_context.compose_files)
     # Tag the images for the remote repo
-    remote_repo_url = deployment_context.spec.obj[constants.image_resigtry_key]
+    remote_repo_url = deployment_context.spec.obj[constants.image_registry_key]
     docker = DockerClient()
     for image in images:
         if _image_needs_pushed(image):

@@ -76,6 +76,10 @@ if [ ! -f "$test_deployment_spec" ]; then
     exit 1
 fi
 echo "deploy init test: passed"
+
+# Switch to a full path for bind mount.
+sed -i "s|^\(\s*test-data-bind:$\)$|\1 ${test_deployment_dir}/data/test-data-bind|" $test_deployment_spec
+
 $TEST_TARGET_SO --stack test deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir
 # Check the deployment dir exists
 if [ ! -d "$test_deployment_dir" ]; then
@@ -99,7 +103,7 @@ if [ ! "$create_file_content" == "create-command-output-data"  ]; then
 fi
 
 # Add a config file to be picked up by the ConfigMap before starting.
-echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/data/test-config/test_config
+echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/configmap/test-config/test_config
 
 echo "deploy create output file test: passed"
 # Try to start the deployment
@@ -107,11 +111,13 @@ $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 wait_for_pods_started
 # Check logs command works
 wait_for_log_output
+sleep 1
 log_output_3=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
-if [[ "$log_output_3" == *"Filesystem is fresh"* ]]; then
+if [[ "$log_output_3" == *"filesystem is fresh"* ]]; then
     echo "deployment logs test: passed"
 else
     echo "deployment logs test: FAILED"
+    echo $log_output_3
     delete_cluster_exit
 fi
 
@@ -140,6 +146,26 @@ else
     delete_cluster_exit
 fi
 
+# Check that the bind-mount volume is mounted.
+log_output_5=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_5" == *"/data: MOUNTED"* ]]; then
+    echo "deployment bind volumes test: passed"
+else
+    echo "deployment bind volumes test: FAILED"
+    echo $log_output_5
+    delete_cluster_exit
+fi
+
+# Check that the provisioner managed volume is mounted.
+log_output_6=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_6" == *"/data2: MOUNTED"* ]]; then
+    echo "deployment provisioner volumes test: passed"
+else
+    echo "deployment provisioner volumes test: FAILED"
+    echo $log_output_6
+    delete_cluster_exit
+fi
+
 # Stop then start again and check the volume was preserved
 $TEST_TARGET_SO deployment --dir $test_deployment_dir stop
 # Sleep a bit just in case
@@ -148,13 +174,26 @@ sleep 20
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 wait_for_pods_started
 wait_for_log_output
-log_output_5=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
-if [[ "$log_output_5" == *"Filesystem is old"* ]]; then
-    echo "Retain volumes test: passed"
+sleep 1
+
+log_output_10=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_10" == *"/data filesystem is old"* ]]; then
+    echo "Retain bind volumes test: passed"
 else
-    echo "Retain volumes test: FAILED"
+    echo "Retain bind volumes test: FAILED"
     delete_cluster_exit
 fi
+
+# These volumes will be completely destroyed by the kind delete/create, because they lived inside
+# the kind container.  So, unlike the bind-mount case, they will appear fresh after the restart.
+log_output_11=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_11" == *"/data2 filesystem is fresh"* ]]; then
+    echo "Fresh provisioner volumes test: passed"
+else
+    echo "Fresh provisioner volumes test: FAILED"
+    delete_cluster_exit
+fi
+
 # Stop and clean up
 $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
 echo "Test passed"

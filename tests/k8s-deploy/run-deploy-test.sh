@@ -103,7 +103,7 @@ if [ ! "$create_file_content" == "create-command-output-data"  ]; then
 fi
 
 # Add a config file to be picked up by the ConfigMap before starting.
-echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/configmap/test-config/test_config
+echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/configmaps/test-config/test_config
 
 echo "deploy create output file test: passed"
 # Try to start the deployment

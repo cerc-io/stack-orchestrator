@@ -76,15 +76,15 @@ $TEST_TARGET_SO --stack ${stack} build-containers
 test_deployment_dir=$CERC_REPO_BASE_DIR/test-${deployment_dir}
 test_deployment_spec=$CERC_REPO_BASE_DIR/test-${spec_file}
 
-$TEST_TARGET_SO --stack ${stack} deploy --deploy-to k8s-kind init --output $test_deployment_spec --config CERC_TEST_PARAM_1=PASSED
+$TEST_TARGET_SO --stack ${stack} deploy --deploy-to k8s-kind init --output $test_deployment_spec
 # Check the file now exists
 if [ ! -f "$test_deployment_spec" ]; then
     echo "deploy init test: spec file not present"
     echo "deploy init test: FAILED"
     exit 1
 fi
-
 echo "deploy init test: passed"
+
 $TEST_TARGET_SO --stack ${stack} deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir
 # Check the deployment dir exists
 if [ ! -d "$test_deployment_dir" ]; then
@@ -99,11 +99,27 @@ $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 wait_for_pods_started
 # Check logs command works
 wait_for_log_output
-log_output_3=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
-if [[ "$log_output_3" == *"Filesystem is fresh"* ]]; then
+log_output_1=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_1" == *"Database test client: test data does not exist"* ]]; then
     echo "deployment logs test: passed"
 else
     echo "deployment logs test: FAILED"
+    delete_cluster_exit
+fi
+
+# Stop then start again and check the volume was preserved
+$TEST_TARGET_SO deployment --dir $test_deployment_dir stop
+# Sleep a bit just in case
+sleep 20
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+wait_for_pods_started
+wait_for_log_output
+
+log_output_2=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
+if [[ "$log_output_2" == *"Database test client: test data already exists"* ]]; then
+    echo "Retain database content test: passed"
+else
+    echo "Retain database content test: FAILED"
     delete_cluster_exit
 fi
 

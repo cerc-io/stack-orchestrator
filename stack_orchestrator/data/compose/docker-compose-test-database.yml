@@ -1,4 +1,5 @@
 services:
+
   database:
     image: cerc/test-database-container:local
     restart: always
@@ -11,6 +12,9 @@ services:
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
     ports:
       - "5432"
+    
+  test-client:
+    image: cerc/test-database-client:local
 
 volumes:
   db-data:

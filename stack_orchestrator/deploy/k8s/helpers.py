@@ -62,6 +62,17 @@ def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
     return pods
 
 
+def containers_in_pod(core_api: client.CoreV1Api, pod_name: str):
+    containers = []
+    pod_response = core_api.read_namespaced_pod(pod_name, namespace="default")
+    if opts.o.debug:
+        print(f"pod_response: {pod_response}")
+    pod_containers = pod_response.spec.containers
+    for pod_container in pod_containers:
+        containers.append(pod_container.name)
+    return containers
+
+
 def log_stream_from_string(s: str):
     # Note response has to be UTF-8 encoded because the caller expects to decode it
     yield ("ignore", s.encode())

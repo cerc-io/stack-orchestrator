@@ -20,7 +20,8 @@ from kubernetes import client, config
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
 from stack_orchestrator.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
-from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, log_stream_from_string, generate_kind_config
+from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, containers_in_pod, log_stream_from_string
+from stack_orchestrator.deploy.k8s.helpers import generate_kind_config
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
@@ -382,9 +383,15 @@ class K8sDeployer(Deployer):
             log_data = "******* Pods not running ********\n"
         else:
             k8s_pod_name = pods[0]
+            containers = containers_in_pod(self.core_api, k8s_pod_name)
             # If the pod is not yet started, the logs request below will throw an exception
             try:
-                log_data = self.core_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container="test")
+                log_data = ""
+                for container in containers:
+                    container_log = self.core_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container=container)
+                    container_log_lines = container_log.splitlines()
+                    for line in container_log_lines:
+                        log_data += f"{container}: {line}\n"
             except client.exceptions.ApiException as e:
                 if opts.o.debug:
                     print(f"Error from read_namespaced_pod_log: {e}")

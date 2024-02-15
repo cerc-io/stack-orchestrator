@@ -26,7 +26,7 @@ import importlib.resources
 from pathlib import Path
 import yaml
 from stack_orchestrator.constants import stack_file_name
-from stack_orchestrator.util import include_exclude_check, stack_is_external, error_exit
+from stack_orchestrator.util import include_exclude_check, stack_is_external, error_exit, warn_exit
 
 
 class GitProgress(git.RemoteProgress):
@@ -249,8 +249,8 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches, branches
             error_exit(f"stack {stack} does not exist")
         with stack_file_path:
             stack_config = yaml.safe_load(open(stack_file_path, "r"))
-            if "repos" not in stack_config:
-                error_exit(f"stack {stack} does not define any repositories")
+            if "repos" not in stack_config or stack_config["repos"] is None:
+                warn_exit(f"stack {stack} does not define any repositories")
             else:
                 repos_in_scope = stack_config["repos"]
     else:

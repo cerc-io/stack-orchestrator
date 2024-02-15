@@ -13,30 +13,130 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from pathlib import Path
 import typing
+import humanfriendly
+
+from pathlib import Path
+
 from stack_orchestrator.util import get_yaml
 from stack_orchestrator import constants
+
+
+class ResourceLimits:
+    cpus: float = None
+    memory: int = None
+    storage: int = None
+
+    def __init__(self, obj={}):
+        if "cpus" in obj:
+            self.cpus = float(obj["cpus"])
+        if "memory" in obj:
+            self.memory = humanfriendly.parse_size(obj["memory"])
+        if "storage" in obj:
+            self.storage = humanfriendly.parse_size(obj["storage"])
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __iter__(self):
+        for k in self.__dict__:
+            yield k, self.__dict__[k]
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+
+class Resources:
+    limits: ResourceLimits = None
+    reservations: ResourceLimits = None
+
+    def __init__(self, obj={}):
+        if "reservations" in obj:
+            self.reservations = ResourceLimits(obj["reservations"])
+        if "limits" in obj:
+            self.limits = ResourceLimits(obj["limits"])
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __iter__(self):
+        for k in self.__dict__:
+            yield k, self.__dict__[k]
+
+    def __repr__(self):
+        return str(self.__dict__)
 
 
 class Spec:
 
     obj: typing.Any
+    file_path: Path
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, file_path: Path = None, obj={}) -> None:
+        self.file_path = file_path
+        self.obj = obj
+
+    def __getitem__(self, item):
+        return self.obj[item]
+
+    def __contains__(self, item):
+        return item in self.obj
+
+    def get(self, item, default=None):
+        return self.obj.get(item, default)
 
     def init_from_file(self, file_path: Path):
         with file_path:
             self.obj = get_yaml().load(open(file_path, "r"))
+            self.file_path = file_path
 
     def get_image_registry(self):
-        return (self.obj[constants.image_resigtry_key]
-                if self.obj and constants.image_resigtry_key in self.obj
+        return (self.obj[constants.image_registry_key]
+                if self.obj and constants.image_registry_key in self.obj
                 else None)
+
+    def get_volumes(self):
+        return (self.obj["volumes"]
+                if self.obj and "volumes" in self.obj
+                else {})
+
+    def get_configmaps(self):
+        return (self.obj["configmaps"]
+                if self.obj and "configmaps" in self.obj
+                else {})
+
+    def get_container_resources(self):
+        return Resources(self.obj.get("resources", {}).get("containers", {}))
+
+    def get_volume_resources(self):
+        return Resources(self.obj.get("resources", {}).get("volumes", {}))
 
     def get_http_proxy(self):
         return (self.obj[constants.network_key][constants.http_proxy_key]
                 if self.obj and constants.network_key in self.obj
                 and constants.http_proxy_key in self.obj[constants.network_key]
                 else None)
+
+    def get_annotations(self):
+        return self.obj.get("annotations", {})
+
+    def get_labels(self):
+        return self.obj.get("labels", {})
+
+    def get_privileged(self):
+        return "true" == str(self.obj.get("security", {}).get("privileged", "false")).lower()
+
+    def get_capabilities(self):
+        return self.obj.get("security", {}).get("capabilities", [])
+
+    def get_deployment_type(self):
+        return self.obj[constants.deploy_to_key]
+
+    def is_kubernetes_deployment(self):
+        return self.get_deployment_type() in [constants.k8s_kind_deploy_type, constants.k8s_deploy_type]
+
+    def is_kind_deployment(self):
+        return self.get_deployment_type() in [constants.k8s_kind_deploy_type]
+
+    def is_docker_deployment(self):
+        return self.get_deployment_type() in [constants.compose_deploy_type]

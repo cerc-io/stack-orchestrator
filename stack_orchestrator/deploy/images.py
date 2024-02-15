@@ -31,7 +31,8 @@ def _image_needs_pushed(image: str):
 
 def remote_tag_for_image(image: str, remote_repo_url: str):
     # Turns image tags of the form: foo/bar:local into remote.repo/org/bar:deploy
-    (org, image_name_with_version) = image.split("/")
+    major_parts = image.split("/", 2)
+    image_name_with_version = major_parts[1] if 2 == len(major_parts) else major_parts[0]
     (image_name, image_version) = image_name_with_version.split(":")
     if image_version == "local":
         return f"{remote_repo_url}/{image_name}:deploy"
@@ -45,7 +46,7 @@ def push_images_operation(command_context: DeployCommandContext, deployment_cont
     cluster_context = command_context.cluster_context
     images: Set[str] = images_for_deployment(cluster_context.compose_files)
     # Tag the images for the remote repo
-    remote_repo_url = deployment_context.spec.obj[constants.image_resigtry_key]
+    remote_repo_url = deployment_context.spec.obj[constants.image_registry_key]
     docker = DockerClient()
     for image in images:
         if _image_needs_pushed(image):

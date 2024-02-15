@@ -27,7 +27,7 @@ from dotenv import dotenv_values
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer_factory import getDeployer
 
-WEBAPP_PORT = 3000
+WEBAPP_PORT = 80
 
 
 @click.command()

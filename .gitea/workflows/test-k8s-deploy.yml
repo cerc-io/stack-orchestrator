@@ -1,6 +1,8 @@
 name: K8s Deploy Test
 
 on:
+  pull_request:
+    branches: '*'
   push:
     branches: '*'
     paths:
@@ -8,6 +10,8 @@ on:
       - '.gitea/workflows/triggers/test-k8s-deploy'
       - '.gitea/workflows/test-k8s-deploy.yml'
       - 'tests/k8s-deploy/run-deploy-test.sh'
+  schedule: # Note: coordinate with other tests to not overload runners at the same time of day
+    - cron: '3 15 * * *'
 
 jobs:
   test:

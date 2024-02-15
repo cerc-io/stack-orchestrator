@@ -19,7 +19,7 @@ import sys
 import ruamel.yaml
 from pathlib import Path
 from dotenv import dotenv_values
-from typing import Mapping
+from typing import Mapping, Set, List
 
 
 def include_exclude_check(s, include, exclude):
@@ -81,17 +81,17 @@ def get_pod_list(parsed_stack):
     return result
 
 
-def get_plugin_code_paths(stack):
+def get_plugin_code_paths(stack) -> List[Path]:
     parsed_stack = get_parsed_stack_config(stack)
     pods = parsed_stack["pods"]
-    result = []
+    result: Set[Path] = set()
     for pod in pods:
         if type(pod) is str:
-            result.append(get_stack_file_path(stack).parent)
+            result.add(get_stack_file_path(stack).parent)
         else:
             pod_root_dir = os.path.join(get_dev_root_path(None), pod["repository"].split("/")[-1], pod["path"])
-            result.append(Path(os.path.join(pod_root_dir, "stack")))
-    return result
+            result.add(Path(os.path.join(pod_root_dir, "stack")))
+    return list(result)
 
 
 def get_pod_file_path(parsed_stack, pod_name: str):
@@ -139,6 +139,13 @@ def get_compose_file_dir():
     return source_compose_dir
 
 
+def get_config_file_dir():
+    # TODO: refactor to use common code with deploy command
+    data_dir = Path(__file__).absolute().parent.joinpath("data")
+    source_config_dir = data_dir.joinpath("config")
+    return source_config_dir
+
+
 def get_parsed_deployment_spec(spec_file):
     spec_file_path = Path(spec_file)
     try:
@@ -180,6 +187,11 @@ def global_options2(ctx):
 def error_exit(s):
     print(f"ERROR: {s}")
     sys.exit(1)
+
+
+def warn_exit(s):
+    print(f"WARN: {s}")
+    sys.exit(0)
 
 
 def env_var_map_from_file(file: Path) -> Mapping[str, str]:

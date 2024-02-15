@@ -20,7 +20,8 @@ from kubernetes import client, config
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
 from stack_orchestrator.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
-from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, containers_in_pod, log_stream_from_string, generate_kind_config
+from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, containers_in_pod, log_stream_from_string
+from stack_orchestrator.deploy.k8s.helpers import generate_kind_config
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deployment_context import DeploymentContext

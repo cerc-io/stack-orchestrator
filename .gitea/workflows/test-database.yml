@@ -48,5 +48,5 @@ jobs:
         run: |
           source /opt/bash-utils/cgroup-helper.sh
           join_cgroup
-          ./tests/database/run-test.sh
+          CERC_SCRIPT_DEBUG=1 ./tests/database/run-test.sh
 

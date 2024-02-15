@@ -36,13 +36,13 @@ wait_for_pods_started () {
     delete_cluster_exit
 }
 
-wait_for_log_output () {
+wait_for_test_complete () {
     for i in {1..50}
     do
 
         local log_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
 
-        if [[ ! -z "$log_output" ]]; then
+    if [[ "${log_output}" == *"Database test client: test complete"* ]]; then
             # if ready, return
             return
         else
@@ -51,7 +51,7 @@ wait_for_log_output () {
         fi
     done
     # Timed out, error exit
-    echo "waiting for pods log content: FAILED"
+    echo "waiting for test complete: FAILED"
     delete_cluster_exit
 }
 
@@ -98,12 +98,12 @@ echo "deploy create test: passed"
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 wait_for_pods_started
 # Check logs command works
-wait_for_log_output
+wait_for_test_complete
 log_output_1=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
 if [[ "$log_output_1" == *"Database test client: test data does not exist"* ]]; then
-    echo "deployment logs test: passed"
+    echo "Create database content test: passed"
 else
-    echo "deployment logs test: FAILED"
+    echo "Create database content test: FAILED"
     delete_cluster_exit
 fi
 
@@ -113,7 +113,7 @@ $TEST_TARGET_SO deployment --dir $test_deployment_dir stop
 sleep 20
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 wait_for_pods_started
-wait_for_log_output
+wait_for_test_complete
 
 log_output_2=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
 if [[ "$log_output_2" == *"Database test client: test data already exists"* ]]; then

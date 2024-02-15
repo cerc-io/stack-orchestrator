@@ -63,7 +63,7 @@ $TEST_TARGET_SO --stack test deploy down
 # The next time we bring the container up the volume will be old (from the previous run above)
 $TEST_TARGET_SO --stack test deploy up
 log_output_1=$( $TEST_TARGET_SO --stack test deploy logs )
-if [[ "$log_output_1" == *"Filesystem is old"* ]]; then
+if [[ "$log_output_1" == *"filesystem is old"* ]]; then
     echo "Retain volumes test: passed"
 else
     echo "Retain volumes test: FAILED"
@@ -73,7 +73,7 @@ $TEST_TARGET_SO --stack test deploy down --delete-volumes
 # Now when we bring the container up the volume will be new again
 $TEST_TARGET_SO --stack test deploy up
 log_output_2=$( $TEST_TARGET_SO --stack test deploy logs )
-if [[ "$log_output_2" == *"Filesystem is fresh"* ]]; then
+if [[ "$log_output_2" == *"filesystem is fresh"* ]]; then
     echo "Delete volumes test: passed"
 else
     echo "Delete volumes test: FAILED"
@@ -121,7 +121,7 @@ echo "deploy create output file test: passed"
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 # Check logs command works
 log_output_3=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
-if [[ "$log_output_3" == *"Filesystem is fresh"* ]]; then
+if [[ "$log_output_3" == *"filesystem is fresh"* ]]; then
     echo "deployment logs test: passed"
 else
     echo "deployment logs test: FAILED"
@@ -158,7 +158,7 @@ $TEST_TARGET_SO deployment --dir $test_deployment_dir stop
 sleep 20
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 log_output_5=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
-if [[ "$log_output_5" == *"Filesystem is old"* ]]; then
+if [[ "$log_output_5" == *"filesystem is old"* ]]; then
     echo "Retain volumes test: passed"
 else
     echo "Retain volumes test: FAILED"

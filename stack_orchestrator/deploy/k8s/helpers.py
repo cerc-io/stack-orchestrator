@@ -92,7 +92,7 @@ def named_volumes_from_pod_files(parsed_pod_files):
     return named_volumes
 
 
-def get_node_pv_mount_path(volume_name: str):
+def get_kind_pv_bind_mount_path(volume_name: str):
     return f"/mnt/{volume_name}"
 
 
@@ -117,11 +117,14 @@ def volume_mounts_for_service(parsed_pod_files, service):
                             mount_path = mount_split[1]
                             mount_options = mount_split[2] if len(mount_split) == 3 else None
                             if opts.o.debug:
-                                print(f"volumne_name: {volume_name}")
+                                print(f"volume_name: {volume_name}")
                                 print(f"mount path: {mount_path}")
                                 print(f"mount options: {mount_options}")
                             volume_device = client.V1VolumeMount(
-                                mount_path=mount_path, name=volume_name, read_only="ro" == mount_options)
+                                mount_path=mount_path,
+                                name=volume_name,
+                                read_only="ro" == mount_options
+                            )
                             result.append(volume_device)
     return result
 
@@ -144,18 +147,8 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
     return result
 
 
-def _get_host_paths_for_volumes(parsed_pod_files):
-    result = {}
-    for pod in parsed_pod_files:
-        parsed_pod_file = parsed_pod_files[pod]
-        if "volumes" in parsed_pod_file:
-            volumes = parsed_pod_file["volumes"]
-            for volume_name in volumes.keys():
-                volume_definition = volumes[volume_name]
-                if volume_definition and "driver_opts" in volume_definition:
-                    host_path = volume_definition["driver_opts"]["device"]
-                    result[volume_name] = host_path
-    return result
+def _get_host_paths_for_volumes(deployment_context):
+    return deployment_context.spec.get_volumes()
 
 
 def _make_absolute_host_path(data_mount_path: Path, deployment_dir: Path) -> Path:
@@ -163,12 +156,12 @@ def _make_absolute_host_path(data_mount_path: Path, deployment_dir: Path) -> Pat
         return data_mount_path
     else:
         # Python Path voodo that looks pretty odd:
-        return Path.cwd().joinpath(deployment_dir.joinpath("compose").joinpath(data_mount_path)).resolve()
+        return Path.cwd().joinpath(deployment_dir.joinpath(data_mount_path)).resolve()
 
 
 def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_definitions = []
-    volume_host_path_map = _get_host_paths_for_volumes(parsed_pod_files)
+    volume_host_path_map = _get_host_paths_for_volumes(deployment_context)
     # Note these paths are relative to the location of the pod files (at present)
     # So we need to fix up to make them correct and absolute because kind assumes
     # relative to the cwd.
@@ -188,14 +181,15 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                         volume_name = mount_split[0]
                         mount_path = mount_split[1]
                         if opts.o.debug:
-                            print(f"volumne_name: {volume_name}")
+                            print(f"volume_name: {volume_name}")
                             print(f"map: {volume_host_path_map}")
                             print(f"mount path: {mount_path}")
                         if volume_name not in deployment_context.spec.get_configmaps():
-                            volume_definitions.append(
-                                f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
-                                f"    containerPath: {get_node_pv_mount_path(volume_name)}\n"
-                            )
+                            if volume_host_path_map[volume_name]:
+                                volume_definitions.append(
+                                    f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
+                                    f"    containerPath: {get_kind_pv_bind_mount_path(volume_name)}\n"
+                                )
     return (
         "" if len(volume_definitions) == 0 else (
             "  extraMounts:\n"

@@ -21,7 +21,7 @@ from typing import Any, List, Set
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import env_var_map_from_file
 from stack_orchestrator.deploy.k8s.helpers import named_volumes_from_pod_files, volume_mounts_for_service, volumes_for_pod_files
-from stack_orchestrator.deploy.k8s.helpers import get_node_pv_mount_path
+from stack_orchestrator.deploy.k8s.helpers import get_kind_pv_bind_mount_path
 from stack_orchestrator.deploy.k8s.helpers import envs_from_environment_variables_map, envs_from_compose_file, merge_envs
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names, images_for_deployment
 from stack_orchestrator.deploy.deploy_types import DeployEnvVars
@@ -171,21 +171,33 @@ class ClusterInfo:
             print(f"Spec Volumes: {spec_volumes}")
             print(f"Named Volumes: {named_volumes}")
             print(f"Resources: {resources}")
-        for volume_name in spec_volumes:
+        for volume_name, volume_path in spec_volumes.items():
             if volume_name not in named_volumes:
                 if opts.o.debug:
                     print(f"{volume_name} not in pod files")
                 continue
+
+            labels = {
+                "app": self.app_name,
+                "volume-label": f"{self.app_name}-{volume_name}"
+            }
+            if volume_path:
+                storage_class_name = "manual"
+                k8s_volume_name = f"{self.app_name}-{volume_name}"
+            else:
+                # These will be auto-assigned.
+                storage_class_name = None
+                k8s_volume_name = None
+
             spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=["ReadWriteOnce"],
-                storage_class_name="manual",
+                storage_class_name=storage_class_name,
                 resources=to_k8s_resource_requirements(resources),
-                volume_name=f"{self.app_name}-{volume_name}"
+                volume_name=k8s_volume_name
             )
             pvc = client.V1PersistentVolumeClaim(
-                metadata=client.V1ObjectMeta(name=f"{self.app_name}-{volume_name}",
-                                             labels={"volume-label": f"{self.app_name}-{volume_name}"}),
-                spec=spec,
+                metadata=client.V1ObjectMeta(name=f"{self.app_name}-{volume_name}", labels=labels),
+                spec=spec
             )
             result.append(pvc)
         return result
@@ -226,16 +238,32 @@ class ClusterInfo:
         resources = self.spec.get_volume_resources()
         if not resources:
             resources = DEFAULT_VOLUME_RESOURCES
-        for volume_name in spec_volumes:
+        for volume_name, volume_path in spec_volumes.items():
+            # We only need to create a volume if it is fully qualified HostPath.
+            # Otherwise, we create the PVC and expect the node to allocate the volume for us.
+            if not volume_path:
+                if opts.o.debug:
+                    print(f"{volume_name} does not require an explicit PersistentVolume, since it is not a bind-mount.")
+                continue
+
             if volume_name not in named_volumes:
                 if opts.o.debug:
                     print(f"{volume_name} not in pod files")
                 continue
+
+            if not os.path.isabs(volume_path):
+                print(f"WARNING: {volume_name}:{volume_path} is not absolute, cannot bind volume.")
+                continue
+
+            if self.spec.is_kind_deployment():
+                host_path = client.V1HostPathVolumeSource(path=get_kind_pv_bind_mount_path(volume_name))
+            else:
+                host_path = client.V1HostPathVolumeSource(path=volume_path)
             spec = client.V1PersistentVolumeSpec(
                 storage_class_name="manual",
                 access_modes=["ReadWriteOnce"],
                 capacity=to_k8s_resource_requirements(resources).requests,
-                host_path=client.V1HostPathVolumeSource(path=get_node_pv_mount_path(volume_name))
+                host_path=host_path
             )
             pv = client.V1PersistentVolume(
                 metadata=client.V1ObjectMeta(name=f"{self.app_name}-{volume_name}",

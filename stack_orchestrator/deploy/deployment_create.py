@@ -27,6 +27,7 @@ from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
                                      get_pod_script_paths, get_plugin_code_paths, error_exit, env_var_map_from_file)
+from stack_orchestrator.deploy.spec import Spec
 from stack_orchestrator.deploy.deploy_types import LaconicStackSetupCommand
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
@@ -111,6 +112,7 @@ def _create_bind_dir_if_relative(volume, path_string, compose_dir):
 
 # See: https://stackoverflow.com/questions/45699189/editing-docker-compose-yml-with-pyyaml
 def _fixup_pod_file(pod, spec, compose_dir):
+    deployment_type = spec[constants.deploy_to_key]
     # Fix up volumes
     if "volumes" in spec:
         spec_volumes = spec["volumes"]
@@ -119,27 +121,34 @@ def _fixup_pod_file(pod, spec, compose_dir):
             for volume in pod_volumes.keys():
                 if volume in spec_volumes:
                     volume_spec = spec_volumes[volume]
-                    volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
-                    _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
-                    new_volume_spec = {"driver": "local",
-                                       "driver_opts": {
-                                           "type": "none",
-                                           "device": volume_spec_fixedup,
-                                           "o": "bind"
-                                       }
-                                       }
-                    pod["volumes"][volume] = new_volume_spec
+                    if volume_spec:
+                        volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
+                        _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
+                        # this is Docker specific
+                        if spec.is_docker_deployment():
+                            new_volume_spec = {
+                                "driver": "local",
+                                "driver_opts": {
+                                    "type": "none",
+                                    "device": volume_spec_fixedup,
+                                    "o": "bind"
+                                }
+                            }
+                            pod["volumes"][volume] = new_volume_spec
 
     # Fix up configmaps
-    if "configmaps" in spec:
-        spec_cfgmaps = spec["configmaps"]
-        if "volumes" in pod:
-            pod_volumes = pod["volumes"]
-            for volume in pod_volumes.keys():
-                if volume in spec_cfgmaps:
-                    volume_cfg = spec_cfgmaps[volume]
-                    # Just make the dir (if necessary)
-                    _create_bind_dir_if_relative(volume, volume_cfg, compose_dir)
+    if constants.configmaps_key in spec:
+        if spec.is_kubernetes_deployment():
+            spec_cfgmaps = spec[constants.configmaps_key]
+            if "volumes" in pod:
+                pod_volumes = pod[constants.volumes_key]
+                for volume in pod_volumes.keys():
+                    if volume in spec_cfgmaps:
+                        volume_cfg = spec_cfgmaps[volume]
+                        # Just make the dir (if necessary)
+                        _create_bind_dir_if_relative(volume, volume_cfg, compose_dir)
+        else:
+            print(f"Warning: ConfigMaps not supported for {deployment_type}")
 
     # Fix up ports
     if "network" in spec and "ports" in spec["network"]:
@@ -323,7 +332,7 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
         if image_registry is None:
             error_exit("--image-registry must be supplied with --deploy-to k8s")
         spec_file_content.update({constants.kube_config_key: kube_config})
-        spec_file_content.update({constants.image_resigtry_key: image_registry})
+        spec_file_content.update({constants.image_registry_key: image_registry})
     else:
         # Check for --kube-config supplied for non-relevant deployer types
         if kube_config is not None:
@@ -358,10 +367,16 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
         volume_descriptors = {}
         configmap_descriptors = {}
         for named_volume in named_volumes["rw"]:
-            volume_descriptors[named_volume] = f"./data/{named_volume}"
+            if "k8s" in deployer_type:
+                volume_descriptors[named_volume] = None
+            else:
+                volume_descriptors[named_volume] = f"./data/{named_volume}"
         for named_volume in named_volumes["ro"]:
-            if "k8s" in deployer_type and "config" in named_volume:
-                configmap_descriptors[named_volume] = f"./data/{named_volume}"
+            if "k8s" in deployer_type:
+                if "config" in named_volume:
+                    configmap_descriptors[named_volume] = f"./configmaps/{named_volume}"
+                else:
+                    volume_descriptors[named_volume] = None
             else:
                 volume_descriptors[named_volume] = f"./data/{named_volume}"
         if volume_descriptors:
@@ -406,6 +421,17 @@ def _create_deployment_file(deployment_dir: Path):
         output_file.write(f"{constants.cluster_id_key}: {cluster}\n")
 
 
+def _check_volume_definitions(spec):
+    if spec.is_kubernetes_deployment():
+        for volume_name, volume_path in spec.get_volumes().items():
+            if volume_path:
+                if not os.path.isabs(volume_path):
+                    raise Exception(
+                        f"Relative path {volume_path} for volume {volume_name} not "
+                        f"supported for deployment type {spec.get_deployment_type()}"
+                    )
+
+
 @click.command()
 @click.option("--spec-file", required=True, help="Spec file to use to create this deployment")
 @click.option("--deployment-dir", help="Create deployment files in this directory")
@@ -421,7 +447,8 @@ def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
 # The init command's implementation is in a separate function so that we can
 # call it from other commands, bypassing the click decoration stuff
 def create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers):
-    parsed_spec = get_parsed_deployment_spec(spec_file)
+    parsed_spec = Spec(os.path.abspath(spec_file), get_parsed_deployment_spec(spec_file))
+    _check_volume_definitions(parsed_spec)
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
     stack_file = get_stack_file_path(stack_name)

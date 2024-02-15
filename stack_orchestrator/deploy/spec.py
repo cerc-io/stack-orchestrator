@@ -72,8 +72,18 @@ class Spec:
     obj: typing.Any
     file_path: Path
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, file_path: Path = None, obj={}) -> None:
+        self.file_path = file_path
+        self.obj = obj
+
+    def __getitem__(self, item):
+        return self.obj[item]
+
+    def __contains__(self, item):
+        return item in self.obj
+
+    def get(self, item, default=None):
+        return self.obj.get(item, default)
 
     def init_from_file(self, file_path: Path):
         with file_path:
@@ -81,8 +91,8 @@ class Spec:
             self.file_path = file_path
 
     def get_image_registry(self):
-        return (self.obj[constants.image_resigtry_key]
-                if self.obj and constants.image_resigtry_key in self.obj
+        return (self.obj[constants.image_registry_key]
+                if self.obj and constants.image_registry_key in self.obj
                 else None)
 
     def get_volumes(self):
@@ -118,3 +128,15 @@ class Spec:
 
     def get_capabilities(self):
         return self.obj.get("security", {}).get("capabilities", [])
+
+    def get_deployment_type(self):
+        return self.obj[constants.deploy_to_key]
+
+    def is_kubernetes_deployment(self):
+        return self.get_deployment_type() in [constants.k8s_kind_deploy_type, constants.k8s_deploy_type]
+
+    def is_kind_deployment(self):
+        return self.get_deployment_type() in [constants.k8s_kind_deploy_type]
+
+    def is_docker_deployment(self):
+        return self.get_deployment_type() in [constants.compose_deploy_type]

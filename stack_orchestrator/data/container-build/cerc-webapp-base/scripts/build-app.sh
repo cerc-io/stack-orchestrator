@@ -33,4 +33,10 @@ else
   mv "${WORK_DIR}" "${DEST_DIR}"
 fi
 
+# One special fix ...
+cd "${DEST_DIR}"
+for f in $(find . -type f -name '*.htm*'); do
+  sed -i -e 's#/LACONIC_HOSTED_CONFIG_homepage/#LACONIC_HOSTED_CONFIG_homepage/#g' "$f"
+done
+
 exit 0

@@ -33,8 +33,8 @@ if [ -f ".env" ]; then
   rm -f $TMP_ENV
 fi
 
-for f in $(find "$TRG_DIR" -regex ".*.[tj]sx?$" -type f | grep -v 'node_modules'); do
-  for e in $(cat "${f}" | tr -s '[:blank:]' '\n' | tr -s '[{},();]' '\n' | egrep -o '^"CERC_RUNTIME_ENV_[^\"]+"'); do
+for f in $(find . -type f \( -regex '.*.html?' -or -regex ".*.[tj]s\(x\|on\)?$" \) | grep -v 'node_modules' | grep -v '.git'); do
+  for e in $(cat "${f}" | tr -s '[:blank:]' '\n' | tr -s '["/\\{},();]' '\n' | tr -s "[']" '\n' | egrep -o -e '^CERC_RUNTIME_ENV_.+$' -e '^LACONIC_HOSTED_CONFIG_.+$'); do
     orig_name=$(echo -n "${e}" | sed 's/"//g')
     cur_name=$(echo -n "${orig_name}" | sed 's/CERC_RUNTIME_ENV_//g')
     cur_val=$(echo -n "\$${cur_name}" | envsubst)

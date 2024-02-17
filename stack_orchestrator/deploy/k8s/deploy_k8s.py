@@ -20,6 +20,7 @@ from kubernetes import client, config
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
 from stack_orchestrator.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
+from stack_orchestrator.deploy.k8s.helpers import install_ingress_for_kind, wait_for_ingress_in_kind
 from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, containers_in_pod, log_stream_from_string
 from stack_orchestrator.deploy.k8s.helpers import generate_kind_config
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
@@ -176,29 +177,47 @@ class K8sDeployer(Deployer):
                 # Ensure the referenced containers are copied into kind
                 load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
             self.connect_api()
+            if self.is_kind():
+                # Now configure an ingress controller (not installed by default in kind)
+                install_ingress_for_kind()
+                # Wait for ingress to start (deployment provisioning will fail unless this is done)
+                wait_for_ingress_in_kind()
+
         else:
             print("Dry run mode enabled, skipping k8s API connect")
 
         self._create_volume_data()
         self._create_deployment()
 
-        if not self.is_kind():
-            ingress: client.V1Ingress = self.cluster_info.get_ingress()
+        # Note: at present we don't support tls for kind (and enabling tls causes errors)
+        ingress: client.V1Ingress = self.cluster_info.get_ingress(use_tls=not self.is_kind())
+        if ingress:
+            if opts.o.debug:
+                print(f"Sending this ingress: {ingress}")
+            if not opts.o.dry_run:
+                ingress_resp = self.networking_api.create_namespaced_ingress(
+                    namespace=self.k8s_namespace,
+                    body=ingress
+                )
+                if opts.o.debug:
+                    print("Ingress created:")
+                    print(f"{ingress_resp}")
+        else:
+            if opts.o.debug:
+                print("No ingress configured")
 
-            if ingress:
+        nodeport: client.V1Service = self.cluster_info.get_nodeport()
+        if nodeport:
+            if opts.o.debug:
+                print(f"Sending this nodeport: {nodeport}")
+            if not opts.o.dry_run:
+                nodeport_resp = self.core_api.create_namespaced_service(
+                    namespace=self.k8s_namespace,
+                    body=nodeport
+                )
                 if opts.o.debug:
-                    print(f"Sending this ingress: {ingress}")
-                if not opts.o.dry_run:
-                    ingress_resp = self.networking_api.create_namespaced_ingress(
-                        namespace=self.k8s_namespace,
-                        body=ingress
-                    )
-                    if opts.o.debug:
-                        print("Ingress created:")
-                        print(f"{ingress_resp}")
-            else:
-                if opts.o.debug:
-                    print("No ingress configured")
+                    print("NodePort created:")
+                    print(f"{nodeport_resp}")
 
     def down(self, timeout, volumes):  # noqa: C901
         self.connect_api()
@@ -269,20 +288,34 @@ class K8sDeployer(Deployer):
         except client.exceptions.ApiException as e:
             _check_delete_exception(e)
 
-        if not self.is_kind():
-            ingress: client.V1Ingress = self.cluster_info.get_ingress()
-            if ingress:
-                if opts.o.debug:
-                    print(f"Deleting this ingress: {ingress}")
-                try:
-                    self.networking_api.delete_namespaced_ingress(
-                        name=ingress.metadata.name, namespace=self.k8s_namespace
-                    )
-                except client.exceptions.ApiException as e:
-                    _check_delete_exception(e)
-            else:
-                if opts.o.debug:
-                    print("No ingress to delete")
+        ingress: client.V1Ingress = self.cluster_info.get_ingress(use_tls=not self.is_kind())
+        if ingress:
+            if opts.o.debug:
+                print(f"Deleting this ingress: {ingress}")
+            try:
+                self.networking_api.delete_namespaced_ingress(
+                    name=ingress.metadata.name, namespace=self.k8s_namespace
+                )
+            except client.exceptions.ApiException as e:
+                _check_delete_exception(e)
+        else:
+            if opts.o.debug:
+                print("No ingress to delete")
+
+        nodeport: client.V1Service = self.cluster_info.get_nodeport()
+        if nodeport:
+            if opts.o.debug:
+                print(f"Deleting this nodeport: {ingress}")
+            try:
+                self.core_api.delete_namespaced_service(
+                    namespace=self.k8s_namespace,
+                    name=nodeport.metadata.name
+                )
+            except client.exceptions.ApiException as e:
+                _check_delete_exception(e)
+        else:
+            if opts.o.debug:
+                print("No nodeport to delete")
 
         if self.is_kind():
             # Destroy the kind cluster

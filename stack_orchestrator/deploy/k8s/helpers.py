@@ -13,13 +13,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from kubernetes import client
+from kubernetes import client, utils, watch
 import os
 from pathlib import Path
 import subprocess
 import re
 from typing import Set, Mapping, List
 
+from stack_orchestrator.util import get_k8s_dir, error_exit
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names
 from stack_orchestrator.deploy.deployer import DeployerException
@@ -42,6 +43,33 @@ def create_cluster(name: str, config_file: str):
 
 def destroy_cluster(name: str):
     _run_command(f"kind delete cluster --name {name}")
+
+
+def wait_for_ingress_in_kind():
+    core_v1 = client.CoreV1Api()
+    for i in range(20):
+        warned_waiting = False
+        w = watch.Watch()
+        for event in w.stream(func=core_v1.list_namespaced_pod,
+                              namespace="ingress-nginx",
+                              label_selector="app.kubernetes.io/component=controller",
+                              timeout_seconds=30):
+            if event['object'].status.container_statuses:
+                if event['object'].status.container_statuses[0].ready is True:
+                    if warned_waiting:
+                        print("Ingress controller is ready")
+                    return
+            print("Waiting for ingress controller to become ready...")
+            warned_waiting = True
+    error_exit("ERROR: Timed out waiting for ingress to become ready")
+
+
+def install_ingress_for_kind():
+    api_client = client.ApiClient()
+    ingress_install = os.path.abspath(get_k8s_dir().joinpath("components", "ingress", "ingress-nginx-kind-deploy.yaml"))
+    if opts.o.debug:
+        print("Installing nginx ingress controller in kind cluster")
+    utils.create_from_yaml(api_client, yaml_file=ingress_install)
 
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
@@ -198,7 +226,8 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     )
 
 
-def _generate_kind_port_mappings(parsed_pod_files):
+# TODO: decide if we need this functionality
+def _generate_kind_port_mappings_from_services(parsed_pod_files):
     port_definitions = []
     for pod in parsed_pod_files:
         parsed_pod_file = parsed_pod_files[pod]
@@ -212,6 +241,19 @@ def _generate_kind_port_mappings(parsed_pod_files):
                         # TODO handle the complex cases
                         # Looks like: 80 or something more complicated
                         port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
+    return (
+        "" if len(port_definitions) == 0 else (
+            "  extraPortMappings:\n"
+            f"{''.join(port_definitions)}"
+        )
+    )
+
+
+def _generate_kind_port_mappings(parsed_pod_files):
+    port_definitions = []
+    # For now we just map port 80 for the nginx ingress controller we install in kind
+    port_string = "80"
+    port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
     return (
         "" if len(port_definitions) == 0 else (
             "  extraPortMappings:\n"
@@ -284,6 +326,12 @@ def generate_kind_config(deployment_dir: Path, deployment_context):
         "apiVersion: kind.x-k8s.io/v1alpha4\n"
         "nodes:\n"
         "- role: control-plane\n"
+        "  kubeadmConfigPatches:\n"
+        "    - |\n"
+        "      kind: InitConfiguration\n"
+        "      nodeRegistration:\n"
+        "        kubeletExtraArgs:\n"
+        "          node-labels: \"ingress-ready=true\"\n"
         f"{port_mappings_yml}\n"
         f"{mounts_yml}\n"
     )

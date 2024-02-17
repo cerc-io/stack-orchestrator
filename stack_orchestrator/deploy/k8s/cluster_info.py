@@ -78,7 +78,30 @@ class ClusterInfo:
         if (opts.o.debug):
             print(f"Env vars: {self.environment_variables.map}")
 
-    def get_ingress(self):
+    def get_nodeport(self):
+        for pod_name in self.parsed_pod_yaml_map:
+            pod = self.parsed_pod_yaml_map[pod_name]
+            services = pod["services"]
+            for service_name in services:
+                service_info = services[service_name]
+                if "ports" in service_info:
+                    port = int(service_info["ports"][0])
+                    if opts.o.debug:
+                        print(f"service port: {port}")
+        service = client.V1Service(
+            metadata=client.V1ObjectMeta(name=f"{self.app_name}-nodeport"),
+            spec=client.V1ServiceSpec(
+                type="NodePort",
+                ports=[client.V1ServicePort(
+                    port=port,
+                    target_port=port
+                )],
+                selector={"app": self.app_name}
+            )
+        )
+        return service
+
+    def get_ingress(self, use_tls=False):
         # No ingress for a deployment that has no http-proxy defined, for now
         http_proxy_info_list = self.spec.get_http_proxy()
         ingress = None
@@ -93,7 +116,7 @@ class ClusterInfo:
             tls = [client.V1IngressTLS(
                 hosts=[host_name],
                 secret_name=f"{self.app_name}-tls"
-            )]
+            )] if use_tls else None
             paths = []
             for route in http_proxy_info["routes"]:
                 path = route["path"]

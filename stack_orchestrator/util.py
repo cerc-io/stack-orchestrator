@@ -146,6 +146,12 @@ def get_config_file_dir():
     return source_config_dir
 
 
+def get_k8s_dir():
+    data_dir = Path(__file__).absolute().parent.joinpath("data")
+    source_config_dir = data_dir.joinpath("k8s")
+    return source_config_dir
+
+
 def get_parsed_deployment_spec(spec_file):
     spec_file_path = Path(spec_file)
     try:

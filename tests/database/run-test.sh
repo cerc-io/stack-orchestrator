@@ -73,8 +73,8 @@ mkdir -p $CERC_REPO_BASE_DIR
 $TEST_TARGET_SO --stack ${stack} setup-repositories
 $TEST_TARGET_SO --stack ${stack} build-containers
 # Test basic stack-orchestrator deploy to k8s
-test_deployment_dir=$CERC_REPO_BASE_DIR/test-${deployment_dir}
-test_deployment_spec=$CERC_REPO_BASE_DIR/test-${spec_file}
+test_deployment_dir=$CERC_REPO_BASE_DIR/${deployment_dir}
+test_deployment_spec=$CERC_REPO_BASE_DIR/${spec_file}
 
 $TEST_TARGET_SO --stack ${stack} deploy --deploy-to k8s-kind init --output $test_deployment_spec
 # Check the file now exists
@@ -84,6 +84,9 @@ if [ ! -f "$test_deployment_spec" ]; then
     exit 1
 fi
 echo "deploy init test: passed"
+
+# Switch to a full path for the data dir so it gets provisioned as a host bind mounted volume and preserved beyond cluster lifetime
+sed -i "s|^\(\s*db-data:$\)$|\1 ${test_deployment_dir}/data/db-data|" $test_deployment_spec
 
 $TEST_TARGET_SO --stack ${stack} deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir
 # Check the deployment dir exists

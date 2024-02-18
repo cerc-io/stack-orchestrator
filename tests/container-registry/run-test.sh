@@ -106,6 +106,10 @@ if [ ! -d "$test_deployment_dir" ]; then
 fi
 echo "deploy create test: passed"
 
+# Note: this isn't strictly necessary, except we end up trying to push the image into
+# the kind cluster then fails because it can't be found locally
+docker pull registry:2.8
+
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 wait_for_pods_started

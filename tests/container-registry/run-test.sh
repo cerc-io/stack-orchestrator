@@ -122,6 +122,7 @@ else
 fi
 
 # Check that we can use the registry
+# Note: since this pulls from the DockerCo registry without auth it's possible it'll run into rate limiting issues
 docker pull hello-world
 docker tag hello-world localhost:80/hello-world
 docker push localhost:80/hello-world

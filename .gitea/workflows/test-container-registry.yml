@@ -44,6 +44,8 @@ jobs:
         run: ./tests/scripts/install-kind.sh
       - name: "Install Kubectl"
         run: ./tests/scripts/install-kubectl.sh
+      - name: "Install ed" # Only needed until we remove the need to edit the spec file
+        run: apt update && apt install -y ed
       - name: "Run container registry deployment test"
         run: |
           source /opt/bash-utils/cgroup-helper.sh

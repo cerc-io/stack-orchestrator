@@ -1,0 +1,13 @@
+services:
+  registry:
+    image: registry:2.8
+    restart: always
+    environment:
+      REGISTRY_LOG_LEVEL: ${REGISTRY_LOG_LEVEL}
+    volumes:
+      - registry-data:/var/lib/registry
+    ports:
+      - "5000"
+
+volumes:
+  registry-data:

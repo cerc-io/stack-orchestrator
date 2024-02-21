@@ -283,6 +283,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
             dump_known_requests(state_file, [r], "DEPLOYING")
             status = "ERROR"
             run_log_file = None
+            run_reg_client = laconic
             try:
                 run_id = f"{r.id}-{str(time.time()).split('.')[0]}-{str(uuid.uuid4()).split('-')[0]}"
                 if log_dir:
@@ -292,10 +293,12 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     run_log_file_path = os.path.join(run_log_dir, f"{run_id}.log")
                     print(f"Directing deployment logs to: {run_log_file_path}")
                     run_log_file = open(run_log_file_path, "wt")
+                    run_reg_client = LaconicRegistryClient(laconic_config, log_file=run_log_file)
+
                 process_app_deployment_request(
                     run_id,
                     ctx,
-                    laconic,
+                    run_reg_client,
                     r,
                     record_namespace_deployments,
                     record_namespace_dns,

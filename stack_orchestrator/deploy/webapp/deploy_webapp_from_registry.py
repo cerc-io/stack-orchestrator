@@ -33,6 +33,7 @@ from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient,
 
 
 def process_app_deployment_request(
+    run_id,
     ctx,
     laconic: LaconicRegistryClient,
     app_deployment_request,
@@ -42,18 +43,8 @@ def process_app_deployment_request(
     deployment_parent_dir,
     kube_config,
     image_registry,
-    log_parent_dir
+    log_file=None
 ):
-    run_id = f"{app_deployment_request.id}-{str(time.time()).split('.')[0]}-{str(uuid.uuid4()).split('-')[0]}"
-    log_file = None
-    if log_parent_dir:
-        log_dir = os.path.join(log_parent_dir, app_deployment_request.id)
-        if not os.path.exists(log_dir):
-            os.mkdir(log_dir)
-        log_file_path = os.path.join(log_dir, f"{run_id}.log")
-        print(f"Directing build logs to: {log_file_path}")
-        log_file = open(log_file_path, "wt")
-
     # 1. look up application
     app = laconic.get_record(app_deployment_request.attributes.application, require=True)
 
@@ -291,8 +282,18 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
         for r in requests_to_execute:
             dump_known_requests(state_file, [r], "DEPLOYING")
             status = "ERROR"
+            run_log_file = None
             try:
+                run_id = f"{r.id}-{str(time.time()).split('.')[0]}-{str(uuid.uuid4()).split('-')[0]}"
+                if log_dir:
+                    run_log_dir = os.path.join(log_dir, r.id)
+                    if not os.path.exists(run_log_dir):
+                        os.mkdir(run_log_dir)
+                    run_log_file_path = os.path.join(run_log_dir, f"{run_id}.log")
+                    print(f"Directing deployment logs to: {run_log_file_path}")
+                    run_log_file = open(run_log_file_path, "wt")
                 process_app_deployment_request(
+                    run_id,
                     ctx,
                     laconic,
                     r,
@@ -302,8 +303,12 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     os.path.abspath(deployment_parent_dir),
                     kube_config,
                     image_registry,
-                    log_dir
+                    run_log_file
                 )
                 status = "DEPLOYED"
+            except Exception as e:
+                print("ERROR: " + str(e), file=run_log_file)
             finally:
                 dump_known_requests(state_file, [r], status)
+                if run_log_file:
+                    run_log_file.close()

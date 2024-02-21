@@ -227,8 +227,16 @@ def build_container_image(app_record, tag, extra_build_args=[], log_file=None):
             git_env = dict(os.environ.copy())
             # Never prompt
             git_env["GIT_TERMINAL_PROMPT"] = "0"
-            subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env, stdout=log_file, stderr=log_file)
-            subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env, stdout=log_file, stderr=log_file)
+            try:
+                subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env, stdout=log_file, stderr=log_file)
+            except Exception as e:
+                print(f"git clone failed.  Is the repository {repo} private?", file=log_file)
+                raise e
+            try:
+                subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env, stdout=log_file, stderr=log_file)
+            except Exception as e:
+                print(f"git checkout failed.  Does ref {ref} exist?", file=log_file)
+                raise e
         else:
             result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir], stdout=log_file, stderr=log_file)
             result.check_returncode()

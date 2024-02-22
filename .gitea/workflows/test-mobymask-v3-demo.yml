@@ -38,4 +38,4 @@ jobs:
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
       - name: "Run mobymask v3 tests"
-        run: ./tests/mobymask-v3-demo/run-deploy-test.sh
+        run: ./tests/mobymask-v3-demo/run-test.sh

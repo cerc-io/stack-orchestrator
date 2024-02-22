@@ -40,13 +40,18 @@ class AttrDict(dict):
 
 
 def logged_cmd(log_file, *vargs):
+    result = None
     try:
-        print(" ".join(vargs), file=log_file)
-        result = subprocess.run(vargs, capture_output=True, stdout=log_file, stderr=log_file)
+        if log_file:
+            print(" ".join(vargs), file=log_file)
+        result = subprocess.run(vargs, capture_output=True)
         result.check_returncode()
         return result.stdout.decode()
     except Exception as err:
-        print(str(err), file=log_file)
+        if result:
+            print(result.stderr.decode(), file=log_file)
+        else:
+            print(str(err), file=log_file)
         raise err
 
 
@@ -184,7 +189,7 @@ class LaconicRegistryClient:
                 self.set_name(name, new_record_id)
             return new_record_id
         finally:
-            logged_cmd("rm", "-rf", tmpdir)
+            logged_cmd(self.log_file, "rm", "-rf", tmpdir)
 
     def set_name(self, name, record_id):
         logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "name", "set", name, record_id)

@@ -83,7 +83,7 @@ $TEST_TARGET_SO --stack test deploy down --delete-volumes
 # Basic test of creating a deployment
 test_deployment_dir=$CERC_REPO_BASE_DIR/test-deployment-dir
 test_deployment_spec=$CERC_REPO_BASE_DIR/test-deployment-spec.yml
-$TEST_TARGET_SO --stack test deploy init --output $test_deployment_spec --config CERC_TEST_PARAM_1=PASSED
+$TEST_TARGET_SO --stack test deploy init --output $test_deployment_spec --config CERC_TEST_PARAM_1=PASSED,CERC_TEST_PARAM_3=FAST
 # Check the file now exists
 if [ ! -f "$test_deployment_spec" ]; then
     echo "deploy init test: spec file not present"
@@ -139,6 +139,13 @@ if [[ "$log_output_3" == *"Test-param-2: CERC_TEST_PARAM_2_VALUE"* ]]; then
     echo "deployment compose config test: passed"
 else
     echo "deployment compose config test: FAILED"
+    exit 1
+fi
+# Check the config variable CERC_TEST_PARAM_3 was passed correctly
+if [[ "$log_output_3" == *"Test-param-3: FAST"* ]]; then
+    echo "deployment config test: passed"
+else
+    echo "deployment config test: FAILED"
     exit 1
 fi
 

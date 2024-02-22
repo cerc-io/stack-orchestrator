@@ -46,7 +46,7 @@ def logged_cmd(log_file, *vargs):
         result.check_returncode()
         return result.stdout.decode()
     except Exception as err:
-        print(result.stderr.decode(), log_file)
+        print(str(err), file=log_file)
         raise err
 
 

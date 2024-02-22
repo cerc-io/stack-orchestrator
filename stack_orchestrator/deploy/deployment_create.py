@@ -327,12 +327,14 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
     default_spec_file_content = call_stack_deploy_init(deploy_command_context)
     spec_file_content = {"stack": stack, constants.deploy_to_key: deployer_type}
     if deployer_type == "k8s":
-        if kube_config is None:
+        if kube_config:
+            spec_file_content.update({constants.kube_config_key: kube_config})
+        else:
             error_exit("--kube-config must be supplied with --deploy-to k8s")
-        if image_registry is None:
-            error_exit("--image-registry must be supplied with --deploy-to k8s")
-        spec_file_content.update({constants.kube_config_key: kube_config})
-        spec_file_content.update({constants.image_registry_key: image_registry})
+        if image_registry:
+            spec_file_content.update({constants.image_registry_key: image_registry})
+        else:
+            print("WARNING: --image-registry not specified, only default container registries (eg, Docker Hub) will be available")
     else:
         # Check for --kube-config supplied for non-relevant deployer types
         if kube_config is not None:

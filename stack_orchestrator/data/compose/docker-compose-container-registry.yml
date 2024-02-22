@@ -5,9 +5,11 @@ services:
     environment:
       REGISTRY_LOG_LEVEL: ${REGISTRY_LOG_LEVEL}
     volumes:
+      - config:/config:ro
       - registry-data:/var/lib/registry
     ports:
       - "5000"
 
 volumes:
+  config:
   registry-data:

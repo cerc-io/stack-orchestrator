@@ -112,7 +112,7 @@ Place the pre-configured watcher alerts rules in Grafana provisioning directory:
 
 Update the alerting contact points config (`monitoring-watchers-deployment/config/monitoring/grafana/provisioning/alerting/contactpoints.yml`) with desired contact points
 
-Add corresponding routes to the notification policies config (`monitoring-watchers-deployment/monitoring/grafana/provisioning/alerting/policies.yaml`) with appropriate object-matchers:
+Add corresponding routes to the notification policies config (`monitoring-watchers-deployment/config/monitoring/grafana/provisioning/alerting/policies.yml`) with appropriate object-matchers:
 
   ```yml
   ...

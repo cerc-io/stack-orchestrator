@@ -1,0 +1,21 @@
+{
+  "peerId": {
+    "id": "12D3KooWAMjBkFCT9DtCnSDcxftxJzSuTBvzVojabv64cnEvX4AZ",
+    "privKey": "CAESQAKCrnY0QKTky1I18fqn+VPydXGUv1NYiV+nVKqBFkw/CAjE9sKKIDGnYAo8mivnI6dngFenERY+0Q8AJrPTaXY=",
+    "pubKey": "CAESIAgIxPbCiiAxp2AKPJor5yOnZ4BXpxEWPtEPACaz02l2"
+  },
+  "relayPeerId": {
+    "id": "12D3KooWNQJDGtH3YAZk2qG1ZbcoQvw6HaD814pfd9HHQthgX63K",
+    "privKey": "CAESQGc996T2OuyV3aY+hnna+GIexKBEcE6jDNX/RaofHr58uv2EYxXm4kcL2tO2tKgnPgtkegHFdjqy6h/xOA+YMZo=",
+    "pubKey": "CAESILr9hGMV5uJHC9rTtrSoJz4LZHoBxXY6suof8TgPmDGa"
+  },
+  "peer": {
+    "privateKey": "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+    "nitroAddress": "0xAAA6628Ec44A8a742987EF3A114dDFE2D4F7aDCE",
+    "nitroPrivateKey": "2d999770f7b5d49b694080f987b82bbc9fc9ac2b4dcc10b0f8aba7d700f69c6d"
+  },
+  "consensus": {
+    "publicKey": "02cd17b05ca998955be5ca7bf4fd4531243d438f1aae7ce8a0ed5159f53cee5b40",
+    "privateKey": "67d80505614bdf61fca11cbad31d93acb2c7df1c653dc25975d77d05f05f154f"
+  }
+}

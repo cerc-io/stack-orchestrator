@@ -1,0 +1,162 @@
+version: '3.2'
+
+services:
+  # Starts the PostgreSQL database for watcher
+  mobymask-watcher-db:
+    restart: unless-stopped
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=vdbm
+      - POSTGRES_MULTIPLE_DATABASES=mobymask-watcher-1,mobymask-watcher-1-job-queue,mobymask-watcher-2,mobymask-watcher-2-job-queue,mobymask-watcher-3,mobymask-watcher-3-job-queue
+      - POSTGRES_EXTENSION=mobymask-watcher-1-job-queue:pgcrypto,mobymask-watcher-2-job-queue:pgcrypto,mobymask-watcher-3-job-queue:pgcrypto
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
+      - mobymask_watcher_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  # Deploys the MobyMask contract and generates an invite link
+  # Deployment is skipped if CERC_DEPLOYED_CONTRACT env is set
+  mobymask:
+    image: cerc/mobymask:local
+    working_dir: /app/packages/server
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      # ENV: "PROD" # Check if required
+      CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT}
+      CERC_PRIVATE_KEY_DEPLOYER: ${CERC_PRIVATE_KEY_DEPLOYER}
+      CERC_MOBYMASK_APP_BASE_URI: ${CERC_MOBYMASK_APP_BASE_URI}
+      CERC_DEPLOYED_CONTRACT: ${CERC_DEPLOYED_CONTRACT}
+    command: ["bash", "-c", "./deploy-and-generate-invite.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v3-demo/deploy-and-generate-invite.sh:/app/packages/server/deploy-and-generate-invite.sh
+      - mobymask_deployment:/app/packages/server
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Starts a MobyMask v3 watcher server #1
+  mobymask-watcher-1-server:
+    image: cerc/watcher-mobymask-v3:local
+    restart: unless-stopped
+    depends_on:
+      mobymask-watcher-db:
+        condition: service_healthy
+      mobymask:
+        condition: service_completed_successfully
+      nitro-contracts:
+        condition: service_completed_successfully
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_WATCHER_INDEX: 1
+      CERC_ETH_RPC_QUERY_ENDPOINT: ${CERC_ETH_RPC_QUERY_ENDPOINT}
+      CERC_ETH_RPC_MUTATION_ENDPOINT: ${CERC_ETH_RPC_MUTATION_ENDPOINT}
+      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL}
+    command: ["bash", "./start-server.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v3-demo/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-mobymask-v3-demo/watcher-config-rates.toml:/app/environments/rates.toml
+      - ../config/watcher-mobymask-v3-demo/local/keys:/app/keys
+      - ../config/watcher-mobymask-v3-demo/start-server.sh:/app/start-server.sh
+      - watcher_nitro_data:/app/out/nitro-db
+      - nitro_deployment:/nitro
+      - mobymask_deployment:/server
+    # Expose GQL, metrics and relay node ports
+    ports:
+      - "0.0.0.0:3001:3001"
+      - "9001"
+      - "0.0.0.0:9090:9090"
+    healthcheck:
+      test: ["CMD", "busybox", "nc", "localhost", "9090"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Starts a MobyMask v3 watcher server #2
+  mobymask-watcher-2-server:
+    image: cerc/watcher-mobymask-v3:local
+    restart: unless-stopped
+    depends_on:
+      mobymask-watcher-1-server:
+        condition: service_healthy
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_WATCHER_INDEX: 2
+      CERC_ETH_RPC_QUERY_ENDPOINT: ${CERC_ETH_RPC_QUERY_ENDPOINT}
+      CERC_ETH_RPC_MUTATION_ENDPOINT: ${CERC_ETH_RPC_MUTATION_ENDPOINT}
+      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL}
+    command: ["bash", "./start-server.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v3-demo/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-mobymask-v3-demo/watcher-config-rates.toml:/app/environments/rates.toml
+      - ../config/watcher-mobymask-v3-demo/local/keys:/app/keys
+      - ../config/watcher-mobymask-v3-demo/start-server.sh:/app/start-server.sh
+      - watcher_nitro_data:/app/out/nitro-db
+      - nitro_deployment:/nitro
+      - mobymask_deployment:/server
+    # Expose GQL, metrics and relay node ports
+    ports:
+      - "3001"
+      - "9001"
+      - "0.0.0.0:9091:9090"
+    healthcheck:
+      test: ["CMD", "busybox", "nc", "localhost", "9090"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Starts a MobyMask v3 watcher server #3
+  mobymask-watcher-3-server:
+    image: cerc/watcher-mobymask-v3:local
+    restart: unless-stopped
+    depends_on:
+      mobymask-watcher-1-server:
+        condition: service_healthy
+      mobymask-watcher-2-server:
+        condition: service_healthy
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_WATCHER_INDEX: 3
+      CERC_ETH_RPC_QUERY_ENDPOINT: ${CERC_ETH_RPC_QUERY_ENDPOINT}
+      CERC_ETH_RPC_MUTATION_ENDPOINT: ${CERC_ETH_RPC_MUTATION_ENDPOINT}
+      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL}
+    command: ["bash", "./start-server.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v3-demo/watcher-config-template.toml:/app/environments/watcher-config-template.toml
+      - ../config/watcher-mobymask-v3-demo/watcher-config-rates.toml:/app/environments/rates.toml
+      - ../config/watcher-mobymask-v3-demo/local/keys:/app/keys
+      - ../config/watcher-mobymask-v3-demo/start-server.sh:/app/start-server.sh
+      - watcher_nitro_data:/app/out/nitro-db
+      - nitro_deployment:/nitro
+      - mobymask_deployment:/server
+    # Expose GQL, metrics and relay node ports
+    ports:
+      - "3001"
+      - "9001"
+      - "0.0.0.0:9092:9090"
+    healthcheck:
+      test: ["CMD", "busybox", "nc", "localhost", "9090"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  mobymask_watcher_db_data:
+  mobymask_deployment:
+  nitro_deployment:
+  watcher_nitro_data:

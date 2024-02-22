@@ -1,0 +1,32 @@
+version: '3.2'
+
+services:
+  # Builds and serves the MobyMask v3 react-app
+  mobymask-v3-app:
+    restart: unless-stopped
+    image: cerc/mobymask-ui:local
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_APP_WATCHER_URL: ${CERC_APP_WATCHER_URL}
+      CERC_SNAP_URL: ${CERC_SNAP_URL}
+    working_dir: /app
+    command: ["bash", "/scripts/mobymask-app-start.sh"]
+    volumes:
+      - ../config/watcher-mobymask-v3-demo/mobymask-app-start.sh:/scripts/mobymask-app-start.sh
+      - ../config/watcher-mobymask-v3-demo/local/keys:/server/keys
+      - mobymask_deployment:/server
+      - nitro_deployment:/nitro
+    ports:
+      - "127.0.0.1:3004:80"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "80"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  mobymask_deployment:
+  nitro_deployment:

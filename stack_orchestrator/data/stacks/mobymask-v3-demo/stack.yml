@@ -1,0 +1,47 @@
+version: "1.0"
+description: "MobyMask v3 demo stack"
+name: mobymask-v3-demo
+repos:
+  # fixturenet repos
+  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
+  - git.vdb.to/cerc-io/lighthouse
+  - github.com/dboreham/foundry
+  - github.com/ethereum-optimism/optimism@op-node/v1.3.0
+  - github.com/ethereum-optimism/op-geth@v1.101304.0
+  # nitro repo
+  - github.com/cerc-io/ts-nitro@v0.1.15
+  # mobymask watcher repos
+  - github.com/cerc-io/mobymask-v2-watcher-ts@v0.2.4
+  - github.com/cerc-io/MobyMask@v0.1.3
+  # mobymask app repos
+  - github.com/cerc-io/mobymask-snap
+  - github.com/cerc-io/mobymask-ui@v0.2.2
+containers:
+  # fixturenet images
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/fixturenet-eth-genesis
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/foundry
+  - cerc/optimism-contracts
+  - cerc/optimism-op-node
+  - cerc/optimism-l2geth
+  - cerc/optimism-op-batcher
+  - cerc/optimism-op-proposer
+  # nitro contract deployment image
+  - cerc/nitro-contracts
+  # mobymask watcher images
+  - cerc/watcher-mobymask-v3
+  - cerc/mobymask
+  # mobymask app images
+  - cerc/mobymask-snap
+  - cerc/mobymask-ui
+pods:
+  - fixturenet-eth
+  - fixturenet-optimism
+  - nitro-contracts
+  - watcher-mobymask-v3-demo
+  - mobymask-snap
+  - mobymask-app-v3-demo

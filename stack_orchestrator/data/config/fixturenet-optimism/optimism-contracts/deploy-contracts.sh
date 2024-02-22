@@ -65,7 +65,7 @@ if [ -n "$CERC_L1_ADDRESS" ] && [ -n "$CERC_L1_PRIV_KEY" ]; then
   # Sequencer
   SEQ=$(echo "$wallet3" | awk '/Address:/{print $2}')
   SEQ_KEY=$(echo "$wallet3" | awk '/Private key:/{print $3}')
-  
+
   echo "Funding accounts."
   wait_for_block 1 300
   cast send --from $ADMIN --rpc-url $CERC_L1_RPC --value 5ether $PROPOSER --private-key $ADMIN_KEY
@@ -169,4 +169,4 @@ cp -a /app/packages/contracts-bedrock/deployments/$DEPLOYMENT_CONTEXT /l1-deploy
 cp /app/packages/contracts-bedrock/deploy-config/$DEPLOYMENT_CONTEXT.json /l2-config
 openssl rand -hex 32 > /l2-config/l2-jwt.txt
 
-echo "Deployment successful. Exiting"
+echo "Deployment successful. Exiting."

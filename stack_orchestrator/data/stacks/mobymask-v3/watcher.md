@@ -75,7 +75,7 @@ Create and update an env file to be used in the next step ([defaults](../../conf
   # Uses a generated peer id if not set (disables consensus)
   CERC_PEER_ID=
 
-  # Disable payments to upstream ETH server
+  # Enable payments to upstream ETH server
   CERC_ENABLE_UPSTREAM_PAYMENTS=false
   ```
 

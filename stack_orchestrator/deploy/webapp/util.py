@@ -39,13 +39,19 @@ class AttrDict(dict):
             return v
 
 
-def cmd(*vargs):
+def logged_cmd(log_file, *vargs):
+    result = None
     try:
+        if log_file:
+            print(" ".join(vargs), file=log_file)
         result = subprocess.run(vargs, capture_output=True)
         result.check_returncode()
         return result.stdout.decode()
     except Exception as err:
-        print(result.stderr.decode())
+        if result:
+            print(result.stderr.decode(), file=log_file)
+        else:
+            print(str(err), file=log_file)
         raise err
 
 
@@ -58,8 +64,9 @@ def match_owner(recordA, *records):
 
 
 class LaconicRegistryClient:
-    def __init__(self, config_file):
+    def __init__(self, config_file, log_file=None):
         self.config_file = config_file
+        self.log_file = log_file
         self.cache = AttrDict(
             {
                 "name_or_id": {},
@@ -77,7 +84,7 @@ class LaconicRegistryClient:
                 args.append("--%s" % k)
                 args.append(str(v))
 
-        results = [AttrDict(r) for r in json.loads(cmd(*args))]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
 
         # Most recent records first
         results.sort(key=lambda r: r.createTime)
@@ -115,7 +122,7 @@ class LaconicRegistryClient:
 
         args = ["laconic", "-c", self.config_file, "cns", "name", "resolve", name]
 
-        parsed = [AttrDict(r) for r in json.loads(cmd(*args))]
+        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
         if parsed:
             self._add_to_cache(parsed)
             return parsed[0]
@@ -145,7 +152,7 @@ class LaconicRegistryClient:
             name_or_id,
         ]
 
-        parsed = [AttrDict(r) for r in json.loads(cmd(*args))]
+        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
         if len(parsed):
             self._add_to_cache(parsed)
             return parsed[0]
@@ -173,22 +180,22 @@ class LaconicRegistryClient:
             record_file = open(record_fname, 'w')
             yaml.dump(record, record_file)
             record_file.close()
-            print(open(record_fname, 'r').read())
+            print(open(record_fname, 'r').read(), file=self.log_file)
 
             new_record_id = json.loads(
-                cmd("laconic", "-c", self.config_file, "cns", "record", "publish", "--filename", record_fname)
+                logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "record", "publish", "--filename", record_fname)
             )["id"]
             for name in names:
                 self.set_name(name, new_record_id)
             return new_record_id
         finally:
-            cmd("rm", "-rf", tmpdir)
+            logged_cmd(self.log_file, "rm", "-rf", tmpdir)
 
     def set_name(self, name, record_id):
-        cmd("laconic", "-c", self.config_file, "cns", "name", "set", name, record_id)
+        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "name", "set", name, record_id)
 
     def delete_name(self, name):
-        cmd("laconic", "-c", self.config_file, "cns", "name", "delete", name)
+        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "name", "delete", name)
 
 
 def file_hash(filename):
@@ -227,8 +234,16 @@ def build_container_image(app_record, tag, extra_build_args=[], log_file=None):
             git_env = dict(os.environ.copy())
             # Never prompt
             git_env["GIT_TERMINAL_PROMPT"] = "0"
-            subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env, stdout=log_file, stderr=log_file)
-            subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env, stdout=log_file, stderr=log_file)
+            try:
+                subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env, stdout=log_file, stderr=log_file)
+            except Exception as e:
+                print(f"git clone failed.  Is the repository {repo} private?", file=log_file)
+                raise e
+            try:
+                subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env, stdout=log_file, stderr=log_file)
+            except Exception as e:
+                print(f"git checkout failed.  Does ref {ref} exist?", file=log_file)
+                raise e
         else:
             result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir], stdout=log_file, stderr=log_file)
             result.check_returncode()
@@ -249,7 +264,7 @@ def build_container_image(app_record, tag, extra_build_args=[], log_file=None):
         result = subprocess.run(build_command, stdout=log_file, stderr=log_file)
         result.check_returncode()
     finally:
-        cmd("rm", "-rf", tmpdir)
+        logged_cmd(log_file, "rm", "-rf", tmpdir)
 
 
 def push_container_image(deployment_dir, log_file=None):

@@ -1,0 +1,5 @@
+version: "1.0"
+name: container-registry
+description: "Container registry stack"
+pods:
+  - container-registry

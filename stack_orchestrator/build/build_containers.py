@@ -27,7 +27,7 @@ import subprocess
 import click
 import importlib.resources
 from pathlib import Path
-from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, stack_is_external
+from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, stack_is_external, warn_exit
 from stack_orchestrator.base import get_npm_registry_url
 
 # TODO: find a place for this
@@ -164,6 +164,8 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
     containers_in_scope = []
     if stack:
         stack_config = get_parsed_stack_config(stack)
+        if "containers" not in stack_config or stack_config["containers"] is None:
+            warn_exit(f"stack {stack} does not define any containers")
         containers_in_scope = stack_config['containers']
     else:
         containers_in_scope = all_containers

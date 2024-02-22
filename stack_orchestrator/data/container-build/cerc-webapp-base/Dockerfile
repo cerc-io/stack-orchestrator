@@ -43,7 +43,6 @@ COPY scripts /scripts
 # RUN su node -c "npm install -g <your-package-list-here>"
 
 RUN mkdir -p /config
-COPY ./config.yml /config
 
 # Install simple web server for now (use nginx perhaps later)
 RUN yarn global add http-server

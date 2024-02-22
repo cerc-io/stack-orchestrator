@@ -11,7 +11,13 @@ WORK_DIR="${1:-/app}"
 OUTPUT_DIR="${2:-build}"
 DEST_DIR="${3:-/data}"
 
-if [ -f "${WORK_DIR}/package.json" ]; then
+if [ -f "${WORK_DIR}/build-webapp.sh" ]; then
+  echo "Building webapp with ${WORK_DIR}/build-webapp.sh ..."
+  cd "${WORK_DIR}" || exit 1
+
+  rm -rf "${DEST_DIR}"
+  ./build-webapp.sh "${DEST_DIR}" || exit 1
+elif [ -f "${WORK_DIR}/package.json" ]; then
   echo "Building node-based webapp ..."
   cd "${WORK_DIR}" || exit 1
 

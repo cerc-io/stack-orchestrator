@@ -1,0 +1,26 @@
+FROM ubuntu:22.04 as builder
+
+RUN apt update && \
+      apt install -y --no-install-recommends --no-install-suggests \
+      ca-certificates curl gnupg
+
+# Node
+ARG NODE_MAJOR=20
+RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+      echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+      apt update && apt install -y nodejs
+
+# npm setup
+RUN npm config set @cerc-io:registry https://git.vdb.to/api/packages/cerc-io/npm/ && npm install -g yarn
+
+COPY . /app/
+WORKDIR /app/
+
+RUN find . -name 'node_modules' | xargs -n1 rm -rf
+RUN yarn && yarn build --ignore frontend
+
+FROM cerc/webapp-base:local
+
+COPY --from=builder /app /app
+
+WORKDIR /app/packages/backend

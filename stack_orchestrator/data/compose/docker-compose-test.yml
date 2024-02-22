@@ -6,6 +6,7 @@ services:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
       CERC_TEST_PARAM_1: ${CERC_TEST_PARAM_1:-FAILED}
       CERC_TEST_PARAM_2: "CERC_TEST_PARAM_2_VALUE"
+      CERC_TEST_PARAM_3: ${CERC_TEST_PARAM_3:-FAILED}
     volumes:
       - test-data-bind:/data
       - test-data-auto:/data2

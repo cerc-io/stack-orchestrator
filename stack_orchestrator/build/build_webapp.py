@@ -26,6 +26,7 @@ import click
 from pathlib import Path
 from stack_orchestrator.build import build_containers
 from stack_orchestrator.deploy.webapp.util import determine_base_container
+from stack_orchestrator.build.build_types import BuildContext
 
 
 @click.command()
@@ -65,8 +66,14 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args, t
     container_build_env = build_containers.make_container_build_env(dev_root_path, container_build_dir, debug,
                                                                     force_rebuild, extra_build_args)
 
-    build_containers.process_container(None, base_container, container_build_dir, container_build_env, dev_root_path, quiet,
-                                       verbose, dry_run, continue_on_error)
+    build_context_1 = BuildContext(
+        stack,
+        base_container,
+        container_build_dir,
+        container_build_env,
+        dev_root_path,
+    )
+    build_containers.process_container(build_context_1)
 
     # Now build the target webapp.  We use the same build script, but with a different Dockerfile and work dir.
     container_build_env["CERC_WEBAPP_BUILD_RUNNING"] = "true"
@@ -80,5 +87,11 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args, t
     else:
         container_build_env["CERC_CONTAINER_BUILD_TAG"] = tag
 
-    build_containers.process_container(None, base_container, container_build_dir, container_build_env, dev_root_path, quiet,
-                                       verbose, dry_run, continue_on_error)
+    build_context_2 = BuildContext(
+        stack,
+        base_container,
+        container_build_dir,
+        container_build_env,
+        dev_root_path,
+    )
+    build_containers.process_container(build_context_2)

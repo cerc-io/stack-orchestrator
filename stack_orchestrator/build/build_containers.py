@@ -27,8 +27,11 @@ import subprocess
 import click
 import importlib.resources
 from pathlib import Path
-from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, stack_is_external, warn_exit
+from stack_orchestrator.opts import opts
+from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, stack_is_external, error_exit, warn_exit
 from stack_orchestrator.base import get_npm_registry_url
+from stack_orchestrator.build.build_types import BuildContext
+from stack_orchestrator.build.publish import publish_image
 
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
@@ -59,69 +62,58 @@ def make_container_build_env(dev_root_path: str,
     return container_build_env
 
 
-def process_container(stack: str,
-                      container,
-                      container_build_dir: str,
-                      container_build_env: dict,
-                      dev_root_path: str,
-                      quiet: bool,
-                      verbose: bool,
-                      dry_run: bool,
-                      continue_on_error: bool,
-                      ):
-    if not quiet:
-        print(f"Building: {container}")
+def process_container(build_context: BuildContext) -> bool:
+    if not opts.o.quiet:
+        print(f"Building: {build_context.container}")
 
-    default_container_tag = f"{container}:local"
-    container_build_env.update({"CERC_DEFAULT_CONTAINER_IMAGE_TAG": default_container_tag})
+    default_container_tag = f"{build_context.container}:local"
+    build_context.container_build_env.update({"CERC_DEFAULT_CONTAINER_IMAGE_TAG": default_container_tag})
 
     # Check if this is in an external stack
-    if stack_is_external(stack):
-        container_parent_dir = Path(stack).joinpath("container-build")
-        temp_build_dir = container_parent_dir.joinpath(container.replace("/", "-"))
+    if stack_is_external(build_context.stack):
+        container_parent_dir = Path(build_context.stack).joinpath("container-build")
+        temp_build_dir = container_parent_dir.joinpath(build_context.container.replace("/", "-"))
         temp_build_script_filename = temp_build_dir.joinpath("build.sh")
         # Now check if the container exists in the external stack.
         if not temp_build_script_filename.exists():
             # If not, revert to building an internal container
-            container_parent_dir = container_build_dir
+            container_parent_dir = build_context.container_build_dir
     else:
-        container_parent_dir = container_build_dir
+        container_parent_dir = build_context.container_build_dir
 
-    build_dir = container_parent_dir.joinpath(container.replace("/", "-"))
+    build_dir = container_parent_dir.joinpath(build_context.container.replace("/", "-"))
     build_script_filename = build_dir.joinpath("build.sh")
 
-    if verbose:
+    if opts.o.verbose:
         print(f"Build script filename: {build_script_filename}")
     if os.path.exists(build_script_filename):
         build_command = build_script_filename.as_posix()
     else:
-        if verbose:
+        if opts.o.verbose:
             print(f"No script file found: {build_script_filename}, using default build script")
-        repo_dir = container.split('/')[1]
+        repo_dir = build_context.container.split('/')[1]
         # TODO: make this less of a hack -- should be specified in some metadata somewhere
         # Check if we have a repo for this container. If not, set the context dir to the container-build subdir
-        repo_full_path = os.path.join(dev_root_path, repo_dir)
+        repo_full_path = os.path.join(build_context.dev_root_path, repo_dir)
         repo_dir_or_build_dir = repo_full_path if os.path.exists(repo_full_path) else build_dir
-        build_command = os.path.join(container_build_dir,
+        build_command = os.path.join(build_context.container_build_dir,
                                      "default-build.sh") + f" {default_container_tag} {repo_dir_or_build_dir}"
-    if not dry_run:
+    if not opts.o.dry_run:
         # No PATH at all causes failures with podman.
-        if "PATH" not in container_build_env:
-            container_build_env["PATH"] = os.environ["PATH"]
-        if verbose:
-            print(f"Executing: {build_command} with environment: {container_build_env}")
-        build_result = subprocess.run(build_command, shell=True, env=container_build_env)
-        if verbose:
+        if "PATH" not in build_context.container_build_env:
+            build_context.container_build_env["PATH"] = os.environ["PATH"]
+        if opts.o.verbose:
+            print(f"Executing: {build_command} with environment: {build_context.container_build_env}")
+        build_result = subprocess.run(build_command, shell=True, env=build_context.container_build_env)
+        if opts.o.verbose:
             print(f"Return code is: {build_result.returncode}")
         if build_result.returncode != 0:
-            print(f"Error running build for {container}")
-            if not continue_on_error:
-                print("FATAL Error: container build failed and --continue-on-error not set, exiting")
-                sys.exit(1)
-            else:
-                print("****** Container Build Error, continuing because --continue-on-error is set")
+            return False
+        else:
+            return True
     else:
         print("Skipped")
+        return True
 
 
 @click.command()
@@ -129,17 +121,14 @@ def process_container(stack: str,
 @click.option('--exclude', help="don\'t build these containers")
 @click.option("--force-rebuild", is_flag=True, default=False, help="Override dependency checking -- always rebuild")
 @click.option("--extra-build-args", help="Supply extra arguments to build")
+@click.option("--publish-images", is_flag=True, default=False, help="Publish the built images in the specified image registry")
+@click.option("--image-registry", help="Specify the image registry for --publish-images")
 @click.pass_context
-def command(ctx, include, exclude, force_rebuild, extra_build_args):
+def command(ctx, include, exclude, force_rebuild, extra_build_args, publish_images, image_registry):
     '''build the set of containers required for a complete stack'''
 
-    quiet = ctx.obj.quiet
-    verbose = ctx.obj.verbose
-    dry_run = ctx.obj.dry_run
-    debug = ctx.obj.debug
     local_stack = ctx.obj.local_stack
     stack = ctx.obj.stack
-    continue_on_error = ctx.obj.continue_on_error
 
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     container_build_dir = Path(__file__).absolute().parent.parent.joinpath("data", "container-build")
@@ -150,11 +139,15 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
     else:
         dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
-    if not quiet:
+    if not opts.o.quiet:
         print(f'Dev Root is: {dev_root_path}')
 
     if not os.path.isdir(dev_root_path):
         print('Dev root directory doesn\'t exist, creating')
+
+    if publish_images:
+        if not image_registry:
+            error_exit("--image-registry must be supplied with --publish-images")
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from stack_orchestrator import data
@@ -170,21 +163,38 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
     else:
         containers_in_scope = all_containers
 
-    if verbose:
+    if opts.o.verbose:
         print(f'Containers: {containers_in_scope}')
         if stack:
             print(f"Stack: {stack}")
 
     container_build_env = make_container_build_env(dev_root_path,
                                                    container_build_dir,
-                                                   debug,
+                                                   opts.o.debug,
                                                    force_rebuild,
                                                    extra_build_args)
 
     for container in containers_in_scope:
         if include_exclude_check(container, include, exclude):
-            process_container(stack, container, container_build_dir, container_build_env,
-                              dev_root_path, quiet, verbose, dry_run, continue_on_error)
+
+            build_context = BuildContext(
+                stack,
+                container,
+                container_build_dir,
+                container_build_env,
+                dev_root_path
+            )
+            result = process_container(build_context)
+            if result:
+                if publish_images:
+                    publish_image(container, image_registry)
+            else:
+                print(f"Error running build for {build_context.container}")
+                if not opts.o.continue_on_error:
+                    error_exit("container build failed and --continue-on-error not set, exiting")
+                    sys.exit(1)
+                else:
+                    print("****** Container Build Error, continuing because --continue-on-error is set")
         else:
-            if verbose:
+            if opts.o.verbose:
                 print(f"Excluding: {container}")

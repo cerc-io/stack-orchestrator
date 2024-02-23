@@ -16,6 +16,10 @@ if [ -z "$CERC_BUILD_TOOL" ]; then
   fi
 fi
 
+echo "for building the mars v2 frontend"
+npm install --save dotenv
+yarn install-charting-library
+
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 WORK_DIR="${1:-/app}"
 

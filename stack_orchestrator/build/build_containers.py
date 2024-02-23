@@ -187,7 +187,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args, publish_imag
             result = process_container(build_context)
             if result:
                 if publish_images:
-                    publish_image(container, image_registry)
+                    publish_image(f"{container}:local", image_registry)
             else:
                 print(f"Error running build for {build_context.container}")
                 if not opts.o.continue_on_error:

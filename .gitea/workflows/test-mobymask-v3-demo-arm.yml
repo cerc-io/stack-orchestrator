@@ -13,7 +13,7 @@ on:
 jobs:
   test:
     name: "Run mobymask-v3-demo test suite"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-arm
     steps:
       - name: "Clone project repository"
         uses: actions/checkout@v3

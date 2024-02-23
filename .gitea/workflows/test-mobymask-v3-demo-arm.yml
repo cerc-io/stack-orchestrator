@@ -37,5 +37,8 @@ jobs:
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
+      - name: "Login to image registry"
+        run: |
+          echo ${{ secrets.CICD_PUBLISH_TOKEN }} | docker login https://git.vdb.to -u cerccicd --password-stdin
       - name: "Run mobymask v3 tests"
         run: ./tests/mobymask-v3-demo/run-test.sh

@@ -22,4 +22,4 @@ mkdir -p $CERC_REPO_BASE_DIR
 # Test bringing the test container up and down
 # with and without volume removal
 $TEST_TARGET_SO --stack ${stack} setup-repositories
-$TEST_TARGET_SO --stack ${stack} build-containers
+$TEST_TARGET_SO --stack ${stack} build-containers --publish-images --image-registry git.vdb.to/cerc-io

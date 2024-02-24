@@ -21,6 +21,8 @@
 # TODO: display the available list of containers; allow re-build of either all or specific containers
 
 import os
+import sys
+
 from decouple import config
 import click
 from pathlib import Path
@@ -40,12 +42,9 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args, t
     '''build the specified webapp container'''
 
     quiet = ctx.obj.quiet
-    verbose = ctx.obj.verbose
-    dry_run = ctx.obj.dry_run
     debug = ctx.obj.debug
     local_stack = ctx.obj.local_stack
     stack = ctx.obj.stack
-    continue_on_error = ctx.obj.continue_on_error
 
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     container_build_dir = Path(__file__).absolute().parent.parent.joinpath("data", "container-build")
@@ -73,7 +72,10 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args, t
         container_build_env,
         dev_root_path,
     )
-    build_containers.process_container(build_context_1)
+    ok = build_containers.process_container(build_context_1)
+    if not ok:
+        print("ERROR: Build failed.", file=sys.stderr)
+        sys.exit(1)
 
     # Now build the target webapp.  We use the same build script, but with a different Dockerfile and work dir.
     container_build_env["CERC_WEBAPP_BUILD_RUNNING"] = "true"
@@ -94,4 +96,7 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args, t
         container_build_env,
         dev_root_path,
     )
-    build_containers.process_container(build_context_2)
+    ok = build_containers.process_container(build_context_2)
+    if not ok:
+        print("ERROR: Build failed.", file=sys.stderr)
+        sys.exit(1)

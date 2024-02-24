@@ -29,6 +29,29 @@ def _image_needs_pushed(image: str):
     return image.endswith(":local")
 
 
+def remote_image_exists(remote_repo_url: str, local_tag: str):
+    docker = DockerClient()
+    try:
+        remote_tag = remote_tag_for_image(local_tag, remote_repo_url)
+        result = docker.manifest.inspect(remote_tag)
+        return True if result else False
+    except Exception:  # noqa: E722
+        return False
+
+
+def add_tags_to_image(remote_repo_url: str, local_tag: str, *additional_tags):
+    if not additional_tags:
+        return
+
+    if not remote_image_exists(remote_repo_url, local_tag):
+        raise Exception(f"{local_tag} does not exist in {remote_repo_url}")
+
+    docker = DockerClient()
+    remote_tag = remote_tag_for_image(local_tag, remote_repo_url)
+    new_remote_tags = [remote_tag_for_image(tag, remote_repo_url) for tag in additional_tags]
+    docker.buildx.imagetools.create(sources=[remote_tag], tags=new_remote_tags)
+
+
 def remote_tag_for_image(image: str, remote_repo_url: str):
     # Turns image tags of the form: foo/bar:local into remote.repo/org/bar:deploy
     major_parts = image.split("/", 2)

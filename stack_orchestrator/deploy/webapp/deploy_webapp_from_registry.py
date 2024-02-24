@@ -24,6 +24,7 @@ import uuid
 
 import click
 
+from stack_orchestrator.deploy.images import remote_image_exists, add_tags_to_image
 from stack_orchestrator.deploy.webapp import deploy_webapp
 from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient,
                                                    build_container_image, push_container_image,
@@ -43,6 +44,7 @@ def process_app_deployment_request(
     deployment_parent_dir,
     kube_config,
     image_registry,
+    force_rebuild=False,
     log_file=None
 ):
     # 1. look up application
@@ -91,7 +93,9 @@ def process_app_deployment_request(
     deployment_record = laconic.get_record(app_deployment_crn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
     deployment_config_file = os.path.join(deployment_dir, "config.env")
+    # TODO: Is there any reason not to simplify the hash input to the app_deployment_crn?
     deployment_container_tag = "laconic-webapp/%s:local" % hashlib.md5(deployment_dir.encode()).hexdigest()
+    app_image_shared_tag = f"laconic-webapp/{app.id}:local"
     #   b. check for deployment directory (create if necessary)
     if not os.path.exists(deployment_dir):
         if deployment_record:
@@ -106,11 +110,20 @@ def process_app_deployment_request(
     needs_k8s_deploy = False
     # 6. build container (if needed)
     if not deployment_record or deployment_record.attributes.application != app.id:
-        # TODO: pull from request
-        extra_build_args = []
-        build_container_image(app, deployment_container_tag, extra_build_args, log_file)
-        push_container_image(deployment_dir, log_file)
         needs_k8s_deploy = True
+        # check if the image already exists
+        shared_tag_exists = remote_image_exists(image_registry, app_image_shared_tag)
+        if shared_tag_exists and not force_rebuild:
+            # simply add our unique tag to the existing image and we are done
+            print(f"Using existing app image {app_image_shared_tag} for {deployment_container_tag}", file=log_file)
+            add_tags_to_image(image_registry, app_image_shared_tag, deployment_container_tag)
+        else:
+            extra_build_args = []  # TODO: pull from request
+            build_container_image(app, deployment_container_tag, extra_build_args, log_file)
+            push_container_image(deployment_dir, log_file)
+            # The build/push commands above will use the unique deployment tag, so now we need to add the shared tag.
+            print(f"Updating app image tag {app_image_shared_tag} from build of {deployment_container_tag}", file=log_file)
+            add_tags_to_image(image_registry, deployment_container_tag, app_image_shared_tag)
 
     # 7. update config (if needed)
     if not deployment_record or file_hash(deployment_config_file) != deployment_record.attributes.meta.config:
@@ -171,12 +184,13 @@ def dump_known_requests(filename, requests, status="SEEN"):
 @click.option("--dry-run", help="Don't do anything, just report what would be done.", is_flag=True)
 @click.option("--include-tags", help="Only include requests with matching tags (comma-separated).", default="")
 @click.option("--exclude-tags", help="Exclude requests with matching tags (comma-separated).", default="")
+@click.option("--force-rebuild", help="Rebuild even if the image already exists.", is_flag=True)
 @click.option("--log-dir", help="Output build/deployment logs to directory.", default=None)
 @click.pass_context
 def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,  # noqa: C901
             request_id, discover, state_file, only_update_state,
             dns_suffix, record_namespace_dns, record_namespace_deployments, dry_run,
-            include_tags, exclude_tags, log_dir):
+            include_tags, exclude_tags, force_rebuild, log_dir):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)
@@ -306,6 +320,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     os.path.abspath(deployment_parent_dir),
                     kube_config,
                     image_registry,
+                    force_rebuild,
                     run_log_file
                 )
                 status = "DEPLOYED"

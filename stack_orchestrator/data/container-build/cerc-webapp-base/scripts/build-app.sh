@@ -7,9 +7,10 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
 fi
 
 CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
+CERC_BUILD_OUTPUT_DIR="${CERC_BUILD_OUTPUT_DIR}"
+
 WORK_DIR="${1:-/app}"
-OUTPUT_DIR="${2:-build}"
-DEST_DIR="${3:-/data}"
+DEST_DIR="${2:-/data}"
 
 if [ -f "${WORK_DIR}/build-webapp.sh" ]; then
   echo "Building webapp with ${WORK_DIR}/build-webapp.sh ..."
@@ -22,7 +23,9 @@ elif [ -f "${WORK_DIR}/package.json" ]; then
   cd "${WORK_DIR}" || exit 1
 
   if [ -z "$CERC_BUILD_TOOL" ]; then
-    if [ -f "yarn.lock" ]; then
+    if [ -f "pnpm-lock.yaml" ]; then
+      CERC_BUILD_TOOL=pnpm
+    elif [ -f "yarn.lock" ]; then
       CERC_BUILD_TOOL=yarn
     else
       CERC_BUILD_TOOL=npm
@@ -33,7 +36,17 @@ elif [ -f "${WORK_DIR}/package.json" ]; then
   $CERC_BUILD_TOOL build || exit 1
 
   rm -rf "${DEST_DIR}"
-  mv "${WORK_DIR}/${OUTPUT_DIR}" "${DEST_DIR}"
+  if [ -z "${CERC_BUILD_OUTPUT_DIR}" ]; then
+    if [ -d "${WORK_DIR}/dist" ]; then
+      CERC_BUILD_OUTPUT_DIR="${WORK_DIR}/dist"
+    elif [ -d "${WORK_DIR}/build" ]; then
+      CERC_BUILD_OUTPUT_DIR="${WORK_DIR}/build"
+    else
+      echo "ERROR: Unable to locate build output.  Set with --extra-build-args \"--build-arg CERC_BUILD_OUTPUT_DIR=path\"" 1>&2
+      exit 1
+    fi
+  fi
+  mv "${CERC_BUILD_OUTPUT_DIR}" "${DEST_DIR}"
 else
   echo "Copying static app ..."
   mv "${WORK_DIR}" "${DEST_DIR}"

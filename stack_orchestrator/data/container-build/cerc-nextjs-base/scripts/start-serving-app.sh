@@ -16,7 +16,9 @@ trap ctrl_c INT
 
 CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
 if [ -z "$CERC_BUILD_TOOL" ]; then
-  if [ -f "yarn.lock" ] && [ ! -f "package-lock.json" ]; then
+  if [ -f "pnpm-lock.yaml" ]; then
+    CERC_BUILD_TOOL=pnpm
+  elif [ -f "yarn.lock" ]; then
     CERC_BUILD_TOOL=yarn
   else
     CERC_BUILD_TOOL=npm

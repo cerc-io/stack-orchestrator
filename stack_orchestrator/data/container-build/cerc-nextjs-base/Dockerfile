@@ -26,6 +26,8 @@ RUN \
     && su ${USERNAME} -c "umask 0002 && npm install -g eslint" \
     # Install semver
     && su ${USERNAME} -c "umask 0002 && npm install -g semver" \
+    # Install pnpm
+    && su ${USERNAME} -c "umask 0002 && npm install -g pnpm" \
     && npm cache clean --force > /dev/null 2>&1
 
 # [Optional] Uncomment this section to install additional OS packages.
@@ -34,6 +36,9 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 
 # [Optional] Uncomment if you want to install more global node modules
 # RUN su node -c "npm install -g <your-package-list-here>"
+
+# We do this to get a yq binary from the published container, for the correct architecture we're building here
+COPY --from=docker.io/mikefarah/yq:latest /usr/bin/yq /usr/local/bin/yq
 
 # Expose port for http
 EXPOSE 80

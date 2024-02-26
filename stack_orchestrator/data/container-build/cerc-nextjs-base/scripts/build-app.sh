@@ -9,7 +9,9 @@ CERC_MIN_NEXTVER=13.4.2
 CERC_NEXT_VERSION="${CERC_NEXT_VERSION:-keep}"
 CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
 if [ -z "$CERC_BUILD_TOOL" ]; then
-  if [ -f "yarn.lock" ]; then
+  if [ -f "pnpm-lock.yaml" ]; then
+    CERC_BUILD_TOOL=pnpm
+  elif [ -f "yarn.lock" ]; then
     CERC_BUILD_TOOL=yarn
   else
     CERC_BUILD_TOOL=npm

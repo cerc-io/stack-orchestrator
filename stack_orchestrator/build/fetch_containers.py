@@ -76,7 +76,7 @@ def _find_latest(candidate_tags: List[str]):
     sorted_candidates = sorted(candidate_tags)
     if opts.o.debug:
         print(f"sorted candidates: {sorted_candidates}")
-    return sorted_candidates[0]
+    return sorted_candidates[-1]
 
 
 def _filter_for_platform(container: str, 

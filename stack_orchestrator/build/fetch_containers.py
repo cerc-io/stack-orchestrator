@@ -84,13 +84,14 @@ def _filter_for_platform(container: str,
                          tag_list: List[str]) -> List[str] :
     filtered_tags = []
     this_machine = platform.machine()
-    # Translate between Python platform names and docker
+    # Translate between Python and docker platform names
     if this_machine == "x86_64":
         this_machine = "amd64"
+    if this_machine == "aarch64":
+        this_machine = "arm64"
     if opts.o.debug:
         print(f"Python says the architecture is: {this_machine}")
     docker = DockerClient()
-    docker.login(registry_info.registry, registry_info.registry_username, registry_info.registry_token)
     for tag in tag_list:
         remote_tag = f"{registry_info.registry}/{container}:{tag}"
         manifest_cmd = ExtendedManifestCLI(docker.client_config)
@@ -110,13 +111,15 @@ def _filter_for_platform(container: str,
 def _get_latest_image(container: str, registry_info: RegistryInfo):
     all_tags = _get_tags_for_container(container, registry_info)
     tags_for_platform = _filter_for_platform(container, registry_info, all_tags)
-    latest_tag = _find_latest(tags_for_platform)
-    return f"{container}:{latest_tag}"
+    if len(tags_for_platform) > 0:
+        latest_tag = _find_latest(tags_for_platform)
+        return f"{container}:{latest_tag}"
+    else:
+        return None
 
 
 def _fetch_image(tag: str, registry_info: RegistryInfo):
     docker = DockerClient()
-    docker.login(registry_info.registry, registry_info.registry_username, registry_info.registry_token)
     remote_tag = f"{registry_info.registry}/{tag}"
     if opts.o.debug:
         print(f"Attempting to pull this image: {remote_tag}")
@@ -145,9 +148,14 @@ def command(ctx, include, exclude, force_local_overwrite, image_registry, regist
     '''EXPERIMENTAL: fetch the images for a stack from remote registry'''
 
     registry_info = RegistryInfo(image_registry, registry_username, registry_token)
+    docker = DockerClient()
+    if not opts.o.quiet:
+        print("Logging into container registry:")
+    docker.login(registry_info.registry, registry_info.registry_username, registry_info.registry_token)
     # Generate list of target containers
     stack = ctx.obj.stack
     containers_in_scope = get_containers_in_scope(stack)
+    all_containers_found = True
     for container in containers_in_scope:
         local_tag = _local_tag_for(container)
         if include_exclude_check(container, include, exclude):
@@ -156,6 +164,10 @@ def command(ctx, include, exclude, force_local_overwrite, image_registry, regist
             # For each container, attempt to find the latest of a set of
             # images with the correct name and platform in the specified registry
             image_to_fetch = _get_latest_image(container, registry_info)
+            if not image_to_fetch:
+                print(f"Warning: no image found to fetch for container: {container}")
+                all_containers_found = False
+                continue
             if opts.o.debug:
                 print(f"Fetching: {image_to_fetch}")
             _fetch_image(image_to_fetch, registry_info)
@@ -173,8 +185,11 @@ def command(ctx, include, exclude, force_local_overwrite, image_registry, regist
                     if not opts.o.quiet:
                         print(f"Skipping local tagging for this image: {container} because that would "
                               "overwrite an existing :local tagged image, use --force-local-overwrite to do so.")
+                    continue
             # Tag the fetched image with the :local tag
             _add_local_tag(image_to_fetch, image_registry, local_tag)
         else:
             if opts.o.verbose:
                 print(f"Excluding: {container}")
+    if not all_containers_found:
+        print("Warning: couldn't find usable images for one or more containers, this stack will not deploy")

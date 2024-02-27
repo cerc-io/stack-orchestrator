@@ -25,13 +25,13 @@ import sys
 from decouple import config
 import subprocess
 import click
-import importlib.resources
 from pathlib import Path
 from stack_orchestrator.opts import opts
-from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, stack_is_external, error_exit, warn_exit
+from stack_orchestrator.util import include_exclude_check, stack_is_external, error_exit
 from stack_orchestrator.base import get_npm_registry_url
 from stack_orchestrator.build.build_types import BuildContext
 from stack_orchestrator.build.publish import publish_image
+from stack_orchestrator.build.build_util import get_containers_in_scope
 
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars: CERC_REPO_BASE_DIR (defaults to ~/cerc)"
@@ -149,24 +149,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args, publish_imag
         if not image_registry:
             error_exit("--image-registry must be supplied with --publish-images")
 
-    # See: https://stackoverflow.com/a/20885799/1701505
-    from stack_orchestrator import data
-    with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
-        all_containers = container_list_file.read().splitlines()
-
-    containers_in_scope = []
-    if stack:
-        stack_config = get_parsed_stack_config(stack)
-        if "containers" not in stack_config or stack_config["containers"] is None:
-            warn_exit(f"stack {stack} does not define any containers")
-        containers_in_scope = stack_config['containers']
-    else:
-        containers_in_scope = all_containers
-
-    if opts.o.verbose:
-        print(f'Containers: {containers_in_scope}')
-        if stack:
-            print(f"Stack: {stack}")
+    containers_in_scope = get_containers_in_scope(stack)
 
     container_build_env = make_container_build_env(dev_root_path,
                                                    container_build_dir,

@@ -10,10 +10,12 @@ TRG_DIR="${3:-.next-r}"
 
 CERC_BUILD_TOOL="${CERC_BUILD_TOOL}"
 if [ -z "$CERC_BUILD_TOOL" ]; then
-  if [ -f "yarn.lock" ]; then
-    CERC_BUILD_TOOL=npm
-  else
+  if [ -f "pnpm-lock.yaml" ]; then
+    CERC_BUILD_TOOL=pnpm
+  elif [ -f "yarn.lock" ]; then
     CERC_BUILD_TOOL=yarn
+  else
+    CERC_BUILD_TOOL=npm
   fi
 fi
 

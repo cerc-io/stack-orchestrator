@@ -24,6 +24,10 @@ RUN \
     && su ${USERNAME} -c "npm config -g set prefix ${NPM_GLOBAL}" \
     # Install eslint
     && su ${USERNAME} -c "umask 0002 && npm install -g eslint" \
+    # Install semver
+    && su ${USERNAME} -c "umask 0002 && npm install -g semver" \
+    # Install pnpm
+    && su ${USERNAME} -c "umask 0002 && npm install -g pnpm" \
     && npm cache clean --force > /dev/null 2>&1
 
 # [Optional] Uncomment this section to install additional OS packages.

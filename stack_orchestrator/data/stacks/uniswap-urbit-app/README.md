@@ -33,23 +33,29 @@ laconic-so --stack uniswap-urbit-app deploy init --output uniswap-urbit-app-spec
 
 ### Ports
 
-Edit `network` in spec file to map container ports to same ports in host:
+Edit `uniswap-urbit-app-spec.yml` such that it looks like:
 
 ```yml
-...
+stack: uniswap-urbit-app
+deploy-to: compose
 network:
   ports:
-    urbit-fake-ship:
-      - '8080:80'
     proxy-server:
       - '4000:4000'
+    urbit-fake-ship:
+      - '8080:80'
     ipfs:
-      - '8081:8080'
-      - '5001:5001'
-...
+     - '4001'
+     - '8081:8080'
+     - 0.0.0.0:5001:5001
+volumes:
+  urbit_app_builds: ./data/urbit_app_builds
+  urbit_data: ./data/urbit_data
+  ipfs-import: ./data/ipfs-import
+  ipfs-data: ./data/ipfs-data
 ```
 
-Note: Skip the `ipfs` ports if need to use an externally running IPFS node
+Note: Skip the `ipfs` ports if using an externally running IPFS node, set via `config.env`, below.
 
 ### Data volumes
 

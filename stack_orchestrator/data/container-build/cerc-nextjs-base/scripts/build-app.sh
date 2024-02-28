@@ -115,7 +115,7 @@ if [ "$CERC_NEXT_VERSION" != "keep" ] && [ "$CUR_NEXT_VERSION" != "$CERC_NEXT_VE
   mv package.json.$$ package.json
 fi
 
-$CERC_BUILD_TOOL install || exit 1
+time $CERC_BUILD_TOOL install || exit 1
 
 CUR_NEXT_VERSION=`jq -r '.version' node_modules/next/package.json`
 
@@ -138,9 +138,9 @@ to use for the build with:
 EOF
   cat package.json | jq ".dependencies.next = \"^$CERC_MIN_NEXTVER\"" > package.json.$$
   mv package.json.$$ package.json
-  $CERC_BUILD_TOOL install || exit 1
+  time $CERC_BUILD_TOOL install || exit 1
 fi
 
-$CERC_BUILD_TOOL run cerc_compile || exit 1
+time $CERC_BUILD_TOOL run cerc_compile || exit 1
 
 exit 0

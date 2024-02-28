@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import datetime
 import hashlib
 import json
 import os
@@ -37,6 +38,25 @@ class AttrDict(dict):
             if isinstance(v, dict):
                 return AttrDict(v)
             return v
+
+
+class TimedLogger:
+    def __init__(self, id="", file=None):
+        self.start = datetime.datetime.now()
+        self.last = self.start
+        self.id = id
+        self.file = file
+
+    def log(self, msg, show_step_time=True, show_total_time=False):
+        prefix = f"{datetime.datetime.utcnow()} - {self.id}"
+        if show_step_time:
+            prefix += f" - {datetime.datetime.now() - self.last} (step)"
+        if show_total_time:
+            prefix += f" - {datetime.datetime.now() - self.start} (total)"
+        print(f"{prefix}: {msg}", file=self.file)
+        if self.file:
+            self.file.flush()
+        self.last = datetime.datetime.now()
 
 
 def logged_cmd(log_file, *vargs):
@@ -219,7 +239,7 @@ def determine_base_container(clone_dir, app_type="webapp"):
     return base_container
 
 
-def build_container_image(app_record, tag, extra_build_args=[], log_file=None):
+def build_container_image(app_record, tag, extra_build_args=[], logger=None):
     tmpdir = tempfile.mkdtemp()
 
     try:
@@ -228,31 +248,33 @@ def build_container_image(app_record, tag, extra_build_args=[], log_file=None):
         repo = random.choice(app_record.attributes.repository)
         clone_dir = os.path.join(tmpdir, record_id)
 
-        print(f"Cloning repository {repo} to {clone_dir} ...")
+        logger.log(f"Cloning repository {repo} to {clone_dir} ...")
         if ref:
             # TODO: Determing branch or hash, and use depth 1 if we can.
             git_env = dict(os.environ.copy())
             # Never prompt
             git_env["GIT_TERMINAL_PROMPT"] = "0"
             try:
-                subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env, stdout=log_file, stderr=log_file)
+                subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env, stdout=logger.file, stderr=logger.file)
             except Exception as e:
-                print(f"git clone failed.  Is the repository {repo} private?", file=log_file)
+                logger.log(f"git clone failed.  Is the repository {repo} private?")
                 raise e
             try:
-                subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env, stdout=log_file, stderr=log_file)
+                subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env, stdout=logger.file, stderr=logger.file)
             except Exception as e:
-                print(f"git checkout failed.  Does ref {ref} exist?", file=log_file)
+                logger.log(f"git checkout failed.  Does ref {ref} exist?")
                 raise e
         else:
-            result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir], stdout=log_file, stderr=log_file)
+            result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir], stdout=logger.file, stderr=logger.file)
             result.check_returncode()
 
         base_container = determine_base_container(clone_dir, app_record.attributes.app_type)
 
-        print("Building webapp ...")
+        logger.log("Building webapp ...")
         build_command = [
-            sys.argv[0], "build-webapp",
+            sys.argv[0],
+            "--verbose",
+            "build-webapp",
             "--source-repo", clone_dir,
             "--tag", tag,
             "--base-container", base_container
@@ -261,28 +283,31 @@ def build_container_image(app_record, tag, extra_build_args=[], log_file=None):
             build_command.append("--extra-build-args")
             build_command.append(" ".join(extra_build_args))
 
-        result = subprocess.run(build_command, stdout=log_file, stderr=log_file)
+        result = subprocess.run(build_command, stdout=logger.file, stderr=logger.file)
         result.check_returncode()
     finally:
-        logged_cmd(log_file, "rm", "-rf", tmpdir)
+        logged_cmd(logger.file, "rm", "-rf", tmpdir)
 
 
-def push_container_image(deployment_dir, log_file=None):
-    print("Pushing image ...")
+def push_container_image(deployment_dir, logger):
+    logger.log("Pushing images ...")
     result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, "push-images"],
-                            stdout=log_file, stderr=log_file)
+                            stdout=logger.file, stderr=logger.file)
     result.check_returncode()
+    logger.log("Finished pushing images.")
 
 
-def deploy_to_k8s(deploy_record, deployment_dir, log_file=None):
+def deploy_to_k8s(deploy_record, deployment_dir, logger):
     if not deploy_record:
         command = "up"
     else:
         command = "update"
 
+    logger.log("Deploying to k8s ...")
     result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, command],
-                            stdout=log_file, stderr=log_file)
+                            stdout=logger.file, stderr=logger.file)
     result.check_returncode()
+    logger.log("Finished deploying to k8s.")
 
 
 def publish_deployment(laconic: LaconicRegistryClient,
@@ -292,7 +317,8 @@ def publish_deployment(laconic: LaconicRegistryClient,
                        dns_record,
                        dns_crn,
                        deployment_dir,
-                       app_deployment_request=None):
+                       app_deployment_request=None,
+                       logger=None):
     if not deploy_record:
         deploy_ver = "0.0.1"
     else:
@@ -322,6 +348,8 @@ def publish_deployment(laconic: LaconicRegistryClient,
     if app_deployment_request:
         new_dns_record["record"]["request"] = app_deployment_request.id
 
+    if logger:
+        logger.log("Publishing DnsRecord.")
     dns_id = laconic.publish(new_dns_record, [dns_crn])
 
     new_deployment_record = {
@@ -341,6 +369,8 @@ def publish_deployment(laconic: LaconicRegistryClient,
     if app_deployment_request:
         new_deployment_record["record"]["request"] = app_deployment_request.id
 
+    if logger:
+        logger.log("Publishing ApplicationDeploymentRecord.")
     deployment_id = laconic.publish(new_deployment_record, [deployment_crn])
     return {"dns": dns_id, "deployment": deployment_id}
 

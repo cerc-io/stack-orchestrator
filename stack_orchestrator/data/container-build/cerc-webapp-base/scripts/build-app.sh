@@ -32,8 +32,8 @@ elif [ -f "${WORK_DIR}/package.json" ]; then
     fi
   fi
 
-  $CERC_BUILD_TOOL install || exit 1
-  $CERC_BUILD_TOOL build || exit 1
+  time $CERC_BUILD_TOOL install || exit 1
+  time $CERC_BUILD_TOOL build || exit 1
 
   rm -rf "${DEST_DIR}"
   if [ -z "${CERC_BUILD_OUTPUT_DIR}" ]; then

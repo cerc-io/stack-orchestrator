@@ -26,7 +26,7 @@ import click
 
 from stack_orchestrator.deploy.images import remote_image_exists, add_tags_to_image
 from stack_orchestrator.deploy.webapp import deploy_webapp
-from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient,
+from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient, TimedLogger,
                                                    build_container_image, push_container_image,
                                                    file_hash, deploy_to_k8s, publish_deployment,
                                                    hostname_for_deployment_request, generate_hostname_for_app,
@@ -34,7 +34,6 @@ from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient,
 
 
 def process_app_deployment_request(
-    run_id,
     ctx,
     laconic: LaconicRegistryClient,
     app_deployment_request,
@@ -44,14 +43,18 @@ def process_app_deployment_request(
     deployment_parent_dir,
     kube_config,
     image_registry,
-    force_rebuild=False,
-    log_file=None
+    force_rebuild,
+    logger
 ):
+    logger.log("BEGIN - process_app_deployment_request")
+
     # 1. look up application
     app = laconic.get_record(app_deployment_request.attributes.application, require=True)
+    logger.log(f"Retrieved app record {app_deployment_request.attributes.application}")
 
     # 2. determine dns
     requested_name = hostname_for_deployment_request(app_deployment_request, laconic)
+    logger.log(f"Determined requested name: {requested_name}")
 
     # HACK
     if "." in requested_name:
@@ -69,7 +72,7 @@ def process_app_deployment_request(
             matched_owner = match_owner(app_deployment_request, laconic.get_record(dns_record.attributes.request, require=True))
 
         if matched_owner:
-            print("Matched DnsRecord ownership:", matched_owner)
+            logger.log(f"Matched DnsRecord ownership: {matched_owner}")
         else:
             raise Exception("Unable to confirm ownership of DnsRecord %s for request %s" %
                             (dns_record.id, app_deployment_request.id))
@@ -115,15 +118,21 @@ def process_app_deployment_request(
         shared_tag_exists = remote_image_exists(image_registry, app_image_shared_tag)
         if shared_tag_exists and not force_rebuild:
             # simply add our unique tag to the existing image and we are done
-            print(f"Using existing app image {app_image_shared_tag} for {deployment_container_tag}", file=log_file)
+            logger.log(f"Using existing app image {app_image_shared_tag} for {deployment_container_tag}")
             add_tags_to_image(image_registry, app_image_shared_tag, deployment_container_tag)
+            logger.log("Tag complete")
         else:
             extra_build_args = []  # TODO: pull from request
-            build_container_image(app, deployment_container_tag, extra_build_args, log_file)
-            push_container_image(deployment_dir, log_file)
+            logger.log(f"Building container image {deployment_container_tag}")
+            build_container_image(app, deployment_container_tag, extra_build_args, logger)
+            logger.log("Build complete")
+            logger.log(f"Pushing container image {deployment_container_tag}")
+            push_container_image(deployment_dir, logger)
+            logger.log("Push complete")
             # The build/push commands above will use the unique deployment tag, so now we need to add the shared tag.
-            print(f"Updating app image tag {app_image_shared_tag} from build of {deployment_container_tag}", file=log_file)
+            logger.log(f"Updating app image tag {app_image_shared_tag} from build of {deployment_container_tag}")
             add_tags_to_image(image_registry, deployment_container_tag, app_image_shared_tag)
+            logger.log("Tag complete")
 
     # 7. update config (if needed)
     if not deployment_record or file_hash(deployment_config_file) != deployment_record.attributes.meta.config:
@@ -131,13 +140,13 @@ def process_app_deployment_request(
 
     # 8. update k8s deployment
     if needs_k8s_deploy:
-        print("Deploying to k8s")
         deploy_to_k8s(
             deployment_record,
             deployment_dir,
-            log_file
+            logger
         )
 
+    logger.log("Publishing deployment to registry.")
     publish_deployment(
         laconic,
         app,
@@ -146,8 +155,11 @@ def process_app_deployment_request(
         dns_record,
         dns_crn,
         deployment_dir,
-        app_deployment_request
+        app_deployment_request,
+        logger
     )
+    logger.log("Publication complete.")
+    logger.log("END - process_app_deployment_request")
 
 
 def load_known_requests(filename):
@@ -309,8 +321,9 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     run_log_file = open(run_log_file_path, "wt")
                     run_reg_client = LaconicRegistryClient(laconic_config, log_file=run_log_file)
 
+                logger = TimedLogger(run_id, run_log_file)
+                logger.log("Processing ...")
                 process_app_deployment_request(
-                    run_id,
                     ctx,
                     run_reg_client,
                     r,
@@ -321,12 +334,14 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     kube_config,
                     image_registry,
                     force_rebuild,
-                    run_log_file
+                    logger
                 )
                 status = "DEPLOYED"
             except Exception as e:
-                print("ERROR: " + str(e), file=run_log_file)
+                logger.log("ERROR: " + str(e))
             finally:
+                if logger:
+                    logger.log(f"DONE with status {status}", show_step_time=False, show_total_time=True)
                 dump_known_requests(state_file, [r], status)
                 if run_log_file:
                     run_log_file.close()

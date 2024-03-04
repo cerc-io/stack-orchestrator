@@ -122,8 +122,7 @@ class ClusterInfo:
                 tls_issuer = tls_info.get("issuer", "letsencrypt-prod")
                 tls_secret_name = f"{self.app_name}-tls"
                 if "secret" in tls_info:
-                    # If an existing secret is specified, unset the issuer so
-                    # we don't try to re-request it.
+                    # If an existing secret is specified, unset the issuer so that we don't try to re-request it.
                     tls_secret_name = tls_info["secret"]
                     tls_issuer = None
 

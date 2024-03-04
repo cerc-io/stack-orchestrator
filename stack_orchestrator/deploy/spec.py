@@ -27,7 +27,9 @@ class ResourceLimits:
     memory: int = None
     storage: int = None
 
-    def __init__(self, obj={}):
+    def __init__(self, obj=None):
+        if obj is None:
+            obj = {}
         if "cpus" in obj:
             self.cpus = float(obj["cpus"])
         if "memory" in obj:
@@ -50,7 +52,9 @@ class Resources:
     limits: ResourceLimits = None
     reservations: ResourceLimits = None
 
-    def __init__(self, obj={}):
+    def __init__(self, obj=None):
+        if obj is None:
+            obj = {}
         if "reservations" in obj:
             self.reservations = ResourceLimits(obj["reservations"])
         if "limits" in obj:
@@ -72,7 +76,9 @@ class Spec:
     obj: typing.Any
     file_path: Path
 
-    def __init__(self, file_path: Path = None, obj={}) -> None:
+    def __init__(self, file_path: Path = None, obj=None) -> None:
+        if obj is None:
+            obj = {}
         self.file_path = file_path
         self.obj = obj
 
@@ -100,12 +106,10 @@ class Spec:
         return self.obj.get(constants.configmaps_key)
 
     def get_container_resources(self):
-        return Resources(self.obj.get(constants.resources_key, {})
-                         .get("containers", {}))
+        return Resources(self.obj.get(constants.resources_key, {}).get("containers", {}))
 
     def get_volume_resources(self):
-        return Resources(self.obj.get(constants.resources_key, {})
-                         .get(constants.volumes_key, {}))
+        return Resources(self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {}))
 
     def get_http_proxy(self):
         return self.obj.get(constants.network_key, {}).get(constants.http_proxy_key, [])

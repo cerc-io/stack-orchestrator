@@ -1,0 +1,8 @@
+version: "1.0"
+name: blast
+description: "A blast stack"
+repos:
+containers:
+pods:
+  - blast
+

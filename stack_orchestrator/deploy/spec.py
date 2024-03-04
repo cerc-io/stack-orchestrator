@@ -121,8 +121,7 @@ class Spec:
         return self.obj.get(constants.labels_key, {})
 
     def get_privileged(self):
-        return "true" == str(self.obj.get(constants.security_key, {})
-                             .get("privileged", "false")).lower()
+        return "true" == str(self.obj.get(constants.security_key, {}).get("privileged", "false")).lower()
 
     def get_capabilities(self):
         return self.obj.get(constants.security_key, {}).get("capabilities", [])

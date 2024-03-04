@@ -110,13 +110,33 @@ class ClusterInfo:
             http_proxy_info = http_proxy_info_list[0]
             if opts.o.debug:
                 print(f"http-proxy: {http_proxy_info}")
-            # TODO: good enough parsing for webapp deployment for now
+
             host_name = http_proxy_info["host-name"]
+
+            tls = None
+            tls_issuer = None
+
+            if use_tls:
+                tls_info = http_proxy_info.get("tls", {})
+                tls_hosts = tls_info.get("hosts", [host_name])
+                tls_issuer = tls_info.get("issuer", "letsencrypt-prod")
+                tls_secret_name = f"{self.app_name}-tls"
+                if "secret" in tls_info:
+                    # If an existing secret is specified, unset the issuer so
+                    # we don't try to re-request it.
+                    tls_secret_name = tls_info["secret"]
+                    tls_issuer = None
+
+                if opts.o.debug:
+                    print(f"TLS hosts/secret: {tls_hosts}/{tls_secret_name}")
+
+                tls = [client.V1IngressTLS(
+                    hosts=tls_hosts,
+                    secret_name=tls_secret_name
+                )]
+
+            # TODO: good enough parsing for webapp deployment for now
             rules = []
-            tls = [client.V1IngressTLS(
-                hosts=[host_name],
-                secret_name=f"{self.app_name}-tls"
-            )] if use_tls else None
             paths = []
             for route in http_proxy_info["routes"]:
                 path = route["path"]
@@ -147,13 +167,15 @@ class ClusterInfo:
                 tls=tls,
                 rules=rules
             )
+            annotations = {
+                "kubernetes.io/ingress.class": "nginx",
+            }
+            if tls_issuer:
+                annotations["cert-manager.io/cluster-issuer"] = tls_issuer
             ingress = client.V1Ingress(
                 metadata=client.V1ObjectMeta(
                     name=f"{self.app_name}-ingress",
-                    annotations={
-                        "kubernetes.io/ingress.class": "nginx",
-                        "cert-manager.io/cluster-issuer": "letsencrypt-prod"
-                    }
+                    annotations=annotations
                 ),
                 spec=spec
             )

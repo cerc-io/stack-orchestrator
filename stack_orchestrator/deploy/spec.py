@@ -97,7 +97,7 @@ class Spec:
         return self.obj.get(constants.volumes_key, {})
 
     def get_configmaps(self):
-        return self.obj.get(constants.configmap)
+        return self.obj.get(constants.configmaps_key)
 
     def get_container_resources(self):
         return Resources(self.obj.get(constants.resources_key, {})

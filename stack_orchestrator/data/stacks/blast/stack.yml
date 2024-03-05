@@ -2,7 +2,7 @@ version: "1.0"
 name: blast
 description: "A blast stack"
 repos:
+  - github.com/blast-io/blast
 containers:
 pods:
   - blast
-

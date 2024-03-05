@@ -350,9 +350,10 @@ class K8sDeployer(Deployer):
                 name=ingress.spec.tls[0].secret_name
             )
 
-            hostname = ingress.spec.tls[0].hosts[0]
+            hostname = ingress.spec.rules[0].host
+            tls_hosts = ingress.spec.rules[0].host
             ip = ingress.status.load_balancer.ingress[0].ip
-            tls = "notBefore: %s, notAfter: %s" % (cert["status"]["notBefore"], cert["status"]["notAfter"])
+            tls = "notBefore: %s, notAfter: %s, names: %s" % (cert["status"]["notBefore"], cert["status"]["notAfter"], ", ".join(ingress.spec.tls[0].hosts))
         except:  # noqa: E722
             pass
 

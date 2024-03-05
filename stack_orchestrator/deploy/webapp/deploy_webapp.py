@@ -15,6 +15,7 @@
 
 import click
 import os
+import sys
 from pathlib import Path
 from urllib.parse import urlparse
 from tempfile import NamedTemporaryFile
@@ -23,6 +24,7 @@ from stack_orchestrator.util import error_exit, global_options2
 from stack_orchestrator.deploy.deployment_create import init_operation, create_operation
 from stack_orchestrator.deploy.deploy import create_deploy_context
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
+from stack_orchestrator.deploy.webapp.util import TlsDetails
 
 
 def _fixup_container_tag(deployment_dir: str, image: str):
@@ -36,16 +38,16 @@ def _fixup_container_tag(deployment_dir: str, image: str):
         wfile.write(contents)
 
 
-def _fixup_url_spec(spec_file_name: str, url: str):
+def _fixup_url_spec(spec_file_name: str, url: str, tls_details: TlsDetails = TlsDetails()):
     # url is like: https://example.com/path
     parsed_url = urlparse(url)
-    http_proxy_spec = f'''
-  http-proxy:
+    http_proxy_spec = f'''  http-proxy:
     - host-name: {parsed_url.hostname}
       routes:
         - path: '{parsed_url.path if parsed_url.path else "/"}'
           proxy-to: webapp:80
-    '''
+{tls_details.to_yaml(indent=6)}
+'''
     spec_file_path = Path(spec_file_name)
     with open(spec_file_path) as rfile:
         contents = rfile.read()
@@ -54,7 +56,8 @@ def _fixup_url_spec(spec_file_name: str, url: str):
         wfile.write(contents)
 
 
-def create_deployment(ctx, deployment_dir, image, url, kube_config, image_registry, env_file):
+def create_deployment(ctx, deployment_dir, image, url, kube_config, image_registry, env_file,
+                      tls_details: TlsDetails = None):
     # Do the equivalent of:
     # 1. laconic-so --stack webapp-template deploy --deploy-to k8s init --output webapp-spec.yml
     #   --config (eqivalent of the contents of my-config.env)
@@ -86,7 +89,7 @@ def create_deployment(ctx, deployment_dir, image, url, kube_config, image_regist
         None
     )
     # Add the TLS and DNS spec
-    _fixup_url_spec(spec_file_name, url)
+    _fixup_url_spec(spec_file_name, url, tls_details)
     create_operation(
         deploy_command_context,
         spec_file_name,
@@ -116,8 +119,16 @@ def command(ctx):
 @click.option("--image", help="image to deploy", required=True)
 @click.option("--url", help="url to serve", required=True)
 @click.option("--env-file", help="environment file for webapp")
+@click.option("--tls-host", help="Override TLS hostname (eg, '*.mydomain.com')")
+@click.option("--tls-secret", help="Override TLS secret name")
+@click.option("--tls-issuer", help="TLS issuer to use (default: letsencrypt-prod)")
 @click.pass_context
-def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_file):
+def create(ctx, deployment_dir, image, url, kube_config, image_registry, env_file, tls_host, tls_secret, tls_issuer):
     '''create a deployment for the specified webapp container'''
 
-    return create_deployment(ctx, deployment_dir, image, url, kube_config, image_registry, env_file)
+    if (tls_secret and not tls_host) or (tls_host and not tls_secret):
+        print("Cannot specify --tls-host without --tls-secret", file=sys.stderr)
+        sys.exit(2)
+
+    return create_deployment(ctx, deployment_dir, image, url, kube_config, image_registry, env_file,
+                             TlsDetails(tls_host, tls_secret, tls_issuer))

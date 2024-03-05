@@ -26,7 +26,7 @@ import click
 
 from stack_orchestrator.deploy.images import remote_image_exists, add_tags_to_image
 from stack_orchestrator.deploy.webapp import deploy_webapp
-from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient, TimedLogger,
+from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient, TimedLogger, TlsDetails,
                                                    build_container_image, push_container_image,
                                                    file_hash, deploy_to_k8s, publish_deployment,
                                                    hostname_for_deployment_request, generate_hostname_for_app,
@@ -44,7 +44,8 @@ def process_app_deployment_request(
     kube_config,
     image_registry,
     force_rebuild,
-    logger
+    tls_details,
+    logger,
 ):
     logger.log("BEGIN - process_app_deployment_request")
 
@@ -198,11 +199,14 @@ def dump_known_requests(filename, requests, status="SEEN"):
 @click.option("--exclude-tags", help="Exclude requests with matching tags (comma-separated).", default="")
 @click.option("--force-rebuild", help="Rebuild even if the image already exists.", is_flag=True)
 @click.option("--log-dir", help="Output build/deployment logs to directory.", default=None)
+@click.option("--tls-host", help="Override TLS hostname (eg, '*.mydomain.com')")
+@click.option("--tls-secret", help="Override TLS secret name")
+@click.option("--tls-issuer", help="TLS issuer to use (default: letsencrypt-prod)")
 @click.pass_context
 def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,  # noqa: C901
             request_id, discover, state_file, only_update_state,
             dns_suffix, record_namespace_dns, record_namespace_deployments, dry_run,
-            include_tags, exclude_tags, force_rebuild, log_dir):
+            include_tags, exclude_tags, force_rebuild, log_dir, tls_host, tls_secret, tls_issuer):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)
@@ -219,6 +223,10 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
         if not record_namespace_dns or not record_namespace_deployments or not dns_suffix:
             print("--dns-suffix, --record-namespace-dns, and --record-namespace-deployments are all required", file=sys.stderr)
             sys.exit(2)
+
+    if (tls_secret and not tls_host) or (tls_host and not tls_secret):
+        print("Cannot specify --tls-host without --tls-secret", file=sys.stderr)
+        sys.exit(2)
 
     # Split CSV and clean up values.
     include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
@@ -305,6 +313,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
     print("Found %d unsatisfied request(s) to process." % len(requests_to_execute))
 
     if not dry_run:
+        tls_details = TlsDetails(tls_host, tls_secret, tls_issuer)
         for r in requests_to_execute:
             dump_known_requests(state_file, [r], "DEPLOYING")
             status = "ERROR"
@@ -334,6 +343,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     kube_config,
                     image_registry,
                     force_rebuild,
+                    tls_details,
                     logger
                 )
                 status = "DEPLOYED"

@@ -26,6 +26,40 @@ import uuid
 import yaml
 
 
+class TlsDetails:
+    def __init__(self, host_or_hosts=None, secret_name: str = None, issuer_name: str = None):
+        if host_or_hosts:
+            if isinstance(host_or_hosts, list):
+                self.hosts = host_or_hosts
+            else:
+                self.hosts = [host_or_hosts]
+        else:
+            self.hosts = None
+        self.secret_name = secret_name
+        self.issuer_name = issuer_name
+
+    def to_yaml(self, indent=6):
+        if not self.hosts and not self.secret_name and not self.issuer_name:
+            return ""
+
+        ret = " " * indent + "tls:\n"
+        indent += 2
+
+        if self.issuer_name:
+            ret += " " * indent + "issuer: '%s'\n" % self.issuer_name
+
+        if self.secret_name:
+            ret += " " * indent + "secret: '%s'\n" % self.secret_name
+
+        if self.hosts:
+            ret += " " * indent + "hosts:"
+            indent += 2
+            for h in self.hosts:
+                ret += "\n" + " " * indent + "- '%s'" % h
+
+        return ret
+
+
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)

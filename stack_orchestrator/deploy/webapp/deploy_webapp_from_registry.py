@@ -107,7 +107,7 @@ def process_app_deployment_request(
                             (app_deployment_crn, deployment_dir))
         print("deploy_webapp", deployment_dir)
         deploy_webapp.create_deployment(ctx, deployment_dir, deployment_container_tag,
-                                        f"https://{fqdn}", kube_config, image_registry, env_filename)
+                                        f"https://{fqdn}", kube_config, image_registry, env_filename, tls_details)
     elif env_filename:
         shutil.copyfile(env_filename, deployment_config_file)
 

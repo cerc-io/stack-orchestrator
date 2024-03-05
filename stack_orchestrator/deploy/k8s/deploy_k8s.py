@@ -351,7 +351,6 @@ class K8sDeployer(Deployer):
             )
 
             hostname = ingress.spec.rules[0].host
-            tls_hosts = ingress.spec.rules[0].host
             ip = ingress.status.load_balancer.ingress[0].ip
             tls = "notBefore: %s; notAfter: %s; names: %s" % (
                 cert["status"]["notBefore"], cert["status"]["notAfter"], ", ".join(ingress.spec.tls[0].hosts))

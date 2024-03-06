@@ -15,7 +15,7 @@ services:
       - blast-data:/blast:rw
     entrypoint: /bin/sh
     command: >
-      -c "[ ! -d /blast/${GETH_DATA_DIR:-blast-geth-data}/geth ] && /usr/local/bin/geth init --datadir=/blast/${GETH_DATA_DIR:-blast-geth-data} /blast/${NETWORK:-mainnet}/genesis.json || exit 0"
+      -c "[ ! -d /blast/${GETH_DATA_DIR:-blast-geth-data}/geth ] && /usr/local/bin/geth init --datadir=/blast/${GETH_DATA_DIR:-blast-geth-data} /blast/genesis.json || exit 0"
     depends_on:
       generate-jwt:
         condition: service_completed_successfully

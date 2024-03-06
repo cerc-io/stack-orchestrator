@@ -19,6 +19,7 @@ from shutil import copy
 
 
 def create(context, extra_args):
+
     # Our goal here is just to copy the genesis.json file for blast
     deployment_config_dir = context.deployment_dir.joinpath("data", "blast-data")
     command_context = extra_args[2]

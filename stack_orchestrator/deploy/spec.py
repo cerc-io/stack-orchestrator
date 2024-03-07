@@ -27,7 +27,9 @@ class ResourceLimits:
     memory: int = None
     storage: int = None
 
-    def __init__(self, obj={}):
+    def __init__(self, obj=None):
+        if obj is None:
+            obj = {}
         if "cpus" in obj:
             self.cpus = float(obj["cpus"])
         if "memory" in obj:
@@ -50,7 +52,9 @@ class Resources:
     limits: ResourceLimits = None
     reservations: ResourceLimits = None
 
-    def __init__(self, obj={}):
+    def __init__(self, obj=None):
+        if obj is None:
+            obj = {}
         if "reservations" in obj:
             self.reservations = ResourceLimits(obj["reservations"])
         if "limits" in obj:
@@ -72,7 +76,9 @@ class Spec:
     obj: typing.Any
     file_path: Path
 
-    def __init__(self, file_path: Path = None, obj={}) -> None:
+    def __init__(self, file_path: Path = None, obj=None) -> None:
+        if obj is None:
+            obj = {}
         self.file_path = file_path
         self.obj = obj
 
@@ -91,49 +97,41 @@ class Spec:
             self.file_path = file_path
 
     def get_image_registry(self):
-        return (self.obj[constants.image_registry_key]
-                if self.obj and constants.image_registry_key in self.obj
-                else None)
+        return self.obj.get(constants.image_registry_key)
 
     def get_volumes(self):
-        return (self.obj["volumes"]
-                if self.obj and "volumes" in self.obj
-                else {})
+        return self.obj.get(constants.volumes_key, {})
 
     def get_configmaps(self):
-        return (self.obj["configmaps"]
-                if self.obj and "configmaps" in self.obj
-                else {})
+        return self.obj.get(constants.configmaps_key, {})
 
     def get_container_resources(self):
-        return Resources(self.obj.get("resources", {}).get("containers", {}))
+        return Resources(self.obj.get(constants.resources_key, {}).get("containers", {}))
 
     def get_volume_resources(self):
-        return Resources(self.obj.get("resources", {}).get("volumes", {}))
+        return Resources(self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {}))
 
     def get_http_proxy(self):
-        return (self.obj[constants.network_key][constants.http_proxy_key]
-                if self.obj and constants.network_key in self.obj
-                and constants.http_proxy_key in self.obj[constants.network_key]
-                else None)
+        return self.obj.get(constants.network_key, {}).get(constants.http_proxy_key, [])
 
     def get_annotations(self):
-        return self.obj.get("annotations", {})
+        return self.obj.get(constants.annotations_key, {})
 
     def get_labels(self):
-        return self.obj.get("labels", {})
+        return self.obj.get(constants.labels_key, {})
 
     def get_privileged(self):
-        return "true" == str(self.obj.get("security", {}).get("privileged", "false")).lower()
+        return "true" == str(self.obj.get(constants.security_key, {}).get("privileged", "false")).lower()
 
     def get_capabilities(self):
-        return self.obj.get("security", {}).get("capabilities", [])
+        return self.obj.get(constants.security_key, {}).get("capabilities", [])
 
     def get_deployment_type(self):
-        return self.obj[constants.deploy_to_key]
+        return self.obj.get(constants.deploy_to_key)
 
     def is_kubernetes_deployment(self):
-        return self.get_deployment_type() in [constants.k8s_kind_deploy_type, constants.k8s_deploy_type]
+        return self.get_deployment_type() in [constants.k8s_kind_deploy_type,
+                                              constants.k8s_deploy_type]
 
     def is_kind_deployment(self):
         return self.get_deployment_type() in [constants.k8s_kind_deploy_type]

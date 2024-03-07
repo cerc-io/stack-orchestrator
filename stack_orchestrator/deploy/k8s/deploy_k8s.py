@@ -169,6 +169,39 @@ class K8sDeployer(Deployer):
                 print("Service created:")
                 print(f"{service_resp}")
 
+    def _find_certificate_for_host_name(self, host_name):
+        all_certificates = self.custom_obj_api.list_namespaced_custom_object(
+            group="cert-manager.io",
+            version="v1",
+            namespace=self.k8s_namespace,
+            plural="certificates"
+        )
+
+        host_parts = host_name.split(".", 1)
+        host_as_wild = None
+        if len(host_parts) == 2:
+            host_as_wild = f"*.{host_parts[1]}"
+
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        fmt = "%Y-%m-%dT%H:%M:%S%z"
+
+        # Walk over all the configured certificates.
+        for cert in all_certificates["items"]:
+            dns = cert["spec"]["dnsNames"]
+            # Check for an exact hostname match or a wildcard match.
+            if host_name in dns or host_as_wild in dns:
+                status = cert.get("status", {})
+                # Check the certificate date.
+                if "notAfter" in status and "notBefore" in status:
+                    before = datetime.strptime(status["notBefore"], fmt)
+                    after = datetime.strptime(status["notAfter"], fmt)
+                    if before < now < after:
+                        # Check the status is Ready
+                        for condition in status.get("conditions", []):
+                            if "True" == condition.get("status") and "Ready" == condition.get("type"):
+                                return cert
+        return None
+
     def up(self, detach, services):
         if not opts.o.dry_run:
             if self.is_kind():
@@ -189,8 +222,15 @@ class K8sDeployer(Deployer):
         self._create_volume_data()
         self._create_deployment()
 
+        http_proxy_info = self.cluster_info.spec.get_http_proxy()
         # Note: at present we don't support tls for kind (and enabling tls causes errors)
-        ingress: client.V1Ingress = self.cluster_info.get_ingress(use_tls=not self.is_kind())
+        use_tls = http_proxy_info and not self.is_kind()
+        certificate = self._find_certificate_for_host_name(http_proxy_info[0]["host-name"]) if use_tls else None
+        if opts.o.debug:
+            if certificate:
+                print(f"Using existing certificate: {certificate}")
+
+        ingress: client.V1Ingress = self.cluster_info.get_ingress(use_tls=use_tls, certificate=certificate)
         if ingress:
             if opts.o.debug:
                 print(f"Sending this ingress: {ingress}")
@@ -350,9 +390,11 @@ class K8sDeployer(Deployer):
                 name=ingress.spec.tls[0].secret_name
             )
 
-            hostname = ingress.spec.tls[0].hosts[0]
+            hostname = ingress.spec.rules[0].host
             ip = ingress.status.load_balancer.ingress[0].ip
-            tls = "notBefore: %s, notAfter: %s" % (cert["status"]["notBefore"], cert["status"]["notAfter"])
+            tls = "notBefore: %s; notAfter: %s; names: %s" % (
+                cert["status"]["notBefore"], cert["status"]["notAfter"], ingress.spec.tls[0].hosts
+            )
         except:  # noqa: E722
             pass
 

@@ -2,26 +2,15 @@ version: "1.0"
 name: blast
 description: "A blast stack"
 repos:
-  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
   - github.com/blast-io/blast
   - git.vdb.to/cerc-io/keycloak-reg-api
   - git.vdb.to/cerc-io/keycloak-reg-ui
-  - git.vdb.to/cerc-io/lighthouse
-  - github.com/dboreham/foundry
 containers:
   - cerc/keycloak
   - cerc/webapp-base
   - cerc/keycloak-reg-api
   - cerc/keycloak-reg-ui
-  - cerc/go-ethereum
-  - cerc/foundry
-  - cerc/lighthouse
-  - cerc/lighthouse-cli
-  - cerc/fixturenet-eth-genesis
-  - cerc/fixturenet-eth-geth
-  - cerc/fixturenet-eth-lighthouse
 pods:
   - blast
   - mainnet-eth-keycloak
-  - fixturenet-eth
-  - foundry
+

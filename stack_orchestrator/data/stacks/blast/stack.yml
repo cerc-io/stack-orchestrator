@@ -5,12 +5,14 @@ repos:
   - github.com/blast-io/blast
   - git.vdb.to/cerc-io/keycloak-reg-api
   - git.vdb.to/cerc-io/keycloak-reg-ui
+  - git.vdb.to/cerc-io/lighthouse
 containers:
   - cerc/keycloak
   - cerc/webapp-base
   - cerc/keycloak-reg-api
   - cerc/keycloak-reg-ui
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
 pods:
   - blast
   - mainnet-eth-keycloak
-

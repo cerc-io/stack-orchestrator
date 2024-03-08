@@ -63,7 +63,7 @@ services:
       - "9003"
     command: >
       op-node
-      --l1="$L1_RPC_URL"
+      --l1="https://eth-mainnet-1.vdb.to/"
       --l1.rpckind="any"
       --l2="http://blast-geth:8551"
       --l2.jwt-secret=/blast/jwt.txt

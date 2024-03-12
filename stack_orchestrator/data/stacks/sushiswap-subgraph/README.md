@@ -55,7 +55,7 @@ ports:
 Create deployment:
 
 ```bash
-laconic-so deploy create --spec-file sushiswap-subgraph-spec.yml --deployment-dir sushiswap-subgraph-deployment
+laconic-so --stack sushiswap-subgraph deploy create --spec-file sushiswap-subgraph-spec.yml --deployment-dir sushiswap-subgraph-deployment
 ```
 
 ## Start the stack

@@ -16,26 +16,55 @@ laconic-so --stack sushiswap-v3 build-containers
 
 ## Deploy
 
-### Configuration
-
-Create and update an env file to be used in the next step:
-
-  ```bash
-  # External Filecoin (ETH RPC) endpoint to point the watcher
-  CERC_ETH_RPC_ENDPOINT=
-  ```
-
-### Deploy the stack
+Create a spec file for the deployment:
 
 ```bash
-laconic-so --stack sushiswap-v3 deploy --cluster sushiswap_v3 --env-file <PATH_TO_ENV_FILE> up
+laconic-so --stack sushiswap-v3 deploy init --output sushiswap-v3-spec.yml
+```
+
+### Ports
+
+Edit `network` in the spec file to map container ports to host ports as required:
+
+```
+...
+network:
+  ports:
+    sushiswap-v3-watcher-db:
+     - '5432'
+    sushiswap-v3-watcher-job-runner:
+     - 9000:9000
+    sushiswap-v3-watcher-server:
+     - 127.0.0.1:3008:3008
+     - 9001:9001
+```
+
+### Create a deployment
+
+Create a deployment from the spec file:
+
+```bash
+laconic-so --stack sushiswap-v3 deploy create --spec-file sushiswap-v3-spec.yml --deployment-dir sushiswap-v3-deployment
+```
+
+### Configuration
+
+Inside deployment directory, open the `config.env` file  and set following env variables:
+
+```bash
+# External Filecoin (ETH RPC) endpoint to point the watcher to
+CERC_ETH_RPC_ENDPOINT=https://example-lotus-endpoint/rpc/v1
+```
+
+### Start the deployment
+
+```bash
+laconic-so deployment --dir sushiswap-v3-deployment start
 ```
 
 * To list down and monitor the running containers:
 
   ```bash
-  laconic-so --stack sushiswap-v3 deploy --cluster sushiswap_v3 ps
-
   # With status
   docker ps -a
 
@@ -43,20 +72,43 @@ laconic-so --stack sushiswap-v3 deploy --cluster sushiswap_v3 --env-file <PATH_T
   docker logs -f <CONTAINER_ID>
   ```
 
+* Open the GQL playground at http://localhost:3008/graphql
+
+  ```graphql
+  # Example query
+  {
+    _meta {
+      block {
+        number
+        timestamp
+      }
+      hasIndexingErrors
+    }
+
+    factories {
+      id
+      poolCount
+    }
+  }
+  ```
+
 ## Clean up
 
-Stop all the services running in background:
+Stop all the sushiswap-v3 services running in background:
 
 ```bash
-laconic-so --stack sushiswap-v3 deploy --cluster sushiswap_v3 down
+# Only stop the docker containers
+laconic-so deployment --dir sushiswap-v3-deployment stop
+
+# Run 'start' to restart the deployment
 ```
 
-Clear volumes created by this stack:
+To stop all the sushiswap-v3 services and also delete data:
 
 ```bash
-# List all relevant volumes
-docker volume ls -q --filter "name=sushiswap_v3"
+# Stop the docker containers
+laconic-so deployment --dir sushiswap-v3-deployment stop --delete-volumes
 
-# Remove all the listed volumes
-docker volume rm $(docker volume ls -q --filter "name=sushiswap_v3")
+# Remove deployment directory (deployment will have to be recreated for a re-run)
+rm -r sushiswap-v3-deployment
 ```

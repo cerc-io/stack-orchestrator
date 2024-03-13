@@ -20,7 +20,7 @@ services:
       generate-jwt:
         condition: service_completed_successfully
     env_file: 
-      - ../config/blast/${NETWORK:-mainnet}.config
+      - ../config/mainnet-blast/${NETWORK:-mainnet}.config
   blast-geth:
     image: blastio/blast-geth:${NETWORK:-mainnet}
     volumes:
@@ -51,14 +51,14 @@ services:
       --maxpeers=0
       --rollup.disabletxpoolgossip=true
     env_file: 
-      - ../config/blast/${NETWORK:-mainnet}.config
+      - ../config/mainnet-blast/${NETWORK:-mainnet}.config
     depends_on:
       geth-init:
         condition: service_completed_successfully
   op-node:
     image: blastio/blast-optimism:${NETWORK:-mainnet}
     volumes:
-      - blast-data:/blast:rw
+      - blast-data:/blast
     ports:
       - "9003"
     command: >
@@ -71,7 +71,7 @@ services:
     depends_on:
       - blast-geth
     env_file: 
-      - ../config/blast/${NETWORK:-mainnet}.config
+      - ../config/mainnet-blast/${NETWORK:-mainnet}.config
 
 volumes:
   blast-data:

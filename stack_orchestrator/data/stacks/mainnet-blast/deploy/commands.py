@@ -32,9 +32,9 @@ def create(context, extra_args):
         deploy_dir = context.deployment_dir.joinpath(mount_point)
 
     command_context = extra_args[2]
-    compose_file = [f for f in command_context.cluster_context.compose_files if "blast" in f][0]
-    source_config_file = Path(compose_file).parent.parent.joinpath("config", "blast", "genesis.json")
+    compose_file = [f for f in command_context.cluster_context.compose_files if "mainnet-blast" in f][0]
+    source_config_file = Path(compose_file).parent.parent.joinpath("config", "mainnet-blast", "genesis.json")
     copy(source_config_file, deploy_dir)
-    source_config_file = Path(compose_file).parent.parent.joinpath("config", "blast", "rollup.json")
+    source_config_file = Path(compose_file).parent.parent.joinpath("config", "mainnet-blast", "rollup.json")
     copy(source_config_file, deploy_dir)
 

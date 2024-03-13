@@ -59,6 +59,8 @@ services:
     image: blastio/blast-optimism:${NETWORK:-mainnet}
     volumes:
       - blast-data:/blast
+      - ../config/blast/genesis.json:/blast/genesis.json
+      - ../config/blast/rollup.json:/blast/rollup.json
     ports:
       - "9003"
     command: >

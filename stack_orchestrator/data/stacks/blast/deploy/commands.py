@@ -35,3 +35,6 @@ def create(context, extra_args):
     compose_file = [f for f in command_context.cluster_context.compose_files if "blast" in f][0]
     source_config_file = Path(compose_file).parent.parent.joinpath("config", "blast", "genesis.json")
     copy(source_config_file, deploy_dir)
+    source_config_file = Path(compose_file).parent.parent.joinpath("config", "blast", "rollup.json")
+    copy(source_config_file, deploy_dir)
+

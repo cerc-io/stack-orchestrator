@@ -47,4 +47,24 @@ while true; do
   sleep $retry_interval
 done
 
-./nitro -chainurl ${CERC_NITRO_CHAIN_URL} -msgport ${CERC_NITRO_MSG_PORT} -rpcport ${CERC_NITRO_RPC_PORT} -wsmsgport ${CERC_NITRO_WS_MSG_PORT} -publicip "0.0.0.0" -pk ${CERC_NITRO_PK} -chainpk ${CERC_NITRO_CHAIN_PK} -naaddress ${NA_ADDRESS} -vpaaddress ${VPA_ADDRESS} -caaddress ${CA_ADDRESS} -usedurablestore ${CERC_NITRO_USE_DURABLE_STORE} -durablestorefolder ${CERC_NITRO_DURABLE_STORE_FOLDER} -tlscertfilepath "" -tlsKeyFilepath ""
+if [[ -n "$CERC_NITRO_UI_PORT" ]] && [[ -d "ui" ]]; then
+  for f in `ls ui/assets/*.js`; do
+    sed -i "s/\"CERC_RUNTIME_ENV_RPC_HOST\"/\"localhost:${CERC_NITRO_RPC_PORT}\"/g" "$f"
+  done
+  http-server -p $CERC_NITRO_UI_PORT ui &
+fi
+
+./nitro \
+  -chainurl ${CERC_NITRO_CHAIN_URL} \
+  -msgport ${CERC_NITRO_MSG_PORT} \
+  -rpcport ${CERC_NITRO_RPC_PORT} \
+  -wsmsgport ${CERC_NITRO_WS_MSG_PORT} \
+  -publicip "0.0.0.0" \
+  -pk ${CERC_NITRO_PK} \
+  -chainpk ${CERC_NITRO_CHAIN_PK} \
+  -naaddress ${NA_ADDRESS} \
+  -vpaaddress ${VPA_ADDRESS} \
+  -caaddress ${CA_ADDRESS} \
+  -usedurablestore=${CERC_NITRO_USE_DURABLE_STORE} \
+  -durablestorefolder ${CERC_NITRO_DURABLE_STORE_FOLDER} \
+  -bootpeers "${CERC_NITRO_BOOT_PEERS}"

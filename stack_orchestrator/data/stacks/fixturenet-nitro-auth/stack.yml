@@ -1,0 +1,25 @@
+version: "1.0"
+name: fixturenet-nitro-auth
+description: "Stack to demonstrate payments between various services"
+repos:
+  # fixturenet repos
+  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
+  - git.vdb.to/cerc-io/lighthouse
+  # nitro repo
+  - github.com/cerc-io/go-nitro@v0.1.2-ts-port-0.1.9
+containers:
+  # fixturenet images
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/fixturenet-eth-genesis
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  # nitro
+  - cerc/nitro-contracts
+  - cerc/go-nitro
+  - cerc/nitro-rpc-client
+pods:
+  - fixturenet-eth
+  - nitro-contracts
+  - go-nitro-auth

@@ -4,9 +4,10 @@ RUN apk --update --no-cache add python3 alpine-sdk bash curl jq
 
 WORKDIR /app
 
-COPY . .
+COPY packages/nitro-rpc-client  .
 
 RUN echo "Installing dependencies" && \
   yarn
 
-RUN cd packages/nitro-rpc-client
+RUN yarn build
+RUN ln -s /app/bin/nitro-rpc-client.js /bin/nitro-rpc-client

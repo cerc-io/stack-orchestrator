@@ -1,0 +1,100 @@
+version: '3.7'
+
+services:
+  go-nitro-alice:
+    image: cerc/go-nitro:local
+    hostname: go-nitro-alice
+    restart: on-failure
+    depends_on:
+      # Wait for Nitro contracts to be deployed
+      nitro-contracts:
+        condition: service_completed_successfully
+    environment:
+      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
+      CERC_NITRO_PK: ${CERC_NITRO_PK_ALICE:-f36f6dd450892224ee113899195ef922a4795d41c32cafb386d9aab6e0b7b0c6}
+      CERC_NITRO_CHAIN_PK: ${CERC_NITRO_CHAIN_PK_ALICE:-888814df89c4358d7ddb3fa4b0213e7331239a80e1f013eaa7b2deca2a41a218}
+      CERC_NITRO_USE_DURABLE_STORE: ${CERC_NITRO_USE_DURABLE_STORE:-true}
+      CERC_NITRO_DURABLE_STORE_FOLDER: ${CERC_NITRO_DURABLE_STORE_FOLDER:-/app/data/nitro-store}
+      CERC_NITRO_MSG_PORT: ${CERC_NITRO_MSG_PORT_ALICE:-3006}
+      CERC_NITRO_WS_MSG_PORT: ${CERC_NITRO_WS_MSG_PORT_ALICE:-5006}
+      CERC_NITRO_RPC_PORT: ${CERC_NITRO_RPC_PORT_ALICE:-4006}
+      CERC_NITRO_BOOT_PEERS: "/dns4/go-nitro-bob/tcp/3007/p2p/16Uiu2HAm7JBTpfJWoUh14ZC5MaCM6TujKp8P8ag4ULPiw6g9Xzba"
+      CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
+      CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
+      CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
+      CERC_NITRO_UI_PORT: ${CERC_NITRO_UI_PORT_ALICE:-4106}
+    entrypoint: ["bash", "-c", "/app/run-nitro-node.sh"]
+    volumes:
+      - go_nitro_data_alice:/app/data
+      - nitro_deployment:/app/deployment
+      - ../config/go-nitro/run-nitro-node.sh:/app/run-nitro-node.sh
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "4006"]
+      interval: 5s
+      timeout: 5s
+      retries: 100
+      start_period: 100s
+    ports:
+      - "3006:3006"
+      - "4006:4006"
+      - "5006:5006"
+      - "4106:4106"
+
+  go-nitro-bob:
+    image: cerc/go-nitro:local
+    hostname: go-nitro-bob
+    restart: on-failure
+    depends_on:
+      # Wait for Nitro contracts to be deployed
+      nitro-contracts:
+        condition: service_completed_successfully
+    environment:
+      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
+      CERC_NITRO_PK: ${CERC_NITRO_PK_BOB:-801c8f30853ed4cbfa130298def86c441c00f4a2eefc6e8fc835ae253ad91d7f}
+      CERC_NITRO_CHAIN_PK: ${CERC_NITRO_CHAIN_PK_BOB:-570b909da9669b2f35a0b1ac70b8358516d55ae1b5b3710e95e9a94395090597}
+      CERC_NITRO_USE_DURABLE_STORE: ${CERC_NITRO_USE_DURABLE_STORE:-true}
+      CERC_NITRO_DURABLE_STORE_FOLDER: ${CERC_NITRO_DURABLE_STORE_FOLDER:-/app/data/nitro-store}
+      CERC_NITRO_MSG_PORT: ${CERC_NITRO_MSG_PORT_BOB:-3007}
+      CERC_NITRO_WS_MSG_PORT: ${CERC_NITRO_WS_MSG_PORT_BOB:-5007}
+      CERC_NITRO_RPC_PORT: ${CERC_NITRO_RPC_PORT_BOB:-4007}
+      CERC_NITRO_BOOT_PEERS: "/dns4/go-nitro-alice/tcp/3006/p2p/16Uiu2HAmNUiX7bpCpbo5JdqEebp85ptGU2Vk2AT9E3BykvbwQ3F9"
+      CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
+      CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
+      CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
+      CERC_NITRO_UI_PORT: ${CERC_NITRO_UI_PORT_BOB:-4107}
+    entrypoint: ["bash", "-c", "/app/run-nitro-node.sh"]
+    volumes:
+      - go_nitro_data_bob:/app/data
+      - nitro_deployment:/app/deployment
+      - ../config/go-nitro/run-nitro-node.sh:/app/run-nitro-node.sh
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "4007"]
+      interval: 5s
+      timeout: 5s
+      retries: 100
+      start_period: 100s
+    ports:
+      - "3007:3007"
+      - "4007:4007"
+      - "5007:5007"
+      - "4107:4107"
+
+  nitro-rpc-client:
+    image: cerc/nitro-rpc-client:local
+    hostname: nitro-rpc-client
+    restart: always
+    environment:
+      CERC_NITRO_RPC_FUND_AMOUNT: ${CERC_NITRO_RPC_FUND_AMOUNT:-2000000}
+      CERC_NITRO_RPC_HOST_ALICE: ${CERC_NITRO_RPC_HOST_ALICE:-go-nitro-alice}
+      CERC_NITRO_RPC_PORT_ALICE: ${CERC_NITRO_RPC_PORT_ALICE:-4006}
+      CERC_NITRO_USE_TLS: ${CERC_NITRO_USE_TLS:-false}
+      CERC_NITRO_ADDRESS_BOB: ${CERC_NITRO_ADDRESS_BOB:-0xe07e314501cc73b24cf45a6577486017300e153c}
+    volumes:
+      - nitro_deployment:/app/deployment
+      - ../config/nitro-rpc-client/start.sh:/app/start.sh
+    command: ["/app/start.sh"]
+
+volumes:
+  go_nitro_data_alice:
+  go_nitro_data_bob:
+  nitro_deployment:

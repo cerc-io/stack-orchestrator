@@ -21,7 +21,6 @@ while true; do
   sleep $retry_interval
 done
 
-
 if [[ "$CERC_NITRO_RPC_FUND_AMOUNT" -gt 0 ]]; then
   nitro-rpc-client -h $CERC_NITRO_RPC_HOST_ALICE \
                    -p $CERC_NITRO_RPC_PORT_ALICE \
@@ -29,32 +28,25 @@ if [[ "$CERC_NITRO_RPC_FUND_AMOUNT" -gt 0 ]]; then
                    get-all-ledger-channels | \
                      jq "[.[] | select(.Status == \"Open\") | select(.Balance.Them == \"$CERC_NITRO_ADDRESS_BOB\")] | first" > \
                      /app/deployment/nitro-ledger-channel-alice-to-bob.json
-  if [[ ! -f "/app/deployment/nitro-ledger-channel-alice-to-bob.json" ]]; then
+
+  ledger_channel=$(jq -r '.ID' /app/deployment/nitro-ledger-channel-alice-to-bob.json 2>/dev/null | sed 's/^null$//')
+
+  if [[ -z "${ledger_channel}" ]]; then
     echo "Creating new ledger channel ..."
     nitro-rpc-client -h $CERC_NITRO_RPC_HOST_ALICE \
                      -p $CERC_NITRO_RPC_PORT_ALICE \
                      -s=$CERC_NITRO_USE_TLS \
                      -n \
                      direct-fund --amount $CERC_NITRO_RPC_FUND_AMOUNT $CERC_NITRO_ADDRESS_BOB
-  fi
 
-
-  nitro-rpc-client -h $CERC_NITRO_RPC_HOST_ALICE \
-                   -p $CERC_NITRO_RPC_PORT_ALICE \
-                   -s=$CERC_NITRO_USE_TLS \
-                   get-all-ledger-channels | \
-                     jq "[.[] | select(.Status == \"Open\") | select(.Balance.Them == \"$CERC_NITRO_ADDRESS_BOB\")] | first" > \
-                     /app/deployment/nitro-ledger-channel-alice-to-bob.json
-
-  ledger_channel=$(jq -r '.ID' /app/deployment/nitro-ledger-channel-alice-to-bob.json)
-
-  if [[ ! -f "/app/deployment/nitro-payment-channels-alice-to-bob.json" ]]; then
-    echo "Creating new payment channel ..."
     nitro-rpc-client -h $CERC_NITRO_RPC_HOST_ALICE \
                      -p $CERC_NITRO_RPC_PORT_ALICE \
                      -s=$CERC_NITRO_USE_TLS \
-                     -n \
-                     virtual-fund --amount $((CERC_NITRO_RPC_FUND_AMOUNT/2)) $CERC_NITRO_ADDRESS_BOB
+                     get-all-ledger-channels | \
+                       jq "[.[] | select(.Status == \"Open\") | select(.Balance.Them == \"$CERC_NITRO_ADDRESS_BOB\")] | first" > \
+                       /app/deployment/nitro-ledger-channel-alice-to-bob.json
+
+    ledger_channel=$(jq -r '.ID' /app/deployment/nitro-ledger-channel-alice-to-bob.json)
   fi
 
   nitro-rpc-client -h $CERC_NITRO_RPC_HOST_ALICE \
@@ -62,6 +54,25 @@ if [[ "$CERC_NITRO_RPC_FUND_AMOUNT" -gt 0 ]]; then
                    -s=$CERC_NITRO_USE_TLS \
                    get-payment-channels-by-ledger $ledger_channel > \
                      /app/deployment/nitro-payment-channels-alice-to-bob.json
+
+  first_open_channel=$(jq '[.[] | select(.Status == "Open")] | first' /app/deployment/nitro-payment-channels-alice-to-bob.json | sed 's/^null$//')
+
+  if [[ -z "$first_open_channel" ]]; then
+    echo "Creating new payment channel ..."
+    nitro-rpc-client -h $CERC_NITRO_RPC_HOST_ALICE \
+                     -p $CERC_NITRO_RPC_PORT_ALICE \
+                     -s=$CERC_NITRO_USE_TLS \
+                     -n \
+                     virtual-fund --amount $((CERC_NITRO_RPC_FUND_AMOUNT/2)) $CERC_NITRO_ADDRESS_BOB
+
+    nitro-rpc-client -h $CERC_NITRO_RPC_HOST_ALICE \
+                     -p $CERC_NITRO_RPC_PORT_ALICE \
+                     -s=$CERC_NITRO_USE_TLS \
+                     get-payment-channels-by-ledger $ledger_channel > \
+                       /app/deployment/nitro-payment-channels-alice-to-bob.json
+
+    first_open_channel=$(jq '[.[] | select(.Status == "Open")] | first' /app/deployment/nitro-payment-channels-alice-to-bob.json | sed 's/^null$//')
+  fi
 
   echo ""
   echo "################################################################"

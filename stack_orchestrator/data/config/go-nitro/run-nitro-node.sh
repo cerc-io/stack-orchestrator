@@ -64,7 +64,7 @@ if [[ -n "$CERC_NITRO_AUTH_UI_PORT" ]] && [[ -d "/app-node/packages/nitro-auth-g
 fi
 
 if [[ "$CERC_NITRO_AUTH_ON" == "true" ]] && [[ -d "/app-node/packages/nitro-auth/dist" ]]; then
-  bash -c "sleep 10 && cd /app-node/packages/nitro-auth && yarn start" &
+  bash -c "sleep 6 && cd /app-node/packages/nitro-auth && yarn start" &
 fi
 
 cd /app

@@ -1,0 +1,9 @@
+version: "1.0"
+name: ajna
+description: "Ajna watcher stack"
+repos:
+  - git.vdb.to/cerc-io/ajna-watcher-ts
+containers:
+  - cerc/watcher-ajna
+pods:
+  - watcher-ajna

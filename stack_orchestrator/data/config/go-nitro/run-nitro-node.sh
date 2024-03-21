@@ -47,13 +47,27 @@ while true; do
   sleep $retry_interval
 done
 
-if [[ -n "$CERC_NITRO_UI_PORT" ]] && [[ -d "ui" ]]; then
-  for f in `ls ui/assets/*.js`; do
-    sed -i "s/\"CERC_RUNTIME_ENV_RPC_HOST\"/\"localhost:${CERC_NITRO_RPC_PORT}\"/g" "$f"
+if [[ -n "$CERC_NITRO_UI_PORT" ]] && [[ -d "/app-node/packages/nitro-gui/dist" ]]; then
+  for f in `ls /app-node/packages/nitro-gui/dist/assets/*.js`; do
+    sed -i "s#\"CERC_RUNTIME_ENV_RPC_URL\"#\"http://localhost:${CERC_NITRO_RPC_PORT}\"#g" "$f"
+    sed -i "s#\"CERC_RUNTIME_ENV_TARGET_URL\"#\"http://localhost:5678\"#g" "$f"
   done
-  http-server -p $CERC_NITRO_UI_PORT ui &
+  http-server -p $CERC_NITRO_UI_PORT /app-node/packages/nitro-gui/dist &
 fi
 
+if [[ -n "$CERC_NITRO_AUTH_UI_PORT" ]] && [[ -d "/app-node/packages/nitro-auth-gui/dist" ]]; then
+  for f in `ls /app-node/packages/nitro-auth-gui/dist/assets/*.js`; do
+    sed -i "s#\"CERC_RUNTIME_ENV_RPC_URL\"#\"http://localhost:${CERC_NITRO_RPC_PORT}\"#g" "$f"
+    sed -i "s#\"CERC_RUNTIME_ENV_TARGET_URL\"#\"http://localhost:5678\"#g" "$f"
+  done
+  http-server -p $CERC_NITRO_AUTH_UI_PORT /app-node/packages/nitro-auth-gui/dist &
+fi
+
+if [[ "$CERC_NITRO_AUTH_ON" == "true" ]] && [[ -d "/app-node/packages/nitro-auth/dist" ]]; then
+  bash -c "sleep 10 && cd /app-node/packages/nitro-auth && yarn start" &
+fi
+
+cd /app
 ./nitro \
   -chainurl ${CERC_NITRO_CHAIN_URL} \
   -msgport ${CERC_NITRO_MSG_PORT} \

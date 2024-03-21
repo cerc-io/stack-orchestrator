@@ -6,7 +6,7 @@ repos:
   - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
   - git.vdb.to/cerc-io/lighthouse
   # nitro repo
-  - github.com/cerc-io/go-nitro@v0.1.2-ts-port-0.1.9
+  - github.com/cerc-io/go-nitro@telackey/update
 containers:
   # fixturenet images
   - cerc/go-ethereum

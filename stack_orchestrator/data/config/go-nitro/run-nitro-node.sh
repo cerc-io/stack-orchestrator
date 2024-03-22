@@ -49,7 +49,7 @@ done
 
 if [[ -n "$CERC_NITRO_UI_PORT" ]] && [[ -d "/app-node/packages/nitro-gui/dist" ]]; then
   for f in `ls /app-node/packages/nitro-gui/dist/assets/*.js`; do
-    sed -i "s#\"CERC_RUNTIME_ENV_RPC_URL\"#\"http://localhost:${CERC_NITRO_RPC_PORT}\"#g" "$f"
+    sed -i "s#\"CERC_RUNTIME_ENV_RPC_HOST\"#\"localhost:${CERC_NITRO_RPC_PORT}\"#g" "$f"
     sed -i "s#\"CERC_RUNTIME_ENV_TARGET_URL\"#\"http://localhost:5678\"#g" "$f"
   done
   http-server -p $CERC_NITRO_UI_PORT /app-node/packages/nitro-gui/dist &

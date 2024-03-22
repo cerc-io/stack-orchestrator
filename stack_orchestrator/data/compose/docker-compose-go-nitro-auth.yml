@@ -94,7 +94,7 @@ services:
     hostname: nitro-rpc-client
     restart: always
     environment:
-      CERC_NITRO_RPC_FUND_AMOUNT: ${CERC_NITRO_RPC_FUND_AMOUNT:-0}
+      CERC_NITRO_RPC_FUND_AMOUNT: ${CERC_NITRO_RPC_FUND_AMOUNT:-2000000}
       CERC_NITRO_RPC_HOST_ALICE: ${CERC_NITRO_RPC_HOST_ALICE:-go-nitro-alice}
       CERC_NITRO_RPC_PORT_ALICE: ${CERC_NITRO_RPC_PORT_ALICE:-4006}
       CERC_NITRO_USE_TLS: ${CERC_NITRO_USE_TLS:-false}
@@ -104,13 +104,24 @@ services:
       - ../config/nitro-rpc-client/start.sh:/app/start.sh
     command: ["/app/start.sh"]
 
-  nitro-nginx:
-    image: nginx:1.23-alpine
+  #nitro-nginx:
+  #  image: nginx:1.23-alpine
+  #  restart: always
+  #  volumes:
+  #    - ../config/go-nitro-auth/nginx:/etc/nginx/conf.d
+  #  ports:
+  #    - 5678:80
+  #  depends_on:
+  #    - go-nitro-alice
+  #    - go-nitro-bob
+
+  nitro-caddy:
+    image: caddy:2-alpine
     restart: always
     volumes:
-      - ../config/go-nitro-auth/nginx:/etc/nginx/conf.d
+      - ../config/go-nitro-auth/caddy/Caddyfile:/etc/caddy/Caddyfile
     ports:
-      - 5678:80
+      - "5678:80"
     depends_on:
       - go-nitro-alice
       - go-nitro-bob

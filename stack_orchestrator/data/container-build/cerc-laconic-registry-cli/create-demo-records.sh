@@ -5,7 +5,7 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
   set -x
 fi
 
-registry_command="laconic cns"
+registry_command="laconic registry"
 demo_records_dir="scripts/demo-records"
 
 # Check we have funds

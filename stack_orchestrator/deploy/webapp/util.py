@@ -94,7 +94,7 @@ class LaconicRegistryClient:
         )
 
     def list_records(self, criteria={}, all=False):
-        args = ["laconic", "-c", self.config_file, "cns", "record", "list"]
+        args = ["laconic", "-c", self.config_file, "registry", "record", "list"]
 
         if all:
             args.append("--all")
@@ -140,7 +140,7 @@ class LaconicRegistryClient:
         if name in self.cache.name_or_id:
             return self.cache.name_or_id[name]
 
-        args = ["laconic", "-c", self.config_file, "cns", "name", "resolve", name]
+        args = ["laconic", "-c", self.config_file, "registry", "name", "resolve", name]
 
         parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
         if parsed:
@@ -165,7 +165,7 @@ class LaconicRegistryClient:
             "laconic",
             "-c",
             self.config_file,
-            "cns",
+            "registry",
             "record",
             "get",
             "--id",
@@ -203,7 +203,8 @@ class LaconicRegistryClient:
             print(open(record_fname, 'r').read(), file=self.log_file)
 
             new_record_id = json.loads(
-                logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "record", "publish", "--filename", record_fname)
+                logged_cmd(self.log_file, "laconic", "-c", self.config_file, "registry",
+                           "record", "publish", "--filename", record_fname)
             )["id"]
             for name in names:
                 self.set_name(name, new_record_id)
@@ -212,10 +213,10 @@ class LaconicRegistryClient:
             logged_cmd(self.log_file, "rm", "-rf", tmpdir)
 
     def set_name(self, name, record_id):
-        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "name", "set", name, record_id)
+        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "registry", "name", "set", name, record_id)
 
     def delete_name(self, name):
-        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "name", "delete", name)
+        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "registry", "name", "delete", name)
 
 
 def file_hash(filename):

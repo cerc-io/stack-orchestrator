@@ -2,16 +2,16 @@ version: "1.1"
 name: fixturenet-laconic-loaded
 description: "A full featured laconic fixturenet"
 repos:
-  - git.vdb.to/cerc-io/laconicd
+  - git.vdb.to/cerc-io/laconic2d
   - github.com/lirewine/debug
   - github.com/lirewine/crypto
   - github.com/lirewine/gem
   - github.com/lirewine/sdk
-  - git.vdb.to/cerc-io/laconic-sdk
-  - git.vdb.to/cerc-io/laconic-registry-cli
-  - git.vdb.to/cerc-io/laconic-console
+  - git.vdb.to/cerc-io/registry-sdk
+  - git.vdb.to/cerc-io/laconic-registry-cli@laconic2
+  - git.vdb.to/cerc-io/laconic-console@laconic2
 npms:
-  - laconic-sdk
+  - registry-sdk
   - laconic-registry-cli
   - debug
   - crypto
@@ -19,12 +19,12 @@ npms:
   - gem
   - laconic-console
 containers:
-  - cerc/laconicd
+  - cerc/laconic2d
   - cerc/laconic-registry-cli
   - cerc/webapp-base
   - cerc/laconic-console-host
 pods:
-  - fixturenet-laconicd
+  - fixturenet-laconic2d
   - fixturenet-laconic-console
 config:
   cli:

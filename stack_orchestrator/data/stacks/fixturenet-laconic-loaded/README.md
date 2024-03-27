@@ -49,7 +49,7 @@ $ laconic-so --stack fixturenet-laconic-loaded deploy logs
 ```
 ## 6. Test with the Registry CLI
 ```
-$ laconic-so --stack fixturenet-laconic-loaded deploy exec cli "laconic registry status"
+$ laconic-so --stack fixturenet-laconic-loaded deploy exec cli "laconic cns status"
 ```
 ## 7. View the laconic console
 Get the URL for the console web app with this command (the port number will be different for each deployment):

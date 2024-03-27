@@ -1,5 +1,5 @@
 services:
-  cns:
+  registry:
     restEndpoint: 'http://laconic2d:1317'
     gqlEndpoint: 'http://laconic2d:9473/api'
     userKey: REPLACE_WITH_MYKEY

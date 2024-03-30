@@ -1,0 +1,10 @@
+:~  title+'Vegas'
+    info+'vegas'
+    color+0xcd.75df
+    image+'https://vegaprotocol.eth.limo/favicon.ico'
+    base+'vegas'
+    glob-http+['REPLACE_WITH_GLOB_URL' REPLACE_WITH_GLOB_HASH]
+    version+[0 0 1]
+    website+'https://vega.xyz/'
+    license+'MIT'
+==

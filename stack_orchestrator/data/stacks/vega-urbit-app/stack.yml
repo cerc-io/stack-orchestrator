@@ -1,0 +1,10 @@
+version: "0.1"
+name: vega-urbit-app
+repos:
+  - git.vdb.to/LaconicNetwork/vega-frontend-monorepo@urbit-build
+containers:
+  - cerc/vega-interface
+pods:
+  - vega-interface
+  - fixturenet-urbit
+  - kubo

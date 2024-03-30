@@ -1,0 +1,19 @@
+version: "3.2"
+
+# This is a short-lived container.  It runs the Vega build and then copies the output to the
+# `urbit_app_builds` volume.
+services:
+  vega-interface:
+    image: cerc/vega-interface:local
+    restart: on-failure
+    # environment:
+    #   - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
+    #   - REACT_APP_AWS_API_ENDPOINT=${CERC_UNISWAP_GQL}
+    entrypoint: ["./build-app.sh"]
+    volumes:
+      - ../config/vega-interface/urbit-files:/app/urbit-files
+      - ../config/vega-interface/build-app.sh:/app/build-app.sh
+      - urbit_app_builds:/app-builds
+
+volumes:
+  urbit_app_builds:

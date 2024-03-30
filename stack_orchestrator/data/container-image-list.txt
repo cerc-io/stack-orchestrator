@@ -60,3 +60,4 @@ cerc/nitro-rpc-client
 cerc/watcher-merkl-sushiswap-v3
 cerc/watcher-sushiswap-v3
 cerc/uniswap-interface
+cerc/vega-interface

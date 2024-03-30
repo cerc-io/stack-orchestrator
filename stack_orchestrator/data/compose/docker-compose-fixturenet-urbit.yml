@@ -26,9 +26,9 @@ services:
       - "80"
     healthcheck:
       test: ["CMD", "nc", "-v", "localhost", "80"]
-      interval: 20s
+      interval: 10s
       timeout: 5s
-      retries: 15
+      retries: 30
       start_period: 10s
 
 volumes:

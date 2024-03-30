@@ -17,16 +17,10 @@ if [ -d ${app_desk_dir} ]; then
   exit 0
 fi
 
-app_build=/app-builds/${CERC_URBIT_APP}/build
-app_mark_files=/app-builds/${CERC_URBIT_APP}/mar
-app_docket_file=/app-builds/${CERC_URBIT_APP}/desk.docket-0
-
-echo "Reading app build from ${app_build}"
-echo "Reading additional mark files from ${app_mark_files}"
-echo "Reading docket file ${app_docket_file}"
+app_files=/app-builds/${CERC_URBIT_APP}
 
 # Loop until the app's build appears
-while [ ! -d ${app_build} ]; do
+while [ ! -d "${app_files}/build" ]; do
   echo "${CERC_URBIT_APP} app build not found, retrying in 5s..."
   sleep 5
 done
@@ -50,12 +44,14 @@ hood () {
 hood "merge %${CERC_URBIT_APP} our %landscape"
 hood "mount %${CERC_URBIT_APP}"
 
+
+echo "Copying files from ${app_files}"
+
 # Copy over build to desk data dir
-cp -r ${app_build} ${app_desk_dir}
+cp -r ${app_files}/* ${app_desk_dir}
+rm ${app_desk_dir}/desk.docket-0 # Remove until we have a valid glob path; it's added back again below
 
-# Copy over the additional mark files
-cp ${app_mark_files}/* ${app_desk_dir}/mar/
-
+# TODO: why? =>
 rm "${app_desk_dir}/desk.bill"
 rm "${app_desk_dir}/desk.ship"
 
@@ -99,8 +95,8 @@ while true; do
 done
 
 # Replace the docket file for app
-# Substitue the glob URL and hash
-cp ${app_docket_file} ${app_desk_dir}/
+# Substitute the glob URL and hash
+cp ${app_files}/desk.docket-0 ${app_desk_dir}/
 sed -i "s|REPLACE_WITH_GLOB_URL|${glob_url}|g; s|REPLACE_WITH_GLOB_HASH|${glob_hash}|g" ${app_desk_dir}/desk.docket-0
 
 # Commit changes and install the app

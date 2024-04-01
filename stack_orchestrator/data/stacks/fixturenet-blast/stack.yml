@@ -8,6 +8,10 @@ containers:
   - cerc/webapp-base
   - cerc/lighthouse
   - cerc/lighthouse-cli
+  - cerc/foundry
+  - cerc/fixturenet-eth-lighthouse
+
 pods:
   - fixturenet-blast
-
+  - foundry
+  

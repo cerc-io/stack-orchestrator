@@ -28,6 +28,7 @@ services:
     ports:
       - "9545"
       - "9546"
+      - "6060"
     command: >
       --datadir=/blast/${GETH_DATA_DIR:-blast-geth-data}
       --http
@@ -46,6 +47,7 @@ services:
       --authrpc.vhosts="*"
       --authrpc.jwtsecret=/blast/jwt.txt
       --syncmode=full
+      --metrics
       --gcmode=archive
       --nodiscover
       --maxpeers=0

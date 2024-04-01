@@ -49,3 +49,7 @@ CERC_NITRO_CHAIN_URL=wss://linea-sepolia.infura.io/ws/v3/<MY_API_KEY>
 ```
 $ laconic-so deployment --dir linea-testnet-nitro-auth-deployment start
 ```
+
+## Open the webapp
+
+Visit http://localhost:5678

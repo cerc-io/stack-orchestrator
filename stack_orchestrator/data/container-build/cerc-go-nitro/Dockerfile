@@ -25,7 +25,7 @@ RUN yarn build
 
 FROM node:18-bullseye-slim
 RUN apt-get update
-RUN apt-get install -y ca-certificates jq netcat make
+RUN apt-get install -y ca-certificates jq netcat make curl wget
 RUN rm -rf /var/lib/apt/lists/*
 RUN npm install -g http-server
 WORKDIR /app

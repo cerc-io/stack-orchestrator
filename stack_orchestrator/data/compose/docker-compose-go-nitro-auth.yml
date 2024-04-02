@@ -6,30 +6,19 @@ services:
     hostname: go-nitro-alice
     restart: on-failure
     depends_on:
-      # Wait for Nitro contracts to be deployed
-      nitro-contracts:
-        condition: service_completed_successfully
+      - go-nitro-bootnode
     environment:
-      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
-      CERC_NITRO_PK: ${CERC_NITRO_PK_ALICE:-f36f6dd450892224ee113899195ef922a4795d41c32cafb386d9aab6e0b7b0c6}
       CERC_NITRO_CHAIN_PK: ${CERC_NITRO_CHAIN_PK_ALICE:-888814df89c4358d7ddb3fa4b0213e7331239a80e1f013eaa7b2deca2a41a218}
-      CERC_NITRO_USE_DURABLE_STORE: ${CERC_NITRO_USE_DURABLE_STORE:-false}
-      CERC_NITRO_DURABLE_STORE_FOLDER: ${CERC_NITRO_DURABLE_STORE_FOLDER:-/app/data/nitro-store}
-      CERC_NITRO_MSG_PORT: ${CERC_NITRO_MSG_PORT_ALICE:-3006}
-      CERC_NITRO_WS_MSG_PORT: ${CERC_NITRO_WS_MSG_PORT_ALICE:-5006}
-      CERC_NITRO_RPC_PORT: ${CERC_NITRO_RPC_PORT_ALICE:-4006}
-      CERC_NITRO_BOOT_PEERS: "/dns4/go-nitro-bob/tcp/3007/p2p/16Uiu2HAm7JBTpfJWoUh14ZC5MaCM6TujKp8P8ag4ULPiw6g9Xzba"
+      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
       CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
       CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
-      CERC_NITRO_UI_PORT: ${CERC_NITRO_UI_PORT_ALICE:-4106}
-      CERC_NITRO_AUTH_UI_PORT: ${CERC_NITRO_AUTH_UI_PORT_ALICE:-4206}
-      CERC_NITRO_AUTH_ON: false
-      CERC_NITRO_AUTH_RPC_PORT: 4006
+    env_file:
+      - ../config/go-nitro-auth/alice.env
     entrypoint: ["bash", "-c", "/app/run-nitro-node.sh"]
     volumes:
-      - go_nitro_data_alice:/app/data
       - nitro_deployment:/app/deployment
+      - go_nitro_data_alice:/app/data
       - ../config/go-nitro/run-nitro-node.sh:/app/run-nitro-node.sh
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "4006"]
@@ -38,42 +27,31 @@ services:
       retries: 100
       start_period: 100s
     ports:
-      - "3006:3006"
-      - "4006:4006"
-      - "5006:5006"
-      - "4106:4106"
-      - "4206:4206"
-      - "4216:4216"
+      - "3006"
+      - "4006"
+      - "5006"
+      - "4106"
+      - "4206"
+      - "4216"
 
   go-nitro-bob:
     image: cerc/go-nitro:local
     hostname: go-nitro-bob
     restart: on-failure
     depends_on:
-      # Wait for Nitro contracts to be deployed
-      nitro-contracts:
-        condition: service_completed_successfully
+      - go-nitro-bootnode
     environment:
-      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
-      CERC_NITRO_PK: ${CERC_NITRO_PK_BOB:-801c8f30853ed4cbfa130298def86c441c00f4a2eefc6e8fc835ae253ad91d7f}
       CERC_NITRO_CHAIN_PK: ${CERC_NITRO_CHAIN_PK_BOB:-570b909da9669b2f35a0b1ac70b8358516d55ae1b5b3710e95e9a94395090597}
-      CERC_NITRO_USE_DURABLE_STORE: ${CERC_NITRO_USE_DURABLE_STORE:-false}
-      CERC_NITRO_DURABLE_STORE_FOLDER: ${CERC_NITRO_DURABLE_STORE_FOLDER:-/app/data/nitro-store}
-      CERC_NITRO_MSG_PORT: ${CERC_NITRO_MSG_PORT_BOB:-3007}
-      CERC_NITRO_WS_MSG_PORT: ${CERC_NITRO_WS_MSG_PORT_BOB:-5007}
-      CERC_NITRO_RPC_PORT: ${CERC_NITRO_RPC_PORT_BOB:-4007}
-      CERC_NITRO_BOOT_PEERS: "/dns4/go-nitro-alice/tcp/3006/p2p/16Uiu2HAmNUiX7bpCpbo5JdqEebp85ptGU2Vk2AT9E3BykvbwQ3F9"
+      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
       CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
       CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
-      CERC_NITRO_UI_PORT: ${CERC_NITRO_UI_PORT_BOB:-4107}
-      CERC_NITRO_AUTH_UI_PORT: ${CERC_NITRO_AUTH_UI_PORT_BOB:-4207}
-      CERC_NITRO_AUTH_ON: true
-      CERC_NITRO_AUTH_RPC_PORT: 4007
+    env_file:
+      - ../config/go-nitro-auth/bob.env
     entrypoint: ["bash", "-c", "/app/run-nitro-node.sh"]
     volumes:
-      - go_nitro_data_bob:/app/data
       - nitro_deployment:/app/deployment
+      - go_nitro_data_bob:/app/data
       - ../config/go-nitro/run-nitro-node.sh:/app/run-nitro-node.sh
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "4007"]
@@ -82,38 +60,35 @@ services:
       retries: 100
       start_period: 100s
     ports:
-      - "3007:3007"
-      - "4007:4007"
-      - "5007:5007"
-      - "4107:4107"
-      - "4207:4207"
-      - "4217:4217"
+      - "3007"
+      - "4007"
+      - "5007"
+      - "4107"
+      - "4207"
+      - "4217"
 
-  nitro-rpc-client:
-    image: cerc/nitro-rpc-client:local
-    hostname: nitro-rpc-client
-    restart: always
+  go-nitro-bootnode:
+    image: cerc/go-nitro:local
+    hostname: go-nitro-bootnode
+    restart: on-failure
     environment:
-      CERC_NITRO_RPC_FUND_AMOUNT: ${CERC_NITRO_RPC_FUND_AMOUNT:-2000000}
-      CERC_NITRO_RPC_HOST_ALICE: ${CERC_NITRO_RPC_HOST_ALICE:-go-nitro-alice}
-      CERC_NITRO_RPC_PORT_ALICE: ${CERC_NITRO_RPC_PORT_ALICE:-4006}
-      CERC_NITRO_USE_TLS: ${CERC_NITRO_USE_TLS:-false}
-      CERC_NITRO_ADDRESS_BOB: ${CERC_NITRO_ADDRESS_BOB:-0xe07e314501cc73b24cf45a6577486017300e153c}
+      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
+      CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
+      CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
+      CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
+    env_file:
+      - ../config/go-nitro-auth/bootnode.env
+    entrypoint: [ "bash", "-c", "/app/run-nitro-node.sh" ]
     volumes:
       - nitro_deployment:/app/deployment
-      - ../config/nitro-rpc-client/start.sh:/app/start.sh
-    command: ["/app/start.sh"]
-
-  #nitro-nginx:
-  #  image: nginx:1.23-alpine
-  #  restart: always
-  #  volumes:
-  #    - ../config/go-nitro-auth/nginx:/etc/nginx/conf.d
-  #  ports:
-  #    - 5678:80
-  #  depends_on:
-  #    - go-nitro-alice
-  #    - go-nitro-bob
+      - go_nitro_data_bootnode:/app/data
+      - ../config/go-nitro/run-nitro-node.sh:/app/run-nitro-node.sh
+    healthcheck:
+      test: [ "CMD", "nc", "-vz", "localhost", "4008" ]
+      interval: 5s
+      timeout: 5s
+      retries: 100
+      start_period: 100s
 
   nitro-caddy:
     image: caddy:2-alpine
@@ -121,7 +96,7 @@ services:
     volumes:
       - ../config/go-nitro-auth/caddy/Caddyfile:/etc/caddy/Caddyfile
     ports:
-      - "5678:80"
+      - "5678"
     depends_on:
       - go-nitro-alice
       - go-nitro-bob
@@ -129,4 +104,5 @@ services:
 volumes:
   go_nitro_data_alice:
   go_nitro_data_bob:
+  go_nitro_data_bootnode:
   nitro_deployment:

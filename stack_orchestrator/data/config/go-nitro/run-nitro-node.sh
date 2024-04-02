@@ -35,14 +35,17 @@ fi
 echo "Running Nitro node"
 
 if [[ "${CERC_GO_NITRO_WAIT_FOR_CHAIN:-true}" == "true" ]]; then
-  # Assuming CERC_NITRO_CHAIN_URL is of format <ws|http>://host:port
-  ws_host=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 1 | cut -d'/' -f 1)
-  ws_port=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d ':' -f 2)
+  # Assuming CERC_NITRO_CHAIN_URL is of format <ws|http>://host[:port][/foo]
+  ws_host=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d'/' -f 1 | cut -d ':' -f 1)
+  ws_port=$(echo "$CERC_NITRO_CHAIN_URL" | awk -F '://' '{print $2}' | cut -d'/' -f 1 | cut -d ':' -f 2)
+  if [[ "$ws_port" == "$ws_host" ]]; then
+    ws_port=""
+  fi
 
   # Wait till chain endpoint is available
   retry_interval=5
   while true; do
-    nc -z -w 1 "$ws_host" "$ws_port"
+    nc -z -w 1 "$ws_host" "${ws_port:-443}"
 
     if [ $? -eq 0 ]; then
       echo "Chain endpoint is available"

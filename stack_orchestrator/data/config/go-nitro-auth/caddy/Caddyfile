@@ -1,4 +1,4 @@
-:80 {
+:5678 {
     handle /pay* {
        reverse_proxy  http://go-nitro-bob:8547
     }
@@ -13,7 +13,9 @@
         uri /auth/{header.x-api-key}
       }
       rewrite * /
-      reverse_proxy http://fixturenet-eth-geth-1:8545
+      reverse_proxy https://rpc.sepolia.linea.build:443 {
+        header_up Host {upstream_hostport}
+      }
 	}
 
     @eth-key-in-path {
@@ -25,7 +27,9 @@
         uri /auth/{re.apikey.1}
       }
       rewrite * /
-      reverse_proxy http://fixturenet-eth-geth-1:8545
+      reverse_proxy https://rpc.sepolia.linea.build:443 {
+        header_up Host {upstream_hostport}
+      }
 	}
 
 	handle /eth* {

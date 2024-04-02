@@ -1,11 +1,14 @@
 version: "1.0"
-name: linea-testnet-nitro-auth
+name: go-nitro-auth
 description: "Stack to demonstrate payments between various services"
 repos:
   # nitro repo
   - github.com/cerc-io/go-nitro@telackey/update
 containers:
   # nitro
+  - cerc/nitro-contracts
   - cerc/go-nitro
+  - cerc/nitro-rpc-client
 pods:
-  - linea-testnet-go-nitro-auth
+  - nitro-contracts
+  - go-nitro-auth

@@ -89,7 +89,7 @@ CERC_NITRO_CHAIN_URL=wss://linea-sepolia.infura.io/ws/v3/<MY_API_KEY_HERE>
 
 # Private key for "Alice" account (payer)
 CERC_NITRO_CHAIN_PK_ALICE=<ALICE_PRIVATE_KEY_HERE>
-j
+
 # Private key for "Bob" account (payee)
 CERC_NITRO_CHAIN_PK_BOB=<BOB_PRIVATE_KEY_HERE>
 ```

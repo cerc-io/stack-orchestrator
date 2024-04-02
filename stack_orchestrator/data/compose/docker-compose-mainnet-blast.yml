@@ -64,9 +64,11 @@ services:
       - blast-data:/blast
     ports:
       - "9003"
+      - "7300"
     command: >
       op-node
       --l1="https://eth-mainnet-1.vdb.to/"
+      --metrics.enabled
       --l1.rpckind="any"
       --l1.trustrpc=true
       --l2="http://blast-geth:8551"

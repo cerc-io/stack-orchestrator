@@ -48,6 +48,7 @@ services:
       --authrpc.jwtsecret=/blast/jwt.txt
       --syncmode=full
       --metrics
+      --metrics.addr=0.0.0.0
       --gcmode=archive
       --nodiscover
       --maxpeers=0

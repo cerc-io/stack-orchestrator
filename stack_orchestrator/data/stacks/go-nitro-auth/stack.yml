@@ -2,7 +2,9 @@ version: "1.0"
 name: go-nitro-auth
 description: "Stack to demonstrate payments between various services"
 repos:
-  # nitro repo
+  # for nitro-contracts
+  - github.com/cerc-io/ts-nitro@v0.1.15
+  # for go-nitro and nitro-rpc-client
   - github.com/cerc-io/go-nitro@telackey/update
 containers:
   # nitro

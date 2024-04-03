@@ -18,10 +18,12 @@ RUN find . -name 'dist' | xargs -n1 rm -rf
 RUN yarn
 WORKDIR /app/packages/nitro-gui
 RUN VITE_RPC_HOST=CERC_RUNTIME_ENV_RPC_HOST yarn build
-WORKDIR /app/packages/nitro-auth-gui
-RUN VITE_RPC_URL=CERC_RUNTIME_ENV_RPC_URL VITE_TARGET_URL=CERC_RUNTIME_ENV_TARGET_URL yarn build
+RUN if [ -d /app/packages/nitro-auth-gui ]; then \
+  cd /app/packages/nitro-auth-gui && \
+    VITE_RPC_URL=CERC_RUNTIME_ENV_RPC_URL VITE_TARGET_URL=CERC_RUNTIME_ENV_TARGET_URL yarn build; \
+  fi
 WORKDIR /app/packages/nitro-auth
-RUN yarn build
+RUN if [ -d /app/packages/nitro-auth ]; then cd /app/packages/nitro-auth && yarn build; fi
 
 FROM node:18-bullseye-slim
 RUN apt-get update

@@ -11,8 +11,12 @@ cat /etc/hosts
 # Bit of a hack, test the most recent package
 TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
 
+export CERC_REPO_BASE_DIR=$(mktemp -d $(pwd)/stack-orchestrator-fixturenet-laconicd-test.XXXXXXXXXX)
+echo "$(date +"%Y-%m-%d %T"): Cloning laconic-registry-cli repository into: $CERC_REPO_BASE_DIR"
+$TEST_TARGET_SO --stack fixturenet-laconicd setup-repositories --include git.vdb.to/cerc-io/laconic-registry-cli
+
 echo "$(date +"%Y-%m-%d %T"): Starting stack"
-TEST_AUCTION_ENABLED=true BASE_DIR=~/cerc $TEST_TARGET_SO --stack fixturenet-laconicd deploy --cluster laconicd up
+TEST_AUCTION_ENABLED=true BASE_DIR=${CERC_REPO_BASE_DIR} $TEST_TARGET_SO --stack fixturenet-laconicd deploy --cluster laconicd up
 echo "$(date +"%Y-%m-%d %T"): Stack started"
 
 # Verify that the fixturenet is up and running
@@ -34,4 +38,6 @@ docker exec -e TEST_ACCOUNT=$laconicd_account_address laconicd-cli-1 sh -c 'cd l
 
 # Clean up
 $TEST_TARGET_SO --stack fixturenet-laconicd deploy --cluster laconicd down --delete-volumes
+echo "$(date +"%Y-%m-%d %T"): Removing cloned repositories"
+rm -rf $CERC_REPO_BASE_DIR
 echo "$(date +"%Y-%m-%d %T"): Test finished"

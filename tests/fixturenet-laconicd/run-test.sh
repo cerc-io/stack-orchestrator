@@ -12,6 +12,7 @@ cat /etc/hosts
 TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
 # Set a new unique repo dir
 export CERC_REPO_BASE_DIR=$(mktemp -d $(pwd)/stack-orchestrator-fixturenet-laconicd-test.XXXXXXXXXX)
+
 echo "$(date +"%Y-%m-%d %T"): Testing this package: $TEST_TARGET_SO"
 echo "$(date +"%Y-%m-%d %T"): Test version command"
 reported_version_string=$( $TEST_TARGET_SO version )

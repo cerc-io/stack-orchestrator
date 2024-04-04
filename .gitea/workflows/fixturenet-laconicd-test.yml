@@ -11,7 +11,7 @@ on:
 
 jobs:
   test:
-    name: "Run an Laconicd fixturenet test"
+    name: "Run Laconicd fixturenet and Laconic CLI tests"
     runs-on: ubuntu-latest
     steps:
       - name: 'Update'
@@ -46,3 +46,5 @@ jobs:
         run: ./scripts/build_shiv_package.sh
       - name: "Run fixturenet-laconicd tests"
         run: ./tests/fixturenet-laconicd/run-test.sh
+      - name: "Run laconic CLI tests"
+        run: ./tests/fixturenet-laconicd/run-cli-test.sh

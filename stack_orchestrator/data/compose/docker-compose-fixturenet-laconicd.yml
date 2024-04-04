@@ -3,6 +3,9 @@ services:
     restart: unless-stopped
     image: cerc/laconicd:local
     command: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
+    environment:
+      TEST_AUCTION_ENABLED: ${TEST_AUCTION_ENABLED}
+      TEST_REGISTRY_EXPIRY: ${TEST_REGISTRY_EXPIRY}
     volumes:
       # The cosmos-sdk node's database directory:
       - laconicd-data:/root/.laconicd
@@ -25,6 +28,7 @@ services:
     image: cerc/laconic-registry-cli:local
     volumes:
       - ../config/fixturenet-laconicd/registry-cli-config-template.yml:/registry-cli-config-template.yml
+      - ${BASE_DIR:-~/cerc}/laconic-registry-cli:/laconic-registry-cli
 
 volumes:
   laconicd-data:

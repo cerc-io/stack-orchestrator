@@ -32,14 +32,14 @@ set +e
 
 CONTAINER_ID=$(docker run -p 3000:80 -d -e CERC_SCRIPT_DEBUG=$CERC_SCRIPT_DEBUG cerc/test-progressive-web-app:local)
 sleep 3
-wget -t 7 -O test.before -m http://localhost:3000
+wget --tries 20 --retry-connrefused --waitretry=3 -O test.before -m http://localhost:3000
 
 docker logs $CONTAINER_ID
 docker remove -f $CONTAINER_ID
 
 CONTAINER_ID=$(docker run -p 3000:80 -e CERC_WEBAPP_DEBUG=$CHECK -e CERC_SCRIPT_DEBUG=$CERC_SCRIPT_DEBUG -d cerc/test-progressive-web-app:local)
 sleep 3
-wget -t 7 -O test.after -m http://localhost:3000
+wget --tries 20 --retry-connrefused --waitretry=3 -O test.after -m http://localhost:3000
 
 docker logs $CONTAINER_ID
 docker remove -f $CONTAINER_ID

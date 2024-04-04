@@ -95,7 +95,6 @@ services:
     restart: always
     environment:
       CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT:-http://fixturenet-eth-geth-1:8545}
-      CERC_NITRO_CHAIN_URL: ${CERC_NITRO_CHAIN_URL:-ws://fixturenet-eth-geth-1:8546}
     volumes:
       - ../config/go-nitro-auth/caddy/Caddyfile:/etc/caddy/Caddyfile
     ports:

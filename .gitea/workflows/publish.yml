@@ -55,7 +55,7 @@ jobs:
           draft: ${{ endsWith('publish-test', github.ref ) }}
           files: ./laconic-so
       - name: Notify Vulcanize Slack on CI failure
-        if: always()
+        if: ${{ always() && github.ref_name == 'main' }}
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}
@@ -63,7 +63,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.VULCANIZE_SLACK_CI_ALERTS }}
       - name: Notify DeepStack Slack on CI failure
-        if: always()
+        if: ${{ always() && github.ref_name == 'main' }}
         uses: ravsamhq/notify-slack-action@v2
         with:
           status: ${{ job.status }}

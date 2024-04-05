@@ -77,6 +77,16 @@ if [[ "$CERC_NITRO_AUTH_ON" == "true" ]] && [[ -d "/app-node/packages/nitro-auth
   bash -c "sleep 6 && cd /app-node/packages/nitro-auth && yarn start" &
 fi
 
+if [[ "$CERC_NITRO_RELAY_ON" == "true" ]]; then
+  if [[ ! -f "/app/deployment/relay-node.json" ]]; then
+    node /usr/local/lib/node_modules/@cerc-io/peer/dist/cli/create-peer.js \
+       -f /app/deployment/relay-node.json
+  fi
+  DEBUG='laconic:*' node /usr/local/lib/node_modules/@cerc-io/peer/dist/cli/relay.js \
+    --host 0.0.0.0 \
+    -f /app/deployment/relay-node.json &
+fi
+
 if [[ -z "$CERC_CHAIN_START_BLOCK" ]]; then
   if [[ ! -f "/app/deployment/chainstartblock.json" ]]; then
     curl --location "$(echo $CERC_NITRO_CHAIN_URL | sed 's/^ws/http/' | sed 's#/ws/#/#')" \

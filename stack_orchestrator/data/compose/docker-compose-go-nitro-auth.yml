@@ -76,6 +76,7 @@ services:
       CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
       CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
+      CERC_NITRO_RELAY_ON: true
     env_file:
       - ../config/go-nitro-auth/bootnode.env
     entrypoint: [ "bash", "-c", "/app/run-nitro-node.sh" ]
@@ -89,6 +90,8 @@ services:
       timeout: 5s
       retries: 100
       start_period: 100s
+    ports:
+      - "9090"
 
   nitro-caddy:
     image: caddy:2-alpine

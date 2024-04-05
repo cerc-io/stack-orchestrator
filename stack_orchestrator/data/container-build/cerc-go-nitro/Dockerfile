@@ -30,6 +30,8 @@ RUN apt-get update
 RUN apt-get install -y ca-certificates jq netcat make curl wget
 RUN rm -rf /var/lib/apt/lists/*
 RUN npm install -g http-server
+RUN npm config set @cerc-io:registry https://git.vdb.to/api/packages/cerc-io/npm/
+RUN npm install -g @cerc-io/peer
 WORKDIR /app
 COPY --from=builder /app/nitro .
 COPY --from=builder-node /app /app-node

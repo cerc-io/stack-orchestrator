@@ -1,0 +1,17 @@
+version: "1.0"
+name: fixturenet-blast
+description: "A blast devnet stack"
+repos:
+  - github.com/blast-io/blast
+  - git.vdb.to/cerc-io/lighthouse
+containers:
+  - cerc/webapp-base
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/foundry
+  - cerc/fixturenet-eth-lighthouse
+
+pods:
+  - fixturenet-blast
+  - foundry
+  

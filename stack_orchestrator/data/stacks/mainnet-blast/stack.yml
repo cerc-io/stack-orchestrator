@@ -1,0 +1,12 @@
+version: "1.0"
+name: mainnet-blast
+description: "A blast stack"
+repos:
+  - github.com/blast-io/blast
+  - git.vdb.to/cerc-io/lighthouse
+containers:
+  - cerc/webapp-base
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+pods:
+  - mainnet-blast

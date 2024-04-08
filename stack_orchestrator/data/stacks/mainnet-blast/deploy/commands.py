@@ -18,13 +18,13 @@ from pathlib import Path
 from shutil import copy
 import yaml
 
-def create(context, extra_args):
 
+def create(context, extra_args):
     # Our goal here is just to copy the json files for blast
     yml_path = context.deployment_dir.joinpath("spec.yml")
     with open(yml_path, 'r') as file:
         data = yaml.safe_load(file)
-  
+
     mount_point = data['volumes']['blast-data']
     if mount_point[0] == "/":
         deploy_dir = Path(mount_point)
@@ -37,4 +37,3 @@ def create(context, extra_args):
     copy(source_config_file, deploy_dir)
     source_config_file = Path(compose_file).parent.parent.joinpath("config", "mainnet-blast", "rollup.json")
     copy(source_config_file, deploy_dir)
-

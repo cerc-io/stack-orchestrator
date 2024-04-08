@@ -11,8 +11,14 @@ CERC_CONTAINER_BUILD_DOCKERFILE=${CERC_CONTAINER_BUILD_DOCKERFILE:-$SCRIPT_DIR/D
 CERC_CONTAINER_BUILD_TAG=${CERC_CONTAINER_BUILD_TAG:-cerc/webapp-base:local}
 
 docker build -t $CERC_CONTAINER_BUILD_TAG ${build_command_args} -f $CERC_CONTAINER_BUILD_DOCKERFILE $CERC_CONTAINER_BUILD_WORK_DIR
+rc=$?
 
-if [ $? -eq 0 ] && [ "$CERC_CONTAINER_BUILD_TAG" != "cerc/webapp-base:local" ]; then
+if [ $rc -ne 0 ]; then
+  echo "BUILD FAILED" 1>&2
+  exit $rc
+fi
+
+if [ "$CERC_CONTAINER_BUILD_TAG" != "cerc/webapp-base:local" ]; then
   cat <<EOF
 
 #################################################################

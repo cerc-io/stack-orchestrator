@@ -101,7 +101,7 @@ class ClusterInfo:
         )
         return service
 
-    def get_ingress(self, use_tls=False):
+    def get_ingress(self, use_tls=False, certificate=None, cluster_issuer="letsencrypt-prod"):
         # No ingress for a deployment that has no http-proxy defined, for now
         http_proxy_info_list = self.spec.get_http_proxy()
         ingress = None
@@ -114,8 +114,8 @@ class ClusterInfo:
             host_name = http_proxy_info["host-name"]
             rules = []
             tls = [client.V1IngressTLS(
-                hosts=[host_name],
-                secret_name=f"{self.app_name}-tls"
+                hosts=certificate["spec"]["dnsNames"] if certificate else [host_name],
+                secret_name=certificate["spec"]["secretName"] if certificate else f"{self.app_name}-tls"
             )] if use_tls else None
             paths = []
             for route in http_proxy_info["routes"]:
@@ -147,13 +147,17 @@ class ClusterInfo:
                 tls=tls,
                 rules=rules
             )
+
+            ingress_annotations = {
+                "kubernetes.io/ingress.class": "nginx",
+            }
+            if not certificate:
+                ingress_annotations["cert-manager.io/cluster-issuer"] = cluster_issuer
+
             ingress = client.V1Ingress(
                 metadata=client.V1ObjectMeta(
                     name=f"{self.app_name}-ingress",
-                    annotations={
-                        "kubernetes.io/ingress.class": "nginx",
-                        "cert-manager.io/cluster-issuer": "letsencrypt-prod"
-                    }
+                    annotations=ingress_annotations
                 ),
                 spec=spec
             )

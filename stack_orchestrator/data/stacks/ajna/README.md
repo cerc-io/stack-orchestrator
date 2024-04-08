@@ -1,17 +1,17 @@
-# SushiSwap v3 Watcher
+# Ajna Watcher
 
 ## Setup
 
 Clone required repositories:
 
 ```bash
-laconic-so --stack sushiswap-v3 setup-repositories --git-ssh --pull
+laconic-so --stack ajna setup-repositories --git-ssh --pull
 ```
 
 Build the container images:
 
 ```bash
-laconic-so --stack sushiswap-v3 build-containers
+laconic-so --stack ajna build-containers
 ```
 
 ## Deploy
@@ -19,23 +19,23 @@ laconic-so --stack sushiswap-v3 build-containers
 Create a spec file for the deployment:
 
 ```bash
-laconic-so --stack sushiswap-v3 deploy init --output sushiswap-v3-spec.yml
+laconic-so --stack ajna deploy init --output ajna-spec.yml
 ```
 
 ### Ports
 
 Edit `network` in the spec file to map container ports to host ports as required:
 
-```
+```yml
 ...
 network:
   ports:
-    sushiswap-v3-watcher-db:
-     - '5432'
-    sushiswap-v3-watcher-job-runner:
+    ajna-watcher-db:
+     - 15432:5432
+    ajna-watcher-job-runner:
      - 9000:9000
-    sushiswap-v3-watcher-server:
-     - 127.0.0.1:3008:3008
+    ajna-watcher-server:
+     - 3008:3008
      - 9001:9001
 ```
 
@@ -44,7 +44,7 @@ network:
 Create a deployment from the spec file:
 
 ```bash
-laconic-so --stack sushiswap-v3 deploy create --spec-file sushiswap-v3-spec.yml --deployment-dir sushiswap-v3-deployment
+laconic-so --stack ajna deploy create --spec-file ajna-spec.yml --deployment-dir ajna-deployment
 ```
 
 ### Configuration
@@ -59,7 +59,7 @@ CERC_ETH_RPC_ENDPOINT=https://example-lotus-endpoint/rpc/v1
 ### Start the deployment
 
 ```bash
-laconic-so deployment --dir sushiswap-v3-deployment start
+laconic-so deployment --dir ajna-deployment start
 ```
 
 * To list down and monitor the running containers:
@@ -72,43 +72,47 @@ laconic-so deployment --dir sushiswap-v3-deployment start
   docker logs -f <CONTAINER_ID>
   ```
 
-* Open the GQL playground at http://localhost:3008/graphql
+* Open the GQL playground at <http://localhost:3008/graphql>
 
   ```graphql
   # Example query
-  {
+  query {
     _meta {
       block {
+        hash
         number
         timestamp
       }
+      deployment
       hasIndexingErrors
     }
 
-    factories {
+    accounts {
       id
-      poolCount
+      txCount
+      tokensDelegated
+      rewardsClaimed
     }
   }
   ```
 
 ## Clean up
 
-Stop all the sushiswap-v3 services running in background:
+Stop all the ajna services running in background:
 
 ```bash
 # Only stop the docker containers
-laconic-so deployment --dir sushiswap-v3-deployment stop
+laconic-so deployment --dir ajna-deployment stop
 
 # Run 'start' to restart the deployment
 ```
 
-To stop all the sushiswap-v3 services and also delete data:
+To stop all the ajna services and also delete data:
 
 ```bash
 # Stop the docker containers
-laconic-so deployment --dir sushiswap-v3-deployment stop --delete-volumes
+laconic-so deployment --dir ajna-deployment stop --delete-volumes
 
 # Remove deployment directory (deployment will have to be recreated for a re-run)
-rm -r sushiswap-v3-deployment
+rm -r ajna-deployment
 ```

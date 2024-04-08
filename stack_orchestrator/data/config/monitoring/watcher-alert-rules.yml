@@ -50,22 +50,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="azimuth", instance="azimuth", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600
@@ -142,22 +126,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="azimuth", instance="censures", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600
@@ -234,22 +202,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="azimuth", instance="claims", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600
@@ -326,22 +278,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="azimuth", instance="conditional_star_release", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600
@@ -418,22 +354,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="azimuth", instance="delegated_sending", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600
@@ -510,22 +430,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="azimuth", instance="ecliptic", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600
@@ -602,22 +506,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="azimuth", instance="azimuth", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600
@@ -694,22 +582,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="azimuth", instance="polls", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600
@@ -788,22 +660,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="sushi", instance="sushiswap", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600
@@ -880,22 +736,6 @@ groups:
               legendFormat: __auto
               range: false
               refId: latest_external
-          - refId: latest_indexed
-            relativeTimeRange:
-              from: 600
-              to: 0
-            datasourceUid: PBFA97CFB590B2093
-            model:
-              datasource:
-                type: prometheus
-                uid: PBFA97CFB590B2093
-              editorMode: code
-              expr: sync_status_block_number{job="sushi", instance="merkl_sushiswap", kind="latest_indexed"}
-              hide: false
-              instant: true
-              legendFormat: __auto
-              range: false
-              refId: latest_indexed
           - refId: condition
             relativeTimeRange:
               from: 600

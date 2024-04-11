@@ -4,6 +4,7 @@
 * Comes with the following built-in exporters / dashboards:
   * Chain Head Exporter - for tracking chain heads given external ETH RPC endpoints
   * Watchers dashboard
+  * laconicd dashboard
   * [Prometheus Blackbox](https://grafana.com/grafana/dashboards/7587-prometheus-blackbox-exporter/) - for tracking HTTP endpoints
   * [NodeJS Application Dashboard](https://grafana.com/grafana/dashboards/11159-nodejs-application-dashboard/) - for default NodeJS metrics
   * [PostgreSQL Database](https://grafana.com/grafana/dashboards/9628-postgresql-database/) - for monitoring Postgres dbs
@@ -99,6 +100,7 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-spec.yml --de
       - targets:
         - <HTTP_ENDPOINT_1>
         - <HTTP_ENDPOINT_2>
+        - <LACONICD_GQL_ENDPOINT>
   ```
 
 * Postgres (in-stack exporter):
@@ -115,6 +117,16 @@ laconic-so --stack monitoring deploy create --spec-file monitoring-spec.yml --de
             instance: 'example-db'
     ```
   * Add database credentials to be used in `auth_modules` in the postgres-exporter config file (`monitoring-deployment/config/monitoring/postgres-exporter.yml`)
+
+* laconicd: update the `laconicd` job with a laconicd node's REST endpoint host and port:
+
+  ```yml
+  ...
+  - job_name: laconicd
+  static_configs:
+    - targets: ['example-host:1317']
+  ...
+  ```
 
 Note: Use `host.docker.internal` as host to access ports on the host machine
 

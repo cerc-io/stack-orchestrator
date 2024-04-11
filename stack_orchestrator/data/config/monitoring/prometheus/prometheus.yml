@@ -65,3 +65,12 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: postgres-exporter:9187
+
+  - job_name: laconicd
+    metrics_path: /metrics
+    scrape_interval: 30s
+    static_configs:
+      # Add laconicd REST endpoint target with host and port (1317)
+      # - targets: ['example-host:1317']
+    params:
+      format: ['prometheus']

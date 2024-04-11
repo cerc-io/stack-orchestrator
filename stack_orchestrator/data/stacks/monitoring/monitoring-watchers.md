@@ -46,6 +46,11 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
     static_configs:
       - targets:
         - <AZIMUTH_GATEWAY_GQL_ENDPOINT>
+        - <LACONICD_GQL_ENDPOINT>
+  ...
+  - job_name: laconicd
+  static_configs:
+    - targets: ['LACONICD_REST_HOST:LACONICD_REST_PORT']
   ...
   - job_name: azimuth
     scrape_interval: 10s
@@ -97,6 +102,16 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
       - targets: ['MERKLE_SUSHISWAP_WATCHER_HOST:MERKLE_SUSHISWAP_WATCHER_PORT']
         labels:
           instance: 'merkl_sushiswap'
+          chain: 'filecoin'
+
+  - job_name: ajna
+    scrape_interval: 20s
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ['AJNA_WATCHER_HOST:AJNA_WATCHER_PORT']
+        labels:
+          instance: 'ajna'
           chain: 'filecoin'
   ```
 

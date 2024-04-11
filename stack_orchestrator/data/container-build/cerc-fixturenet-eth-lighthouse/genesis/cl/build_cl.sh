@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# See https://github.com/sigp/lighthouse/scripts/local_testnet/setup.sh
 #
 # Deploys the deposit contract and makes deposits for $VALIDATOR_COUNT insecure deterministic validators.
 # Produces a testnet specification and a genesis state where the genesis time
@@ -24,23 +25,26 @@ echo "(Note: errors of the form 'WARN: Scrypt parameters are too weak...' below 
 lcli \
   new-testnet \
   --spec $SPEC_PRESET \
-  --deposit-contract-address $ETH1_DEPOSIT_CONTRACT_ADDRESS \
   --testnet-dir $TESTNET_DIR \
+  --deposit-contract-address $ETH1_DEPOSIT_CONTRACT_ADDRESS \
   --min-genesis-active-validator-count $GENESIS_VALIDATOR_COUNT \
   --validator-count $VALIDATOR_COUNT \
   --min-genesis-time $GENESIS_TIME \
   --genesis-delay $GENESIS_DELAY \
   --genesis-fork-version $GENESIS_FORK_VERSION \
   --altair-fork-epoch $ALTAIR_FORK_EPOCH \
-  --bellatrix-fork-epoch $MERGE_FORK_EPOCH \
+  --bellatrix-fork-epoch $BELLATRIX_FORK_EPOCH \
+  --capella-fork-epoch $CAPELLA_FORK_EPOCH \
+  --deneb-fork-epoch $DENEB_FORK_EPOCH \
   --eth1-id $ETH1_CHAIN_ID \
   --eth1-block-hash $ETH1_BLOCK_HASH \
   --eth1-follow-distance 1 \
   --seconds-per-slot $SECONDS_PER_SLOT \
   --seconds-per-eth1-block $SECONDS_PER_ETH1_BLOCK \
+  --interop-genesis-state \
   --force
 
-echo Specification generated at $TESTNET_DIR.
+echo Specification and genesis.ssz generated at $TESTNET_DIR.
 echo "Generating $VALIDATOR_COUNT validators concurrently... (this may take a while)"
 
 lcli \
@@ -50,13 +54,3 @@ lcli \
   --node-count $BN_COUNT
 
 echo Validators generated with keystore passwords at $DATADIR.
-echo "Building genesis state... (this might take a while)"
-
-lcli \
-  interop-genesis \
-  --spec $SPEC_PRESET \
-  --genesis-time $GENESIS_TIME \
-  --testnet-dir $TESTNET_DIR \
-  $GENESIS_VALIDATOR_COUNT
-
-echo Created genesis state in $TESTNET_DIR

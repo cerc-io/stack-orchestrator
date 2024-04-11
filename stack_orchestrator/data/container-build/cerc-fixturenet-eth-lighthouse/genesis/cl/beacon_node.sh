@@ -10,7 +10,6 @@ set -Eeuo pipefail
 source ./vars.env
 
 SUBSCRIBE_ALL_SUBNETS=
-DEBUG_LEVEL=${DEBUG_LEVEL:-debug}
 
 # Get positional arguments
 data_dir=$DATADIR/node_${NODE_NUMBER}

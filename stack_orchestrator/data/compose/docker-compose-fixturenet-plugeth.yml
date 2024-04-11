@@ -6,6 +6,7 @@ services:
       - ../config/fixturenet-eth/fixturenet-eth.env
     environment:
       RUN_BOOTNODE: "true"
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
     image: cerc/fixturenet-plugeth-plugeth:local
     volumes:
       - fixturenet_plugeth_bootnode_geth_data:/root/ethdata

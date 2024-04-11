@@ -1,26 +1,23 @@
-FROM skylenet/ethereum-genesis-generator@sha256:210353ce7c898686bc5092f16c61220a76d357f51eff9c451e9ad1b9ad03d4d3 AS ethgen
+FROM ethpandaops/ethereum-genesis-generator:3.0.0 AS ethgen
 
 FROM golang:1.20-alpine as builder
 
-RUN apk add --no-cache python3 py3-pip
-
-COPY genesis /opt/genesis
+RUN apk add --no-cache python3 py3-pip make bash envsubst jq
 
 # Install ethereum-genesis-generator tools
-COPY --from=ethgen /usr/local/bin/eth2-testnet-genesis /usr/local/bin/
-COPY --from=ethgen /usr/local/bin/eth2-val-tools /usr/local/bin/
 COPY --from=ethgen /apps /apps
 RUN cd /apps/el-gen && pip3 install --break-system-packages -r requirements.txt
-# web3==5.24.0 used by el-gen is broken on python 3.11
-RUN pip3 install --break-system-packages --upgrade "web3==6.5.0"
+RUN pip3 install --break-system-packages --upgrade "web3==v6.15.1"
 RUN pip3 install --break-system-packages --upgrade "typing-extensions"
 
+# Install tool to generate initial block
+RUN go install github.com/cerc-io/eth-dump-genblock@b29516740fc01cf1d1d623acbfd0e9a2b6440a96
+
 # Build genesis config
-RUN apk add --no-cache make bash envsubst jq
+COPY genesis /opt/genesis
 RUN cd /opt/genesis && make genesis-el
 
 # Snag the genesis block info.
-RUN go install github.com/cerc-io/eth-dump-genblock@latest
 RUN eth-dump-genblock /opt/genesis/build/el/geth.json > /opt/genesis/build/el/genesis_block.json
 
 FROM alpine:latest

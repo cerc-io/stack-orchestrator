@@ -9,8 +9,6 @@ set -Eeuo pipefail
 
 source ./vars.env
 
-DEBUG_LEVEL=${1:-info}
-
 echo "Starting bootnode"
 
 # Clean up existing ENR dir to avoid node connectivity issues on a restart

@@ -8,8 +8,6 @@ set -Eeuo pipefail
 
 source ./vars.env
 
-DEBUG_LEVEL=info
-
 BUILDER_PROPOSALS=
 
 # Get options

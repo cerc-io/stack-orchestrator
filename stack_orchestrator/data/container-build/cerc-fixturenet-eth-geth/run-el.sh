@@ -6,7 +6,7 @@ fi
 
 ETHERBASE=`cat /opt/testnet/build/el/accounts.csv | head -1 | cut -d',' -f2`
 NETWORK_ID=`cat /opt/testnet/el/el-config.yaml | grep 'chain_id' | awk '{ print $2 }'`
-NETRESTRICT=`ip addr | grep inet | grep -v '127.0' | awk '{print $2}'`
+NETRESTRICT=`ip addr | grep -w inet | grep -v '127.0' | awk '{print $2}'`
 CERC_ETH_DATADIR="${CERC_ETH_DATADIR:-$HOME/ethdata}"
 CERC_PLUGINS_DIR="${CERC_PLUGINS_DIR:-/usr/local/lib/plugeth}"
 
@@ -102,6 +102,13 @@ else
       fi
     fi
 
+    OTHER_OPTS=""
+    # miner options were removed in v1.12
+    GETH_VERSION=$(geth --version | grep -io '[0-9][0-9a-z.-]*')
+    if echo -e "$GETH_VERSION\n1.12" | sort -Vc; then
+      OTHER_OPTS="--miner.threads=1"
+    fi
+
     $START_CMD \
       --datadir="${CERC_ETH_DATADIR}" \
       --bootnodes="${ENODE}" \
@@ -126,12 +133,12 @@ else
       --cache.preimages \
       --syncmode=full \
       --mine \
-      --miner.threads=1 \
       --metrics \
       --metrics.addr="0.0.0.0" \
       --verbosity=${CERC_GETH_VERBOSITY:-3} \
       --log.vmodule="${CERC_GETH_VMODULE:-statediff/*=5}" \
       --miner.etherbase="${ETHERBASE}" \
+      ${OTHER_OPTS} \
       ${STATEDIFF_OPTS} \
       &
 

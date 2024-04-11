@@ -10,22 +10,8 @@ el_premine_addrs: {}
 chain_id: 1212
 deposit_contract_address: "0x1212121212121212121212121212121212121212"
 genesis_timestamp: 0
-terminal_total_difficulty: 1000
-homestead_block: 1
-eip150_block: 1
-eip155_block: 1
-eip158_block: 1
-byzantium_block: 1
-constantinople_block: 1
-petersburg_block: 1
-istanbul_block: 1
-berlin_block: 1
-london_block: 1
-merge_fork_block: 1
-
-clique:
-  enabled: false
-  signers:
-    - 36d56343bc308d4ffaac2f793d121aba905fa6cc
-    - 5e762d4a3847cadaf40a4b0c39574b0ff6698c78
-    - 15d7acc1019fdf8ab4f0f7bd31ec1487ecb5a2bd
+genesis_delay: 0
+deneb_fork_epoch: 0
+# note: only needed as workaround https://github.com/ethpandaops/ethereum-genesis-generator/pull/105
+electra_fork_epoch: 0
+slot_duration_in_seconds: 3

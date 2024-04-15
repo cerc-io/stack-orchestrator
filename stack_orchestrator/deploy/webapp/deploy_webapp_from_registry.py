@@ -256,7 +256,10 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
     requests_by_name = {}
     skipped_by_name = {}
     for r in requests:
-        # TODO: Do this _after_ filtering deployments and cancellations to minimize round trips.
+        if r.id in previous_requests and previous_requests[r.id].get("status", "") != "RETRY":
+            print(f"Skipping request {r.id}, we've already seen it.")
+            continue
+
         app = laconic.get_record(r.attributes.application)
         if not app:
             print("Skipping request %s, cannot locate app." % r.id)

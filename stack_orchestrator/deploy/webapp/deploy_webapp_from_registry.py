@@ -39,11 +39,12 @@ def process_app_deployment_request(
     app_deployment_request,
     deployment_record_namespace,
     dns_record_namespace,
-    dns_suffix,
+    default_dns_suffix,
     deployment_parent_dir,
     kube_config,
     image_registry,
     force_rebuild,
+    fqdn_policy,
     logger
 ):
     logger.log("BEGIN - process_app_deployment_request")
@@ -56,14 +57,15 @@ def process_app_deployment_request(
     requested_name = hostname_for_deployment_request(app_deployment_request, laconic)
     logger.log(f"Determined requested name: {requested_name}")
 
-    # HACK
     if "." in requested_name:
-        raise Exception("Only unqualified hostnames allowed at this time.")
-
-    fqdn = f"{requested_name}.{dns_suffix}"
+        if "allow" == fqdn_policy or "preexisting" == fqdn_policy:
+            fqdn = requested_name
+        else:
+            raise Exception(f"{requested_name} is invalid: only unqualified hostnames are allowed.")
+    else:
+        fqdn = f"{requested_name}.{default_dns_suffix}"
 
     # 3. check ownership of existing dnsrecord vs this request
-    # TODO: Support foreign DNS
     dns_crn = f"{dns_record_namespace}/{fqdn}"
     dns_record = laconic.get_record(dns_crn)
     if dns_record:
@@ -75,7 +77,9 @@ def process_app_deployment_request(
             logger.log(f"Matched DnsRecord ownership: {matched_owner}")
         else:
             raise Exception("Unable to confirm ownership of DnsRecord %s for request %s" %
-                            (dns_record.id, app_deployment_request.id))
+                            (dns_crn, app_deployment_request.id))
+    elif "preexisting" == fqdn_policy:
+        raise Exception(f"No pre-existing DnsRecord {dns_crn} could be found for request {app_deployment_request.id}.")
 
     # 4. get build and runtime config from request
     env_filename = None
@@ -191,6 +195,7 @@ def dump_known_requests(filename, requests, status="SEEN"):
 @click.option("--state-file", help="File to store state about previously seen requests.")
 @click.option("--only-update-state", help="Only update the state file, don't process any requests anything.", is_flag=True)
 @click.option("--dns-suffix", help="DNS domain to use eg, laconic.servesthe.world")
+@click.option("--fqdn-policy", help="How to handle requests with an FQDN: prohibit, allow, preexisting", default="prohibit")
 @click.option("--record-namespace-dns", help="eg, crn://laconic/dns")
 @click.option("--record-namespace-deployments", help="eg, crn://laconic/deployments")
 @click.option("--dry-run", help="Don't do anything, just report what would be done.", is_flag=True)
@@ -201,7 +206,7 @@ def dump_known_requests(filename, requests, status="SEEN"):
 @click.pass_context
 def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,  # noqa: C901
             request_id, discover, state_file, only_update_state,
-            dns_suffix, record_namespace_dns, record_namespace_deployments, dry_run,
+            dns_suffix, fqdn_policy, record_namespace_dns, record_namespace_deployments, dry_run,
             include_tags, exclude_tags, force_rebuild, log_dir):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
@@ -219,6 +224,10 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
         if not record_namespace_dns or not record_namespace_deployments or not dns_suffix:
             print("--dns-suffix, --record-namespace-dns, and --record-namespace-deployments are all required", file=sys.stderr)
             sys.exit(2)
+
+    if fqdn_policy not in ["prohibit", "allow", "preexisting"]:
+        print("--fqdn-policy must be one of 'prohibit', 'allow', or 'preexisting'", file=sys.stderr)
+        sys.exit(2)
 
     # Split CSV and clean up values.
     include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
@@ -334,6 +343,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     kube_config,
                     image_registry,
                     force_rebuild,
+                    fqdn_policy,
                     logger
                 )
                 status = "DEPLOYED"

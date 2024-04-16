@@ -1,4 +1,4 @@
-# Blast stack
+# Lotus stack
 
 ## Clone required repositories
 ```

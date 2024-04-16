@@ -1,24 +1,3 @@
-# By default, this docker-compose file will start a lotus fullnode
-#
-# Some directives have been left commented out so they serve as an
-# example for more advanced use.
-#
-# To provide a custom configuration file, or automatically import
-# a wallet, uncomment the "configs" or "secrets" sections.
-# 
-# start on a single node:
-#
-#    docker-compose up
-#
-# start on docker swarm:
-#
-#    docker swarm init (if you haven't already)
-#    docker stack deploy -c docker-compose.yaml mylotuscluster
-#
-# for more information, please visit lotus.filecoin.io
-
-version: "3.8"
-
 volumes:
   parameters:
   lotus-repo:

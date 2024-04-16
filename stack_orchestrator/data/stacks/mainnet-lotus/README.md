@@ -12,7 +12,7 @@ $ laconic-so --stack mainnet-lotus build-containers
 ```
 $ laconic-so --stack mainnet-lotus deploy init --map-ports-to-host any-same --output lotus-spec.yml
 ```
-[Insert details on how to configure the stack]
+Update the URLs in the generated spec file to use your systems' actual IP addresses.
 ```
 $ laconic-so --stack mainnet-lotus deploy create --deployment-dir lotus-deployment --spec-file lotus-spec.yml
 ```

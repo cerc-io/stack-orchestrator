@@ -4,6 +4,8 @@ volumes:
 
 services:
   lotus:
+    environment:
+      - LOTUS_API_LISTENADDRESS=/ip4/0.0.0.0/tcp/1234/http
     image: cerc/lotus:local
     volumes:
       - parameters:/var/tmp/filecoin-proof-parameters

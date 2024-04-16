@@ -44,8 +44,8 @@ RUN make clean deps
 ARG RUSTFLAGS=""
 ARG GOFLAGS=""
 
-#RUN make buildall
-RUN make 2k
+RUN make buildall
+#RUN make 2k
 
 #####################################
 FROM ubuntu:20.04 AS lotus-base

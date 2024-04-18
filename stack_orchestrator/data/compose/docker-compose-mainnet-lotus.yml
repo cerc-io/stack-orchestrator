@@ -1,6 +1,7 @@
 volumes:
   parameters:
   lotus-repo:
+  lotus-shared:
 
 services:
   lotus:
@@ -10,6 +11,7 @@ services:
     volumes:
       - parameters:/var/tmp/filecoin-proof-parameters
       - lotus-repo:/var/lib/lotus
+      - lotus_shared:/root/.lotus-shared
     ports:
       - "1234"
     deploy:

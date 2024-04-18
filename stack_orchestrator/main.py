@@ -17,6 +17,7 @@ import click
 
 from stack_orchestrator.command_types import CommandOptions
 from stack_orchestrator.repos import setup_repositories
+from stack_orchestrator.repos import fetch_stack
 from stack_orchestrator.build import build_containers, fetch_containers
 from stack_orchestrator.build import build_npms
 from stack_orchestrator.build import build_webapp
@@ -50,6 +51,7 @@ def cli(ctx, stack, quiet, verbose, dry_run, local_stack, debug, continue_on_err
     ctx.obj = command_options
 
 
+cli.add_command(fetch_stack.command, "fetch-stack")
 cli.add_command(setup_repositories.command, "setup-repositories")
 cli.add_command(build_containers.command, "build-containers")
 cli.add_command(fetch_containers.command, "fetch-containers")

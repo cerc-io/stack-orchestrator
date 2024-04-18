@@ -27,6 +27,7 @@ from pathlib import Path
 from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
+from stack_orchestrator.util import resolve_compose_file
 from stack_orchestrator.deploy.deployer import Deployer, DeployerException
 from stack_orchestrator.deploy.deployer_factory import getDeployer
 from stack_orchestrator.deploy.deploy_types import ClusterContext, DeployCommandContext
@@ -324,7 +325,10 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         pod_path = pod["path"]
         if include_exclude_check(pod_name, include, exclude):
             if pod_repository is None or pod_repository == "internal":
-                compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_path}.yml")
+                if deployment:
+                    compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_path}.yml")
+                else:
+                    compose_file_name = resolve_compose_file(stack, pod_name)
             else:
                 if deployment:
                     compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_name}.yml")
@@ -336,6 +340,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
                     if pod_post_start_command is not None:
                         post_start_commands.append(os.path.join(script_dir, pod_post_start_command))
                 else:
+                    # TODO: fix this code for external stack with scripts
                     pod_root_dir = os.path.join(dev_root_path, pod_repository.split("/")[-1], pod["path"])
                     compose_file_name = os.path.join(pod_root_dir, f"docker-compose-{pod_name}.yml")
                     pod_pre_start_command = pod.get("pre_start_command")

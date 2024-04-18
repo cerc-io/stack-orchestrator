@@ -71,7 +71,7 @@ def process_container(build_context: BuildContext) -> bool:
 
     # Check if this is in an external stack
     if stack_is_external(build_context.stack):
-        container_parent_dir = Path(build_context.stack).joinpath("container-build")
+        container_parent_dir = Path(build_context.stack).parent.parent.joinpath("container-build")
         temp_build_dir = container_parent_dir.joinpath(build_context.container.replace("/", "-"))
         temp_build_script_filename = temp_build_dir.joinpath("build.sh")
         # Now check if the container exists in the external stack.

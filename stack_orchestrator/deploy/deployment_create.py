@@ -43,7 +43,7 @@ def _get_ports(stack):
     pods = get_pod_list(parsed_stack)
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = get_pod_file_path(parsed_stack, pod)
+        pod_file_path = get_pod_file_path(stack, parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "services" in parsed_pod_file:
             for svc_name, svc in parsed_pod_file["services"].items():
@@ -79,7 +79,7 @@ def _get_named_volumes(stack):
         return ret
 
     for pod in pods:
-        pod_file_path = get_pod_file_path(parsed_stack, pod)
+        pod_file_path = get_pod_file_path(stack, parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
@@ -483,7 +483,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
     data_dir = Path(__file__).absolute().parent.parent.joinpath("data")
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = get_pod_file_path(parsed_stack, pod)
+        pod_file_path = get_pod_file_path(stack_name, parsed_stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
         destination_pod_dir = destination_pods_dir.joinpath(pod)

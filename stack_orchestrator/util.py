@@ -94,10 +94,24 @@ def get_plugin_code_paths(stack) -> List[Path]:
     return list(result)
 
 
-def get_pod_file_path(parsed_stack, pod_name: str):
+# Find a compose file, looking first in any external stack
+# and if not found there, internally
+def resolve_compose_file(stack, pod_name: str):
+    if stack_is_external(stack):
+        # First try looking in the external stack for the compose file
+        compose_base = Path(stack).parent.parent.joinpath("compose")
+        proposed_file = compose_base.joinpath(f"docker-compose-{pod_name}.yml")
+        if proposed_file.exists():
+            return proposed_file
+        # If we don't find it fall through to the internal case
+    compose_base = get_internal_compose_file_dir()
+    return compose_base.joinpath(f"docker-compose-{pod_name}.yml")
+
+
+def get_pod_file_path(stack, parsed_stack, pod_name: str):
     pods = parsed_stack["pods"]
     if type(pods[0]) is str:
-        result = os.path.join(get_compose_file_dir(), f"docker-compose-{pod_name}.yml")
+        result = resolve_compose_file(stack, pod_name)
     else:
         for pod in pods:
             if pod["name"] == pod_name:
@@ -131,7 +145,7 @@ def pod_has_scripts(parsed_stack, pod_name: str):
     return result
 
 
-def get_compose_file_dir():
+def get_internal_compose_file_dir():
     # TODO: refactor to use common code with deploy command
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
     data_dir = Path(__file__).absolute().parent.joinpath("data")

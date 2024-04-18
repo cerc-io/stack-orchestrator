@@ -16,7 +16,7 @@
 import os
 from typing import List, Any
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext, VolumeMapping
-from stack_orchestrator.util import get_parsed_stack_config, get_yaml, get_compose_file_dir, get_pod_list
+from stack_orchestrator.util import get_parsed_stack_config, get_yaml, get_pod_list, resolve_compose_file
 from stack_orchestrator.opts import opts
 
 
@@ -27,7 +27,7 @@ def _container_image_from_service(stack: str, service: str):
     pods = get_pod_list(parsed_stack)
     yaml = get_yaml()
     for pod in pods:
-        pod_file_path = os.path.join(get_compose_file_dir(), f"docker-compose-{pod}.yml")
+        pod_file_path = resolve_compose_file(stack, pod)
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "services" in parsed_pod_file:
             services = parsed_pod_file["services"]

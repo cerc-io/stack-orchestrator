@@ -1,0 +1,58 @@
+name: External Stack Test
+
+on:
+  push:
+    branches: '*'
+    paths:
+      - '!**'
+      - '.gitea/workflows/triggers/test-external-stack'
+      - '.gitea/workflows/test-external-stack.yml'
+      - 'tests/external-stack/run-test.sh'
+  schedule: # Note: coordinate with other tests to not overload runners at the same time of day
+    - cron: '8 19 * * *'
+
+jobs:
+  test:
+    name: "Run external stack test suite"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      # At present the stock setup-python action fails on Linux/aarch64
+      # Conditional steps below workaroud this by using deadsnakes for that case only
+      - name: "Install Python for ARM on Linux"
+        if: ${{ runner.arch == 'arm64' && runner.os == 'Linux' }}
+        uses: deadsnakes/action@v3.0.1
+        with:
+          python-version: '3.8'
+      - name: "Install Python cases other than ARM on Linux"
+        if: ${{ ! (runner.arch == 'arm64' && runner.os == 'Linux') }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: "Print Python version"
+        run: python3 --version
+      - name: "Install shiv"
+        run: pip install shiv
+      - name: "Generate build version file"
+        run: ./scripts/create_build_tag_file.sh
+      - name: "Build local shiv package"
+        run: ./scripts/build_shiv_package.sh
+      - name: "Run external stack tests"
+        run: ./tests/external-stack/run-test.sh
+      - name: Notify Vulcanize Slack on CI failure
+        if: ${{ always() && github.ref_name == 'main' }}
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: 'failure'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.VULCANIZE_SLACK_CI_ALERTS }}
+      - name: Notify DeepStack Slack on CI failure
+        if: ${{ always() && github.ref_name == 'main' }}
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: 'failure'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.DEEPSTACK_SLACK_CI_ALERTS }}

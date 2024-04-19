@@ -5,7 +5,7 @@ services:
     hostname: lotus-miner
     env_file:
       - ../config/fixturenet-lotus/lotus-env.env
-    image: cerc/lotus:local
+    image: cerc/lotus-fixturenet:local
     volumes:
       - ../config/fixturenet-lotus/setup-miner.sh:/docker-entrypoint-scripts.d/setup-miner.sh
       - ../config/fixturenet-lotus/fund-account.sh:/fund-account.sh
@@ -26,7 +26,7 @@ services:
     environment:
       # Use 0.0.0.0 so that calls can be made from outside the container
       - LOTUS_API_LISTENADDRESS=/ip4/0.0.0.0/tcp/1234/http
-    image: cerc/lotus:local
+    image: cerc/lotus-fixturenet:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
       - lotus_node_1_params:/var/tmp/filecoin-proof-parameters
@@ -54,7 +54,7 @@ services:
     environment:
       # Use 0.0.0.0 so that calls can be made from outside the container
       - LOTUS_API_LISTENADDRESS=/ip4/0.0.0.0/tcp/1234/http
-    image: cerc/lotus:local
+    image: cerc/lotus-fixturenet:local
     volumes:
       - ../config/fixturenet-lotus/setup-node.sh:/docker-entrypoint-scripts.d/setup-node.sh
       - lotus_node_2_params:/var/tmp/filecoin-proof-parameters

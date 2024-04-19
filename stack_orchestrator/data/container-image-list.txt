@@ -42,6 +42,7 @@ cerc/watcher-azimuth
 cerc/ipld-eth-state-snapshot
 cerc/watcher-gelato
 cerc/lotus
+cerc/lotus-fixturenet
 cerc/go-opera
 cerc/lasso
 cerc/reth

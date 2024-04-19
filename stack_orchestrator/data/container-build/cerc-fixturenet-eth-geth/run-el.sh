@@ -6,7 +6,7 @@ fi
 
 ETHERBASE=`cat /opt/testnet/build/el/accounts.csv | head -1 | cut -d',' -f2`
 NETWORK_ID=`cat /opt/testnet/el/el-config.yaml | grep 'chain_id' | awk '{ print $2 }'`
-NETRESTRICT=`ip addr | grep inet | grep -v '127.0' | awk '{print $2}'`
+NETRESTRICT=`ip addr | grep 'inet ' | grep -v '127.0' | head -1 | awk '{print $2}'`
 CERC_ETH_DATADIR="${CERC_ETH_DATADIR:-$HOME/ethdata}"
 CERC_PLUGINS_DIR="${CERC_PLUGINS_DIR:-/usr/local/lib/plugeth}"
 

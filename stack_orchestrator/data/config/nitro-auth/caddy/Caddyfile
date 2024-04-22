@@ -15,6 +15,7 @@
     rewrite * /
     reverse_proxy {$CERC_ETH_RPC_ENDPOINT} {
       header_up Host {upstream_hostport}
+      header_up -X-Forwarded-*
     }
   }
 
@@ -29,11 +30,16 @@
     rewrite * /
     reverse_proxy {$CERC_ETH_RPC_ENDPOINT} {
       header_up Host {upstream_hostport}
+      header_up -X-Forwarded-*
     }
   }
 
   handle /eth* {
     respond "401 Unauthorized" 401
+  }
+
+  handle /ts-nitro* {
+    reverse_proxy http://ts-nitro-charlie:3000
   }
 
   handle {

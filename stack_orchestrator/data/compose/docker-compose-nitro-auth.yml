@@ -81,6 +81,7 @@ services:
       CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
       CERC_NITRO_TARGET_URL: ${CERC_NITRO_TARGET_URL:-http://localhost:5678}
       CERC_RUNTIME_ENV_RPC_URL: ${CERC_RUNTIME_ENV_RPC_URL:-ws://localhost:8546}
+      PUBLIC_URL: http://localhost:5678/ts-nitro
     env_file:
       - ../config/nitro-auth/charlie.env
     entrypoint: ["bash", "-c", "/app/run.sh"]
@@ -93,8 +94,6 @@ services:
       timeout: 5s
       retries: 100
       start_period: 100s
-    ports:
-      - "3000"
 
   go-nitro-bootnode:
     image: cerc/go-nitro:local

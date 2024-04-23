@@ -94,6 +94,20 @@ def get_plugin_code_paths(stack) -> List[Path]:
     return list(result)
 
 
+# # Find a config directory, looking first in any external stack
+# and if not found there, internally
+def resolve_config_dir(stack, config_dir_name: str):
+    if stack_is_external(stack):
+        # First try looking in the external stack for the compose file
+        config_base = Path(stack).parent.parent.joinpath("config")
+        proposed_dir = config_base.joinpath(config_dir_name)
+        if proposed_dir.exists():
+            return proposed_dir
+        # If we don't find it fall through to the internal case
+    config_base = get_internal_config_dir()
+    return config_base.joinpath(config_dir_name)
+
+
 # Find a compose file, looking first in any external stack
 # and if not found there, internally
 def resolve_compose_file(stack, pod_name: str):
@@ -153,7 +167,7 @@ def get_internal_compose_file_dir():
     return source_compose_dir
 
 
-def get_config_file_dir():
+def get_internal_config_dir():
     # TODO: refactor to use common code with deploy command
     data_dir = Path(__file__).absolute().parent.joinpath("data")
     source_config_dir = data_dir.joinpath("config")

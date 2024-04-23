@@ -26,7 +26,8 @@ from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
-                                     get_pod_script_paths, get_plugin_code_paths, error_exit, env_var_map_from_file)
+                                     get_pod_script_paths, get_plugin_code_paths, error_exit, env_var_map_from_file,
+                                     resolve_config_dir)
 from stack_orchestrator.deploy.spec import Spec
 from stack_orchestrator.deploy.deploy_types import LaconicStackSetupCommand
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
@@ -480,7 +481,6 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
     os.mkdir(destination_compose_dir)
     destination_pods_dir = deployment_dir_path.joinpath("pods")
     os.mkdir(destination_pods_dir)
-    data_dir = Path(__file__).absolute().parent.parent.joinpath("data")
     yaml = get_yaml()
     for pod in pods:
         pod_file_path = get_pod_file_path(stack_name, parsed_stack, pod)
@@ -497,7 +497,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
         config_dirs = {pod}
         config_dirs = config_dirs.union(extra_config_dirs)
         for config_dir in config_dirs:
-            source_config_dir = data_dir.joinpath("config", config_dir)
+            source_config_dir = resolve_config_dir(stack_name, config_dir)
             if os.path.exists(source_config_dir):
                 destination_config_dir = deployment_dir_path.joinpath("config", config_dir)
                 # If the same config dir appears in multiple pods, it may already have been copied

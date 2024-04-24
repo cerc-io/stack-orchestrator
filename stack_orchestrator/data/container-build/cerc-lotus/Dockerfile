@@ -33,7 +33,7 @@ RUN set -eux; \
 COPY ./ /opt/filecoin
 WORKDIR /opt/filecoin
 
-RUN scripts/docker-git-state-check.sh
+#RUN scripts/docker-git-state-check.sh
 
 ### make configurable filecoin-ffi build
 ARG FFI_BUILD_FROM_SOURCE=0

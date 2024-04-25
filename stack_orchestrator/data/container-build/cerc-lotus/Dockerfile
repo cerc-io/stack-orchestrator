@@ -71,6 +71,7 @@ MAINTAINER Lotus Development Team
 
 COPY --from=lotus-builder /opt/filecoin/lotus /usr/local/bin/
 COPY --from=lotus-builder /opt/filecoin/lotus-shed /usr/local/bin/
+
 #COPY scripts/docker-lotus-entrypoint.sh /
 #COPY myscripts/setup-node.sh /docker-entrypoint-scripts.d/setup-node.sh
 
@@ -111,7 +112,7 @@ COPY --from=lotus-builder /opt/filecoin/lotus-seed     /usr/local/bin/
 COPY --from=lotus-builder /opt/filecoin/lotus-shed     /usr/local/bin/
 #COPY --from=lotus-builder /opt/filecoin/lotus-wallet   /usr/local/bin/
 #COPY --from=lotus-builder /opt/filecoin/lotus-gateway  /usr/local/bin/
-COPY --from=lotus-builder /opt/filecoin/lotus-miner    /usr/local/bin/
+#COPY --from=lotus-builder /opt/filecoin/lotus-miner    /usr/local/bin/
 COPY --from=lotus-builder /opt/filecoin/lotus-worker   /usr/local/bin/
 #COPY --from=lotus-builder /opt/filecoin/lotus-stats    /usr/local/bin/
 #COPY --from=lotus-builder /opt/filecoin/lotus-fountain /usr/local/bin/

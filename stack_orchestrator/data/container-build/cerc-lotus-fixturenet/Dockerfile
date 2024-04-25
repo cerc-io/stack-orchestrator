@@ -33,7 +33,7 @@ RUN set -eux; \
 COPY ./ /opt/filecoin
 WORKDIR /opt/filecoin
 
-RUN scripts/docker-git-state-check.sh
+#RUN scripts/docker-git-state-check.sh
 
 ### make configurable filecoin-ffi build
 ARG FFI_BUILD_FROM_SOURCE=0
@@ -72,6 +72,7 @@ MAINTAINER Lotus Development Team
 
 COPY --from=lotus-builder /opt/filecoin/lotus /usr/local/bin/
 COPY --from=lotus-builder /opt/filecoin/lotus-shed /usr/local/bin/
+
 #COPY scripts/docker-lotus-entrypoint.sh /
 #COPY myscripts/setup-node.sh /docker-entrypoint-scripts.d/setup-node.sh
 

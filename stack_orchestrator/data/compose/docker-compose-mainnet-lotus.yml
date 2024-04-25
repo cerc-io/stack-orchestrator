@@ -1,8 +1,3 @@
-volumes:
-  parameters:
-  lotus-repo:
-  lotus-shared:
-
 services:
   lotus:
     environment:
@@ -19,3 +14,9 @@ services:
         condition: on-failure
         delay: 30s
     command: ["lotus", "daemon"]
+
+volumes:
+  parameters:
+  lotus-repo:
+  lotus_shared:
+

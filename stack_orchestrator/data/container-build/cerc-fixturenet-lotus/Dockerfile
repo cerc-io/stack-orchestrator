@@ -29,7 +29,6 @@ RUN set -eux; \
     rustup --version; \
     cargo --version; \
     rustc --version;
-
 COPY ./ /opt/filecoin
 WORKDIR /opt/filecoin
 
@@ -38,7 +37,7 @@ WORKDIR /opt/filecoin
 ### make configurable filecoin-ffi build
 ARG FFI_BUILD_FROM_SOURCE=0
 ENV FFI_BUILD_FROM_SOURCE=${FFI_BUILD_FROM_SOURCE}
-
+RUN ls /opt/filecoin
 RUN make clean deps
 
 ARG RUSTFLAGS=""
@@ -72,7 +71,6 @@ MAINTAINER Lotus Development Team
 
 COPY --from=lotus-builder /opt/filecoin/lotus /usr/local/bin/
 COPY --from=lotus-builder /opt/filecoin/lotus-shed /usr/local/bin/
-
 #COPY scripts/docker-lotus-entrypoint.sh /
 #COPY myscripts/setup-node.sh /docker-entrypoint-scripts.d/setup-node.sh
 

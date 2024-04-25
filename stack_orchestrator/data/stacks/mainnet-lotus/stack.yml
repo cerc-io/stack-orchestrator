@@ -4,6 +4,6 @@ description: "A lotus stack"
 repos:
   - git.vdb.to/cerc-io/lotus
 containers:
-  - cerc/lotus
+  - cerc/mainnet-lotus
 pods:
   - mainnet-lotus

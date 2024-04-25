@@ -1,3 +1,9 @@
+volumes:
+  parameters:
+  lotus-repo:
+  lotus_miner_data:
+  lotus_shared:
+
 services:
   lotus:
     environment:
@@ -7,6 +13,7 @@ services:
       - parameters:/var/tmp/filecoin-proof-parameters
       - lotus-repo:/var/lib/lotus
       - lotus_shared:/root/.lotus-shared
+      - lotus_miner_data:/root/data
     ports:
       - "1234"
     deploy:
@@ -14,9 +21,3 @@ services:
         condition: on-failure
         delay: 30s
     command: ["lotus", "daemon"]
-
-volumes:
-  parameters:
-  lotus-repo:
-  lotus_shared:
-

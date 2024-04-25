@@ -4,6 +4,6 @@ description: "A lotus fixturenet"
 repos:
   - git.vdb.to/cerc-io/lotus
 containers:
-  - cerc/lotus-fixturenet
+  - cerc/fixturenet-lotus
 pods:
   - fixturenet-lotus

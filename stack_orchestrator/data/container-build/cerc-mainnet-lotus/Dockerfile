@@ -41,11 +41,11 @@ ENV FFI_BUILD_FROM_SOURCE=${FFI_BUILD_FROM_SOURCE}
 ARG RUSTFLAGS=""
 ARG GOFLAGS=""
 
-RUN make deps && \
-    make lotus lotus-gateway lotus-shed && \
+RUN make clean deps && \
+    make lotus lotus-shed lotus-stats && \
     install -C ./lotus /usr/local/bin/lotus && \
-    install -C ./lotus-gateway /usr/local/bin/lotus-gateway && \
-    install -C ./lotus-shed /usr/local/bin/lotus-shed
+    install -C ./lotus-shed /usr/local/bin/lotus-shed && \
+    install -C ./lotus-stats /usr/local/bin/lotus-stats
 
 #####################################
 FROM ubuntu:20.04 AS lotus-base
@@ -72,15 +72,9 @@ MAINTAINER Lotus Development Team
 
 COPY --from=lotus-builder \
     /usr/local/bin/lotus \
-    /usr/local/bin/lotus-gateway \
     /usr/local/bin/lotus-shed \
     /usr/local/bin/
 
-#COPY scripts/docker-lotus-entrypoint.sh /
-#COPY myscripts/setup-node.sh /docker-entrypoint-scripts.d/setup-node.sh
-
-ARG DOCKER_LOTUS_IMPORT_SNAPSHOT https://forest-archive.chainsafe.dev/latest/mainnet/
-ENV DOCKER_LOTUS_IMPORT_SNAPSHOT ${DOCKER_LOTUS_IMPORT_SNAPSHOT}
 ENV FILECOIN_PARAMETER_CACHE /var/tmp/filecoin-proof-parameters
 ENV LOTUS_PATH /var/lib/lotus
 ENV DOCKER_LOTUS_IMPORT_WALLET ""
@@ -95,7 +89,6 @@ USER fc
 
 EXPOSE 1234
 
-ENTRYPOINT ["/docker-lotus-entrypoint.sh"]
 
 CMD ["-help"]
 
@@ -111,8 +104,14 @@ ENV LOTUS_PATH /var/lib/lotus
 ENV LOTUS_WORKER_PATH /var/lib/lotus-worker
 ENV WALLET_PATH /var/lib/lotus-wallet
 
+ARG DOCKER_LOTUS_IMPORT_SNAPSHOT=https://forest-archive.chainsafe.dev/latest/mainnet/
+ENV DOCKER_LOTUS_IMPORT_SNAPSHOT=${DOCKER_LOTUS_IMPORT_SNAPSHOT}
+
 COPY --from=lotus-builder /opt/filecoin/lotus          /usr/local/bin/
 COPY --from=lotus-builder /opt/filecoin/lotus-shed     /usr/local/bin/
+COPY --from=lotus-builder /opt/filecoin/lotus-stats    /usr/local/bin/
+COPY scripts/docker-lotus-entrypoint.sh /docker-lotus-entrypoint.sh
+RUN chmod +x /docker-lotus-entrypoint.sh
 
 RUN mkdir /var/tmp/filecoin-proof-parameters
 RUN mkdir /var/lib/lotus
@@ -131,6 +130,8 @@ VOLUME /var/lib/lotus
 #VOLUME /var/lib/lotus-miner
 #VOLUME /var/lib/lotus-worker
 #VOLUME /var/lib/lotus-wallet
+
+
 
 EXPOSE 1234
 EXPOSE 2345

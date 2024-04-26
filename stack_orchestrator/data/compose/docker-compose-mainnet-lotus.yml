@@ -8,11 +8,11 @@ services:
   lotus:
     environment:
       - LOTUS_API_LISTENADDRESS=/ip4/0.0.0.0/tcp/1234/http
-    image: cerc/lotus:local
+    image: cerc/lotus-mainnet:local
     volumes:
       - parameters:/var/tmp/filecoin-proof-parameters
       - lotus-repo:/var/lib/lotus
-      - lotus_shared:/root/.lotus-shared
+      - lotus_shared:/root/.lotus
       - lotus_miner_data:/root/data
     ports:
       - "1234"
@@ -20,4 +20,4 @@ services:
       restart_policy:
         condition: on-failure
         delay: 30s
-    command: ["lotus", "daemon"]
+    entrypoint: ["sh", "/docker-lotus-entrypoint.sh"]

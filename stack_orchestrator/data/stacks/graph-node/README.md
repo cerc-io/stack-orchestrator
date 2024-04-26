@@ -76,6 +76,19 @@ export ETH_RPC_PORT=
 # The etherum network(s) graph-node will connect to
 # Set this to a space-separated list of the networks where each entry has the form NAME:URL
 export ETH_NETWORKS=
+
+# Optional:
+
+# Timeout for ETH RPC requests in seconds (default: 180s)
+export GRAPH_ETHEREUM_JSON_RPC_TIMEOUT=
+
+# Number of times to retry ETH RPC requests (default: 10)
+export GRAPH_ETHEREUM_REQUEST_RETRIES=
+
+# Maximum number of blocks to scan for triggers in each request (default: 2000)
+export GRAPH_ETHEREUM_MAX_BLOCK_RANGE_SIZE=
+
+# Ref: https://git.vdb.to/cerc-io/graph-node/src/branch/master/docs/environment-variables.md
 ```
 
 Example env file:
@@ -85,6 +98,10 @@ export ETH_RPC_HOST=filecoin.chainup.net
 export ETH_RPC_PORT=443
 
 export ETH_NETWORKS=filecoin:https://filecoin.chainup.net/rpc/v1
+
+export GRAPH_ETHEREUM_JSON_RPC_TIMEOUT=360
+export GRAPH_ETHEREUM_REQUEST_RETRIES=5
+export GRAPH_ETHEREUM_MAX_BLOCK_RANGE_SIZE=50
 ```
 
 Set the environment variables:

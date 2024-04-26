@@ -16,8 +16,12 @@ services:
       postgres_pass: password
       postgres_db: graph-node
       ethereum: ${ETH_NETWORKS:-lotus-fixturenet:http://lotus-node-1:1234/rpc/v1}
+      # Env varaibles reference: https://git.vdb.to/cerc-io/graph-node/src/branch/master/docs/environment-variables.md
       GRAPH_LOG: debug
       ETHEREUM_REORG_THRESHOLD: 3
+      GRAPH_ETHEREUM_JSON_RPC_TIMEOUT: ${GRAPH_ETHEREUM_JSON_RPC_TIMEOUT:-180}
+      GRAPH_ETHEREUM_REQUEST_RETRIES: ${GRAPH_ETHEREUM_REQUEST_RETRIES:-10}
+      GRAPH_ETHEREUM_MAX_BLOCK_RANGE_SIZE: ${GRAPH_ETHEREUM_MAX_BLOCK_RANGE_SIZE:-2000}
     entrypoint: ["bash", "-c"]
     # Wait for ETH RPC endpoint to be up when running with fixturenet-lotus
     command: |

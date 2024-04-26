@@ -42,10 +42,10 @@ services:
       - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
     ports:
-      - "1234"
-      - "2345"
-      - "3456"
-      - "1777"
+      - "1235"
+      - "2346"
+      - "3457"
+      - "1778"
 
   lotus-node-2:
     hostname: lotus-node-2
@@ -70,10 +70,10 @@ services:
       - lotus-miner
     entrypoint: ["sh", "/docker-entrypoint-scripts.d/setup-node.sh"]
     ports:
-      - "1234"
-      - "2345"
-      - "3456"
-      - "1777"
+      - "1236"
+      - "2347"
+      - "3458"
+      - "1779"
 
 volumes:
   lotus_miner_params:

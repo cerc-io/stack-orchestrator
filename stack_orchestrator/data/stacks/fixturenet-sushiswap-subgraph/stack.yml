@@ -13,7 +13,7 @@ repos:
   - github.com/sushiswap/subgraphs
 containers:
   # fixturenet-lotus image
-  - cerc/lotus
+  - cerc/lotus-fixturenet
   # graph-node image
   - cerc/graph-node
   # sushiswap contract deployment images

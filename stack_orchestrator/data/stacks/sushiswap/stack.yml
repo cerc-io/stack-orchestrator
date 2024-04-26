@@ -11,7 +11,7 @@ repos:
   - github.com/vulcanize/uniswap-v3-info
 containers:
   ## fixturenet-lotus image
-  - cerc/lotus
+  - cerc/lotus-fixturenet
   ## sushiswap images
   - cerc/sushiswap-v3-core
   - cerc/sushiswap-v3-periphery

@@ -31,7 +31,7 @@ rm -rf $CERC_REPO_BASE_DIR
 mkdir -p $CERC_REPO_BASE_DIR
 # Clone the external test stack
 $TEST_TARGET_SO fetch-stack git.vdb.to/cerc-io/test-external-stack
-stack_name="$CERC_REPO_BASE_DIR/test-external-stack/stacks/test-external-stack"
+stack_name="$CERC_REPO_BASE_DIR/test-external-stack/stack-orchestrator/stacks/test-external-stack"
 TEST_TARGET_SO_STACK="$TEST_TARGET_SO --stack ${stack_name}"
 # Test bringing the test container up and down
 # with and without volume removal

@@ -3,7 +3,7 @@ name: fixturenet-payments
 description: "Stack to demonstrate payments between various services"
 repos:
   # fixturenet repos
-  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
+  - git.vdb.to/cerc-io/go-ethereum@v1.13.14
   - git.vdb.to/cerc-io/lighthouse
   - git.vdb.to/cerc-io/ipld-eth-db@v5
   # ipld-eth-server with payments -- to be used by ipld-eth-server-payments pod

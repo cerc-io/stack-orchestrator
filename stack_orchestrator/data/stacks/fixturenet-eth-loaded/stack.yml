@@ -2,9 +2,9 @@ version: "1.0"
 name: fixturenet-eth-loaded
 description: "Loaded Ethereum Fixturenet"
 repos:
-  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
+  - git.vdb.to/cerc-io/go-ethereum@v1.13.14
   - git.vdb.to/cerc-io/tx-spammer
-  - git.vdb.to/cerc-io/ipld-eth-server@v1.11.6-statediff-v5
+  - git.vdb.to/cerc-io/ipld-eth-server@v5
   - git.vdb.to/cerc-io/ipld-eth-db@v5
   - git.vdb.to/cerc-io/lighthouse
 containers:

@@ -3,7 +3,8 @@ name: fixturenet-payments
 description: "Stack to demonstrate payments between various services"
 repos:
   # fixturenet repos
-  - git.vdb.to/cerc-io/go-ethereum@v1.13.14
+  - git.vdb.to/cerc-io/plugeth@statediff
+  - git.vdb.to/cerc-io/plugeth-statediff
   - git.vdb.to/cerc-io/lighthouse
   - git.vdb.to/cerc-io/ipld-eth-db@v5
   # ipld-eth-server with payments -- to be used by ipld-eth-server-payments pod
@@ -24,11 +25,12 @@ repos:
   - github.com/cerc-io/erc20-watcher-ts
 containers:
   # fixturenet images
-  - cerc/go-ethereum
+  - cerc/plugeth-statediff
+  - cerc/plugeth
+  - cerc/fixturenet-eth-genesis
+  - cerc/fixturenet-plugeth-plugeth
   - cerc/lighthouse
   - cerc/lighthouse-cli
-  - cerc/fixturenet-eth-genesis
-  - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
   - cerc/ipld-eth-db
   - cerc/ipld-eth-server
@@ -46,7 +48,7 @@ containers:
   - cerc/ponder
   - cerc/watcher-erc20
 pods:
-  - fixturenet-eth
+  - fixturenet-plugeth
   - ipld-eth-server-payments
   - ipld-eth-db
   - nitro-contracts

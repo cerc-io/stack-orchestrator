@@ -13,11 +13,6 @@ on:
   schedule: # Note: coordinate with other tests to not overload runners at the same time of day
     - cron: '2 14 * * *'
 
-# Needed until we can incorporate docker startup into the executor container
-env:
-  DOCKER_HOST: unix:///var/run/dind.sock
-
-
 jobs:
   test:
     name: "Run an Ethereum plugeth fixturenet test"
@@ -45,10 +40,6 @@ jobs:
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"
         run: ./scripts/build_shiv_package.sh
-      - name: Start dockerd # Also needed until we can incorporate into the executor
-        run: |
-          dockerd -H $DOCKER_HOST --userland-proxy=false &
-          sleep 5
       - name: "Run fixturenet-eth tests"
         run: ./tests/fixturenet-eth-plugeth/run-test.sh
       - name: Notify Vulcanize Slack on CI failure

@@ -8,7 +8,6 @@ repos:
   - git.vdb.to/cerc-io/ipld-eth-db@v5
   - git.vdb.to/cerc-io/ipld-eth-server@v5
   - git.vdb.to/cerc-io/tx-spammer
-  - github.com/dboreham/foundry
 containers:
   - cerc/plugeth-statediff
   - cerc/plugeth
@@ -18,7 +17,6 @@ containers:
   - cerc/lighthouse-cli
   - cerc/fixturenet-eth-lighthouse
   - cerc/tx-spammer
-  - cerc/foundry
   - cerc/ipld-eth-db
   - cerc/ipld-eth-server
 pods:

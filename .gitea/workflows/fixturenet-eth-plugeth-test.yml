@@ -6,6 +6,10 @@ on:
     paths:
       - '!**'
       - '.gitea/workflows/triggers/fixturenet-eth-plugeth-test'
+  pull_request:
+    paths:
+      - '!**'
+      - '.gitea/workflows/triggers/fixturenet-eth-plugeth-test'
   schedule: # Note: coordinate with other tests to not overload runners at the same time of day
     - cron: '2 14 * * *'
 

@@ -9,7 +9,7 @@ STATUSES=(
   "beacon phase0"
   "beacon altair"
   "beacon bellatrix pre-merge"
-  "beacon bellatrix merge"
+  "beacon post-merge"
   "block number $MIN_BLOCK_NUM"
 )
 STATUS=0
@@ -69,13 +69,13 @@ while [ $STATUS -lt ${#STATUSES[@]} ]; do
       ;;
     2)
       result=`wget --no-check-certificate --quiet -O - "$LIGHTHOUSE_BASE_URL/eth/v2/beacon/blocks/head" | jq -r '.version'`
-      if [ ! -z "$result" ] && ([ "$result" == "altair" ] || [ "$result" == "bellatrix" ]); then
+      if [ ! -z "$result" ] && ([ "$result" == "altair" ] || [ "$result" == "bellatrix" ] || [ "$result" == "capella" ] || [ "$result" == "deneb" ]); then
         inc_status
       fi
       ;;
     3)
       result=`wget --no-check-certificate --quiet -O - "$LIGHTHOUSE_BASE_URL/eth/v2/beacon/blocks/head" | jq -r '.version'`
-      if [ ! -z "$result" ] && [ "$result" == "bellatrix" ]; then
+      if [ ! -z "$result" ] && ([ "$result" == "bellatrix" ] || [ "$result" == "capella" ] || [ "$result" == "deneb" ]); then
         inc_status
       fi
       ;;

@@ -9,12 +9,12 @@ services:
     environment:
       - LOTUS_API_LISTENADDRESS=/ip4/0.0.0.0/tcp/1234/http
       - LOTUS_LIBP2P_LISTENADDRESSES:
-        - /ip4/0.0.0.0/tcp/1235
-        - /ip6/::/tcp/1235
-        - /ip4/0.0.0.0/udp/1235/quic-v1
-        - /ip6/::/udp/1235/quic-v1
-        - /ip4/0.0.0.0/udp/1235/quic-v1/webtransport
-        - /ip6/::/udp/1235/quic-v1/webtransport
+        - "/ip4/0.0.0.0/tcp/1235"
+        - "/ip6/::/tcp/1235"
+        - "/ip4/0.0.0.0/udp/1235/quic-v1"
+        - "/ip6/::/udp/1235/quic-v1"
+        - "/ip4/0.0.0.0/udp/1235/quic-v1/webtransport"
+        - "/ip6/::/udp/1235/quic-v1/webtransport"
     image: cerc/lotus-mainnet:local
     volumes:
       - parameters:/var/tmp/filecoin-proof-parameters

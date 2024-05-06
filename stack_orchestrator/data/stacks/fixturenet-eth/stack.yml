@@ -4,6 +4,7 @@ description: "Ethereum Fixturenet"
 repos:
   - git.vdb.to/cerc-io/go-ethereum@v1.13.14
   - git.vdb.to/cerc-io/lighthouse
+  - github.com/dboreham/foundry
 containers:
   - cerc/go-ethereum
   - cerc/lighthouse
@@ -11,6 +12,7 @@ containers:
   - cerc/fixturenet-eth-genesis
   - cerc/fixturenet-eth-geth
   - cerc/fixturenet-eth-lighthouse
+  - cerc/foundry
 pods:
   - fixturenet-eth
   - foundry

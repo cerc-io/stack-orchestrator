@@ -2,7 +2,7 @@
 services:
   foundry:
     restart: always
-    image: ghcr.io/foundry-rs/foundry:latest
+    image: cerc/foundry:local
     command: ["while :; do sleep 600; done"]
     volumes:
       - ../config/foundry/foundry.toml:/foundry.toml

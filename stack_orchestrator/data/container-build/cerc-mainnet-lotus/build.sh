@@ -6,7 +6,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 git stash
 
 # Use a release version tag to match the modified Dockerfile replaced in next step
-git -C ${CERC_REPO_BASE_DIR}/lotus checkout v1.27.0-rc1-c
+git -C ${CERC_REPO_BASE_DIR}/lotus checkout master
 
 # Replace repo's Dockerfile with modified one
 cp ${SCRIPT_DIR}/Dockerfile ${CERC_REPO_BASE_DIR}/lotus/Dockerfile

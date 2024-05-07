@@ -67,9 +67,9 @@
     isFEVM = true
 
     # Boolean flag to filter event logs by contracts
-    filterLogsByAddresses = true
+    filterLogsByAddresses = false
     # Boolean flag to filter event logs by topics
-    filterLogsByTopics = true
+    filterLogsByTopics = false
 
   [upstream.cache]
     name = "requests"

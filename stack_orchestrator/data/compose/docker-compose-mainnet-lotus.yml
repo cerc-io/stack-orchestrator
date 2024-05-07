@@ -1,7 +1,6 @@
 volumes:
   parameters:
   lotus-repo:
-  lotus_miner_data:
   lotus_shared:
 
 services:
@@ -14,7 +13,6 @@ services:
       - parameters:/var/tmp/filecoin-proof-parameters
       - lotus-repo:/var/lib/lotus
       - lotus_shared:/root/.lotus
-      - lotus_miner_data:/root/data
     ports:
       - "1234"
       - "1235"

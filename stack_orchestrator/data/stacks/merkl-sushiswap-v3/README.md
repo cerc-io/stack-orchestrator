@@ -53,7 +53,7 @@ Inside deployment directory, open the `config.env` file  and set following env v
 
 ```bash
 # External Filecoin (ETH RPC) endpoint to point the watcher to
-CERC_ETH_RPC_ENDPOINT=https://example-lotus-endpoint/rpc/v1
+CERC_ETH_RPC_ENDPOINTS=https://example-lotus-endpoint-1/rpc/v1,https://example-lotus-endpoint-2/rpc/v1
 ```
 
 ### Start the deployment

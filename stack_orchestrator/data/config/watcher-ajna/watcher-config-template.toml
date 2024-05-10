@@ -58,7 +58,7 @@
 
 [upstream]
   [upstream.ethServer]
-    rpcProviderEndpoint = "REPLACE_WITH_CERC_ETH_RPC_ENDPOINT"
+    rpcProviderEndpoints = REPLACE_WITH_CERC_ETH_RPC_ENDPOINTS
 
     # Boolean flag to specify if rpc-eth-client should be used for RPC endpoint instead of ipld-eth-client (ipld-eth-server GQL client)
     rpcClient = true
@@ -96,3 +96,6 @@
   # Max block range of historical processing after which it waits for completion of events processing
   # If set to -1 historical processing does not wait for events processing and completes till latest canonical block
   historicalMaxFetchAhead = 10000
+
+  # Max number of retries to fetch new block after which watcher will failover to other RPC endpoints
+  maxNewBlockRetries = 3

@@ -29,7 +29,7 @@ services:
     image: cerc/watcher-sushiswap-v3:local
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
     command: ["bash", "./start-job-runner.sh"]
     volumes:
       - ../config/watcher-sushiswap-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml
@@ -37,7 +37,7 @@ services:
     ports:
       - "9000:9000"
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "9000"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9000"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -55,7 +55,7 @@ services:
     image: cerc/watcher-sushiswap-v3:local
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
     command: ["bash", "./start-server.sh"]
     volumes:
       - ../config/watcher-sushiswap-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml
@@ -64,7 +64,7 @@ services:
       - "127.0.0.1:3008:3008"
       - "9001:9001"
     healthcheck:
-      test: ["CMD", "nc", "-v", "localhost", "3008"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "3008"]
       interval: 20s
       timeout: 5s
       retries: 15

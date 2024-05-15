@@ -10,10 +10,6 @@ on:
     paths-ignore:
       - '.gitea/workflows/triggers/*'
 
-# Needed until we can incorporate docker startup into the executor container
-env:
-  DOCKER_HOST: unix:///var/run/dind.sock
-
 jobs:
   test:
     name: "Run webapp test suite"
@@ -43,10 +39,6 @@ jobs:
         run: ./scripts/build_shiv_package.sh
       - name: "Install wget" # 20240109 - Only needed until the executors are updated.
         run: apt update && apt install -y wget
-      - name: Start dockerd # Also needed until we can incorporate into the executor
-        run: |
-          dockerd -H $DOCKER_HOST --userland-proxy=false &
-          sleep 5
       - name: "Run webapp tests"
         run: ./tests/webapp-test/run-webapp-test.sh
       - name: Notify Vulcanize Slack on CI failure

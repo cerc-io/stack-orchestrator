@@ -6,10 +6,16 @@ services:
     restart: always
     environment:
       GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL}
+      CERC_GRAFANA_ALERTS_SUBGRAPH_IDS: ${CERC_GRAFANA_ALERTS_SUBGRAPH_IDS}
     volumes:
       - ../config/monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ../config/monitoring/grafana/dashboards:/etc/grafana/dashboards
+      - ../config/monitoring/update-grafana-alerts-config.sh:/update-grafana-alerts-config.sh
       - grafana_storage:/var/lib/grafana
+    user: root
+    entrypoint: ["bash", "-c"]
+    command: |
+      "/update-grafana-alerts-config.sh && /run.sh"
     ports:
       - "3000"
     healthcheck:

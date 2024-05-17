@@ -113,21 +113,31 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
         labels:
           instance: 'ajna'
           chain: 'filecoin'
+
+  - job_name: graph-node
+    metrics_path: /metrics
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['GRAPH_NODE_HOST:GRAPH_NODE_HOST_METRICS_PORT']
   ```
 
 Add scrape config as done above for any additional watcher to add it to the Watchers dashboard.
 
 ### Grafana alerts config
 
-Place the pre-configured watcher alerts rules in Grafana provisioning directory:
+Place the pre-configured alerts rules in Grafana provisioning directory:
 
   ```bash
+  # watcher alert rules
   cp monitoring-watchers-deployment/config/monitoring/watcher-alert-rules.yml monitoring-watchers-deployment/config/monitoring/grafana/provisioning/alerting/
+
+  # subgraph alert rules
+  cp monitoring-watchers-deployment/config/monitoring/subgraph-alert-rules.yml monitoring-watchers-deployment/config/monitoring/grafana/provisioning/alerting/
   ```
 
 Update the alerting contact points config (`monitoring-watchers-deployment/config/monitoring/grafana/provisioning/alerting/contactpoints.yml`) with desired contact points
 
-Add corresponding routes to the notification policies config (`monitoring-watchers-deployment/monitoring/grafana/provisioning/alerting/policies.yaml`) with appropriate object-matchers:
+Add corresponding routes to the notification policies config (`monitoring-watchers-deployment/config/monitoring/grafana/provisioning/alerting/policies.yml`) with appropriate object-matchers:
 
   ```yml
   ...
@@ -135,7 +145,7 @@ Add corresponding routes to the notification policies config (`monitoring-watche
       - receiver: SlackNotifier
       object_matchers:
         # Add matchers below
-        - ['grafana_folder', '=', 'WatcherAlerts']
+        - ['grafana_folder', '=~', 'WatcherAlerts|SubgraphAlerts']
   ```
 
 ### Env
@@ -149,6 +159,9 @@ Set the following env variables in the deployment env config file (`monitoring-w
   # Grafana server host URL to be used
   # (Optional, default: http://localhost:3000)
   GF_SERVER_ROOT_URL=
+
+  # List of subgraph ids to configure alerts for (separated by |)
+  CERC_GRAFANA_ALERTS_SUBGRAPH_IDS=
   ```
 
 ## Start the stack

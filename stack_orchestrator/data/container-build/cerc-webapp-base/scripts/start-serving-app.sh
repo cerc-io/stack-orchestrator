@@ -9,10 +9,11 @@ CERC_ENABLE_CORS="${CERC_ENABLE_CORS:-false}"
 CERC_SINGLE_PAGE_APP="${CERC_SINGLE_PAGE_APP}"
 
 if [ -z "${CERC_SINGLE_PAGE_APP}" ]; then
-  if [ 1 -eq $(find "${CERC_WEBAPP_FILES_DIR}" -name '*.html' | wc -l) ] && [ -d "${CERC_WEBAPP_FILES_DIR}/static" ]; then
-    CERC_SINGLE_PAGE_APP=true
-  else
-    CERC_SINGLE_PAGE_APP=false
+  CERC_SINGLE_PAGE_APP=false
+  if [ 1 -eq $(find "${CERC_WEBAPP_FILES_DIR}" -name '*.html' | wc -l) ]; then
+    if [ -d "${CERC_WEBAPP_FILES_DIR}/static" ] || [ -d "${CERC_WEBAPP_FILES_DIR}/assets" ]; then
+      CERC_SINGLE_PAGE_APP=true
+    fi
   fi
 fi
 
@@ -21,8 +22,11 @@ if [ "true" == "$CERC_ENABLE_CORS" ]; then
 fi
 
 if [ "true" == "$CERC_SINGLE_PAGE_APP" ]; then
+  echo "Serving content as single-page app.  If this is wrong, set 'CERC_SINGLE_PAGE_APP=false'"
   # Create a catchall redirect back to /
   CERC_HTTP_EXTRA_ARGS="$CERC_HTTP_EXTRA_ARGS --proxy http://localhost:${CERC_LISTEN_PORT}?"
+else
+  echo "Serving content normally.  If this is a single-page app, set 'CERC_SINGLE_PAGE_APP=true'"
 fi
 
 LACONIC_HOSTED_CONFIG_FILE=${LACONIC_HOSTED_CONFIG_FILE}

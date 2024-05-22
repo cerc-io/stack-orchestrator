@@ -8,19 +8,19 @@ CERC_WEBAPP_FILES_DIR="${CERC_WEBAPP_FILES_DIR:-/data}"
 CERC_ENABLE_CORS="${CERC_ENABLE_CORS:-false}"
 CERC_SINGLE_PAGE_APP="${CERC_SINGLE_PAGE_APP}"
 
-if [ -z "${CERC_SINGLE_PAGE_APP}" ]; then
+if [ -z "${CERC_SINGLE_PAGE_APP}" ] && [ 1 -eq $(find "${CERC_WEBAPP_FILES_DIR}" -name '*.html' | wc -l) ]; then
+  # If there only one HTML file, we assume an SPA.
+  CERC_SINGLE_PAGE_APP=true
+else
   CERC_SINGLE_PAGE_APP=false
-  if [ 1 -eq $(find "${CERC_WEBAPP_FILES_DIR}" -name '*.html' | wc -l) ]; then
-    if [ -d "${CERC_WEBAPP_FILES_DIR}/static" ] || [ -d "${CERC_WEBAPP_FILES_DIR}/assets" ]; then
-      CERC_SINGLE_PAGE_APP=true
-    fi
-  fi
 fi
 
+# ${var,,} is a lower-case comparison
 if [ "true" == "${CERC_ENABLE_CORS,,}" ]; then
   CERC_HTTP_EXTRA_ARGS="$CERC_HTTP_EXTRA_ARGS --cors"
 fi
 
+# ${var,,} is a lower-case comparison
 if [ "true" == "${CERC_SINGLE_PAGE_APP,,}" ]; then
   echo "Serving content as single-page app.  If this is wrong, set 'CERC_SINGLE_PAGE_APP=false'"
   # Create a catchall redirect back to /

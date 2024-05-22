@@ -17,11 +17,11 @@ if [ -z "${CERC_SINGLE_PAGE_APP}" ]; then
   fi
 fi
 
-if [ "true" == "$CERC_ENABLE_CORS" ]; then
+if [ "true" == "${CERC_ENABLE_CORS,,}" ]; then
   CERC_HTTP_EXTRA_ARGS="$CERC_HTTP_EXTRA_ARGS --cors"
 fi
 
-if [ "true" == "$CERC_SINGLE_PAGE_APP" ]; then
+if [ "true" == "${CERC_SINGLE_PAGE_APP,,}" ]; then
   echo "Serving content as single-page app.  If this is wrong, set 'CERC_SINGLE_PAGE_APP=false'"
   # Create a catchall redirect back to /
   CERC_HTTP_EXTRA_ARGS="$CERC_HTTP_EXTRA_ARGS --proxy http://localhost:${CERC_LISTEN_PORT}?"

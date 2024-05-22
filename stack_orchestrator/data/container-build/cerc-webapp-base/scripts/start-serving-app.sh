@@ -8,11 +8,13 @@ CERC_WEBAPP_FILES_DIR="${CERC_WEBAPP_FILES_DIR:-/data}"
 CERC_ENABLE_CORS="${CERC_ENABLE_CORS:-false}"
 CERC_SINGLE_PAGE_APP="${CERC_SINGLE_PAGE_APP}"
 
-if [ -z "${CERC_SINGLE_PAGE_APP}" ] && [ 1 -eq $(find "${CERC_WEBAPP_FILES_DIR}" -name '*.html' | wc -l) ]; then
-  # If there only one HTML file, we assume an SPA.
-  CERC_SINGLE_PAGE_APP=true
-else
-  CERC_SINGLE_PAGE_APP=false
+if [ -z "${CERC_SINGLE_PAGE_APP}" ]; then 
+  # If there is only one HTML file, assume an SPA.
+  if [ 1 -eq $(find "${CERC_WEBAPP_FILES_DIR}" -name '*.html' | wc -l) ]; then
+    CERC_SINGLE_PAGE_APP=true
+  else
+    CERC_SINGLE_PAGE_APP=false
+  fi
 fi
 
 # ${var,,} is a lower-case comparison

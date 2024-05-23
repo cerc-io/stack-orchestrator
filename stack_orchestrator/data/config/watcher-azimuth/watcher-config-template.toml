@@ -13,8 +13,8 @@
 
 [upstream]
   [upstream.ethServer]
-    gqlApiEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_GQL"
-    rpcProviderEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_RPC"
+    gqlApiEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_GQL_ENDPOINT"
+    rpcProviderEndpoints = REPLACE_WITH_CERC_ETH_RPC_ENDPOINTS
 
 [jobQueue]
   historicalLogsBlockRange = REPLACE_WITH_CERC_HISTORICAL_BLOCK_RANGE

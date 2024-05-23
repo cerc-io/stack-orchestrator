@@ -1151,6 +1151,230 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "dark-green",
+                    "value": null
+                  },
+                  {
+                    "color": "dark-orange",
+                    "value": 8
+                  },
+                  {
+                    "color": "dark-red",
+                    "value": 16
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "diff_external"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds",
+                      "seriesBy": "last"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "diff_external"
+                },
+                "properties": [
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green",
+                          "value": null
+                        },
+                        {
+                          "color": "orange",
+                          "value": 8
+                        },
+                        {
+                          "color": "red",
+                          "value": 16
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 12,
+            "x": 0,
+            "y": 12
+          },
+          "id": 33,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "disableTextWrap": false,
+              "editorMode": "code",
+              "expr": "latest_upstream_block_number{job=~\"$job\", instance=~\"$watcher\"}",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "{{__name__}}",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_indexed\"}",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "{{__name__}}",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "latest_block_number{job=\"chain_heads\", chain=\"$target_chain\"}",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "{{__name__}}",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "diff",
+          "transformations": [
+            {
+              "id": "calculateField",
+              "options": {
+                "alias": "diff_upstream",
+                "binary": {
+                  "left": "latest_upstream_block_number",
+                  "operator": "-",
+                  "right": "sync_status_block_number"
+                },
+                "mode": "binary",
+                "reduce": {
+                  "reducer": "sum"
+                },
+                "replaceFields": false
+              }
+            },
+            {
+              "id": "calculateField",
+              "options": {
+                "alias": "diff_external",
+                "binary": {
+                  "left": "latest_block_number",
+                  "operator": "-",
+                  "right": "sync_status_block_number"
+                },
+                "mode": "binary",
+                "reduce": {
+                  "reducer": "sum"
+                },
+                "replaceFields": false
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": false,
+                  "latest_block_number": true,
+                  "latest_upstream_block_number": true,
+                  "sync_status_block_number": true
+                },
+                "includeByName": {},
+                "indexByName": {},
+                "renameByName": {}
+              }
+            }
+          ],
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
           "description": "Total number of pgboss jobs in the db",
           "fieldConfig": {
             "defaults": {
@@ -1208,8 +1432,8 @@
           },
           "gridPos": {
             "h": 6,
-            "w": 12,
-            "x": 0,
+            "w": 6,
+            "x": 12,
             "y": 12
           },
           "id": 5,
@@ -1310,8 +1534,8 @@
           },
           "gridPos": {
             "h": 6,
-            "w": 12,
-            "x": 12,
+            "w": 6,
+            "x": 18,
             "y": 12
           },
           "id": 15,
@@ -1367,16 +1591,27 @@
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
-                "fillOpacity": 90,
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
                 "lineWidth": 1,
+                "pointSize": 5,
                 "scaleDistribution": {
                   "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
                 },
                 "thresholdsStyle": {
                   "mode": "off"
@@ -1403,26 +1638,16 @@
           },
           "id": 28,
           "options": {
-            "barRadius": 0,
-            "barWidth": 0.97,
-            "fullHighlight": false,
-            "groupWidth": 1,
             "legend": {
               "calcs": [],
               "displayMode": "list",
               "placement": "bottom",
               "showLegend": true
             },
-            "orientation": "auto",
-            "showValue": "auto",
-            "stacking": "none",
             "tooltip": {
               "mode": "single",
               "sort": "none"
-            },
-            "xField": "Time",
-            "xTickLabelRotation": 0,
-            "xTickLabelSpacing": 0
+            }
           },
           "pluginVersion": "10.2.3",
           "targets": [
@@ -1438,15 +1663,15 @@
               "format": "time_series",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
-              "instant": true,
+              "instant": false,
               "legendFormat": "{{method}}, {{provider}}",
-              "range": false,
+              "range": true,
               "refId": "A",
               "useBackend": false
             }
           ],
           "title": "ETH RPC request failures",
-          "type": "barchart"
+          "type": "timeseries"
         },
         {
           "datasource": {
@@ -1561,16 +1786,27 @@
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
-                "fillOpacity": 90,
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
                 "gradientMode": "none",
                 "hideFrom": {
                   "legend": false,
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
                 "lineWidth": 1,
+                "pointSize": 5,
                 "scaleDistribution": {
                   "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
                 },
                 "thresholdsStyle": {
                   "mode": "off"
@@ -1597,26 +1833,16 @@
           },
           "id": 30,
           "options": {
-            "barRadius": 0,
-            "barWidth": 0.97,
-            "fullHighlight": false,
-            "groupWidth": 1,
             "legend": {
               "calcs": [],
               "displayMode": "list",
               "placement": "bottom",
               "showLegend": true
             },
-            "orientation": "auto",
-            "showValue": "auto",
-            "stacking": "none",
             "tooltip": {
               "mode": "single",
               "sort": "none"
-            },
-            "xField": "Time",
-            "xTickLabelRotation": 0,
-            "xTickLabelSpacing": 0
+            }
           },
           "pluginVersion": "10.2.3",
           "targets": [
@@ -1632,15 +1858,15 @@
               "format": "time_series",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
-              "instant": true,
+              "instant": false,
               "legendFormat": "{{method}}, {{provider}}",
-              "range": false,
+              "range": true,
               "refId": "A",
               "useBackend": false
             }
           ],
           "title": "Total ETH RPC request failures (across all watchers)",
-          "type": "barchart"
+          "type": "timeseries"
         },
         {
           "datasource": {
@@ -1805,7 +2031,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               }
@@ -1950,7 +2177,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               }
@@ -2097,7 +2325,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               }
@@ -2263,7 +2492,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               }
@@ -2360,7 +2590,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               }
@@ -2456,7 +2687,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               }
@@ -2610,6 +2842,6 @@
   "timepicker": {},
   "timezone": "",
   "title": "Watchers",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }

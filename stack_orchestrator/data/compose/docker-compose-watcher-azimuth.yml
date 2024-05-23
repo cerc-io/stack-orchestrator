@@ -32,8 +32,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
       CERC_HISTORICAL_BLOCK_RANGE: 500
       CONTRACT_ADDRESS: 0x223c067F8CF28ae173EE5CafEa60cA44C335fecB
       CONTRACT_NAME: Azimuth
@@ -47,7 +47,7 @@ services:
     ports:
       - "9000"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9000"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9000"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -66,8 +66,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
     working_dir: /app/packages/azimuth-watcher
     command: "./start-server.sh"
     volumes:
@@ -77,7 +77,7 @@ services:
     ports:
       - "3001"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "3001"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "3001"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -94,8 +94,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
       CONTRACT_ADDRESS: 0x325f68d32BdEe6Ed86E7235ff2480e2A433D6189
       CONTRACT_NAME: Censures
       STARTING_BLOCK: 6784954
@@ -108,7 +108,7 @@ services:
     ports:
       - "9002"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9002"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9002"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -127,8 +127,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
     working_dir: /app/packages/censures-watcher
     command: "./start-server.sh"
     volumes:
@@ -138,7 +138,7 @@ services:
     ports:
       - "3002"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "3002"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "3002"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -155,8 +155,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
       CONTRACT_ADDRESS: 0xe7e7f69b34D7d9Bd8d61Fb22C33b22708947971A
       CONTRACT_NAME: Claims
       STARTING_BLOCK: 6784941
@@ -169,7 +169,7 @@ services:
     ports:
       - "9004"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9004"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9004"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -188,8 +188,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
     working_dir: /app/packages/claims-watcher
     command: "./start-server.sh"
     volumes:
@@ -199,7 +199,7 @@ services:
     ports:
       - "3003"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "3003"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "3003"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -216,8 +216,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
       CONTRACT_ADDRESS: 0x8C241098C3D3498Fe1261421633FD57986D74AeA
       CONTRACT_NAME: ConditionalStarRelease
       STARTING_BLOCK: 6828004
@@ -230,7 +230,7 @@ services:
     ports:
       - "9006"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9006"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9006"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -249,8 +249,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
     working_dir: /app/packages/conditional-star-release-watcher
     command: "./start-server.sh"
     volumes:
@@ -260,7 +260,7 @@ services:
     ports:
       - "3004"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "3004"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "3004"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -277,8 +277,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
       CONTRACT_ADDRESS: 0xf6b461fE1aD4bd2ce25B23Fe0aff2ac19B3dFA76
       CONTRACT_NAME: DelegatedSending
       STARTING_BLOCK: 6784956
@@ -291,7 +291,7 @@ services:
     ports:
       - "9008"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9008"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9008"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -310,8 +310,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
     working_dir: /app/packages/delegated-sending-watcher
     command: "./start-server.sh"
     volumes:
@@ -321,7 +321,7 @@ services:
     ports:
       - "3005"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "3005"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "3005"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -338,8 +338,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
       CONTRACT_ADDRESS: 0x33EeCbf908478C10614626A9D304bfe18B78DD73
       CONTRACT_NAME: Ecliptic
       STARTING_BLOCK: 13692129
@@ -352,7 +352,7 @@ services:
     ports:
       - "9010"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9010"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9010"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -371,8 +371,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
     working_dir: /app/packages/ecliptic-watcher
     command: "./start-server.sh"
     volumes:
@@ -382,7 +382,7 @@ services:
     ports:
       - "3006"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "3006"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "3006"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -399,8 +399,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
       CONTRACT_ADDRESS: 0x86cd9cd0992F04231751E3761De45cEceA5d1801
       CONTRACT_NAME: LinearStarRelease
       STARTING_BLOCK: 6784943
@@ -413,7 +413,7 @@ services:
     ports:
       - "9012"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9012"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9012"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -432,8 +432,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
     working_dir: /app/packages/linear-star-release-watcher
     command: "./start-server.sh"
     volumes:
@@ -443,7 +443,7 @@ services:
     ports:
       - "3007"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "3007"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "3007"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -460,8 +460,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
       CONTRACT_ADDRESS: 0x7fEcaB617c868Bb5996d99D95200D2Fa708218e4
       CONTRACT_NAME: Polls
       STARTING_BLOCK: 6784912
@@ -474,7 +474,7 @@ services:
     ports:
       - "9014"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "9014"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9014"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -493,8 +493,8 @@ services:
         condition: service_healthy
     environment:
       CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
-      CERC_IPLD_ETH_RPC: ${CERC_IPLD_ETH_RPC}
-      CERC_IPLD_ETH_GQL: ${CERC_IPLD_ETH_GQL}
+      CERC_ETH_RPC_ENDPOINTS: ${CERC_ETH_RPC_ENDPOINTS}
+      CERC_IPLD_ETH_GQL_ENDPOINT: ${CERC_IPLD_ETH_GQL_ENDPOINT}
     working_dir: /app/packages/polls-watcher
     command: "./start-server.sh"
     volumes:
@@ -504,7 +504,7 @@ services:
     ports:
       - "3008"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "3008"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "3008"]
       interval: 20s
       timeout: 5s
       retries: 15
@@ -542,7 +542,7 @@ services:
     ports:
       - "0.0.0.0:4000:4000"
     healthcheck:
-      test: ["CMD", "nc", "-vz", "localhost", "4000"]
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "4000"]
       interval: 20s
       timeout: 5s
       retries: 15

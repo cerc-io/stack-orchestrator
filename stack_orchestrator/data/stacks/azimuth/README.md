@@ -4,7 +4,7 @@ Instructions to setup and deploy Azimuth Watcher stack
 
 ## Setup
 
-Prerequisite: `ipld-eth-server` RPC and GQL endpoints
+Prerequisite: External RPC endpoints
 
 Clone required repositories:
 
@@ -94,7 +94,7 @@ Inside the deployment directory, open the file `config.env` and add variable to 
 
   ```bash
   # External RPC endpoints
-  CERC_IPLD_ETH_RPC=
+  CERC_ETH_RPC_ENDPOINTS=https://example-rpc-endpoint-1,https://example-rpc-endpoint-2
   ```
 
 * NOTE: If RPC endpoint is on the host machine, use `host.docker.internal` as the hostname to access the host port, or use the `ip a` command to find the IP address of the `docker0` interface (this will usually be something like `172.17.0.1` or `172.18.0.1`)
@@ -120,4 +120,7 @@ To stop all azimuth services and also delete data:
 
 ```bash
 laconic-so deployment --dir azimuth-deployment stop --delete-volumes
+
+# Remove deployment directory (deployment will have to be recreated for a re-run)
+rm -r azimuth-deployment
 ```

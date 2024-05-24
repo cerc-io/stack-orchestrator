@@ -53,6 +53,8 @@ services:
       --nodiscover
       --maxpeers=0
       --rollup.disabletxpoolgossip=true
+      --override.canyon="${OVERRIDE_CANYON:-0}"
+      --override.ecotone="${OVERRIDE_ECOTONE:-1716843599}"
     env_file: 
       - ../config/mainnet-blast/${NETWORK:-mainnet}.config
     depends_on:
@@ -67,13 +69,14 @@ services:
       - "7300"
     command: >
       op-node
-      --l1="https://eth-mainnet-1.vdb.to/"
-      --metrics.enabled
+      --l1="${L1_RPC:-https://eth-mainnet-1.vdb.to/}"
+      --l1.beacon="${L1_RPC_BEACON:-https://eth-mainnet-1.vdb.to/}"
       --l1.rpckind="any"
       --l1.trustrpc=true
-      --l2="http://blast-geth:8551"
+      --l2="${L2_RPC:-http://blast-geth:8551}"
       --l2.jwt-secret=/blast/jwt.txt
       --rollup.config="/blast/rollup.json"
+      --metrics.enabled
     depends_on:
       - blast-geth
     env_file: 

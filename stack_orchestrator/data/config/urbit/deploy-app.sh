@@ -17,7 +17,7 @@ if [ -d ${app_desk_dir} ]; then
   exit 0
 fi
 
-app_files=/app-builds/${CERC_URBIT_APP}
+app_files=/app-builds/${CERC_URBIT_APP}/urbit-files
 
 # Loop until the app's build appears
 while [ ! -d "${app_files}/build" ]; do
@@ -44,16 +44,15 @@ hood () {
 hood "merge %${CERC_URBIT_APP} our %landscape"
 hood "mount %${CERC_URBIT_APP}"
 
+rm "${app_desk_dir}/desk.bill"  # Don't install the landscape apps
+rm "${app_desk_dir}/desk.ship"
+
 
 echo "Copying files from ${app_files}"
 
 # Copy over build to desk data dir
 cp -r ${app_files}/* ${app_desk_dir}
 rm ${app_desk_dir}/desk.docket-0 # Remove until we have a valid glob path; it's added back again below
-
-# TODO: why? =>
-rm "${app_desk_dir}/desk.bill"
-rm "${app_desk_dir}/desk.ship"
 
 # Commit changes and create a glob
 hood "commit %${CERC_URBIT_APP}"

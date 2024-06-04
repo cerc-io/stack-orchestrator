@@ -40,8 +40,6 @@ stack: uniswap-urbit-app
 deploy-to: compose
 network:
   ports:
-    proxy-server:
-      - '4000:4000'
     urbit-fake-ship:
       - '8080:80'
     ipfs:
@@ -86,7 +84,8 @@ Inside the deployment directory, open the file `config.env` and set the followin
   # Set this to GQL proxy server endpoint for uniswap app
   # (Eg. http://localhost:4000/v1/graphql - in case stack is being run locally with proxy enabled)
   # (Eg. https://abc.xyz.com/v1/graphql - in case https://abc.xyz.com is pointed to the proxy endpoint)
-  CERC_UNISWAP_GQL=http://localhost:4000/v1/graphql
+  CERC_UNISWAP_GQL=/apps/uniswap-proxy/v1/graphql
+  CERC_UNISWAP_API=/apps/uniswap-proxy/v2
 
   # Optional
 

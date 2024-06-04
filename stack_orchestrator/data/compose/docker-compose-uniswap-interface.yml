@@ -7,12 +7,12 @@ services:
     environment:
       - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
       - REACT_APP_AWS_API_ENDPOINT=${CERC_UNISWAP_GQL}
+      - REACT_APP_UNISWAP_API_URL=${CERC_UNISWAP_API}
     command: ["./build-app.sh"]
     volumes:
       - ../config/uniswap-interface/build-app.sh:/app/build-app.sh
       - urbit_app_builds:/app-builds
-      - ../config/uniswap-interface/urbit-files/mar:/app/mar
-      - ../config/uniswap-interface/urbit-files/desk.docket-0:/app/desk.docket-0
+      - ../config/uniswap-interface/urbit-files:/app/urbit-files
 
 volumes:
   urbit_app_builds:

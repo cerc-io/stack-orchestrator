@@ -45,7 +45,18 @@ scrape_configs:
     metrics_path: /metrics
     scheme: http
     static_configs:
-      - targets: ['chain-head-exporter:5000']
+      - targets: ['ethereum-chain-head-exporter:5000']
+        labels:
+          instance: 'external'
+          chain: 'ethereum'
+      - targets: ['filecoin-chain-head-exporter:5000']
+        labels:
+          instance: 'external'
+          chain: 'filecoin'
+      - targets: ['graph-node-upstream-head-exporter:5000']
+        labels:
+          instance: 'graph-node'
+          chain: 'filecoin'
 
   - job_name: 'postgres'
     scrape_interval: 30s
@@ -74,3 +85,11 @@ scrape_configs:
       # - targets: ['example-host:1317']
     params:
       format: ['prometheus']
+
+  - job_name: graph-node
+    metrics_path: /metrics
+    scrape_interval: 30s
+    scheme: http
+    static_configs:
+      # Add graph-node targets to be monitored below
+      # - targets: ['graph-node:8040']

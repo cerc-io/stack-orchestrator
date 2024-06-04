@@ -1,0 +1,20 @@
+apiVersion: 1
+
+datasources:
+  - name: Graph Node Postgres
+    type: postgres
+    jsonData:
+      database: graph-node
+      sslmode: 'disable'
+      maxOpenConns: 100
+      maxIdleConns: 100
+      maxIdleConnsAuto: true
+      connMaxLifetime: 14400
+      postgresVersion: 1411 # 903=9.3, 1000=10, 1411=14.11
+      timescaledb: false
+    user: graph-node
+    # # Add URL for graph-node database
+    # url: graph-node-db:5432
+    # # Set password for graph-node database
+    # secureJsonData:
+    #   password: 'password'

@@ -65,6 +65,203 @@
           "fieldConfig": {
             "defaults": {
               "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "color-text"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "yellow",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 12,
+            "x": 0,
+            "y": 1
+          },
+          "id": 34,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "disableTextWrap": false,
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "max(watcher_info{job=\"$job\", instance=\"$watcher\"}) by (version, commitHash)",
+              "format": "table",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": true,
+              "legendFormat": "",
+              "range": false,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Value": true
+                },
+                "includeByName": {},
+                "indexByName": {
+                  "Time": 0,
+                  "Value": 3,
+                  "commitHash": 2,
+                  "version": 1
+                },
+                "renameByName": {
+                  "commitHash": "Commit hash",
+                  "version": "Release"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "semi-dark-green",
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "semi-dark-green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 35
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 12,
+            "y": 1
+          },
+          "id": 3,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "10.2.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "exemplar": false,
+              "expr": "last_block_process_duration_seconds{job=~\"$job\", instance=~\"$watcher\"}",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "{{__name__}}",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Last block process duration (s)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
                 "fixedColor": "blue",
                 "mode": "shades"
               },
@@ -85,7 +282,7 @@
             "h": 3,
             "w": 4,
             "x": 0,
-            "y": 1
+            "y": 4
           },
           "id": 25,
           "options": {
@@ -155,7 +352,7 @@
             "h": 3,
             "w": 4,
             "x": 4,
-            "y": 1
+            "y": 4
           },
           "id": 11,
           "options": {
@@ -224,7 +421,7 @@
             "h": 3,
             "w": 4,
             "x": 8,
-            "y": 1
+            "y": 4
           },
           "id": 12,
           "options": {
@@ -251,7 +448,7 @@
               },
               "disableTextWrap": false,
               "editorMode": "builder",
-              "expr": "latest_block_number{job=\"chain_heads\", chain=\"$target_chain\"}",
+              "expr": "latest_block_number{job=\"chain_heads\", chain=\"$target_chain\", instance=\"external\", exported_chain=\"\"}",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
               "instant": false,
@@ -263,108 +460,6 @@
           ],
           "title": "External head ($target_chain)",
           "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "fixedColor": "semi-dark-green",
-                "mode": "thresholds"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "semi-dark-green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 35
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 6,
-            "w": 12,
-            "x": 12,
-            "y": 1
-          },
-          "id": 3,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "10.2.2",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "exemplar": false,
-              "expr": "last_block_process_duration_seconds{job=~\"$job\", instance=~\"$watcher\"}",
-              "fullMetaSearch": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "{{__name__}}",
-              "range": true,
-              "refId": "A",
-              "useBackend": false
-            }
-          ],
-          "title": "Last block process duration (s)",
-          "type": "timeseries"
         },
         {
           "datasource": {
@@ -420,7 +515,7 @@
             "h": 2.5,
             "w": 4,
             "x": 0,
-            "y": 4
+            "y": 7
           },
           "id": 20,
           "options": {
@@ -497,7 +592,7 @@
             "h": 2,
             "w": 4,
             "x": 4,
-            "y": 4
+            "y": 7
           },
           "id": 22,
           "options": {
@@ -608,7 +703,7 @@
             "h": 2,
             "w": 4,
             "x": 8,
-            "y": 4
+            "y": 7
           },
           "id": 24,
           "options": {
@@ -638,7 +733,7 @@
               },
               "disableTextWrap": false,
               "editorMode": "builder",
-              "expr": "latest_block_number{job=\"chain_heads\", chain=\"$target_chain\"}",
+              "expr": "latest_block_number{job=\"chain_heads\", chain=\"$target_chain\", instance=\"external\"}",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
               "instant": false,
@@ -687,6 +782,107 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "orange",
+                "mode": "shades"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          },
+          "id": 6,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "10.2.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "last_block_num_events_total{job=~\"$job\", instance=~\"$watcher\"}",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "{{__name__}}",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Number of events in the last block",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
           "description": "Watcher sync status block numbers",
           "fieldConfig": {
             "defaults": {
@@ -711,7 +907,7 @@
             "h": 3,
             "w": 8,
             "x": 4,
-            "y": 6
+            "y": 9
           },
           "id": 13,
           "options": {
@@ -836,7 +1032,7 @@
             "h": 2.5,
             "w": 4,
             "x": 0,
-            "y": 6.5
+            "y": 9.5
           },
           "id": 16,
           "options": {
@@ -881,107 +1077,6 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "fixedColor": "orange",
-                "mode": "shades"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 12,
-            "x": 12,
-            "y": 7
-          },
-          "id": 6,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "10.2.2",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
-              },
-              "disableTextWrap": false,
-              "editorMode": "builder",
-              "expr": "last_block_num_events_total{job=~\"$job\", instance=~\"$watcher\"}",
-              "fullMetaSearch": false,
-              "includeNullMetadata": true,
-              "instant": false,
-              "legendFormat": "{{__name__}}",
-              "range": true,
-              "refId": "A",
-              "useBackend": false
-            }
-          ],
-          "title": "Number of events in the last block",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
           "description": "Total number of entries in the block_progress and event table",
           "fieldConfig": {
             "defaults": {
@@ -1006,7 +1101,7 @@
             "h": 3,
             "w": 6,
             "x": 0,
-            "y": 9
+            "y": 12
           },
           "id": 7,
           "options": {
@@ -1092,7 +1187,7 @@
             "h": 3,
             "w": 6,
             "x": 6,
-            "y": 9
+            "y": 12
           },
           "id": 4,
           "options": {
@@ -1256,9 +1351,9 @@
           },
           "gridPos": {
             "h": 6,
-            "w": 12,
+            "w": 8,
             "x": 0,
-            "y": 12
+            "y": 15
           },
           "id": 33,
           "options": {
@@ -1311,7 +1406,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "latest_block_number{job=\"chain_heads\", chain=\"$target_chain\"}",
+              "expr": "latest_block_number{job=\"chain_heads\", chain=\"$target_chain\", instance=\"external\"}",
               "hide": false,
               "instant": false,
               "legendFormat": "{{__name__}}",
@@ -1432,9 +1527,9 @@
           },
           "gridPos": {
             "h": 6,
-            "w": 6,
-            "x": 12,
-            "y": 12
+            "w": 8,
+            "x": 8,
+            "y": 15
           },
           "id": 5,
           "options": {
@@ -1534,9 +1629,9 @@
           },
           "gridPos": {
             "h": 6,
-            "w": 6,
-            "x": 18,
-            "y": 12
+            "w": 8,
+            "x": 16,
+            "y": 15
           },
           "id": 15,
           "options": {
@@ -1631,10 +1726,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 7,
+            "h": 6,
             "w": 12,
             "x": 0,
-            "y": 18
+            "y": 21
           },
           "id": 28,
           "options": {
@@ -1734,10 +1829,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 7,
+            "h": 6,
             "w": 12,
             "x": 12,
-            "y": 18
+            "y": 21
           },
           "id": 26,
           "options": {
@@ -1826,10 +1921,10 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 7,
+            "h": 6,
             "w": 12,
             "x": 0,
-            "y": 25
+            "y": 27
           },
           "id": 30,
           "options": {
@@ -1933,10 +2028,10 @@
             ]
           },
           "gridPos": {
-            "h": 7,
+            "h": 6,
             "w": 12,
             "x": 12,
-            "y": 25
+            "y": 27
           },
           "id": 32,
           "options": {
@@ -2043,7 +2138,7 @@
             "h": 5,
             "w": 8,
             "x": 0,
-            "y": 32
+            "y": 33
           },
           "id": 18,
           "options": {
@@ -2189,7 +2284,7 @@
             "h": 5,
             "w": 8,
             "x": 8,
-            "y": 32
+            "y": 33
           },
           "id": 17,
           "options": {
@@ -2337,7 +2432,7 @@
             "h": 5,
             "w": 8,
             "x": 16,
-            "y": 32
+            "y": 33
           },
           "id": 19,
           "options": {
@@ -2504,7 +2599,7 @@
             "h": 6,
             "w": 8,
             "x": 0,
-            "y": 37
+            "y": 38
           },
           "hide": true,
           "id": 8,
@@ -2602,7 +2697,7 @@
             "h": 6,
             "w": 8,
             "x": 8,
-            "y": 37
+            "y": 38
           },
           "id": 9,
           "options": {
@@ -2699,7 +2794,7 @@
             "h": 6,
             "w": 8,
             "x": 16,
-            "y": 37
+            "y": 38
           },
           "id": 10,
           "options": {

@@ -28,15 +28,37 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  chain-head-exporter:
+  ethereum-chain-head-exporter:
     image: cerc/watcher-ts:local
     restart: always
     working_dir: /app/packages/cli
     environment:
-      ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT}
-      FIL_RPC_ENDPOINT: ${CERC_FIL_RPC_ENDPOINT}
+      ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT:-https://mainnet.infura.io/v3}
       ETH_RPC_API_KEY: ${CERC_INFURA_KEY}
-      PORT: ${CERC_METRICS_PORT}
+    command: ["sh", "-c", "yarn export-metrics:chain-heads"]
+    ports:
+      - '5000'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  filecoin-chain-head-exporter:
+    image: cerc/watcher-ts:local
+    restart: always
+    working_dir: /app/packages/cli
+    environment:
+      ETH_RPC_ENDPOINT: ${CERC_FIL_RPC_ENDPOINT:-https://api.node.glif.io/rpc/v1}
+    command: ["sh", "-c", "yarn export-metrics:chain-heads"]
+    ports:
+      - '5000'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  graph-node-upstream-head-exporter:
+    image: cerc/watcher-ts:local
+    restart: always
+    working_dir: /app/packages/cli
+    environment:
+      ETH_RPC_ENDPOINT: ${GRAPH_NODE_RPC_ENDPOINT}
     command: ["sh", "-c", "yarn export-metrics:chain-heads"]
     ports:
       - '5000'

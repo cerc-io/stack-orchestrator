@@ -24,7 +24,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="azimuth", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="azimuth", instance="azimuth", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -100,7 +100,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="censures", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="azimuth", instance="censures", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -176,7 +176,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="claims", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="azimuth", instance="claims", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -252,7 +252,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="conditional_star_release", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="azimuth", instance="conditional_star_release", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -328,7 +328,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="delegated_sending", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="azimuth", instance="delegated_sending", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -404,7 +404,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="ecliptic", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="azimuth", instance="ecliptic", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -480,7 +480,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="linear_star_release", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="azimuth", instance="linear_star_release", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -556,7 +556,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="azimuth", instance="polls", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="azimuth", instance="polls", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -634,7 +634,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="sushi", instance="sushiswap", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="sushi", instance="sushiswap", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -710,7 +710,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="sushi", instance="merkl_sushiswap", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="sushi", instance="merkl_sushiswap", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true
@@ -788,7 +788,7 @@ groups:
                 uid: PBFA97CFB590B2093
               disableTextWrap: false
               editorMode: code
-              expr: latest_block_number - on(chain) group_right sync_status_block_number{job="ajna", instance="ajna", kind="latest_indexed"}
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="ajna", instance="ajna", kind="latest_indexed"}
               fullMetaSearch: false
               includeNullMetadata: true
               instant: true

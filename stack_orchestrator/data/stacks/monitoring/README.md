@@ -134,6 +134,29 @@ Note: Use `host.docker.internal` as host to access ports on the host machine
 
 Place the dashboard json files in grafana dashboards config directory (`monitoring-deployment/config/monitoring/grafana/dashboards`) in the deployment folder
 
+#### Graph Node Config
+
+For graph-node dashboard postgres datasource needs to be setup in `monitoring-deployment/config/monitoring/grafana/provisioning/datasources/graph-node-postgres.yml` (in deployment folder)
+
+```yml
+# graph-node-postgres.yml
+...
+datasources:
+  - name: Graph Node Postgres
+    type: postgres
+    jsonData:
+      # Set name to remote graph-node database name
+      database: graph-node
+      ...
+    # Set user to remote graph-node database username
+    user: graph-node
+    # Add URL for remote graph-node database
+    url: graph-node-db:5432
+    # Set password for graph-node database
+    secureJsonData:
+      password: 'password'
+```
+
 ### Env
 
 Set the following env variables in the deployment env config file (`monitoring-deployment/config.env`):
@@ -156,6 +179,11 @@ Set the following env variables in the deployment env config file (`monitoring-d
   # Grafana server host URL (used in various links in alerts, etc.)
   # (Optional, default: http://localhost:3000)
   GF_SERVER_ROOT_URL=
+
+  
+  # RPC endpoint used by graph-node for upstream head metric
+  # (Optional, default: https://mainnet.infura.io/v3)
+  GRAPH_NODE_RPC_ENDPOINT=
   ```
 
 ## Start the stack

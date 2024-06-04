@@ -22,6 +22,7 @@ services:
       GRAPH_ETHEREUM_JSON_RPC_TIMEOUT: ${GRAPH_ETHEREUM_JSON_RPC_TIMEOUT:-180}
       GRAPH_ETHEREUM_REQUEST_RETRIES: ${GRAPH_ETHEREUM_REQUEST_RETRIES:-10}
       GRAPH_ETHEREUM_MAX_BLOCK_RANGE_SIZE: ${GRAPH_ETHEREUM_MAX_BLOCK_RANGE_SIZE:-2000}
+      GRAPH_ETHEREUM_BLOCK_INGESTOR_MAX_CONCURRENT_JSON_RPC_CALLS_FOR_TXN_RECEIPTS: ${GRAPH_ETHEREUM_BLOCK_INGESTOR_MAX_CONCURRENT_JSON_RPC_CALLS_FOR_TXN_RECEIPTS:-1000}
     entrypoint: ["bash", "-c"]
     # Wait for ETH RPC endpoint to be up when running with fixturenet-lotus
     command: |
@@ -31,6 +32,7 @@ services:
       - "8001"
       - "8020"
       - "8030"
+      - "8040"
     healthcheck:
       test: ["CMD", "nc", "-vz", "localhost", "8020"]
       interval: 30s

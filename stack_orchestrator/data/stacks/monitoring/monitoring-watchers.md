@@ -57,35 +57,35 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
     metrics_path: /metrics
     scheme: http
     static_configs:
-      - targets: ['AZIMUTH_WATCHER_HOST:AZIMUTH_WATCHER_PORT']
+      - targets: ['AZIMUTH_WATCHER_HOST:AZIMUTH_WATCHER_METRICS_PORT', 'AZIMUTH_WATCHER_HOST:AZIMUTH_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'azimuth'
           chain: 'ethereum'
-      - targets: ['CENSURES_WATCHER_HOST:CENSURES_WATCHER_PORT']
+      - targets: ['CENSURES_WATCHER_HOST:CENSURES_WATCHER_METRICS_PORT', 'CENSURES_WATCHER_HOST:CENSURES_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'censures'
           chain: 'ethereum'
-      - targets: ['CLAIMS_WATCHER_HOST:CLAIMS_WATCHER_PORT']
+      - targets: ['CLAIMS_WATCHER_HOST:CLAIMS_WATCHER_METRICS_PORT', 'CLAIMS_WATCHER_HOST:CLAIMS_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'claims'
           chain: 'ethereum'
-      - targets: ['CONDITIONAL_STAR_RELEASE_WATCHER_HOST:CONDITIONAL_STAR_RELEASE_WATCHER_PORT']
+      - targets: ['CONDITIONAL_STAR_RELEASE_WATCHER_HOST:CONDITIONAL_STAR_RELEASE_WATCHER_METRICS_PORT', 'CONDITIONAL_STAR_RELEASE_WATCHER_HOST:CONDITIONAL_STAR_RELEASE_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'conditional_star_release'
           chain: 'ethereum'
-      - targets: ['DELEGATED_SENDING_WATCHER_HOST:DELEGATED_SENDING_WATCHER_PORT']
+      - targets: ['DELEGATED_SENDING_WATCHER_HOST:DELEGATED_SENDING_WATCHER_METRICS_PORT', 'DELEGATED_SENDING_WATCHER_HOST:DELEGATED_SENDING_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'delegated_sending'
           chain: 'ethereum'
-      - targets: ['ECLIPTIC_WATCHER_HOST:ECLIPTIC_WATCHER_PORT']
+      - targets: ['ECLIPTIC_WATCHER_HOST:ECLIPTIC_WATCHER_METRICS_PORT', 'ECLIPTIC_WATCHER_HOST:ECLIPTIC_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'ecliptic'
           chain: 'ethereum'
-      - targets: ['LINEAR_STAR_WATCHER_HOST:LINEAR_STAR_WATCHER_PORT']
+      - targets: ['LINEAR_STAR_WATCHER_HOST:LINEAR_STAR_WATCHER_METRICS_PORT', 'LINEAR_STAR_WATCHER_HOST:LINEAR_STAR_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'linear_star_release'
           chain: 'ethereum'
-      - targets: ['POLLS_WATCHER_HOST:POLLS_WATCHER_PORT']
+      - targets: ['POLLS_WATCHER_HOST:POLLS_WATCHER_METRICS_PORT', 'POLLS_WATCHER_HOST:POLLS_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'polls'
           chain: 'ethereum'
@@ -95,11 +95,11 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
     metrics_path: /metrics
     scheme: http
     static_configs:
-      - targets: ['SUSHISWAP_WATCHER_HOST:SUSHISWAP_WATCHER_PORT']
+      - targets: ['SUSHISWAP_WATCHER_HOST:SUSHISWAP_WATCHER_METRICS_PORT', 'SUSHISWAP_WATCHER_HOST:SUSHISWAP_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'sushiswap'
           chain: 'filecoin'
-      - targets: ['MERKLE_SUSHISWAP_WATCHER_HOST:MERKLE_SUSHISWAP_WATCHER_PORT']
+      - targets: ['MERKLE_SUSHISWAP_WATCHER_HOST:MERKLE_SUSHISWAP_WATCHER_METRICS_PORT', 'MERKLE_SUSHISWAP_WATCHER_HOST:MERKLE_SUSHISWAP_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'merkl_sushiswap'
           chain: 'filecoin'
@@ -109,7 +109,7 @@ Add the following scrape configs to prometheus config file (`monitoring-watchers
     metrics_path: /metrics
     scheme: http
     static_configs:
-      - targets: ['AJNA_WATCHER_HOST:AJNA_WATCHER_PORT']
+      - targets: ['AJNA_WATCHER_HOST:AJNA_WATCHER_METRICS_PORT', 'AJNA_WATCHER_HOST:AJNA_WATCHER_GQL_METRICS_PORT']
         labels:
           instance: 'ajna'
           chain: 'filecoin'

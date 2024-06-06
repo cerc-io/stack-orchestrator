@@ -2,7 +2,7 @@ version: "1.0"
 name: ajna
 description: "Ajna watcher stack"
 repos:
-  - git.vdb.to/cerc-io/ajna-watcher-ts@v0.1.11
+  - git.vdb.to/cerc-io/ajna-watcher-ts@v0.1.12
 containers:
   - cerc/watcher-ajna
 pods:

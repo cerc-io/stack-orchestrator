@@ -76,6 +76,7 @@ services:
       - ../config/watcher-azimuth/start-server.sh:/app/packages/azimuth-watcher/start-server.sh
     ports:
       - "3001"
+      - "9001"
     healthcheck:
       test: ["CMD", "nc", "-vz", "127.0.0.1", "3001"]
       interval: 20s
@@ -137,6 +138,7 @@ services:
       - ../config/watcher-azimuth/start-server.sh:/app/packages/censures-watcher/start-server.sh
     ports:
       - "3002"
+      - "9003"
     healthcheck:
       test: ["CMD", "nc", "-vz", "127.0.0.1", "3002"]
       interval: 20s
@@ -198,6 +200,7 @@ services:
       - ../config/watcher-azimuth/start-server.sh:/app/packages/claims-watcher/start-server.sh
     ports:
       - "3003"
+      - "9005"
     healthcheck:
       test: ["CMD", "nc", "-vz", "127.0.0.1", "3003"]
       interval: 20s
@@ -259,6 +262,7 @@ services:
       - ../config/watcher-azimuth/start-server.sh:/app/packages/conditional-star-release-watcher/start-server.sh
     ports:
       - "3004"
+      - "9007"
     healthcheck:
       test: ["CMD", "nc", "-vz", "127.0.0.1", "3004"]
       interval: 20s
@@ -320,6 +324,7 @@ services:
       - ../config/watcher-azimuth/start-server.sh:/app/packages/delegated-sending-watcher/start-server.sh
     ports:
       - "3005"
+      - "9009"
     healthcheck:
       test: ["CMD", "nc", "-vz", "127.0.0.1", "3005"]
       interval: 20s
@@ -381,6 +386,7 @@ services:
       - ../config/watcher-azimuth/start-server.sh:/app/packages/ecliptic-watcher/start-server.sh
     ports:
       - "3006"
+      - "9011"
     healthcheck:
       test: ["CMD", "nc", "-vz", "127.0.0.1", "3006"]
       interval: 20s
@@ -442,6 +448,7 @@ services:
       - ../config/watcher-azimuth/start-server.sh:/app/packages/linear-star-release-watcher/start-server.sh
     ports:
       - "3007"
+      - "9013"
     healthcheck:
       test: ["CMD", "nc", "-vz", "127.0.0.1", "3007"]
       interval: 20s
@@ -503,6 +510,7 @@ services:
       - ../config/watcher-azimuth/start-server.sh:/app/packages/polls-watcher/start-server.sh
     ports:
       - "3008"
+      - "9015"
     healthcheck:
       test: ["CMD", "nc", "-vz", "127.0.0.1", "3008"]
       interval: 20s

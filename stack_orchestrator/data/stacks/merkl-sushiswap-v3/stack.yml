@@ -2,7 +2,7 @@ version: "1.0"
 name: merkl-sushiswap-v3
 description: "SushiSwap v3 watcher stack"
 repos:
-  - github.com/cerc-io/merkl-sushiswap-v3-watcher-ts@v0.1.12
+  - github.com/cerc-io/merkl-sushiswap-v3-watcher-ts@v0.1.13
 containers:
   - cerc/watcher-merkl-sushiswap-v3
 pods:

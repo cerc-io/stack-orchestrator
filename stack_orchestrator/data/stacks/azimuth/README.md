@@ -44,34 +44,42 @@ network:
      - 0.0.0.0:9000:9000
     azimuth-watcher-server:
      - 0.0.0.0:3001:3001
+     - 0.0.0.0:9001:9001
     censures-watcher-job-runner:
      - 0.0.0.0:9002:9002
     censures-watcher-server:
      - 0.0.0.0:3002:3002
+     - 0.0.0.0:9003:9003
     claims-watcher-job-runner:
      - 0.0.0.0:9004:9004
     claims-watcher-server:
      - 0.0.0.0:3003:3003
+     - 0.0.0.0:9005:9005
     conditional-star-release-watcher-job-runner:
      - 0.0.0.0:9006:9006
     conditional-star-release-watcher-server:
      - 0.0.0.0:3004:3004
+     - 0.0.0.0:9007:9007
     delegated-sending-watcher-job-runner:
      - 0.0.0.0:9008:9008
     delegated-sending-watcher-server:
      - 0.0.0.0:3005:3005
+     - 0.0.0.0:9009:9009
     ecliptic-watcher-job-runner:
      - 0.0.0.0:9010:9010
     ecliptic-watcher-server:
      - 0.0.0.0:3006:3006
+     - 0.0.0.0:9011:9011
     linear-star-release-watcher-job-runner:
      - 0.0.0.0:9012:9012
     linear-star-release-watcher-server:
      - 0.0.0.0:3007:3007
+     - 0.0.0.0:9013:9013
     polls-watcher-job-runner:
      - 0.0.0.0:9014:9014
     polls-watcher-server:
      - 0.0.0.0:3008:3008
+     - 0.0.0.0:9015:9015
     gateway-server:
      - 0.0.0.0:4000:4000
 ...

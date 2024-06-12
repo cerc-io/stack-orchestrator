@@ -60,6 +60,7 @@ services:
     volumes:
       - ../config/watcher-ajna/watcher-config-template.toml:/app/environments/watcher-config-template.toml
       - ../config/watcher-ajna/start-server.sh:/app/start-server.sh
+      - ajna_watcher_gql_logs_data:/app/gql-logs
     ports:
       - "3008"
       - "9001"
@@ -74,3 +75,4 @@ services:
 
 volumes:
   ajna_watcher_db_data:
+  ajna_watcher_gql_logs_data:

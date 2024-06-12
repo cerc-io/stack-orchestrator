@@ -2,7 +2,6 @@
   host = "0.0.0.0"
   port = 3008
   kind = "active"
-  gqlPath = "/"
 
   # Checkpointing state.
   checkpointing = true
@@ -22,23 +21,30 @@
   # Interval in number of blocks at which to clear entities cache.
   clearEntitiesCacheInterval = 1000
 
-  # Max block range for which to return events in eventsInRange GQL query.
-  # Use -1 for skipping check on block range.
-  maxEventsBlockRange = 1000
-
   # Flag to specify whether RPC endpoint supports block hash as block tag parameter
   rpcSupportsBlockHashParam = false
 
-  # GQL cache settings
-  [server.gqlCache]
-    enabled = true
+  # Server GQL config
+  [server.gql]
+    path = "/"
 
-    # Max in-memory cache size (in bytes) (default 8 MB)
-    # maxCacheSize
+    # Max block range for which to return events in eventsInRange GQL query.
+    # Use -1 for skipping check on block range.
+    maxEventsBlockRange = 1000
 
-    # GQL cache-control max-age settings (in seconds)
-    maxAge = 15
-    timeTravelMaxAge = 86400 # 1 day
+    # Log directory for GQL requests
+    logDir = "./gql-logs"
+
+    # GQL cache settings
+    [server.gql.cache]
+      enabled = true
+
+      # Max in-memory cache size (in bytes) (default 8 MB)
+      # maxCacheSize
+
+      # GQL cache-control max-age settings (in seconds)
+      maxAge = 15
+      timeTravelMaxAge = 86400 # 1 day
 
 [metrics]
   host = "0.0.0.0"
@@ -84,6 +90,9 @@
   subgraphEventsOrder = true
   # Filecoin block time: https://docs.filecoin.io/basics/the-blockchain/blocks-and-tipsets#blocktime
   blockDelayInMilliSecs = 30000
+
+  # Number of blocks by which block processing lags behind head
+  blockProcessingOffset = 0
 
   # Boolean to switch between modes of processing events when starting the server.
   # Setting to true will fetch filtered events and required blocks in a range of blocks and then process them.

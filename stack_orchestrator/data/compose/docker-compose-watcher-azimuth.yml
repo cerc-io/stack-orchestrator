@@ -74,6 +74,7 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/azimuth-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/azimuth-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-server.sh:/app/packages/azimuth-watcher/start-server.sh
+      - azimuth_watcher_gql_logs_data:/app/packages/azimuth-watcher/gql-logs
     ports:
       - "3001"
       - "9001"
@@ -136,6 +137,7 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/censures-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/censures-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-server.sh:/app/packages/censures-watcher/start-server.sh
+      - censures_watcher_gql_logs_data:/app/packages/censures-watcher/gql-logs
     ports:
       - "3002"
       - "9003"
@@ -198,6 +200,7 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/claims-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/claims-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-server.sh:/app/packages/claims-watcher/start-server.sh
+      - claims_watcher_gql_logs_data:/app/packages/claims-watcher/gql-logs
     ports:
       - "3003"
       - "9005"
@@ -260,6 +263,7 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/conditional-star-release-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/conditional-star-release-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-server.sh:/app/packages/conditional-star-release-watcher/start-server.sh
+      - conditional_star_release_watcher_gql_logs_data:/app/packages/conditional-star-release-watcher/gql-logs
     ports:
       - "3004"
       - "9007"
@@ -322,6 +326,7 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/delegated-sending-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/delegated-sending-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-server.sh:/app/packages/delegated-sending-watcher/start-server.sh
+      - delegated_sending_watcher_gql_logs_data:/app/packages/delegated-sending-watcher/gql-logs
     ports:
       - "3005"
       - "9009"
@@ -384,6 +389,7 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/ecliptic-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/ecliptic-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-server.sh:/app/packages/ecliptic-watcher/start-server.sh
+      - ecliptic_watcher_gql_logs_data:/app/packages/ecliptic-watcher/gql-logs
     ports:
       - "3006"
       - "9011"
@@ -446,6 +452,7 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/linear-star-release-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/linear-star-release-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-server.sh:/app/packages/linear-star-release-watcher/start-server.sh
+      - linear_star_release_watcher_gql_logs_data:/app/packages/linear-star-release-watcher/gql-logs
     ports:
       - "3007"
       - "9013"
@@ -508,6 +515,7 @@ services:
       - ../config/watcher-azimuth/watcher-config-template.toml:/app/packages/polls-watcher/environments/watcher-config-template.toml
       - ../config/watcher-azimuth/merge-toml.js:/app/packages/polls-watcher/merge-toml.js
       - ../config/watcher-azimuth/start-server.sh:/app/packages/polls-watcher/start-server.sh
+      - polls_watcher_gql_logs_data:/app/packages/polls-watcher/gql-logs
     ports:
       - "3008"
       - "9015"
@@ -560,3 +568,11 @@ services:
 
 volumes:
   watcher_db_data:
+  azimuth_watcher_gql_logs_data:
+  censures_watcher_gql_logs_data:
+  claims_watcher_gql_logs_data:
+  conditional_star_release_watcher_gql_logs_data:
+  delegated_sending_watcher_gql_logs_data:
+  ecliptic_watcher_gql_logs_data:
+  linear_star_release_watcher_gql_logs_data:
+  polls_watcher_gql_logs_data:

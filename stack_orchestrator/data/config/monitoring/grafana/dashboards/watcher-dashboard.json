@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 4,
+  "id": 2,
   "links": [
     {
       "asDropdown": false,
@@ -282,11 +282,80 @@
           },
           "gridPos": {
             "h": 3,
-            "w": 4,
+            "w": 3,
             "x": 0,
             "y": 4
           },
           "id": 25,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "10.2.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "disableTextWrap": false,
+              "editorMode": "code",
+              "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_processed\"}",
+              "fullMetaSearch": false,
+              "hide": false,
+              "includeNullMetadata": true,
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "B",
+              "useBackend": false
+            }
+          ],
+          "title": "Latest processed block",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "shades"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 3,
+            "x": 3,
+            "y": 4
+          },
+          "id": 38,
           "options": {
             "colorMode": "background",
             "graphMode": "none",
@@ -352,8 +421,8 @@
           },
           "gridPos": {
             "h": 3,
-            "w": 4,
-            "x": 4,
+            "w": 3,
+            "x": 6,
             "y": 4
           },
           "id": 11,
@@ -421,8 +490,8 @@
           },
           "gridPos": {
             "h": 3,
-            "w": 4,
-            "x": 8,
+            "w": 3,
+            "x": 9,
             "y": 4
           },
           "id": 12,
@@ -639,7 +708,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_indexed\"}",
+              "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_processed\"}",
               "hide": false,
               "instant": false,
               "legendFormat": "{{__name__}}",
@@ -750,7 +819,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_indexed\"}",
+              "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_processed\"}",
               "hide": false,
               "instant": false,
               "legendFormat": "{{__name__}}",
@@ -936,12 +1005,12 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "disableTextWrap": false,
-              "editorMode": "builder",
-              "expr": "last_processed_block_number{job=~\"$job\", instance=~\"$watcher\"}",
+              "editorMode": "code",
+              "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_processed\"}",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
               "instant": false,
-              "legendFormat": "latest_processed",
+              "legendFormat": "{{kind}}",
               "range": true,
               "refId": "A",
               "useBackend": false
@@ -952,7 +1021,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "disableTextWrap": false,
-              "editorMode": "builder",
+              "editorMode": "code",
               "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_canonical\"}",
               "fullMetaSearch": false,
               "hide": false,
@@ -1395,7 +1464,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_indexed\"}",
+              "expr": "sync_status_block_number{job=~\"$job\", instance=~\"$watcher\", kind=\"latest_processed\"}",
               "hide": false,
               "instant": false,
               "legendFormat": "{{__name__}}",
@@ -3215,6 +3284,6 @@
   "timepicker": {},
   "timezone": "",
   "title": "Watchers",
-  "version": 4,
+  "version": 5,
   "weekStart": ""
 }

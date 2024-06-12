@@ -60,6 +60,7 @@ services:
     volumes:
       - ../config/watcher-merkl-sushiswap-v3/watcher-config-template.toml:/app/environments/watcher-config-template.toml
       - ../config/watcher-merkl-sushiswap-v3/start-server.sh:/app/start-server.sh
+      - merkl_sushiswap_v3_watcher_gql_logs_data:/app/gql-logs
     ports:
       - "127.0.0.1:3007:3008"
       - "9003:9001"
@@ -74,3 +75,4 @@ services:
 
 volumes:
   merkl_sushiswap_v3_watcher_db_data:
+  merkl_sushiswap_v3_watcher_gql_logs_data:

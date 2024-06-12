@@ -1,6 +1,7 @@
 [server]
   host = "0.0.0.0"
-  maxSimultaneousRequests = -1
+  [server.gql]
+    maxSimultaneousRequests = -1
 
 [metrics]
   host = "0.0.0.0"

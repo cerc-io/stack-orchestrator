@@ -26,7 +26,7 @@ from stack_orchestrator.deploy.k8s.helpers import envs_from_environment_variable
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names, images_for_deployment
 from stack_orchestrator.deploy.deploy_types import DeployEnvVars
 from stack_orchestrator.deploy.spec import Spec, Resources, ResourceLimits
-from stack_orchestrator.deploy.images import remote_tag_for_image
+from stack_orchestrator.deploy.images import remote_tag_for_image_unique
 
 DEFAULT_VOLUME_RESOURCES = Resources({
     "reservations": {"storage": "2Gi"}
@@ -326,8 +326,11 @@ class ClusterInfo:
                 if opts.o.debug:
                     print(f"Merged envs: {envs}")
                 # Re-write the image tag for remote deployment
-                image_to_use = remote_tag_for_image(
-                    image, self.spec.get_image_registry()) if self.spec.get_image_registry() is not None else image
+                # Note self.app_name has the same value as deployment_id
+                image_to_use = remote_tag_for_image_unique(
+                    image,
+                    self.spec.get_image_registry(),
+                    self.app_name) if self.spec.get_image_registry() is not None else image
                 volume_mounts = volume_mounts_for_service(self.parsed_pod_yaml_map, service_name)
                 container = client.V1Container(
                     name=container_name,

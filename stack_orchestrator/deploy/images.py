@@ -72,7 +72,7 @@ def remote_tag_for_image_unique(image: str, remote_repo_url: str, deployment_id:
     (image_name, image_version) = image_name_with_version.split(":")
     if image_version == "local":
         # Salt the tag with part of the deployment id to make it unique to this deployment
-        deployment_tag = deployment_id[0, 7]
+        deployment_tag = deployment_id[-8:]
         return f"{remote_repo_url}/{image_name}:deploy-{deployment_tag}"
     else:
         return image

@@ -849,3 +849,81 @@ groups:
         annotations:
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
+      
+      # Secured Finance
+      - uid: secured_finance_diff_external
+        title: secured_finance_watcher_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              disableTextWrap: false
+              editorMode: code
+              expr: latest_block_number{instance="external"} - on(chain) group_right sync_status_block_number{job="secured-finance", instance="secured-finance", kind="latest_indexed"}
+              fullMetaSearch: false
+              includeNullMetadata: true
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+              useBackend: false
+          - refId: latest_external
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                type: prometheus
+                uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: latest_block_number{chain="filecoin"}
+              hide: false
+              instant: true
+              legendFormat: __auto
+              range: false
+              refId: latest_external
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: []
+                  reducer:
+                    params: []
+                    type: avg
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: ${diff} >= 16
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: math
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 15m
+        annotations:
+          summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
+        isPaused: false

@@ -322,7 +322,7 @@
               "useBackend": false
             }
           ],
-          "title": "Latest processed block",
+          "title": "Event processed block",
           "type": "stat"
         },
         {
@@ -391,7 +391,7 @@
               "useBackend": false
             }
           ],
-          "title": "Latest indexed block",
+          "title": "Inserted processed block",
           "type": "stat"
         },
         {

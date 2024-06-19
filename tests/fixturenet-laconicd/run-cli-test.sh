@@ -22,15 +22,15 @@ echo "$(date +"%Y-%m-%d %T"): Stack started"
 # Verify that the fixturenet is up and running
 $TEST_TARGET_SO --stack fixturenet-laconicd deploy --cluster laconicd ps
 
+# Wait for the laconid endpoint to come up
+echo "Waiting for the RPC endpoint to come up"
+docker exec laconicd-laconicd-1 sh -c "curl --retry 20 --retry-delay 3 --retry-connrefused http://127.0.0.1:9473/api"
+
 # Get the fixturenet account address
 laconicd_account_address=$(docker exec laconicd-laconicd-1 laconicd keys list | awk '/- address:/ {print $3}')
 
 # Copy over config
 docker exec laconicd-cli-1 cp config.yml laconic-registry-cli/
-
-# Wait for the laconid endpoint to come up
-echo "Waiting for the RPC endpoint to come up"
-docker exec laconicd-laconicd-1 sh -c "curl --retry 20 --retry-delay 3 --retry-connrefused http://127.0.0.1:9473/api"
 
 # Run the tests
 echo "Running the tests"

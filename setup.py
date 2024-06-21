@@ -4,9 +4,11 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = fh.read()
+with open("stack_orchestrator/data/version.txt", "r", encoding="utf-8") as fh:
+    version = fh.readlines()[-1].strip(" \n")
 setup(
     name='laconic-stack-orchestrator',
-    version='1.0.12',
+    version=version,
     author='Cerc',
     author_email='info@cerc.io',
     license='GNU Affero General Public License',

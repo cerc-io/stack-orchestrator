@@ -238,6 +238,11 @@ def _find_extra_config_dirs(parsed_pod_file, pod):
                         config_dir = host_path.split("/")[2]
                         if config_dir != pod:
                             config_dirs.add(config_dir)
+        for env_file in service_info.get("env_file", []):
+            if env_file.startswith("../config"):
+                config_dir = env_file.split("/")[2]
+                if config_dir != pod:
+                    config_dirs.add(config_dir)
     return config_dirs
 
 

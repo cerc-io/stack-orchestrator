@@ -18,7 +18,7 @@ from stack_orchestrator.deploy.deploy_types import DeployCommandContext, Laconic
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.stack_state import State
 from stack_orchestrator.deploy.deploy_util import VolumeMapping, run_container_command
-from stack_orchestrator.command_types import CommandOptions
+from stack_orchestrator.opts import opts
 from enum import Enum
 from pathlib import Path
 from shutil import copyfile, copytree
@@ -62,7 +62,7 @@ def _get_node_moniker_from_config(network_dir: Path):
     return moniker
 
 
-def _get_node_key_from_gentx(options: CommandOptions, gentx_file_name: str):
+def _get_node_key_from_gentx(gentx_file_name: str):
     gentx_file_path = Path(gentx_file_name)
     if gentx_file_path.exists():
         with open(Path(gentx_file_name), "rb") as f:
@@ -77,24 +77,24 @@ def _comma_delimited_to_list(list_str: str):
     return list_str.split(",") if list_str else []
 
 
-def _get_node_keys_from_gentx_files(options: CommandOptions, gentx_file_list: str):
+def _get_node_keys_from_gentx_files(gentx_file_list: str):
     node_keys = []
     gentx_files = _comma_delimited_to_list(gentx_file_list)
     for gentx_file in gentx_files:
-        node_key = _get_node_key_from_gentx(options, gentx_file)
+        node_key = _get_node_key_from_gentx(gentx_file)
         if node_key:
             node_keys.append(node_key)
     return node_keys
 
 
-def _copy_gentx_files(options: CommandOptions, network_dir: Path, gentx_file_list: str):
+def _copy_gentx_files(network_dir: Path, gentx_file_list: str):
     gentx_files = _comma_delimited_to_list(gentx_file_list)
     for gentx_file in gentx_files:
         gentx_file_path = Path(gentx_file)
         copyfile(gentx_file_path, os.path.join(network_dir, "config", "gentx", os.path.basename(gentx_file_path)))
 
 
-def _remove_persistent_peers(options: CommandOptions, network_dir: Path):
+def _remove_persistent_peers(network_dir: Path):
     config_file_path = _config_toml_path(network_dir)
     if not config_file_path.exists():
         print("Error: config.toml not found")
@@ -108,7 +108,7 @@ def _remove_persistent_peers(options: CommandOptions, network_dir: Path):
         output_file.write(config_file_content)
 
 
-def _insert_persistent_peers(options: CommandOptions, config_dir: Path, new_persistent_peers: str):
+def _insert_persistent_peers(config_dir: Path, new_persistent_peers: str):
     config_file_path = config_dir.joinpath("config.toml")
     if not config_file_path.exists():
         print("Error: config.toml not found")
@@ -151,7 +151,7 @@ def _phase_from_params(parameters):
 
 def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCommand, extra_args):
 
-    options = command_context.cluster_context.options
+    options = opts.o
 
     currency = "stake"  # Does this need to be a parameter?
 
@@ -267,7 +267,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         sys.exit(1)
 
 
-def create(context: DeploymentContext, extra_args):
+def create(deployment_context: DeploymentContext, extra_args):
     network_dir = extra_args[0]
     if network_dir is None:
         print("Error: --network-dir must be supplied")
@@ -286,15 +286,15 @@ def create(context: DeploymentContext, extra_args):
         sys.exit(1)
     # Copy the network directory contents into our deployment
     # TODO: change this to work with non local paths
-    deployment_config_dir = context.deployment_dir.joinpath("data", "laconicd-config")
+    deployment_config_dir = deployment_context.deployment_dir.joinpath("data", "laconicd-config")
     copytree(config_dir_path, deployment_config_dir, dirs_exist_ok=True)
     # If supplied, add the initial persistent peers to the config file
     if extra_args[1]:
         initial_persistent_peers = extra_args[1]
-        _insert_persistent_peers(context.command_context.cluster_context.options, deployment_config_dir, initial_persistent_peers)
+        _insert_persistent_peers(deployment_config_dir, initial_persistent_peers)
     # Copy the data directory contents into our deployment
     # TODO: change this to work with non local paths
-    deployment_data_dir = context.deployment_dir.joinpath("data", "laconicd-data")
+    deployment_data_dir = deployment_context.deployment_dir.joinpath("data", "laconicd-data")
     copytree(data_dir_path, deployment_data_dir, dirs_exist_ok=True)
 
 

@@ -238,7 +238,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
                 print("Error: --gentx-files must be supplied")
                 sys.exit(1)
             # First look in the supplied gentx files for the other nodes' keys
-            other_node_keys = _get_node_keys_from_gentx_files(options, parameters.gentx_file_list)
+            other_node_keys = _get_node_keys_from_gentx_files(parameters.gentx_file_list)
             # Add those keys to our genesis, with balances we determine here (why?)
             for other_node_key in other_node_keys:
                 outputk, statusk = run_container_command(
@@ -247,7 +247,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             if options.debug:
                 print(f"Command output: {outputk}")
             # Copy the gentx json files into our network dir
-            _copy_gentx_files(options, network_dir, parameters.gentx_file_list)
+            _copy_gentx_files(network_dir, parameters.gentx_file_list)
             # Now we can run collect-gentxs
             output1, status1 = run_container_command(
                 command_context, "laconicd", f"laconicd collect-gentxs --home {laconicd_home_path_in_container}", mounts)
@@ -256,7 +256,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             print(f"Generated genesis file, please copy to other nodes as required: \
                 {os.path.join(network_dir, 'config', 'genesis.json')}")
             # Last thing, collect-gentxs puts a likely bogus set of persistent_peers in config.toml so we remove that now
-            _remove_persistent_peers(options, network_dir)
+            _remove_persistent_peers(network_dir)
         # In both cases we validate the genesis file now
         output2, status1 = run_container_command(
             command_context, "laconicd", f"laconicd validate-genesis --home {laconicd_home_path_in_container}", mounts)

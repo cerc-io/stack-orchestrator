@@ -123,6 +123,7 @@ def push_images(ctx):
 @click.argument('extra_args', nargs=-1)  # help: command: port <service1> <service2>
 @click.pass_context
 def port(ctx, extra_args):
+    ctx.obj = make_deploy_context(ctx)
     port_operation(ctx, extra_args)
 
 

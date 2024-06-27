@@ -20,6 +20,7 @@ import os
 import sys
 from decouple import config
 import git
+from git.exc import GitCommandError
 from tqdm import tqdm
 import click
 import importlib.resources
@@ -81,9 +82,13 @@ def _get_repo_current_branch_or_tag(full_filesystem_repo_path):
     except TypeError:
         # This means that the current ref is not a branch, so possibly a tag
         # Let's try to get the tag
-        current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).git.describe("--tags", "--exact-match")
-        # Note that git is assymetric -- the tag you told it to check out may not be the one
-        # you get back here (if there are multiple tags associated with the same commit)
+        try:
+            current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).git.describe("--tags", "--exact-match")
+            # Note that git is asymmetric -- the tag you told it to check out may not be the one
+            # you get back here (if there are multiple tags associated with the same commit)
+        except GitCommandError as e:
+            # If there is no matching branch or tag checked out, just use the current SHA
+            current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).commit("HEAD").hexsha
     return current_repo_branch_or_tag, is_branch
 
 
@@ -102,7 +107,7 @@ def process_repo(pull, check_only, git_ssh, dev_root_path, branches_array, fully
         full_filesystem_repo_path
         ) if is_present else (None, None)
     if not opts.o.quiet:
-        present_text = f"already exists active {'branch' if is_branch else 'tag'}: {current_repo_branch_or_tag}" if is_present \
+        present_text = f"already exists active {'branch' if is_branch else 'ref'}: {current_repo_branch_or_tag}" if is_present \
             else 'Needs to be fetched'
         print(f"Checking: {full_filesystem_repo_path}: {present_text}")
     # Quick check that it's actually a repo
@@ -120,7 +125,7 @@ def process_repo(pull, check_only, git_ssh, dev_root_path, branches_array, fully
                         origin = git_repo.remotes.origin
                         origin.pull(progress=None if opts.o.quiet else GitProgress())
                     else:
-                        print("skipping pull because this repo checked out a tag")
+                        print("skipping pull because this repo is not on a branch")
                 else:
                     print("(git pull skipped)")
     if not is_present:

@@ -86,7 +86,7 @@ def _get_repo_current_branch_or_tag(full_filesystem_repo_path):
             current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).git.describe("--tags", "--exact-match")
             # Note that git is asymmetric -- the tag you told it to check out may not be the one
             # you get back here (if there are multiple tags associated with the same commit)
-        except GitCommandError as e:
+        except GitCommandError:
             # If there is no matching branch or tag checked out, just use the current SHA
             current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).commit("HEAD").hexsha
     return current_repo_branch_or_tag, is_branch

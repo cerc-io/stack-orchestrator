@@ -21,11 +21,6 @@ from stack_orchestrator.util import get_parsed_stack_config, warn_exit
 
 def get_containers_in_scope(stack: str):
 
-    # See: https://stackoverflow.com/a/20885799/1701505
-    from stack_orchestrator import data
-    with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
-        all_containers = container_list_file.read().splitlines()
-
     containers_in_scope = []
     if stack:
         stack_config = get_parsed_stack_config(stack)
@@ -33,7 +28,10 @@ def get_containers_in_scope(stack: str):
             warn_exit(f"stack {stack} does not define any containers")
         containers_in_scope = stack_config['containers']
     else:
-        containers_in_scope = all_containers
+        # See: https://stackoverflow.com/a/20885799/1701505
+        from stack_orchestrator import data
+        with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
+            containers_in_scope = container_list_file.read().splitlines()
 
     if opts.o.verbose:
         print(f'Containers: {containers_in_scope}')

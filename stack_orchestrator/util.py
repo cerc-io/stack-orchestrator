@@ -20,6 +20,7 @@ import ruamel.yaml
 from pathlib import Path
 from dotenv import dotenv_values
 from typing import Mapping, Set, List
+from stack_orchestrator.constants import stack_file_name
 
 
 def include_exclude_check(s, include, exclude):
@@ -33,10 +34,10 @@ def include_exclude_check(s, include, exclude):
         return s not in exclude_list
 
 
-def get_stack_file_path(stack):
+def get_internal_stack_file_path(stack):
     # In order to be compatible with Python 3.8 we need to use this hack to get the path:
     # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-    stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, "stack.yml")
+    stack_file_path = Path(__file__).absolute().parent.joinpath("data", "stacks", stack, stack_file_name)
     return stack_file_path
 
 
@@ -52,21 +53,17 @@ def get_dev_root_path(ctx):
 
 # Caller can pass either the name of a stack, or a path to a stack file
 def get_parsed_stack_config(stack):
-    stack_file_path = stack if isinstance(stack, os.PathLike) else get_stack_file_path(stack)
-    try:
-        with stack_file_path:
-            stack_config = get_yaml().load(open(stack_file_path, "r"))
-            return stack_config
-    except FileNotFoundError as error:
-        # We try here to generate a useful diagnostic error
-        # First check if the stack directory is present
-        stack_directory = stack_file_path.parent
-        if os.path.exists(stack_directory):
-            print(f"Error: stack.yml file is missing from stack: {stack}")
-        else:
-            print(f"Error: stack: {stack} does not exist")
-        print(f"Exiting, error: {error}")
-        sys.exit(1)
+    if stack_is_external(stack):
+        stack_file_path = Path(stack).joinpath(stack_file_name)
+    else:
+        stack_file_path = get_internal_stack_file_path(stack)
+    if stack_file_path.exists():
+        return get_yaml().load(open(stack_file_path, "r"))
+    # We try here to generate a useful diagnostic error
+    # First check if the stack directory is present
+    if stack_file_path.parent.exists():
+        error_exit(f"stack.yml file is missing from stack: {stack}")
+    error_exit(f"stack {stack} does not exist")
 
 
 def get_pod_list(parsed_stack):
@@ -87,7 +84,7 @@ def get_plugin_code_paths(stack) -> List[Path]:
     result: Set[Path] = set()
     for pod in pods:
         if type(pod) is str:
-            result.add(get_stack_file_path(stack).parent)
+            result.add(get_internal_stack_file_path(stack).parent)
         else:
             pod_root_dir = os.path.join(get_dev_root_path(None), pod["repository"].split("/")[-1], pod["path"])
             result.add(Path(os.path.join(pod_root_dir, "stack")))

@@ -24,7 +24,7 @@ from secrets import token_hex
 import sys
 from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
-from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
+from stack_orchestrator.util import (get_internal_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
                                      get_pod_script_paths, get_plugin_code_paths, error_exit, env_var_map_from_file,
                                      resolve_config_dir)
@@ -459,7 +459,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
     _check_volume_definitions(parsed_spec)
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
-    stack_file = get_stack_file_path(stack_name)
+    stack_file = get_internal_stack_file_path(stack_name)
     parsed_stack = get_parsed_stack_config(stack_name)
     if opts.o.debug:
         print(f"parsed spec: {parsed_spec}")

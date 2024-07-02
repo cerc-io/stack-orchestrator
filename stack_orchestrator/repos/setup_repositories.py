@@ -28,7 +28,7 @@ from pathlib import Path
 import yaml
 from stack_orchestrator.constants import stack_file_name
 from stack_orchestrator.opts import opts
-from stack_orchestrator.util import include_exclude_check, stack_is_external, error_exit, warn_exit
+from stack_orchestrator.util import get_parsed_stack_config, include_exclude_check, error_exit, warn_exit
 
 
 class GitProgress(git.RemoteProgress):
@@ -227,20 +227,10 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches):
 
     repos_in_scope = []
     if stack:
-        if stack_is_external(stack):
-            stack_file_path = Path(stack).joinpath(stack_file_name)
-        else:
-            # In order to be compatible with Python 3.8 we need to use this hack to get the path:
-            # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-            stack_file_path = Path(__file__).absolute().parent.parent.joinpath("data", "stacks", stack, stack_file_name)
-        if not stack_file_path.exists():
-            error_exit(f"stack {stack} does not exist")
-        with stack_file_path:
-            stack_config = yaml.safe_load(open(stack_file_path, "r"))
-            if "repos" not in stack_config or stack_config["repos"] is None:
-                warn_exit(f"stack {stack} does not define any repositories")
-            else:
-                repos_in_scope = stack_config["repos"]
+        stack_config = get_parsed_stack_config(stack)
+        if "repos" not in stack_config or stack_config["repos"] is None:
+            warn_exit(f"stack {stack} does not define any repositories")
+        repos_in_scope = stack_config["repos"]
     else:
         repos_in_scope = all_repos
 

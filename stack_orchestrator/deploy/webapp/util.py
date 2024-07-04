@@ -299,11 +299,12 @@ def push_container_image(deployment_dir, logger):
 
 def deploy_to_k8s(deploy_record, deployment_dir, logger):
     if not deploy_record:
-        command = "up"
+        command = "start"
     else:
         command = "update"
 
     logger.log("Deploying to k8s ...")
+    logger.log(f"Running {command} command on deployment dir: {deployment_dir}")
     result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, command],
                             stdout=logger.file, stderr=logger.file)
     result.check_returncode()

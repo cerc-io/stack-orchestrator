@@ -122,21 +122,26 @@ def process_app_deployment_request(
         shared_tag_exists = remote_image_exists(image_registry, app_image_shared_tag)
         if shared_tag_exists and not force_rebuild:
             # simply add our unique tag to the existing image and we are done
-            logger.log(f"Using existing app image {app_image_shared_tag} for {deployment_container_tag}")
+            logger.log(
+                f"Existing image found for this app: {app_image_shared_tag} "
+                "tagging it with: {deployment_container_tag} to use in this deployment"
+                )
             add_tags_to_image(image_registry, app_image_shared_tag, deployment_container_tag)
             logger.log("Tag complete")
         else:
             extra_build_args = []  # TODO: pull from request
-            logger.log(f"Building container image {deployment_container_tag}")
+            logger.log(f"Building container image: {deployment_container_tag}")
             build_container_image(app, deployment_container_tag, extra_build_args, logger)
             logger.log("Build complete")
-            logger.log(f"Pushing container image {deployment_container_tag}")
+            logger.log(f"Pushing container image: {deployment_container_tag}")
             push_container_image(deployment_dir, logger)
             logger.log("Push complete")
             # The build/push commands above will use the unique deployment tag, so now we need to add the shared tag.
-            logger.log(f"Updating app image tag {app_image_shared_tag} from build of {deployment_container_tag}")
+            logger.log(f"Adding global app image tag: {app_image_shared_tag} to newly built image: {deployment_container_tag}")
             add_tags_to_image(image_registry, deployment_container_tag, app_image_shared_tag)
             logger.log("Tag complete")
+    else:
+        logger.log("Requested app is already deployed, skipping build and image push")
 
     # 7. update config (if needed)
     if not deployment_record or file_hash(deployment_config_file) != deployment_record.attributes.meta.config:

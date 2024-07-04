@@ -24,7 +24,7 @@ import uuid
 
 import click
 
-from stack_orchestrator.deploy.images import remote_image_exists, add_tags_to_image
+from stack_orchestrator.deploy.images import remote_image_exists
 from stack_orchestrator.deploy.webapp import deploy_webapp
 from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient, TimedLogger,
                                                    build_container_image, push_container_image,
@@ -125,13 +125,19 @@ def process_app_deployment_request(
         needs_k8s_deploy = True
         # check if the image already exists
         shared_tag_exists = remote_image_exists(image_registry, app_image_shared_tag)
+        # Note: in the code below, calls to add_tags_to_image() won't work at present.
+        # This is because SO deployment code in general re-names the container image
+        # to be unique to the deployment. This is done transparently
+        # and so when we call add_tags_to_image() here and try to add tags to the remote image,
+        # we get the image name wrong. Accordingly I've disabled the relevant code for now.
+        # This is safe because we are running with --force-rebuild at present
         if shared_tag_exists and not force_rebuild:
             # simply add our unique tag to the existing image and we are done
             logger.log(
-                f"Existing image found for this app: {app_image_shared_tag} "
+                f"(SKIPPED) Existing image found for this app: {app_image_shared_tag} "
                 "tagging it with: {deployment_container_tag} to use in this deployment"
                 )
-            add_tags_to_image(image_registry, app_image_shared_tag, deployment_container_tag)
+            # add_tags_to_image(image_registry, app_image_shared_tag, deployment_container_tag)
             logger.log("Tag complete")
         else:
             extra_build_args = []  # TODO: pull from request
@@ -142,8 +148,10 @@ def process_app_deployment_request(
             push_container_image(deployment_dir, logger)
             logger.log("Push complete")
             # The build/push commands above will use the unique deployment tag, so now we need to add the shared tag.
-            logger.log(f"Adding global app image tag: {app_image_shared_tag} to newly built image: {deployment_container_tag}")
-            add_tags_to_image(image_registry, deployment_container_tag, app_image_shared_tag)
+            logger.log(
+                f"(SKIPPED) Adding global app image tag: {app_image_shared_tag} to newly built image: {deployment_container_tag}"
+                )
+            # add_tags_to_image(image_registry, deployment_container_tag, app_image_shared_tag)
             logger.log("Tag complete")
     else:
         logger.log("Requested app is already deployed, skipping build and image push")

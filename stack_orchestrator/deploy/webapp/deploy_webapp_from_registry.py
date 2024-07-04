@@ -99,24 +99,29 @@ def process_app_deployment_request(
 
     deployment_record = laconic.get_record(app_deployment_crn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
+    # At present we use this to generate a unique but stable ID for the app's host container
+    # TODO: implement support to derive this transparently from the already-unique deployment id
+    unique_deployment_id = hashlib.md5(fqdn.encode()).hexdigest()[:16]
     deployment_config_file = os.path.join(deployment_dir, "config.env")
-    # TODO: Is there any reason not to simplify the hash input to the app_deployment_crn?
-    deployment_container_tag = "laconic-webapp/%s:local" % hashlib.md5(deployment_dir.encode()).hexdigest()
+    deployment_container_tag = "laconic-webapp/%s:local" % unique_deployment_id
     app_image_shared_tag = f"laconic-webapp/{app.id}:local"
     #   b. check for deployment directory (create if necessary)
     if not os.path.exists(deployment_dir):
         if deployment_record:
             raise Exception("Deployment record %s exists, but not deployment dir %s. Please remove name." %
                             (app_deployment_crn, deployment_dir))
-        print("deploy_webapp", deployment_dir)
+        logger.log(f"Creating webapp deployment in: {deployment_dir} with container id: {deployment_container_tag}")
         deploy_webapp.create_deployment(ctx, deployment_dir, deployment_container_tag,
                                         f"https://{fqdn}", kube_config, image_registry, env_filename)
     elif env_filename:
         shutil.copyfile(env_filename, deployment_config_file)
 
     needs_k8s_deploy = False
+    if force_rebuild:
+        logger.log("--force-rebuild is enabled so the container will always be built now, even if nothing has changed in the app")
     # 6. build container (if needed)
-    if not deployment_record or deployment_record.attributes.application != app.id:
+    # TODO: add a comment that explains what this code is doing (not clear to me)
+    if not deployment_record or deployment_record.attributes.application != app.id or force_rebuild:
         needs_k8s_deploy = True
         # check if the image already exists
         shared_tag_exists = remote_image_exists(image_registry, app_image_shared_tag)

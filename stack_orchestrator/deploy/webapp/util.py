@@ -256,7 +256,7 @@ def build_container_image(app_record, tag, extra_build_args=[], logger=None):
         if github_token:
             logger.log("Github token detected, setting it in the git environment")
             git_config_args = [
-                "git", "config", "--global", f"url.\"https://{github_token}:@github.com/\".insteadOf", "https://github.com/"
+                "git", "config", "--global", f"url.https://{github_token}:@github.com/.insteadOf", "https://github.com/"
                 ]
             result = subprocess.run(git_config_args, stdout=logger.file, stderr=logger.file)
             result.check_returncode()

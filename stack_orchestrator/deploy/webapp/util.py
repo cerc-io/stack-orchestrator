@@ -242,6 +242,7 @@ def determine_base_container(clone_dir, app_type="webapp"):
 def build_container_image(app_record, tag, extra_build_args=[], logger=None):
     tmpdir = tempfile.mkdtemp()
 
+    # TODO: determine if this code could be calling into the Python git library like setup-repositories
     try:
         record_id = app_record["id"]
         ref = app_record.attributes.repository_ref
@@ -249,6 +250,16 @@ def build_container_image(app_record, tag, extra_build_args=[], logger=None):
         clone_dir = os.path.join(tmpdir, record_id)
 
         logger.log(f"Cloning repository {repo} to {clone_dir} ...")
+        # Set github credentials if present running a command like:
+        # git config --global url."https://${TOKEN}:@github.com/".insteadOf "https://github.com/"
+        github_token = os.environ.get("DEPLOYER_GITHUB_TOKEN")
+        if github_token:
+            logger.log("Github token detected, setting it in the git environment")
+            git_config_args = [
+                "git", "config", "--global", f"url.\"https://{github_token}:@github.com/\".insteadOf", "https://github.com/"
+                ]
+            result = subprocess.run(git_config_args, stdout=logger.file, stderr=logger.file)
+            result.check_returncode()
         if ref:
             # TODO: Determing branch or hash, and use depth 1 if we can.
             git_env = dict(os.environ.copy())
@@ -265,6 +276,7 @@ def build_container_image(app_record, tag, extra_build_args=[], logger=None):
                 logger.log(f"git checkout failed.  Does ref {ref} exist?")
                 raise e
         else:
+            # TODO: why is this code different vs the branch above (run vs check_call, and no prompt disable)?
             result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir], stdout=logger.file, stderr=logger.file)
             result.check_returncode()
 

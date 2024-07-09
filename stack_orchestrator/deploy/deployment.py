@@ -50,15 +50,15 @@ def command(ctx, dir):
 
 def make_deploy_context(ctx) -> DeployCommandContext:
     context: DeploymentContext = ctx.obj
-    stack_file_path = context.get_stack_file()
     env_file = context.get_env_file()
     cluster_name = context.get_cluster_id()
     if constants.deploy_to_key in context.spec.obj:
         deployment_type = context.spec.obj[constants.deploy_to_key]
     else:
         deployment_type = constants.compose_deploy_type
-    return create_deploy_context(ctx.parent.parent.obj, context, stack_file_path, None, None, cluster_name, env_file,
-                                 deployment_type)
+    stack = context.deployment_dir
+    return create_deploy_context(ctx.parent.parent.obj, context, stack, None, None,
+                                 cluster_name, env_file, deployment_type)
 
 
 @command.command()
@@ -123,6 +123,7 @@ def push_images(ctx):
 @click.argument('extra_args', nargs=-1)  # help: command: port <service1> <service2>
 @click.pass_context
 def port(ctx, extra_args):
+    ctx.obj = make_deploy_context(ctx)
     port_operation(ctx, extra_args)
 
 

@@ -20,14 +20,12 @@ import os
 import sys
 from decouple import config
 import git
+from git.exc import GitCommandError
 from tqdm import tqdm
 import click
 import importlib.resources
-from pathlib import Path
-import yaml
-from stack_orchestrator.constants import stack_file_name
 from stack_orchestrator.opts import opts
-from stack_orchestrator.util import include_exclude_check, stack_is_external, error_exit, warn_exit
+from stack_orchestrator.util import get_parsed_stack_config, include_exclude_check, error_exit, warn_exit
 
 
 class GitProgress(git.RemoteProgress):
@@ -81,9 +79,13 @@ def _get_repo_current_branch_or_tag(full_filesystem_repo_path):
     except TypeError:
         # This means that the current ref is not a branch, so possibly a tag
         # Let's try to get the tag
-        current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).git.describe("--tags", "--exact-match")
-        # Note that git is assymetric -- the tag you told it to check out may not be the one
-        # you get back here (if there are multiple tags associated with the same commit)
+        try:
+            current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).git.describe("--tags", "--exact-match")
+            # Note that git is asymmetric -- the tag you told it to check out may not be the one
+            # you get back here (if there are multiple tags associated with the same commit)
+        except GitCommandError:
+            # If there is no matching branch or tag checked out, just use the current SHA
+            current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).commit("HEAD").hexsha
     return current_repo_branch_or_tag, is_branch
 
 
@@ -102,7 +104,7 @@ def process_repo(pull, check_only, git_ssh, dev_root_path, branches_array, fully
         full_filesystem_repo_path
         ) if is_present else (None, None)
     if not opts.o.quiet:
-        present_text = f"already exists active {'branch' if is_branch else 'tag'}: {current_repo_branch_or_tag}" if is_present \
+        present_text = f"already exists active {'branch' if is_branch else 'ref'}: {current_repo_branch_or_tag}" if is_present \
             else 'Needs to be fetched'
         print(f"Checking: {full_filesystem_repo_path}: {present_text}")
     # Quick check that it's actually a repo
@@ -120,7 +122,7 @@ def process_repo(pull, check_only, git_ssh, dev_root_path, branches_array, fully
                         origin = git_repo.remotes.origin
                         origin.pull(progress=None if opts.o.quiet else GitProgress())
                     else:
-                        print("skipping pull because this repo checked out a tag")
+                        print("skipping pull because this repo is not on a branch")
                 else:
                     print("(git pull skipped)")
     if not is_present:
@@ -222,20 +224,10 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches):
 
     repos_in_scope = []
     if stack:
-        if stack_is_external(stack):
-            stack_file_path = Path(stack).joinpath(stack_file_name)
-        else:
-            # In order to be compatible with Python 3.8 we need to use this hack to get the path:
-            # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-            stack_file_path = Path(__file__).absolute().parent.parent.joinpath("data", "stacks", stack, stack_file_name)
-        if not stack_file_path.exists():
-            error_exit(f"stack {stack} does not exist")
-        with stack_file_path:
-            stack_config = yaml.safe_load(open(stack_file_path, "r"))
-            if "repos" not in stack_config or stack_config["repos"] is None:
-                warn_exit(f"stack {stack} does not define any repositories")
-            else:
-                repos_in_scope = stack_config["repos"]
+        stack_config = get_parsed_stack_config(stack)
+        if "repos" not in stack_config or stack_config["repos"] is None:
+            warn_exit(f"stack {stack} does not define any repositories")
+        repos_in_scope = stack_config["repos"]
     else:
         repos_in_scope = all_repos
 

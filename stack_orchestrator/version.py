@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
-import importlib.resources
+from importlib import resources, metadata
 
 
 @click.command()
@@ -24,8 +24,11 @@ def command(ctx):
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from stack_orchestrator import data
-    with importlib.resources.open_text(data, "build_tag.txt") as version_file:
-        # TODO: code better version that skips comment lines
-        version_string = version_file.read().splitlines()[1]
+    if resources.is_resource(data, "build_tag.txt"):
+        with resources.open_text(data, "build_tag.txt") as version_file:
+            # TODO: code better version that skips comment lines
+            version_string = version_file.read().splitlines()[1]
+    else:
+        version_string = metadata.version("laconic-stack-orchestrator") + "-unknown"
 
-    print(f"Version: {version_string}")
+    print(version_string)

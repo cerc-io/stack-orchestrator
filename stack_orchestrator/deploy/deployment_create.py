@@ -24,7 +24,7 @@ from secrets import token_hex
 import sys
 from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
-from stack_orchestrator.util import (get_stack_file_path, get_parsed_deployment_spec, get_parsed_stack_config,
+from stack_orchestrator.util import (get_stack_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
                                      get_pod_script_paths, get_plugin_code_paths, error_exit, env_var_map_from_file,
                                      resolve_config_dir)
@@ -238,6 +238,11 @@ def _find_extra_config_dirs(parsed_pod_file, pod):
                         config_dir = host_path.split("/")[2]
                         if config_dir != pod:
                             config_dirs.add(config_dir)
+        for env_file in service_info.get("env_file", []):
+            if env_file.startswith("../config"):
+                config_dir = env_file.split("/")[2]
+                if config_dir != pod:
+                    config_dirs.add(config_dir)
     return config_dirs
 
 
@@ -454,7 +459,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
     _check_volume_definitions(parsed_spec)
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
-    stack_file = get_stack_file_path(stack_name)
+    stack_file = get_stack_path(stack_name).joinpath(constants.stack_file_name)
     parsed_stack = get_parsed_stack_config(stack_name)
     if opts.o.debug:
         print(f"parsed spec: {parsed_spec}")
@@ -467,7 +472,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
     os.mkdir(deployment_dir_path)
     # Copy spec file and the stack file into the deployment dir
     copyfile(spec_file, deployment_dir_path.joinpath(constants.spec_file_name))
-    copyfile(stack_file, deployment_dir_path.joinpath(os.path.basename(stack_file)))
+    copyfile(stack_file, deployment_dir_path.joinpath(constants.stack_file_name))
     _create_deployment_file(deployment_dir_path)
     # Copy any config varibles from the spec file into an env file suitable for compose
     _write_config_file(spec_file, deployment_dir_path.joinpath(constants.config_file_name))

@@ -26,8 +26,15 @@ import click
 from pathlib import Path
 from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
-from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config, global_options2, get_dev_root_path
-from stack_orchestrator.util import resolve_compose_file
+from stack_orchestrator.util import (
+    get_stack_path,
+    include_exclude_check,
+    get_parsed_stack_config,
+    global_options2,
+    get_dev_root_path,
+    stack_is_in_deployment,
+    resolve_compose_file,
+)
 from stack_orchestrator.deploy.deployer import Deployer, DeployerException
 from stack_orchestrator.deploy.deployer_factory import getDeployer
 from stack_orchestrator.deploy.deploy_types import ClusterContext, DeployCommandContext
@@ -60,6 +67,7 @@ def command(ctx, include, exclude, env_file, cluster, deploy_to):
     if deploy_to is None:
         deploy_to = "compose"
 
+    stack = get_stack_path(stack)
     ctx.obj = create_deploy_context(global_options2(ctx), None, stack, include, exclude, cluster, env_file, deploy_to)
     # Subcommand is executed now, by the magic of click
 
@@ -274,16 +282,12 @@ def _make_default_cluster_name(deployment, compose_dir, stack, include, exclude)
 
 # stack has to be either PathLike pointing to a stack yml file, or a string with the name of a known stack
 def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
-
     dev_root_path = get_dev_root_path(ctx)
 
-    # TODO: huge hack, fix this
-    # If the caller passed a path for the stack file, then we know that we can get the compose files
-    # from the same directory
-    deployment = False
-    if isinstance(stack, os.PathLike):
-        compose_dir = stack.parent.joinpath("compose")
-        deployment = True
+    # TODO: hack, this should be encapsulated by the deployment context.
+    deployment = stack_is_in_deployment(stack)
+    if deployment:
+        compose_dir = stack.joinpath("compose")
     else:
         # See: https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
         compose_dir = Path(__file__).absolute().parent.parent.joinpath("data", "compose")

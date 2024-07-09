@@ -27,6 +27,8 @@ elif [ -f "${WORK_DIR}/package.json" ]; then
       CERC_BUILD_TOOL=pnpm
     elif [ -f "yarn.lock" ]; then
       CERC_BUILD_TOOL=yarn
+    elif [ -f "bun.lockb" ]; then
+      CERC_BUILD_TOOL=bun
     else
       CERC_BUILD_TOOL=npm
     fi

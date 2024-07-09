@@ -28,6 +28,8 @@ RUN \
     && su ${USERNAME} -c "umask 0002 && npm install -g semver" \
     # Install pnpm
     && su ${USERNAME} -c "umask 0002 && npm install -g pnpm" \
+    # Install bun
+    && su ${USERNAME} -c "umask 0002 && npm install -g bun@1.1.x" \
     && npm cache clean --force > /dev/null 2>&1
 
 # [Optional] Uncomment this section to install additional OS packages.

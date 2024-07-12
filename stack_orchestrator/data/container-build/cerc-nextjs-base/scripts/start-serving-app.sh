@@ -5,7 +5,7 @@ fi
 
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-CERC_MAX_GENERATE_TIME=${CERC_MAX_GENERATE_TIME:-60}
+CERC_MAX_GENERATE_TIME=${CERC_MAX_GENERATE_TIME:-120}
 tpid=""
 
 ctrl_c() {

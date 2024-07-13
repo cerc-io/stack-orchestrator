@@ -4,6 +4,8 @@ if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
 
+# TODO: document what this script does
+
 WORK_DIR="${1:-./}"
 
 cd "${WORK_DIR}" || exit 1

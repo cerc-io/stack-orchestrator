@@ -2,14 +2,15 @@ version: "1.0"
 name: mainnet-laconic
 description: "Mainnet laconic node"
 repos:
-  - cerc-io/laconicd
-  - lirewine/debug
-  - lirewine/crypto
-  - lirewine/gem
-  - lirewine/sdk
-  - cerc-io/laconic-sdk
-  - cerc-io/laconic-registry-cli
-  - cerc-io/laconic-console
+  - git.vdb.to/cerc-io/laconicd
+  - github.com/lirewine/debug
+  - github.com/lirewine/crypto
+  - github.com/lirewine/gem
+  - github.com/lirewine/sdk
+  - git.vdb.to/cerc-io/laconic-sdk
+  - git.vdb.to/cerc-io/laconic-registry-cli
+  - git.vdb.to/cerc-io/laconic-console
+  - github.com/ping-pub/explorer
 npms:
   - laconic-sdk
   - laconic-registry-cli
@@ -23,7 +24,8 @@ containers:
   - cerc/laconic-registry-cli
   - cerc/webapp-base
   - cerc/laconic-console-host
+  - cerc/ping-pub
 pods:
   - mainnet-laconicd
   - fixturenet-laconic-console
-
+  - laconic-explorer

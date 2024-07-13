@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build cerc/laconic-registry-cli
+# Build cerc/laconic-console-host
 
 source ${CERC_CONTAINER_BASE_DIR}/build-base.sh
 

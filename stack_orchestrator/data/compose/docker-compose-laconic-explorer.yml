@@ -1,0 +1,10 @@
+services:
+  laconic-explorer:
+    restart: unless-stopped
+    image: cerc/ping-pub:local
+    environment:
+      - LACONIC_LACONICD_API_URL=${LACONIC_LACONICD_API_URL:-http://localhost:1317}
+      - LACONIC_LACONICD_RPC_URL=${LACONIC_LACONICD_RPC_URL:-http://localhost:26657}
+      - LACONIC_LACONICD_CHAIN_ID=${LACONIC_LACONICD_CHAIN_ID:-chain-id-not-set}
+    ports:
+      - "5173"

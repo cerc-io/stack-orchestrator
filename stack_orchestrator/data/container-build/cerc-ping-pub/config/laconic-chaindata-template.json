@@ -1,0 +1,22 @@
+{
+    "chain_name": "LACONIC_LACONICD_CHAIN_ID",
+    "registry_name": "LACONIC_LACONICD_CHAIN_ID",
+    "api": [
+        {"provider": "LX-one-tree-one-seven", "address": "LACONIC_LACONICD_API_URL"}
+    ],
+    "rpc": [
+        {"provider": "LX-tendermint-rpc", "address": "LACONIC_LACONICD_RPC_URL"}
+    ],
+    "sdk_version": "0.45.1",
+    "coin_type": "118",
+    "min_tx_fee": "800",
+    "addr_prefix": "ethm",
+    "logo": "/logos/cosmos.svg",
+    "assets": [{
+        "base": "aphoton",
+        "symbol": "LNT",
+        "exponent": "6",
+        "coingecko_id": "cosmos", 
+        "logo": "/logos/cosmos.svg"
+    }]
+}

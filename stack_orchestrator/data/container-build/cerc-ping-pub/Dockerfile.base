@@ -1,0 +1,8 @@
+FROM cerc/webapp-base:local
+
+WORKDIR /app
+
+COPY . .
+
+RUN yarn
+

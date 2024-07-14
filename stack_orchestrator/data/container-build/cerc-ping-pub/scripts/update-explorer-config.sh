@@ -20,7 +20,7 @@ fi
 
 explorer_config_dir=/app/chains/mainnet
 config_template_file=/config/chains/mainnet/laconic-chaindata-template.json
-config_file=${explorer_config_dir}/laconic-chaindata.json
+config_file=${explorer_config_dir}/laconic.json
 
 # Delete the stock config files
 rm -f ${explorer_config_dir}/*

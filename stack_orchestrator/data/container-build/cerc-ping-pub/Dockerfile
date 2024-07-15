@@ -2,7 +2,7 @@ FROM cerc/ping-pub-base:local
 
 COPY ./scripts/update-explorer-config.sh /scripts
 COPY ./scripts/start-serving-explorer.sh /scripts
-COPY ./config/laconic-chaindata-template.json /config/chains/mainnet/laconic-chaindata-template.json
+COPY ./config/laconic-chaindata-template.json /config/chains/laconic-chaindata-template.json
 
 EXPOSE 5173
 

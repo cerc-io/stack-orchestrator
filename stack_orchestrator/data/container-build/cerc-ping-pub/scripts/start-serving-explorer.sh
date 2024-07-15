@@ -9,4 +9,5 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ${SCRIPT_DIR}/update-explorer-config.sh
 
 echo "Starting serving explorer"
-yarn serve --host
+# Force cache re-build because vite is dumb and can't be restarted otherwise
+yarn serve --host --force

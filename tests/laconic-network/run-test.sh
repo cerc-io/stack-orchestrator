@@ -18,6 +18,20 @@ do
         rm -rf ${node_network_dir}
     fi
 done
+echo "Deleting any existing deployments..."
+for (( i=1 ; i<=$node_count ; i++ ));
+do
+    node_deployment_dir=${node_dir_prefix}${i}-deployment
+    node_spec_file=${node_dir_prefix}${i}-spec.yml
+    if [[ -d $node_deployment_dir ]]; then
+        echo "Deleting ${node_deployment_dir}"
+        rm -rf ${node_deployment_dir}
+    fi
+    if [[ -f $node_spec_file ]]; then
+        echo "Deleting ${node_spec_file}"
+        rm ${node_spec_file}
+    fi
+done
 
 echo "Initalizing ${node_count} nodes networks..."
 for (( i=1 ; i<=$node_count ; i++ )); 
@@ -55,4 +69,13 @@ do
     echo "Importing genesis.json into node ${i}"
     node_network_dir=${node_dir_prefix}${i}
     laconic-so --stack mainnet-laconic deploy setup --network-dir ${node_network_dir} --create-network --genesis-file ${genesis_file}
+done
+
+# Create deployments
+echo "Creating ${node_count} deployments..."
+for (( i=1 ; i<=$node_count ; i++ ));
+do
+    node_network_dir=${node_dir_prefix}${i}
+    laconic-so --stack mainnet-laconic deploy init --output ${node_network_dir}-spec.yml
+    laconic-so --stack mainnet-laconic deploy create --deployment-dir ${node_network_dir}-deployment --spec-file ${node_dir_prefix}${i}-spec.yml --network-dir ${node_network_dir}
 done

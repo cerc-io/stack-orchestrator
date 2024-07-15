@@ -115,11 +115,36 @@ def _insert_persistent_peers(config_dir: Path, new_persistent_peers: str):
         sys.exit(1)
     with open(config_file_path, "r") as input_file:
         config_file_content = input_file.read()
-        persistent_peers_pattern = '^persistent_peers = ""'
+        persistent_peers_pattern = r'^persistent_peers = ""'
         replace_with = f"persistent_peers = \"{new_persistent_peers}\""
         config_file_content = re.sub(persistent_peers_pattern, replace_with, config_file_content, flags=re.MULTILINE)
     with open(config_file_path, "w") as output_file:
         output_file.write(config_file_content)
+
+
+def _enable_cors(config_dir: Path):
+    config_file_path = config_dir.joinpath("config.toml")
+    if not config_file_path.exists():
+        print("Error: config.toml not found")
+        sys.exit(1)
+    with open(config_file_path, "r") as input_file:
+        config_file_content = input_file.read()
+        cors_pattern = r'^cors_allowed_origins = \[]'
+        replace_with = 'cors_allowed_origins = ["*"]'
+        config_file_content = re.sub(cors_pattern, replace_with, config_file_content, flags=re.MULTILINE)
+    with open(config_file_path, "w") as output_file:
+        output_file.write(config_file_content)
+    app_file_path = config_dir.joinpath("app.toml")
+    if not app_file_path.exists():
+        print("Error: app.toml not found")
+        sys.exit(1)
+    with open(app_file_path, "r") as input_file:
+        app_file_content = input_file.read()
+        cors_pattern = r'^enabled-unsafe-cors = false'
+        replace_with = "enabled-unsafe-cors = true"
+        app_file_content = re.sub(cors_pattern, replace_with, app_file_content, flags=re.MULTILINE)
+    with open(app_file_path, "w") as output_file:
+        output_file.write(app_file_content)
 
 
 def _phase_from_params(parameters):
@@ -292,6 +317,8 @@ def create(deployment_context: DeploymentContext, extra_args):
     if extra_args[1]:
         initial_persistent_peers = extra_args[1]
         _insert_persistent_peers(deployment_config_dir, initial_persistent_peers)
+    # Enable CORS headers so explorers and so on can talk to the node
+    _enable_cors(deployment_config_dir)
     # Copy the data directory contents into our deployment
     # TODO: change this to work with non local paths
     deployment_data_dir = deployment_context.deployment_dir.joinpath("data", "laconicd-data")

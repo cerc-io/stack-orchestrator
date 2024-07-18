@@ -1,6 +1,6 @@
 # Adding a new stack
 
-See [this PR](https://git.vdb.to/cerc-io/stack-orchestrator/pull/434) for an example of how to currently add a minimal stack to stack orchestrator. The [reth stack](https://git.vdb.to/cerc-io/stack-orchestrator/pull/435) is another good example.
+See [this PR](https://git.vdb.to/cerc-io/stack-orchestrator/pulls/434) for an example of how to currently add a minimal stack to stack orchestrator. The [reth stack](https://git.vdb.to/cerc-io/stack-orchestrator/pulls/434) is another good example.
 
 For external developers, we recommend forking this repo and adding your stack directly to your fork. This initially requires running in "developer mode" as described [here](/docs/CONTRIBUTING.md). Check out the [Namada stack](https://github.com/vknowable/stack-orchestrator/blob/main/app/data/stacks/public-namada/digitalocean_quickstart.md) from Knowable to see how that is done.
 

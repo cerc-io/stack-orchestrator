@@ -10,8 +10,11 @@ echo "Environment variables:"
 env
 # Test basic stack-orchestrator webapp
 echo "Running stack-orchestrator webapp test"
-# Bit of a hack, test the most recent package
-TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
+if [ "$1" == "from-path" ]; then
+    TEST_TARGET_SO="laconic-so"
+else
+    TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
+fi
 # Set a non-default repo dir
 export CERC_REPO_BASE_DIR=~/stack-orchestrator-test/repo-base-dir
 echo "Testing this package: $TEST_TARGET_SO"
@@ -30,14 +33,17 @@ CHECK="SPECIAL_01234567890_TEST_STRING"
 
 set +e
 
-CONTAINER_ID=$(docker run -p 3000:80 -d -e CERC_SCRIPT_DEBUG=$CERC_SCRIPT_DEBUG cerc/test-progressive-web-app:local)
+app_image_name="cerc/test-progressive-web-app:local"
+
+CONTAINER_ID=$(docker run -p 3000:80 -d -e CERC_SCRIPT_DEBUG=$CERC_SCRIPT_DEBUG ${app_image_name})
 sleep 3
 wget --tries 20 --retry-connrefused --waitretry=3 -O test.before -m http://localhost:3000
 
 docker logs $CONTAINER_ID
 docker remove -f $CONTAINER_ID
 
-CONTAINER_ID=$(docker run -p 3000:80 -e CERC_WEBAPP_DEBUG=$CHECK -e CERC_SCRIPT_DEBUG=$CERC_SCRIPT_DEBUG -d cerc/test-progressive-web-app:local)
+echo "Running app container test"
+CONTAINER_ID=$(docker run -p 3000:80 -e CERC_WEBAPP_DEBUG=$CHECK -e CERC_SCRIPT_DEBUG=$CERC_SCRIPT_DEBUG -d ${app_image_name})
 sleep 3
 wget --tries 20 --retry-connrefused --waitretry=3 -O test.after -m http://localhost:3000
 
@@ -61,6 +67,20 @@ if [ $? -ne 0 ]; then
   exit 1
 else
   echo "AFTER: PASSED"
+fi
+
+echo "Running deployment create test"
+# Note: this is not a full test -- all we're testing here is that the deploy-webapp create command doesn't crash
+test_deployment_dir=$CERC_REPO_BASE_DIR/test-deployment-dir
+fake_k8s_config_file=$CERC_REPO_BASE_DIR/kube-config.yml
+touch ${fake_k8s_config_file}
+
+$TEST_TARGET_SO deploy-webapp create --kube-config ${fake_k8s_config_file} --deployment-dir ${test_deployment_dir} --image ${app_image_name} --url https://my-test-app.example.com
+if [ -d ${test_deployment_dir} ]; then
+  echo "PASSED"
+else
+  echo "FAILED"
+  exit 1
 fi
 
 exit 0

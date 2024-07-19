@@ -197,7 +197,10 @@ def stack_is_external(stack: str):
 
 
 def stack_is_in_deployment(stack: Path):
-    return stack.joinpath(deployment_file_name).exists()
+    if isinstance(stack, os.PathLike):
+        return stack.joinpath(deployment_file_name).exists()
+    else:
+        return False
 
 
 def get_yaml():

@@ -42,6 +42,7 @@ if [ $? -ne 0 ]; then
   npm i -g js-beautify
 fi
 
+# js-beautify formats NEXTJS_CONFIG_FILE (ie next.config.js / next.config.mjs) so we can easily insert the generated code.
 js-beautify next.config.dist > "$NEXTJS_CONFIG_FILE"
 echo "" >> "$NEXTJS_CONFIG_FILE"
 

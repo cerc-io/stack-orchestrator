@@ -203,7 +203,16 @@ class LaconicRegistryClient:
             print(open(record_fname, 'r').read(), file=self.log_file)
 
             new_record_id = json.loads(
-                logged_cmd(self.log_file, "laconic", "-c", self.config_file, "registry", "record", "publish", "--filename", record_fname)
+                logged_cmd(
+                    self.log_file,
+                    "laconic", "-c",
+                    self.config_file,
+                    "registry",
+                    "record",
+                    "publish",
+                    "--filename",
+                    record_fname
+                    )
             )["id"]
             for name in names:
                 self.set_name(name, new_record_id)

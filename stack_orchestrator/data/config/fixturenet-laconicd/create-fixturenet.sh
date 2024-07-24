@@ -26,8 +26,8 @@ if [ "$1" == "clean" ] || [ ! -d "$HOME/.laconicd/data/blockstore.db" ]; then
     make install
   fi
 
-  laconicd config keyring-backend $KEYRING
-  laconicd config chain-id $CHAINID
+  laconicd config set client chain-id $CHAINID
+  laconicd config set client keyring-backend $KEYRING
 
   # if $KEY exists it should be deleted
   laconicd keys add $KEY --keyring-backend $KEYRING --algo $KEYALGO

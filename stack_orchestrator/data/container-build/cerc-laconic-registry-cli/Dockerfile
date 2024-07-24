@@ -50,7 +50,7 @@ RUN npm config set @cerc-io:registry ${CERC_NPM_REGISTRY_URL} \
 # that install different Node-based CLI commands
 
 # Globally install the cli package
-RUN yarn global add @cerc-io/laconic-registry-cli
+RUN yarn global add @cerc-io/laconic-registry-cli@0.2.0
 
 # Add scripts
 RUN mkdir /scripts

@@ -110,7 +110,7 @@ To avoid hiccups on Mac M1/M2 and any local machine nuances that may affect the 
 4. Confirm operation of the registry CLI:
 
    ```
-   laconic-so deployment --dir laconic-loaded-deployment exec cli "laconic cns status"
+   laconic-so deployment --dir laconic-loaded-deployment exec cli "laconic registry status"
    ```
 
    ```
@@ -223,5 +223,5 @@ record:
 - e.g,:
 
 ```
-laconic-so --stack fixturenet-laconic-loaded deploy exec cli "laconic cns record list"
+laconic-so --stack fixturenet-laconic-loaded deploy exec cli "laconic registry record list"
 ```

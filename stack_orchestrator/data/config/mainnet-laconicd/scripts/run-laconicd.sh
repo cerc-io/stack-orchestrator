@@ -11,7 +11,7 @@ laconicd start \
     --pruning=nothing \
     --evm.tracer=json $TRACE \
     --log_level $LOGLEVEL \
-    --minimum-gas-prices=0.0001aphoton \
+    --minimum-gas-prices=0.0001photon \
     --json-rpc.api eth,txpool,personal,net,debug,web3,miner \
     --api.enable \
     --gql-server \

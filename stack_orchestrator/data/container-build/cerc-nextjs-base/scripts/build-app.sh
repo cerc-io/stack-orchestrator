@@ -107,8 +107,6 @@ if [ ! -f "package.dist" ]; then
   cp package.json package.dist
 fi
 
-cat package.dist | jq '.scripts.cerc_compile = "next experimental-compile"' | jq '.scripts.cerc_generate = "next experimental-generate"' > package.json
-
 CUR_NEXT_VERSION="`jq -r '.dependencies.next' package.json`"
 
 if [ "$CERC_NEXT_VERSION" != "keep" ] && [ "$CUR_NEXT_VERSION" != "$CERC_NEXT_VERSION" ]; then
@@ -120,6 +118,21 @@ fi
 time $CERC_BUILD_TOOL install || exit 1
 
 CUR_NEXT_VERSION=`jq -r '.version' node_modules/next/package.json`
+
+# See https://github.com/vercel/next.js/discussions/46544
+semver -p -r ">=14.2.0" "$CUR_NEXT_VERSION"
+if [ $? -eq 0 ]; then
+  # For >= 14.2.0
+  CERC_NEXT_COMPILE_COMMAND="next build --experimental-build-mode compile"
+  CERC_NEXT_GENERATE_COMMAND="next build --experimental-build-mode generate"
+else
+  # For 13.4.2 to 14.1.x
+  CERC_NEXT_COMPILE_COMMAND="next experimental-compile"
+  CERC_NEXT_GENERATE_COMMAND="next experimental-generate"
+fi
+
+cat package.json | jq ".scripts.cerc_compile = \"$CERC_NEXT_COMPILE_COMMAND\"" | jq ".scripts.cerc_generate = \"$CERC_NEXT_GENERATE_COMMAND\"" > package.json.$$
+mv package.json.$$ package.json
 
 semver -p -r ">=$CERC_MIN_NEXTVER" $CUR_NEXT_VERSION
 if [ $? -ne 0 ]; then

@@ -7,9 +7,9 @@ record:
     env:
       ENV_VAR_A: A
       ENV_VAR_B: B
-  crn:
-    - crn://foo.bar
-    - crn://bar.baz
+  lrn:
+    - lrn://foo.bar
+    - lrn://bar.baz
   meta:
     foo: bar
   tags:

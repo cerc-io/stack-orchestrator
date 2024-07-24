@@ -44,5 +44,5 @@ $ laconic-so --stack fixturenet-laconicd deploy logs
 ```
 ## 6. Test with the Registry CLI
 ```
-$ laconic-so --stack fixturenet-laconicd deploy exec cli "laconic cns status"
+$ laconic-so --stack fixturenet-laconicd deploy exec cli "laconic registry status"
 ```

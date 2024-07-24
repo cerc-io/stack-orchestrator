@@ -74,7 +74,7 @@ laconic-so --stack fixturenet-laconicd deploy logs
 ### Test with the registry CLI
 
 ```bash
-laconic-so --stack fixturenet-laconicd deploy exec cli "laconic cns status"
+laconic-so --stack fixturenet-laconicd deploy exec cli "laconic registry status"
 ```
 
 Try additional CLI commands, documented [here](https://github.com/cerc-io/laconic-registry-cli#operations).

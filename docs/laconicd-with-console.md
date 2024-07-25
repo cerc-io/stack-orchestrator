@@ -1,9 +1,8 @@
 # Running a laconicd fixturenet with console
 
-The following tutorial explains the steps to run a laconicd fixturenet with CLI and web console that displays records in the registry. It is designed as an introduction to Stack Orchestrator and to showcase one component of the Laconic Stack. Prior to Stack Orchestrator, the following 4 repositories had to be cloned and setup manually:
+The following tutorial explains the steps to run a laconicd fixturenet with CLI and web console that displays records in the registry. It is designed as an introduction to Stack Orchestrator and to showcase one component of the Laconic Stack. Prior to Stack Orchestrator, the following repositories had to be cloned and setup manually:
 
 - https://git.vdb.to/cerc-io/laconicd
-- https://git.vdb.to/cerc-io/laconic-sdk
 - https://git.vdb.to/cerc-io/laconic-registry-cli
 - https://git.vdb.to/cerc-io/laconic-console
 
@@ -11,7 +10,7 @@ Now, with Stack Orchestrator, it is a few quick commands. Additionally, the `doc
 
 ## Setup laconic-so
 
-To avoid hiccups on Mac M1/M2 and any local machine nuances that may affect the user experience, this tutorial is focused on using a fresh Digital Ocean (DO) droplet with similar specs: 
+To avoid hiccups on Mac M1/M2 and any local machine nuances that may affect the user experience, this tutorial is focused on using a fresh Digital Ocean (DO) droplet with similar specs:
 16 GB Memory / 8 Intel vCPUs / 160 GB Disk.
 
 1. Login to the droplet as root (either by SSH key or password set in the DO console)
@@ -51,7 +50,7 @@ To avoid hiccups on Mac M1/M2 and any local machine nuances that may affect the 
 1. Get the repositories
 
     ```
-    laconic-so --stack fixturenet-laconic-loaded setup-repositories --include git.vdb.to/cerc-io/laconicd,git.vdb.to/cerc-io/laconic-sdk,git.vdb.to/cerc-io/laconic-registry-cli,git.vdb.to/cerc-io/laconic-console
+    laconic-so --stack fixturenet-laconic-loaded setup-repositories --include git.vdb.to/cerc-io/laconicd
     ```
 
 1. Build the containers:
@@ -76,6 +75,8 @@ To avoid hiccups on Mac M1/M2 and any local machine nuances that may affect the 
 1. Create a deployment directory for the stack:
     ```
     laconic-so --stack fixturenet-laconic-loaded deploy init --output laconic-loaded.spec --map-ports-to-host any-same --config LACONIC_HOSTED_ENDPOINT=$BACKEND_ENDPOINT
+
+    # Update port mapping in the laconic-loaded.spec file to resolve port conflicts on host if any
     ```
     ```
     laconic-so --stack fixturenet-laconic-loaded deploy create --deployment-dir laconic-loaded-deployment --spec-file laconic-loaded.spec
@@ -95,16 +96,15 @@ To avoid hiccups on Mac M1/M2 and any local machine nuances that may affect the 
     You'll see output from `laconicd` and the block height should be >1 to confirm it is running:
 
     ```
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:29PM INF indexed block exents height=12 module=txindex server=node
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF Timed out dur=4976.960115 height=13 module=consensus round=0 server=node step=1
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF received proposal module=consensus proposal={"Type":32,"block_id":{"hash":"D26C088A711F912ADB97888C269F628DA33153795621967BE44DCB43C3D03CA4","parts":{"hash":"22411A20B7F14CDA33244420FBDDAF24450C0628C7A06034FF22DAC3699DDCC8","total":1}},"height":13,"pol_round":-1,"round":0,"signature":"DEuqnaQmvyYbUwckttJmgKdpRu6eVm9i+9rQ1pIrV2PidkMNdWRZBLdmNghkIrUzGbW8Xd7UVJxtLRmwRASgBg==","timestamp":"2023-04-18T21:30:01.49450663Z"} server=node
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF received complete proposal block hash=D26C088A711F912ADB97888C269F628DA33153795621967BE44DCB43C3D03CA4 height=13 module=consensus server=node
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF finalizing commit of block hash={} height=13 module=consensus num_txs=0 root=1A8CA1AF139CCC80EC007C6321D8A63A46A793386EE2EDF9A5CA0AB2C90728B7 server=node
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF minted coins from module account amount=2059730459416582643aphoton from=mint module=x/bank
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF executed block height=13 module=state num_invalid_txs=0 num_valid_txs=0 server=node
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF commit synced commit=436F6D6D697449447B5B363520313037203630203232372039352038352032303820313334203231392032303520313433203130372031343920313431203139203139322038362031323720362031383520323533203137362031333820313735203135392031383620323334203135382031323120313431203230342037335D3A447D
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF committed state app_hash=416B3CE35F55D086DBCD8F6B958D13C0567F06B9FDB08AAF9FBAEA9E798DCC49 height=13 module=state num_txs=0 server=node
-    laconic-5cd0a80c1442c3044c8b295d26426bae-laconicd-1         | 9:30PM INF indexed block exents height=13 module=txindex server=node
+    laconicd-1         | 6:12AM INF indexed block events height=16 module=txindex
+    laconicd-1         | 6:12AM INF Timed out dur=2993.893332 height=17 module=consensus round=0 step=RoundStepNewHeight
+    laconicd-1         | 6:12AM INF received proposal module=consensus proposal="Proposal{17/0 (E15D03C180CE607AE8340A1325A0C134DFB4E1ADD992E173C701EBD362523267:1:DF138772FEF0, -1) 6A6F3B0A42B3 @ 2024-07-25T06:12:31.952967053Z}" proposer=86970D950BC9C16F3991A52D9C6DC55BA478A7C6
+    laconicd-1         | 6:12AM INF received complete proposal block hash=E15D03C180CE607AE8340A1325A0C134DFB4E1ADD992E173C701EBD362523267 height=17 module=consensus
+    laconicd-1         | 6:12AM INF finalizing commit of block hash=E15D03C180CE607AE8340A1325A0C134DFB4E1ADD992E173C701EBD362523267 height=17 module=consensus num_txs=0 root=AF4941107DC718ED1425E77A3DC7F1154FB780B7A7DE20288DC43442203527E3
+    laconicd-1         | 6:12AM INF finalized block block_app_hash=26A665360BB1EE64E54F97F2A5AB7F621B33A86D9896574000C05DE63F43F788 height=17 module=state num_txs_res=0 num_val_updates=0
+    laconicd-1         | 6:12AM INF executed block app_hash=26A665360BB1EE64E54F97F2A5AB7F621B33A86D9896574000C05DE63F43F788 height=17 module=state
+    laconicd-1         | 6:12AM INF committed state block_app_hash=AF4941107DC718ED1425E77A3DC7F1154FB780B7A7DE20288DC43442203527E3 height=17 module=state
+    laconicd-1         | 6:12AM INF indexed block events height=17 module=txindex
     ```
 
 4. Confirm operation of the registry CLI:
@@ -117,30 +117,30 @@ To avoid hiccups on Mac M1/M2 and any local machine nuances that may affect the 
    {
      "version": "0.3.0",
      "node": {
-       "id": "4216af2ac9f68bda33a38803fc1b5c9559312c1d",
+       "id": "6e072894aa1f5d9535a1127a0d7a7f8e65100a2c",
        "network": "laconic_9000-1",
        "moniker": "localtestnet"
      },
      "sync": {
-       "latest_block_hash": "1BDF4CB9AE2390DA65BCF997C83133C18014FCDDCAE03708488F0B56FCEEA429",
-       "latest_block_height": "5",
-       "latest_block_time": "2023-08-09 16:00:30.386903172 +0000 UTC",
-       "catching_up": false
+       "latestBlockHash": "260102C283D0411CFBA0270F7DC182650FFCA737A2F6F652A985F6065696F590",
+       "latestBlockHeight": "49",
+       "latestBlockTime": "2024-07-25 06:14:05.626744215 +0000 UTC",
+       "catchingUp": false
      },
      "validator": {
-       "address": "651FBC700B747C76E90ACFC18CC9508C3D0905B9",
-       "voting_power": "1000000000000000"
+       "address": "86970D950BC9C16F3991A52D9C6DC55BA478A7C6",
+       "votingPower": "1000000000000000"
      },
      "validators": [
        {
-         "address": "651FBC700B747C76E90ACFC18CC9508C3D0905B9",
-         "voting_power": "1000000000000000",
-         "proposer_priority": "0"
+         "address": "86970D950BC9C16F3991A52D9C6DC55BA478A7C6",
+         "votingPower": "1000000000000000",
+         "proposerPriority": "0"
        }
      ],
-     "num_peers": "0",
+     "numPeers": "0",
      "peers": [],
-     "disk_usage": "292.0K"
+     "diskUsage": "688K"
    }
    ```
 
@@ -186,13 +186,13 @@ wns
 1. The following command will create a bond and publish a record:
 
 ```
-laconic-so --stack fixturenet-laconic-loaded deploy exec cli ./scripts/create-demo-records.sh
+laconic-so deployment --dir laconic-loaded-deployment exec cli ./scripts/create-demo-records.sh
 ```
 
 You'll get an output like:
 
 ```
-Balance is: 99998999999999998999600000
+Balance is: 9.9999e+25
 Created bond with id: dd88e8d6f9567b32b28e70552aea4419c5dd3307ebae85a284d1fe38904e301a
 Published demo-record-1.yml with id: bafyreierh3xnfivexlscdwubvczmddsnf46uytyfvrbdhkjzztvsz6ruly
 ```
@@ -223,5 +223,5 @@ record:
 - e.g,:
 
 ```
-laconic-so --stack fixturenet-laconic-loaded deploy exec cli "laconic registry record list"
+laconic-so deployment --dir laconic-loaded-deployment exec cli "laconic registry record list"
 ```

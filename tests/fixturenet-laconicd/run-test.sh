@@ -37,7 +37,7 @@ initial_block_number=null
 while [ "$initial_block_number" == "null" ]  && [ $elapsed_time -lt $timeout ]; do
   sleep 10
   echo "$(date +"%Y-%m-%d %T"): Waiting for initial block..."
-  initial_block_number=$(docker exec laconicd-laconicd-1 /usr/bin/laconicd status | jq -r .SyncInfo.latest_block_height)
+  initial_block_number=$(docker exec laconicd-laconicd-1 /usr/bin/laconicd status | jq -r .sync_info.latest_block_height)
   current_time=$(date +%s)
   elapsed_time=$((current_time - start_time))
 done
@@ -54,7 +54,7 @@ if [[ $initial_block_number != "null" ]]; then
   while [ "$subsequent_block_number" -le $((initial_block_number + 5)) ]  && [ $elapsed_time -lt $timeout ]; do
     sleep 10
     echo "$(date +"%Y-%m-%d %T"): Waiting for five blocks or $timeout seconds..."
-    subsequent_block_number=$(docker exec laconicd-laconicd-1 /usr/bin/laconicd status | jq -r .SyncInfo.latest_block_height)
+    subsequent_block_number=$(docker exec laconicd-laconicd-1 /usr/bin/laconicd status | jq -r .sync_info.latest_block_height)
     current_time=$(date +%s)
     elapsed_time=$((current_time - start_time))
   done

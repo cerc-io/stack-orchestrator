@@ -10,11 +10,11 @@ demo_records_dir="scripts/demo-records"
 
 # Check we have funds
 funds_response=$(${registry_command} account get --address $(cat my-address.txt))
-funds_balance=$(echo ${funds_response} | jq -r .[0].balance[0].quantity)
+funds_balance=$(echo ${funds_response} | jq -r ".[0].balance[0].quantity")
 echo "Balance is: ${funds_balance}"
 
 # Create a bond
-bond_create_result=$(${registry_command} bond create --type aphoton --quantity 1000000000)
+bond_create_result=$(${registry_command} bond create --type photon --quantity 1000000000)
 bond_id=$(echo ${bond_create_result} | jq -r .bondId)
 echo "Created bond with id: ${bond_id}"
 

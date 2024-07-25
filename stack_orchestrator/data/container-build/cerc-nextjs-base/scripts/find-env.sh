@@ -20,9 +20,11 @@ for d in $(find . -maxdepth 1 -type d | grep -v '\./\.' | grep '/' | cut -d'/' -
   done
 done
 
-NEXT_CONF="next.config.js next.config.dist"
+NEXT_CONF="next.config.mjs next.config.js next.config.dist"
 for f in $NEXT_CONF; do
-    cat "$f" | tr -s '[:blank:]' '\n' | tr -s '[{},()]' '\n' | egrep -o 'process.env.[A-Za-z0-9_]+' >> $TMPF
+    if [ -f "$f" ]; then
+        cat "$f" | tr -s '[:blank:]' '\n' | tr -s '[{},()]' '\n' | egrep -o 'process.env.[A-Za-z0-9_]+' >> $TMPF
+    fi
 done
 
 cat $TMPF | sort -u | jq  --raw-input .  | jq --slurp .

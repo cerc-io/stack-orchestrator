@@ -1,5 +1,5 @@
 #!/bin/sh
-if [[ -n "$CERC_SCRIPT_DEBUG" ]]; then
+if [ -n "$CERC_SCRIPT_DEBUG" ]; then
     set -x
 fi
 

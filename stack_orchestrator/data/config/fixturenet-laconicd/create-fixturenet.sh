@@ -10,6 +10,7 @@ MONIKER="localtestnet"
 KEYRING="test"
 KEYALGO="secp256k1"
 LOGLEVEL="${LOGLEVEL:-info}"
+DENOM="alnt"
 
 
 if [ "$1" == "clean" ] || [ ! -d "$HOME/.laconicd/data/blockstore.db" ]; then
@@ -33,7 +34,7 @@ if [ "$1" == "clean" ] || [ ! -d "$HOME/.laconicd/data/blockstore.db" ]; then
   laconicd keys add $KEY --keyring-backend $KEYRING --algo $KEYALGO
 
   # Set moniker and chain-id for Ethermint (Moniker can be anything, chain-id must be an integer)
-  laconicd init $MONIKER --chain-id $CHAINID --default-denom photon
+  laconicd init $MONIKER --chain-id $CHAINID --default-denom $DENOM
 
   update_genesis() {
     jq "$1" $HOME/.laconicd/config/genesis.json > $HOME/.laconicd/config/tmp_genesis.json &&
@@ -89,10 +90,12 @@ if [ "$1" == "clean" ] || [ ! -d "$HOME/.laconicd/data/blockstore.db" ]; then
   fi
 
   # Allocate genesis accounts (cosmos formatted addresses)
-  laconicd genesis add-genesis-account $KEY 100000000000000000000000000photon --keyring-backend $KEYRING
+  # 10^30 alnt | 10^12 lnt
+  laconicd genesis add-genesis-account $KEY 1000000000000000000000000000000$DENOM --keyring-backend $KEYRING
 
   # Sign genesis transaction
-  laconicd genesis gentx $KEY 1000000000000000000000photon --keyring-backend $KEYRING --chain-id $CHAINID
+  # 10^24 alnt | 10^6 lnt
+  laconicd genesis gentx $KEY 1000000000000000000000000$DENOM --keyring-backend $KEYRING --chain-id $CHAINID
 
   # Collect genesis tx
   laconicd genesis collect-gentxs
@@ -107,7 +110,7 @@ fi
 laconicd start \
   --pruning=nothing \
   --log_level $LOGLEVEL \
-  --minimum-gas-prices=0.0001photon \
+  --minimum-gas-prices=1$DENOM \
   --api.enable \
   --rpc.laddr="tcp://0.0.0.0:26657" \
   --gql-server --gql-playground

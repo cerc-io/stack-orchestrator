@@ -64,5 +64,6 @@ $ laconic-so --stack fixturenet-laconic-loaded deploy exec cli ./scripts/create-
 Balance is: 99998999999999998999600000
 Created bond with id: dd88e8d6f9567b32b28e70552aea4419c5dd3307ebae85a284d1fe38904e301a
 Published demo-record-1.yml with id: bafyreierh3xnfivexlscdwubvczmddsnf46uytyfvrbdhkjzztvsz6ruly
+...
 ```
-The published record should be visible in the console.
+The published records should be visible in the console.

@@ -6,4 +6,4 @@ services:
     bondId:
     chainId: laconic_9000-1
     gas: 350000
-    fees: 200000photon
+    fees: 2000000alnt

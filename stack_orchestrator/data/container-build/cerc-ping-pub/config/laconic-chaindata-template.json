@@ -7,16 +7,16 @@
     "rpc": [
         {"provider": "LX-tendermint-rpc", "address": "LACONIC_LACONICD_RPC_URL"}
     ],
-    "sdk_version": "0.45.1",
+    "sdk_version": "0.50.3",
     "coin_type": "118",
     "min_tx_fee": "800",
-    "addr_prefix": "ethm",
+    "addr_prefix": "laconic",
     "logo": "/logos/cosmos.svg",
     "assets": [{
-        "base": "photon",
+        "base": "alnt",
         "symbol": "LNT",
-        "exponent": "6",
-        "coingecko_id": "cosmos", 
+        "exponent": "18",
+        "coingecko_id": "cosmos",
         "logo": "/logos/cosmos.svg"
     }]
 }

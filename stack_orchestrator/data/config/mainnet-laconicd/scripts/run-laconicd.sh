@@ -9,7 +9,7 @@ LOGLEVEL="info"
 laconicd start \
     --pruning=nothing \
     --log_level $LOGLEVEL \
-    --minimum-gas-prices=0.0001photon \
+    --minimum-gas-prices=1alnt \
     --api.enable \
     --gql-server \
     --gql-playground

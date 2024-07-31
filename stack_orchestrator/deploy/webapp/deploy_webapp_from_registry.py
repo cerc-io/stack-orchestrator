@@ -66,8 +66,8 @@ def process_app_deployment_request(
         fqdn = f"{requested_name}.{default_dns_suffix}"
 
     # 3. check ownership of existing dnsrecord vs this request
-    dns_lrn = f"{dns_record_namespace}/{fqdn}"
-    dns_record = laconic.get_record(dns_lrn)
+    dns_crn = f"{dns_record_namespace}/{fqdn}"
+    dns_record = laconic.get_record(dns_crn)
     if dns_record:
         matched_owner = match_owner(app_deployment_request, dns_record)
         if not matched_owner and dns_record.attributes.request:
@@ -77,9 +77,9 @@ def process_app_deployment_request(
             logger.log(f"Matched DnsRecord ownership: {matched_owner}")
         else:
             raise Exception("Unable to confirm ownership of DnsRecord %s for request %s" %
-                            (dns_lrn, app_deployment_request.id))
+                            (dns_crn, app_deployment_request.id))
     elif "preexisting" == fqdn_policy:
-        raise Exception(f"No pre-existing DnsRecord {dns_lrn} could be found for request {app_deployment_request.id}.")
+        raise Exception(f"No pre-existing DnsRecord {dns_crn} could be found for request {app_deployment_request.id}.")
 
     # 4. get build and runtime config from request
     env_filename = None
@@ -90,14 +90,14 @@ def process_app_deployment_request(
                 file.write("%s=%s\n" % (k, shlex.quote(str(v))))
 
     # 5. determine new or existing deployment
-    #   a. check for deployment lrn
-    app_deployment_lrn = f"{deployment_record_namespace}/{fqdn}"
+    #   a. check for deployment crn
+    app_deployment_crn = f"{deployment_record_namespace}/{fqdn}"
     if app_deployment_request.attributes.deployment:
-        app_deployment_lrn = app_deployment_request.attributes.deployment
-    if not app_deployment_lrn.startswith(deployment_record_namespace):
+        app_deployment_crn = app_deployment_request.attributes.deployment
+    if not app_deployment_crn.startswith(deployment_record_namespace):
         raise Exception("Deployment CRN %s is not in a supported namespace" % app_deployment_request.attributes.deployment)
 
-    deployment_record = laconic.get_record(app_deployment_lrn)
+    deployment_record = laconic.get_record(app_deployment_crn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
     # At present we use this to generate a unique but stable ID for the app's host container
     # TODO: implement support to derive this transparently from the already-unique deployment id
@@ -109,7 +109,7 @@ def process_app_deployment_request(
     if not os.path.exists(deployment_dir):
         if deployment_record:
             raise Exception("Deployment record %s exists, but not deployment dir %s. Please remove name." %
-                            (app_deployment_lrn, deployment_dir))
+                            (app_deployment_crn, deployment_dir))
         logger.log(f"Creating webapp deployment in: {deployment_dir} with container id: {deployment_container_tag}")
         deploy_webapp.create_deployment(ctx, deployment_dir, deployment_container_tag,
                                         f"https://{fqdn}", kube_config, image_registry, env_filename)
@@ -173,9 +173,9 @@ def process_app_deployment_request(
         laconic,
         app,
         deployment_record,
-        app_deployment_lrn,
+        app_deployment_crn,
         dns_record,
-        dns_lrn,
+        dns_crn,
         deployment_dir,
         app_deployment_request,
         logger
@@ -214,8 +214,8 @@ def dump_known_requests(filename, requests, status="SEEN"):
 @click.option("--only-update-state", help="Only update the state file, don't process any requests anything.", is_flag=True)
 @click.option("--dns-suffix", help="DNS domain to use eg, laconic.servesthe.world")
 @click.option("--fqdn-policy", help="How to handle requests with an FQDN: prohibit, allow, preexisting", default="prohibit")
-@click.option("--record-namespace-dns", help="eg, lrn://laconic/dns")
-@click.option("--record-namespace-deployments", help="eg, lrn://laconic/deployments")
+@click.option("--record-namespace-dns", help="eg, crn://laconic/dns")
+@click.option("--record-namespace-deployments", help="eg, crn://laconic/deployments")
 @click.option("--dry-run", help="Don't do anything, just report what would be done.", is_flag=True)
 @click.option("--include-tags", help="Only include requests with matching tags (comma-separated).", default="")
 @click.option("--exclude-tags", help="Exclude requests with matching tags (comma-separated).", default="")

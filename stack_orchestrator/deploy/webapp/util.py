@@ -94,7 +94,7 @@ class LaconicRegistryClient:
         )
 
     def list_records(self, criteria={}, all=False):
-        args = ["laconic", "-c", self.config_file, "registry", "record", "list"]
+        args = ["laconic", "-c", self.config_file, "cns", "record", "list"]
 
         if all:
             args.append("--all")
@@ -112,13 +112,13 @@ class LaconicRegistryClient:
 
         return results
 
-    def is_lrn(self, name_or_id: str):
+    def is_crn(self, name_or_id: str):
         if name_or_id:
-            return str(name_or_id).startswith("lrn://")
+            return str(name_or_id).startswith("crn://")
         return False
 
     def is_id(self, name_or_id: str):
-        return not self.is_lrn(name_or_id)
+        return not self.is_crn(name_or_id)
 
     def _add_to_cache(self, records):
         if not records:
@@ -127,8 +127,8 @@ class LaconicRegistryClient:
         for p in records:
             self.cache["name_or_id"][p.id] = p
             if p.names:
-                for lrn in p.names:
-                    self.cache["name_or_id"][lrn] = p
+                for crn in p.names:
+                    self.cache["name_or_id"][crn] = p
             if p.attributes.type not in self.cache:
                 self.cache[p.attributes.type] = []
             self.cache[p.attributes.type].append(p)
@@ -140,7 +140,7 @@ class LaconicRegistryClient:
         if name in self.cache.name_or_id:
             return self.cache.name_or_id[name]
 
-        args = ["laconic", "-c", self.config_file, "registry", "name", "resolve", name]
+        args = ["laconic", "-c", self.config_file, "cns", "name", "resolve", name]
 
         parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
         if parsed:
@@ -158,14 +158,14 @@ class LaconicRegistryClient:
         if name_or_id in self.cache.name_or_id:
             return self.cache.name_or_id[name_or_id]
 
-        if self.is_lrn(name_or_id):
+        if self.is_crn(name_or_id):
             return self.resolve(name_or_id)
 
         args = [
             "laconic",
             "-c",
             self.config_file,
-            "registry",
+            "cns",
             "record",
             "get",
             "--id",
@@ -203,16 +203,7 @@ class LaconicRegistryClient:
             print(open(record_fname, 'r').read(), file=self.log_file)
 
             new_record_id = json.loads(
-                logged_cmd(
-                    self.log_file,
-                    "laconic", "-c",
-                    self.config_file,
-                    "registry",
-                    "record",
-                    "publish",
-                    "--filename",
-                    record_fname
-                    )
+                logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "record", "publish", "--filename", record_fname)
             )["id"]
             for name in names:
                 self.set_name(name, new_record_id)
@@ -221,10 +212,10 @@ class LaconicRegistryClient:
             logged_cmd(self.log_file, "rm", "-rf", tmpdir)
 
     def set_name(self, name, record_id):
-        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "registry", "name", "set", name, record_id)
+        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "name", "set", name, record_id)
 
     def delete_name(self, name):
-        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "registry", "name", "delete", name)
+        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "cns", "name", "delete", name)
 
 
 def file_hash(filename):
@@ -335,9 +326,9 @@ def deploy_to_k8s(deploy_record, deployment_dir, logger):
 def publish_deployment(laconic: LaconicRegistryClient,
                        app_record,
                        deploy_record,
-                       deployment_lrn,
+                       deployment_crn,
                        dns_record,
-                       dns_lrn,
+                       dns_crn,
                        deployment_dir,
                        app_deployment_request=None,
                        logger=None):
@@ -372,7 +363,7 @@ def publish_deployment(laconic: LaconicRegistryClient,
 
     if logger:
         logger.log("Publishing DnsRecord.")
-    dns_id = laconic.publish(new_dns_record, [dns_lrn])
+    dns_id = laconic.publish(new_dns_record, [dns_crn])
 
     new_deployment_record = {
         "record": {
@@ -393,7 +384,7 @@ def publish_deployment(laconic: LaconicRegistryClient,
 
     if logger:
         logger.log("Publishing ApplicationDeploymentRecord.")
-    deployment_id = laconic.publish(new_deployment_record, [deployment_lrn])
+    deployment_id = laconic.publish(new_deployment_record, [deployment_crn])
     return {"dns": dns_id, "deployment": deployment_id}
 
 
@@ -402,7 +393,7 @@ def hostname_for_deployment_request(app_deployment_request, laconic):
     if not dns_name:
         app = laconic.get_record(app_deployment_request.attributes.application, require=True)
         dns_name = generate_hostname_for_app(app)
-    elif dns_name.startswith("lrn://"):
+    elif dns_name.startswith("crn://"):
         record = laconic.get_record(dns_name, require=True)
         dns_name = record.attributes.name
     return dns_name

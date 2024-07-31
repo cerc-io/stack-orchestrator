@@ -98,39 +98,67 @@ try {
 console.log(envMap);
 EOF
 
-CONFIG_LINES=$(wc -l ${NEXT_CONFIG_JS} | awk '{ print $1 }')
-ENV_LINE=$(grep -n 'env:' ${NEXT_CONFIG_JS} | cut -d':' -f1)
-WEBPACK_CONF_LINE=$(egrep -n 'webpack:\s+\([^,]+,' ${NEXT_CONFIG_JS} | cut -d':' -f1)
-NEXT_SECTION_ADJUSTMENT=0
+grep 'withPWA' ${NEXT_CONFIG_JS} >/dev/null && HAS_WITHPWA=true || HAS_WITHPWA=false
 
-if [ -n "$WEBPACK_CONF_LINE" ]; then
-  WEBPACK_CONF_VAR=$(egrep -n 'webpack:\s+\([^,]+,' ${NEXT_CONFIG_JS} | cut -d',' -f1 | cut -d'(' -f2)
-  head -$(( ${WEBPACK_CONF_LINE} )) ${NEXT_CONFIG_JS} > ${NEXT_CONFIG_JS}.2
-  cat > ${NEXT_CONFIG_JS}.3 <<EOF
-      $WEBPACK_CONF_VAR.plugins.push(new webpack.DefinePlugin(envMap));
-EOF
-  NEXT_SECTION_LINE=$((WEBPACK_CONF_LINE))
-elif [ -n "$ENV_LINE" ]; then
-  head -$(( ${ENV_LINE} - 1 )) ${NEXT_CONFIG_JS} > ${NEXT_CONFIG_JS}.2
-  cat > ${NEXT_CONFIG_JS}.3 <<EOF
-    webpack: (config) => {
+if [ "$HAS_WITHPWA" == "true" ]; then
+  if [ "$IMPORT_OR_REQUIRE" == "import" ]; then
+    cat > ${NEXT_CONFIG_JS}.2 <<EOF
+const __xPWA__ = (p) => {
+  const realPWA = withPWA(p);
+  return (nextConfig) => {
+    const modConfig = {...nextConfig};
+
+    modConfig.webpack = (config) => {
       config.plugins.push(new webpack.DefinePlugin(envMap));
-      return config;
-    },
+      return nextConfig.webpack ? nextConfig.webpack(config) : config;
+    };
+
+    return realPWA(modConfig);
+  };
+};
 EOF
-  NEXT_SECTION_ADJUSTMENT=1
-  NEXT_SECTION_LINE=$ENV_LINE
+  else
+    cat > ${NEXT_CONFIG_JS}.3 <<EOF
+const __xPWA__ = (nextConfig) => {
+  const modConfig = {...nextConfig};
+
+  modConfig.webpack = (config) => {
+    config.plugins.push(new webpack.DefinePlugin(envMap));
+    return nextConfig.webpack ? nextConfig.webpack(config) : config;
+  };
+
+  return withPWA(modConfig);
+};
+EOF
+  fi
+
+  cat ${NEXT_CONFIG_JS} | js-beautify | sed 's/withPWA(/__xPWA__(/g' > ${NEXT_CONFIG_JS}.4
 else
-  echo "WARNING: Cannot find location to insert environment variable map in ${NEXT_CONFIG_JS}" 1>&2
-  rm -f ${NEXT_CONFIG_JS}.*
-  NEXT_SECTION_LINE=0
+    cat > ${NEXT_CONFIG_JS}.3 <<EOF
+  const __xCfg__ = (nextConfig) => {
+    const modConfig = {...nextConfig};
+
+    modConfig.webpack = (config) => {
+      config.plugins.push(new webpack.DefinePlugin(envMap));
+      return nextConfig.webpack ? nextConfig.webpack(config) : config;
+    };
+
+    return modConfig;
+  };
+EOF
+  if [ "$IMPORT_OR_REQUIRE" == "import" ]; then
+    cat ${NEXT_CONFIG_JS} | js-beautify | sed 's/export\s\+default\s\+/const __orig_cfg__ = /g' > ${NEXT_CONFIG_JS}.4
+    echo "export default __xCfg__(__orig_cfg__);" > ${NEXT_CONFIG_JS}.5
+  else
+    cat ${NEXT_CONFIG_JS} | js-beautify | sed 's/module.exports\s\+=\s\+/const __orig_cfg__ = /g' > ${NEXT_CONFIG_JS}.4
+    echo "module.exports = __xCfg__(__orig_cfg__);" > ${NEXT_CONFIG_JS}.5
+  fi
 fi
 
-tail -$(( ${CONFIG_LINES} - ${NEXT_SECTION_LINE} + ${NEXT_SECTION_ADJUSTMENT} )) ${NEXT_CONFIG_JS} > ${NEXT_CONFIG_JS}.4
 
 rm -f ${NEXT_CONFIG_JS}
-for ((i=0; i <=5; i++)); do
-  if [ -f "${NEXT_CONFIG_JS}.${i}" ]; then
+for ((i=0; i <= 10; i++)); do
+  if [ -s "${NEXT_CONFIG_JS}.${i}" ]; then
     if [ $i -le 2 ] ; then
       cat ${NEXT_CONFIG_JS}.${i} >> ${NEXT_CONFIG_JS}
     else
@@ -139,6 +167,8 @@ for ((i=0; i <=5; i++)); do
   fi
 done
 rm ${NEXT_CONFIG_JS}.*
+cat ${NEXT_CONFIG_JS} | js-beautify > ${NEXT_CONFIG_JS}.pretty
+mv ${NEXT_CONFIG_JS}.pretty ${NEXT_CONFIG_JS}
 
 "${SCRIPT_DIR}/find-env.sh" "$(pwd)" > .env-list.json
 

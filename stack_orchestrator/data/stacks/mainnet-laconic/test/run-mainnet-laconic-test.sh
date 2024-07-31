@@ -8,8 +8,11 @@ echo "Environment variables:"
 env
 # Test laconic stack
 echo "Running laconic stack test"
-# Bit of a hack, test the most recent package
-TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
+if [ "$1" == "from-path" ]; then
+    TEST_TARGET_SO="laconic-so"
+else
+    TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
+fi
 # Set a non-default repo dir
 export CERC_REPO_BASE_DIR=~/stack-orchestrator-test/repo-base-dir
 echo "Testing this package: $TEST_TARGET_SO"

@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import os
 from typing import List, Any
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext, VolumeMapping
 from stack_orchestrator.util import get_parsed_stack_config, get_yaml, get_pod_list, resolve_compose_file
@@ -83,7 +82,9 @@ def run_container_command(ctx: DeployCommandContext, service: str, command: str,
     docker_output = deployer.run(
         container_image,
         ["-c", command], entrypoint="sh",
-        user=f"{os.getuid()}:{os.getgid()}",
+        # Current laconicd container has a bug where it crashes when run not as root
+        # Commented out line below is a workaround. Created files end up owned by root on the host
+        # user=f"{os.getuid()}:{os.getgid()}",
         volumes=docker_volumes
         )
     # There doesn't seem to be a way to get an exit code from docker.run()

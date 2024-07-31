@@ -52,6 +52,7 @@ class LaconicStackSetupCommand:
     join_network: bool
     create_network: bool
     gentx_file_list: str
+    gentx_address_list: str
     genesis_file: str
     network_dir: str
 

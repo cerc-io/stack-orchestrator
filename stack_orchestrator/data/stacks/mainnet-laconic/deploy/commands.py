@@ -22,7 +22,6 @@ from stack_orchestrator.opts import opts
 from enum import Enum
 from pathlib import Path
 from shutil import copyfile, copytree
-import json
 import os
 import sys
 import tomli
@@ -62,29 +61,13 @@ def _get_node_moniker_from_config(network_dir: Path):
     return moniker
 
 
-def _get_node_key_from_gentx(gentx_file_name: str):
-    gentx_file_path = Path(gentx_file_name)
-    if gentx_file_path.exists():
-        with open(Path(gentx_file_name), "rb") as f:
-            parsed_json = json.load(f)
-            return parsed_json['body']['messages'][0]['delegator_address']
-    else:
-        print(f"Error: gentx file: {gentx_file_name} does not exist")
-        sys.exit(1)
-
-
 def _comma_delimited_to_list(list_str: str):
     return list_str.split(",") if list_str else []
 
 
-def _get_node_keys_from_gentx_files(gentx_file_list: str):
-    node_keys = []
-    gentx_files = _comma_delimited_to_list(gentx_file_list)
-    for gentx_file in gentx_files:
-        node_key = _get_node_key_from_gentx(gentx_file)
-        if node_key:
-            node_keys.append(node_key)
-    return node_keys
+def _get_node_keys_from_gentx_files(gentx_address_list: str):
+    gentx_addresses = _comma_delimited_to_list(gentx_address_list)
+    return gentx_addresses
 
 
 def _copy_gentx_files(network_dir: Path, gentx_file_list: str):
@@ -178,7 +161,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
 
     options = opts.o
 
-    currency = "stake"  # Does this need to be a parameter?
+    currency = "alnt"  # Does this need to be a parameter?
 
     if options.debug:
         print(f"parameters: {parameters}")
@@ -222,7 +205,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         output2, status2 = run_container_command(
             command_context,
             "laconicd",
-            f"laconicd add-genesis-account {parameters.key_name} 12900000000000000000000{currency}\
+            f"laconicd genesis add-genesis-account {parameters.key_name} 12900000000000000000000{currency}\
                 --home {laconicd_home_path_in_container} --keyring-backend test",
             mounts)
         if options.debug:
@@ -230,7 +213,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         output3, status3 = run_container_command(
             command_context,
             "laconicd",
-            f"laconicd gentx  {parameters.key_name} 90000000000{currency} --home {laconicd_home_path_in_container}\
+            f"laconicd genesis gentx  {parameters.key_name} 90000000000{currency} --home {laconicd_home_path_in_container}\
                 --chain-id {chain_id} --keyring-backend test",
             mounts)
         if options.debug:
@@ -259,15 +242,16 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             copyfile(genesis_file_path, os.path.join(network_dir, "config", os.path.basename(genesis_file_path)))
         else:
             # We're generating the genesis file
-            if not parameters.gentx_file_list:
-                print("Error: --gentx-files must be supplied")
+            if not (parameters.gentx_file_list and parameters.gentx_address_list) :
+                print("Error: --gentx-files and --gentx-addresses must be supplied")
                 sys.exit(1)
             # First look in the supplied gentx files for the other nodes' keys
-            other_node_keys = _get_node_keys_from_gentx_files(parameters.gentx_file_list)
+            other_node_keys = _get_node_keys_from_gentx_files(parameters.gentx_address_list)
             # Add those keys to our genesis, with balances we determine here (why?)
             for other_node_key in other_node_keys:
                 outputk, statusk = run_container_command(
-                    command_context, "laconicd", f"laconicd add-genesis-account {other_node_key} 12900000000000000000000{currency}\
+                    command_context, "laconicd", f"laconicd genesis add-genesis-account {other_node_key} \
+                        12900000000000000000000{currency}\
                         --home {laconicd_home_path_in_container} --keyring-backend test", mounts)
             if options.debug:
                 print(f"Command output: {outputk}")
@@ -275,7 +259,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             _copy_gentx_files(network_dir, parameters.gentx_file_list)
             # Now we can run collect-gentxs
             output1, status1 = run_container_command(
-                command_context, "laconicd", f"laconicd collect-gentxs --home {laconicd_home_path_in_container}", mounts)
+                command_context, "laconicd", f"laconicd genesis collect-gentxs --home {laconicd_home_path_in_container}", mounts)
             if options.debug:
                 print(f"Command output: {output1}")
             print(f"Generated genesis file, please copy to other nodes as required: \
@@ -284,7 +268,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             _remove_persistent_peers(network_dir)
         # In both cases we validate the genesis file now
         output2, status1 = run_container_command(
-            command_context, "laconicd", f"laconicd validate-genesis --home {laconicd_home_path_in_container}", mounts)
+            command_context, "laconicd", f"laconicd genesis validate-genesis --home {laconicd_home_path_in_container}", mounts)
         print(f"validate-genesis result: {output2}")
 
     else:

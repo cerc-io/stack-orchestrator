@@ -109,7 +109,7 @@ Setup a test chain:
 ```bash
 export CERC_NPM_REGISTRY_URL=https://git.vdb.to/api/packages/cerc-io/npm/
 
-laconic-so --stack fixturenet-laconic-loaded setup-repositories --include git.vdb.to/cerc-io/laconicd,git.vdb.to/cerc-io/laconic-sdk,git.vdb.to/cerc-io/laconic-registry-cli,git.vdb.to/cerc-io/laconic-console
+laconic-so --stack fixturenet-laconic-loaded setup-repositories --include git.vdb.to/cerc-io/laconicd,git.vdb.to/cerc-io/registry-sdk,git.vdb.to/cerc-io/laconic-registry-cli,git.vdb.to/cerc-io/laconic-console
 
 laconic-so --stack fixturenet-laconic-loaded build-containers
 

@@ -1,4 +1,4 @@
-laconic-sdk
+registry-sdk
 laconic-registry-cli
 laconic-console
 debug

@@ -58,5 +58,5 @@ Now npm packages can be built:
 Ensure that `CERC_NPM_AUTH_TOKEN` is set with the token printed above when the package-registry stack was deployed (the actual token value will be different than shown in this example):
 ```
 $ export CERC_NPM_AUTH_TOKEN=84fe66a73698bf11edbdccd0a338236b7d1d5c45
-$ laconic-so build-npms --include laconic-sdk,laconic-registry-cli
+$ laconic-so build-npms --include registry-sdk,laconic-registry-cli
 ```

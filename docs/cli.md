@@ -51,7 +51,7 @@ $ laconic-so build-npms --include <package-name>
 ```
 e.g.
 ```
-$ laconic-so build-npms --include laconic-sdk
+$ laconic-so build-npms --include registry-sdk
 ```
 Build the packages for a stack:
 ```

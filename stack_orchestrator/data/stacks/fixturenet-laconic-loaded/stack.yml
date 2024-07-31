@@ -7,11 +7,11 @@ repos:
   - github.com/lirewine/crypto
   - github.com/lirewine/gem
   - github.com/lirewine/sdk
-  - git.vdb.to/cerc-io/laconic-sdk
+  - git.vdb.to/cerc-io/registry-sdk
   - git.vdb.to/cerc-io/laconic-registry-cli
   - git.vdb.to/cerc-io/laconic-console
 npms:
-  - laconic-sdk
+  - registry-sdk
   - laconic-registry-cli
   - debug
   - crypto

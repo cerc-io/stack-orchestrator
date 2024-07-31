@@ -3,10 +3,10 @@ name: fixturenet-laconicd
 description: "A laconicd fixturenet"
 repos:
   - git.vdb.to/cerc-io/laconicd
-  - git.vdb.to/cerc-io/laconic-sdk
+  - git.vdb.to/cerc-io/registry-sdk
   - git.vdb.to/cerc-io/laconic-registry-cli
 npms:
-  - laconic-sdk
+  - registry-sdk
   - laconic-registry-cli
 containers:
   - cerc/laconicd

@@ -68,5 +68,5 @@ ENV PATH="${PATH}:/scripts"
 COPY entrypoint.sh .
 ENTRYPOINT ["./entrypoint.sh"]
 # Placeholder CMD : generally this will be overridden at run time like :
-# docker run -it -v /home/builder/cerc/laconic-sdk:/workspace cerc/builder-js sh -c 'cd /workspace && yarn && yarn build'
+# docker run -it -v /home/builder/cerc/registry-sdk:/workspace cerc/builder-js sh -c 'cd /workspace && yarn && yarn build'
 CMD node --version

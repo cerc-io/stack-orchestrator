@@ -7,7 +7,7 @@ github.com/cerc-io/ipld-eth-db-validator
 github.com/cerc-io/ipld-eth-beacon-indexer
 github.com/cerc-io/ipld-eth-beacon-db
 github.com/cerc-io/laconicd
-github.com/cerc-io/laconic-sdk
+github.com/cerc-io/registry-sdk
 github.com/cerc-io/laconic-registry-cli
 github.com/cerc-io/laconic-console
 github.com/cerc-io/mobymask-watcher-ts

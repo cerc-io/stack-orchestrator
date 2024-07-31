@@ -56,7 +56,7 @@ laconic-so --stack fixturenet-laconicd build-npms
 Navigate to the Gitea console and switch to the `cerc-io` user then find the `Packages` tab to confirm that these two npm packages have been published:
 
 - `@cerc-io/laconic-registry-cli`
-- `@cerc-io/laconic-sdk`
+- `@cerc-io/registry-sdk`
 
 ### Build and deploy fixturenet containers
 

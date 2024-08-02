@@ -186,7 +186,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
         output, status = run_container_command(
             command_context,
             "laconicd", f"laconicd init {parameters.node_moniker} --home {laconicd_home_path_in_container}\
-                --chain-id {parameters.chain_id}", mounts)
+                --chain-id {parameters.chain_id} --default-denom {currency}", mounts)
         if options.debug:
             print(f"Command output: {output}")
 

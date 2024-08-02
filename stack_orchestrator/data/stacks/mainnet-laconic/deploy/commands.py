@@ -130,6 +130,34 @@ def _enable_cors(config_dir: Path):
         output_file.write(app_file_content)
 
 
+def _set_listen_address(config_dir: Path):
+    config_file_path = config_dir.joinpath("config.toml")
+    if not config_file_path.exists():
+        print("Error: config.toml not found")
+        sys.exit(1)
+    with open(config_file_path, "r") as input_file:
+        config_file_content = input_file.read()
+        existing_pattern = r'^pprof_laddr = "localhost:6060"'
+        replace_with = 'pprof_laddr = "0.0.0.0:6060"'
+        config_file_content = re.sub(existing_pattern, replace_with, config_file_content, flags=re.MULTILINE)
+    with open(config_file_path, "w") as output_file:
+        output_file.write(config_file_content)
+    app_file_path = config_dir.joinpath("app.toml")
+    if not app_file_path.exists():
+        print("Error: app.toml not found")
+        sys.exit(1)
+    with open(app_file_path, "r") as input_file:
+        app_file_content = input_file.read()
+        existing_pattern1 = r'^address = "tcp://localhost:1317"'
+        replace_with1 = 'address = "tcp://0.0.0.0:1317"'
+        app_file_content = re.sub(existing_pattern1, replace_with1, app_file_content, flags=re.MULTILINE)
+        existing_pattern2 = r'^address = "localhost:9090"'
+        replace_with2 = 'address = "0.0.0.0:9090"'
+        app_file_content = re.sub(existing_pattern2, replace_with2, app_file_content, flags=re.MULTILINE)
+    with open(app_file_path, "w") as output_file:
+        output_file.write(app_file_content)
+
+
 def _phase_from_params(parameters):
     phase = SetupPhase.ILLEGAL
     if parameters.initialize_network:
@@ -303,6 +331,7 @@ def create(deployment_context: DeploymentContext, extra_args):
         _insert_persistent_peers(deployment_config_dir, initial_persistent_peers)
     # Enable CORS headers so explorers and so on can talk to the node
     _enable_cors(deployment_config_dir)
+    _set_listen_address(deployment_config_dir)
     # Copy the data directory contents into our deployment
     # TODO: change this to work with non local paths
     deployment_data_dir = deployment_context.deployment_dir.joinpath("data", "laconicd-data")

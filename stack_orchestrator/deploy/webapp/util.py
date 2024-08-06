@@ -309,17 +309,24 @@ def push_container_image(deployment_dir, logger):
     logger.log("Finished pushing images.")
 
 
-def deploy_to_k8s(deploy_record, deployment_dir, logger):
-    if not deploy_record:
-        command = "start"
-    else:
-        command = "update"
-
+def deploy_to_k8s(deploy_record, deployment_dir, recreate, logger):
     logger.log("Deploying to k8s ...")
-    logger.log(f"Running {command} command on deployment dir: {deployment_dir}")
-    result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, command],
-                            stdout=logger.file, stderr=logger.file)
-    result.check_returncode()
+
+    if recreate:
+        commands_to_run = ["stop", "start"]
+    else:
+        if not deploy_record:
+            commands_to_run = ["start"]
+        else:
+            commands_to_run = ["update"]
+
+    for command in commands_to_run:
+        logger.log(f"Running {command} command on deployment dir: {deployment_dir}")
+        result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, command],
+                                stdout=logger.file, stderr=logger.file)
+        result.check_returncode()
+        logger.log(f"Finished {command} command on deployment dir: {deployment_dir}")
+
     logger.log("Finished deploying to k8s.")
 
 

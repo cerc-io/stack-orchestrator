@@ -33,8 +33,9 @@ default_spec_file_content = ""
 class SetupPhase(Enum):
     INITIALIZE = 1
     JOIN = 2
-    CREATE = 3
-    ILLEGAL = 3
+    CONNECT = 3
+    CREATE = 4
+    ILLEGAL = 5
 
 
 def _client_toml_path(network_dir: Path):
@@ -182,6 +183,11 @@ def _phase_from_params(parameters):
             print("Can't supply --initialize-network or --join-network with --create-network")
             sys.exit(1)
         phase = SetupPhase.CREATE
+    elif parameters.connect_network:
+        if parameters.initialize_network or parameters.join_network:
+            print("Can't supply --initialize-network or --join-network with --connect-network")
+            sys.exit(1)
+        phase = SetupPhase.CONNECT
     return phase
 
 
@@ -219,6 +225,7 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             print(f"Command output: {output}")
 
     elif phase == SetupPhase.JOIN:
+        # In the join phase (alternative to connect) we are participating in a genesis ceremony for the chain
         if not os.path.exists(network_dir):
             print(f"Error: network directory {network_dir} doesn't exist")
             sys.exit(1)
@@ -251,7 +258,28 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             "laconicd",
             f"laconicd keys show  {parameters.key_name} -a --home {laconicd_home_path_in_container} --keyring-backend test",
             mounts)
-        print(f"Node validator address: {output4}")
+        print(f"Node account address: {output4}")
+
+    elif phase == SetupPhase.CONNECT:
+        # In the connect phase (named to not conflict with join) we are making a node that syncs a chain with existing genesis.json
+        # but not with validator role. We need this kind of node in order to bootstrap it into a validator after it syncs
+        output1, status1 = run_container_command(
+            command_context, "laconicd", f"laconicd keys add {parameters.key_name} --home {laconicd_home_path_in_container}\
+                --keyring-backend test", mounts)
+        if options.debug:
+            print(f"Command output: {output1}")
+        output2, status2 = run_container_command(
+            command_context,
+            "laconicd",
+            f"laconicd keys show  {parameters.key_name} -a --home {laconicd_home_path_in_container} --keyring-backend test",
+            mounts)
+        print(f"Node account address: {output2}")
+        output3, status3 = run_container_command(
+            command_context,
+            "laconicd",
+            f"laconicd cometbft show-validator --home {laconicd_home_path_in_container}",
+            mounts)
+        print(f"Node validator address: {output3}")
 
     elif phase == SetupPhase.CREATE:
         if not os.path.exists(network_dir):

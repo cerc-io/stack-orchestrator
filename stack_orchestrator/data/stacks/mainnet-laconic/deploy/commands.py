@@ -298,9 +298,6 @@ def setup(command_context: DeployCommandContext, parameters: LaconicStackSetupCo
             copyfile(genesis_file_path, os.path.join(network_dir, "config", os.path.basename(genesis_file_path)))
         else:
             # We're generating the genesis file
-            if not (parameters.gentx_file_list and parameters.gentx_address_list) :
-                print("Error: --gentx-files and --gentx-addresses must be supplied")
-                sys.exit(1)
             # First look in the supplied gentx files for the other nodes' keys
             other_node_keys = _get_node_keys_from_gentx_files(parameters.gentx_address_list)
             # Add those keys to our genesis, with balances we determine here (why?)

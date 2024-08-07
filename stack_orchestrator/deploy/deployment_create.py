@@ -535,7 +535,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
 @click.option("--chain-id", help="The new chain id")
 @click.option("--key-name", help="Name for new node key")
 @click.option("--gentx-files", help="List of comma-delimited gentx filenames from other nodes")
-@click.option("--gentx-addresses", help="List of comma-delimited validator addresses for other nodes")
+@click.option("--gentx-addresses", type=str, help="List of comma-delimited validator addresses for other nodes")
 @click.option("--genesis-file", help="Genesis file for the network")
 @click.option("--initialize-network", is_flag=True, default=False, help="Initialize phase")
 @click.option("--join-network", is_flag=True, default=False, help="Join phase")

@@ -246,8 +246,8 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print("No ingress configured")
 
-        nodeport: client.V1Service = self.cluster_info.get_nodeport()
-        if nodeport:
+        nodeports: List[client.V1Service] = self.cluster_info.get_nodeports()
+        for nodeport in nodeports:
             if opts.o.debug:
                 print(f"Sending this nodeport: {nodeport}")
             if not opts.o.dry_run:
@@ -342,10 +342,10 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print("No ingress to delete")
 
-        nodeport: client.V1Service = self.cluster_info.get_nodeport()
-        if nodeport:
+        nodeports: List[client.V1Service] = self.cluster_info.get_nodeports()
+        for nodeport in nodeports:
             if opts.o.debug:
-                print(f"Deleting this nodeport: {ingress}")
+                print(f"Deleting this nodeport: {nodeport}")
             try:
                 self.core_api.delete_namespaced_service(
                     namespace=self.k8s_namespace,

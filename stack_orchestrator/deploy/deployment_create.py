@@ -520,6 +520,16 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
                 if os.path.exists(source_config_dir):
                     destination_config_dir = deployment_dir_path.joinpath("configmaps", configmap)
                     copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
+        else:
+            # TODO: We should probably only do this if the volume is marked :ro.
+            for volume_name, volume_path in parsed_spec.get_volumes().items():
+                source_config_dir = resolve_config_dir(stack_name, volume_name)
+                # Only copy if the source exists and is _not_ empty.
+                if os.path.exists(source_config_dir) and os.listdir(source_config_dir):
+                    destination_config_dir = deployment_dir_path.joinpath(volume_path)
+                    # Only copy if the destination exists and _is_ empty.
+                    if os.path.exists(destination_config_dir) and not os.listdir(destination_config_dir):
+                        copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
 
     # Delegate to the stack's Python code
     # The deploy create command doesn't require a --stack argument so we need to insert the

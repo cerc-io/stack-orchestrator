@@ -514,6 +514,13 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
             os.mkdir(destination_script_dir)
             script_paths = get_pod_script_paths(parsed_stack, pod)
             _copy_files_to_directory(script_paths, destination_script_dir)
+        if parsed_spec.is_kubernetes_deployment():
+            for configmap in parsed_spec.get_configmaps():
+                source_config_dir = resolve_config_dir(stack_name, configmap)
+                if os.path.exists(source_config_dir):
+                    destination_config_dir = deployment_dir_path.joinpath("configmaps", configmap)
+                    copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
+
     # Delegate to the stack's Python code
     # The deploy create command doesn't require a --stack argument so we need to insert the
     # stack member here.

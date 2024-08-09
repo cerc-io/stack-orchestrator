@@ -117,6 +117,9 @@ class Spec:
     def get_annotations(self):
         return self.obj.get(constants.annotations_key, {})
 
+    def get_replicas(self):
+        return self.obj.get(constants.replicas_key, 1)
+
     def get_labels(self):
         return self.obj.get(constants.labels_key, {})
 

@@ -78,28 +78,40 @@ class ClusterInfo:
         if (opts.o.debug):
             print(f"Env vars: {self.environment_variables.map}")
 
-    def get_nodeport(self):
+    def get_nodeports(self):
+        nodeports = []
         for pod_name in self.parsed_pod_yaml_map:
             pod = self.parsed_pod_yaml_map[pod_name]
             services = pod["services"]
             for service_name in services:
                 service_info = services[service_name]
                 if "ports" in service_info:
-                    port = int(service_info["ports"][0])
-                    if opts.o.debug:
-                        print(f"service port: {port}")
-        service = client.V1Service(
-            metadata=client.V1ObjectMeta(name=f"{self.app_name}-nodeport"),
-            spec=client.V1ServiceSpec(
-                type="NodePort",
-                ports=[client.V1ServicePort(
-                    port=port,
-                    target_port=port
-                )],
-                selector={"app": self.app_name}
-            )
-        )
-        return service
+                    for raw_port in service_info["ports"]:
+                        if opts.o.debug:
+                            print(f"service port: {raw_port}")
+                        if ":" in raw_port:
+                            parts = raw_port.split(":")
+                            if len(parts) != 2:
+                                raise Exception(f"Invalid port definition: {raw_port}")
+                            node_port = int(parts[0])
+                            pod_port = int(parts[1])
+                        else:
+                            node_port = None
+                            pod_port = int(raw_port)
+                        service = client.V1Service(
+                            metadata=client.V1ObjectMeta(name=f"{self.app_name}-nodeport-{pod_port}"),
+                            spec=client.V1ServiceSpec(
+                                type="NodePort",
+                                ports=[client.V1ServicePort(
+                                    port=pod_port,
+                                    target_port=pod_port,
+                                    node_port=node_port
+                                )],
+                                selector={"app": self.app_name}
+                            )
+                        )
+                        nodeports.append(service)
+        return nodeports
 
     def get_ingress(self, use_tls=False, certificate=None, cluster_issuer="letsencrypt-prod"):
         # No ingress for a deployment that has no http-proxy defined, for now
@@ -373,9 +385,12 @@ class ClusterInfo:
             spec=client.V1PodSpec(containers=containers, image_pull_secrets=image_pull_secrets, volumes=volumes),
         )
         spec = client.V1DeploymentSpec(
-            replicas=1, template=template, selector={
+            replicas=self.spec.get_replicas(),
+            template=template, selector={
                 "matchLabels":
-                {"app": self.app_name}})
+                {"app": self.app_name}
+            }
+        )
 
         deployment = client.V1Deployment(
             api_version="apps/v1",

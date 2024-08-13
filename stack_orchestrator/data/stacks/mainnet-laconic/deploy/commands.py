@@ -138,8 +138,9 @@ def _set_listen_address(config_dir: Path):
         sys.exit(1)
     with open(config_file_path, "r") as input_file:
         config_file_content = input_file.read()
-        existing_pattern = r'^pprof_laddr = "localhost:6060"'
-        replace_with = 'pprof_laddr = "0.0.0.0:6060"'
+        existing_pattern = r'^laddr = "tcp://127.0.0.1:26657"'
+        replace_with = 'laddr = "tcp://0.0.0.0:26657"'
+        print(f"Replacing in: {config_file_path}")
         config_file_content = re.sub(existing_pattern, replace_with, config_file_content, flags=re.MULTILINE)
     with open(config_file_path, "w") as output_file:
         output_file.write(config_file_content)
@@ -369,7 +370,6 @@ def init(command_context: DeployCommandContext):
 
 
 def get_state(command_context: DeployCommandContext):
-    print("Here we get state")
     return State.CONFIGURED
 
 

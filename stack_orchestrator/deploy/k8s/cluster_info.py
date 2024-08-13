@@ -89,7 +89,7 @@ class ClusterInfo:
                     for raw_port in service_info["ports"]:
                         if opts.o.debug:
                             print(f"service port: {raw_port}")
-                        if ":" in raw_port:
+                        if type(raw_port) is str and ":" in raw_port:
                             parts = raw_port.split(":")
                             if len(parts) != 2:
                                 raise Exception(f"Invalid port definition: {raw_port}")

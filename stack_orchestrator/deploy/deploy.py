@@ -91,7 +91,7 @@ def create_deploy_context(
     return DeployCommandContext(stack, cluster_context, deployer)
 
 
-def up_operation(ctx, services_list, stay_attached=False):
+def up_operation(ctx, services_list, stay_attached=False, skip_cluster_management=False):
     global_context = ctx.parent.parent.obj
     deploy_context = ctx.obj
     cluster_context = deploy_context.cluster_context
@@ -102,18 +102,18 @@ def up_operation(ctx, services_list, stay_attached=False):
         print(f"Running compose up with container_exec_env: {container_exec_env}, extra_args: {services_list}")
     for pre_start_command in cluster_context.pre_start_commands:
         _run_command(global_context, cluster_context.cluster, pre_start_command)
-    deploy_context.deployer.up(detach=not stay_attached, services=services_list)
+    deploy_context.deployer.up(detach=not stay_attached, skip_cluster_management=skip_cluster_management, services=services_list)
     for post_start_command in cluster_context.post_start_commands:
         _run_command(global_context, cluster_context.cluster, post_start_command)
     _orchestrate_cluster_config(global_context, cluster_context.config, deploy_context.deployer, container_exec_env)
 
 
-def down_operation(ctx, delete_volumes, extra_args_list):
+def down_operation(ctx, delete_volumes, extra_args_list, skip_cluster_management=False):
     timeout_arg = None
     if extra_args_list:
         timeout_arg = extra_args_list[0]
     # Specify shutdown timeout (default 10s) to give services enough time to shutdown gracefully
-    ctx.obj.deployer.down(timeout=timeout_arg, volumes=delete_volumes)
+    ctx.obj.deployer.down(timeout=timeout_arg, volumes=delete_volumes, skip_cluster_management=skip_cluster_management)
 
 
 def status_operation(ctx):

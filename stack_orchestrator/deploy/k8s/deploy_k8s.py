@@ -52,12 +52,14 @@ class K8sDeployer(Deployer):
     networking_api: client.NetworkingV1Api
     k8s_namespace: str = "default"
     kind_cluster_name: str
+    skip_cluster_management: bool
     cluster_info: ClusterInfo
     deployment_dir: Path
     deployment_context: DeploymentContext
 
     def __init__(self, type, deployment_context: DeploymentContext, compose_files, compose_project_name, compose_env_file) -> None:
         self.type = type
+        self.skip_cluster_management = False
         # TODO: workaround pending refactoring above to cope with being created with a null deployment_context
         if deployment_context is None:
             return
@@ -183,6 +185,7 @@ class K8sDeployer(Deployer):
         if len(host_parts) == 2:
             host_as_wild = f"*.{host_parts[1]}"
 
+        # TODO: resolve method deprecation below
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         fmt = "%Y-%m-%dT%H:%M:%S%z"
 
@@ -203,15 +206,16 @@ class K8sDeployer(Deployer):
                                 return cert
         return None
 
-    def up(self, detach, services):
+    def up(self, detach, skip_cluster_management, services):
+        self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:
-            if self.is_kind():
+            if self.is_kind() and not self.skip_cluster_management:
                 # Create the kind cluster
                 create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath(constants.kind_config_filename))
                 # Ensure the referenced containers are copied into kind
                 load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
             self.connect_api()
-            if self.is_kind():
+            if self.is_kind() and not self.skip_cluster_management:
                 # Now configure an ingress controller (not installed by default in kind)
                 install_ingress_for_kind()
                 # Wait for ingress to start (deployment provisioning will fail unless this is done)
@@ -260,7 +264,8 @@ class K8sDeployer(Deployer):
                     print("NodePort created:")
                     print(f"{nodeport_resp}")
 
-    def down(self, timeout, volumes):  # noqa: C901
+    def down(self, timeout, volumes, skip_cluster_management):  # noqa: C901
+        self.skip_cluster_management = skip_cluster_management
         self.connect_api()
         # Delete the k8s objects
 
@@ -358,7 +363,7 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print("No nodeport to delete")
 
-        if self.is_kind():
+        if self.is_kind() and not self.skip_cluster_management:
             # Destroy the kind cluster
             destroy_cluster(self.kind_cluster_name)
 

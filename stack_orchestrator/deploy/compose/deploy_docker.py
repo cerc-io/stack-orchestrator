@@ -29,14 +29,14 @@ class DockerDeployer(Deployer):
                                    compose_env_file=compose_env_file)
         self.type = type
 
-    def up(self, detach, services):
+    def up(self, detach, skip_cluster_management, services):
         if not opts.o.dry_run:
             try:
                 return self.docker.compose.up(detach=detach, services=services)
             except DockerException as e:
                 raise DeployerException(e)
 
-    def down(self, timeout, volumes):
+    def down(self, timeout, volumes, skip_cluster_management):
         if not opts.o.dry_run:
             try:
                 return self.docker.compose.down(timeout=timeout, volumes=volumes)

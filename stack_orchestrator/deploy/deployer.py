@@ -20,11 +20,11 @@ from pathlib import Path
 class Deployer(ABC):
 
     @abstractmethod
-    def up(self, detach, services):
+    def up(self, detach, skip_cluster_management, services):
         pass
 
     @abstractmethod
-    def down(self, timeout, volumes):
+    def down(self, timeout, volumes, skip_cluster_management):
         pass
 
     @abstractmethod

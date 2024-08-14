@@ -172,7 +172,7 @@ class LaconicRegistryClient:
             name_or_id,
         ]
 
-        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
+        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
         if len(parsed):
             self._add_to_cache(parsed)
             return parsed[0]

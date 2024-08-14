@@ -274,34 +274,43 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
     requests_by_name = {}
     skipped_by_name = {}
     for r in requests:
-        if r.id in previous_requests and previous_requests[r.id].get("status", "") != "RETRY":
-            print(f"Skipping request {r.id}, we've already seen it.")
-            continue
+        status = None
+        try:
+            if r.id in previous_requests and previous_requests[r.id].get("status", "") != "RETRY":
+                print(f"Skipping request {r.id}, we've already seen it.")
+                continue
 
-        app = laconic.get_record(r.attributes.application)
-        if not app:
-            print("Skipping request %s, cannot locate app." % r.id)
-            continue
+            app = laconic.get_record(r.attributes.application)
+            if not app:
+                print(f"Skipping request {r.id}, cannot locate app.")
+                status = "SEEN"
+                continue
 
-        requested_name = r.attributes.dns
-        if not requested_name:
-            requested_name = generate_hostname_for_app(app)
-            print("Generating name %s for request %s." % (requested_name, r.id))
+            requested_name = r.attributes.dns
+            if not requested_name:
+                requested_name = generate_hostname_for_app(app)
+                print("Generating name %s for request %s." % (requested_name, r.id))
 
-        if requested_name in skipped_by_name or requested_name in requests_by_name:
-            print("Ignoring request %s, it has been superseded." % r.id)
-            continue
+            if requested_name in skipped_by_name or requested_name in requests_by_name:
+                print("Ignoring request %s, it has been superseded." % r.id)
+                continue
 
-        if skip_by_tag(r, include_tags, exclude_tags):
-            print("Skipping request %s, filtered by tag (include %s, exclude %s, present %s)" % (r.id,
-                                                                                                 include_tags,
-                                                                                                 exclude_tags,
-                                                                                                 r.attributes.tags))
-            skipped_by_name[requested_name] = r
-            continue
+            if skip_by_tag(r, include_tags, exclude_tags):
+                print("Skipping request %s, filtered by tag (include %s, exclude %s, present %s)" % (r.id,
+                                                                                                     include_tags,
+                                                                                                     exclude_tags,
+                                                                                                     r.attributes.tags))
+                skipped_by_name[requested_name] = r
+                continue
 
-        print("Found request %s to run application %s on %s." % (r.id, r.attributes.application, requested_name))
-        requests_by_name[requested_name] = r
+            print("Found request %s to run application %s on %s." % (r.id, r.attributes.application, requested_name))
+            requests_by_name[requested_name] = r
+        except Exception as e:
+            print(f"ERROR examining request {r.id}: " + str(e))
+            status = "ERROR"
+        finally:
+            if status:
+                dump_known_requests(state_file, [r], status)
 
     # Find deployments.
     deployments = laconic.app_deployments()

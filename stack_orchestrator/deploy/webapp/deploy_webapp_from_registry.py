@@ -45,6 +45,7 @@ def process_app_deployment_request(
     image_registry,
     force_rebuild,
     fqdn_policy,
+    recreate_on_deploy,
     logger
 ):
     logger.log("BEGIN - process_app_deployment_request")
@@ -165,6 +166,7 @@ def process_app_deployment_request(
         deploy_to_k8s(
             deployment_record,
             deployment_dir,
+            recreate_on_deploy,
             logger
         )
 
@@ -220,12 +222,13 @@ def dump_known_requests(filename, requests, status="SEEN"):
 @click.option("--include-tags", help="Only include requests with matching tags (comma-separated).", default="")
 @click.option("--exclude-tags", help="Exclude requests with matching tags (comma-separated).", default="")
 @click.option("--force-rebuild", help="Rebuild even if the image already exists.", is_flag=True)
+@click.option("--recreate-on-deploy", help="Remove and recreate deployments instead of updating them.", is_flag=True)
 @click.option("--log-dir", help="Output build/deployment logs to directory.", default=None)
 @click.pass_context
 def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,  # noqa: C901
             request_id, discover, state_file, only_update_state,
             dns_suffix, fqdn_policy, record_namespace_dns, record_namespace_deployments, dry_run,
-            include_tags, exclude_tags, force_rebuild, log_dir):
+            include_tags, exclude_tags, force_rebuild, recreate_on_deploy, log_dir):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)
@@ -374,6 +377,7 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
                     image_registry,
                     force_rebuild,
                     fqdn_policy,
+                    recreate_on_deploy,
                     logger
                 )
                 status = "DEPLOYED"

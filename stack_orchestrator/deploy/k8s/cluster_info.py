@@ -365,6 +365,8 @@ class ClusterInfo:
 
         annotations = None
         labels = {"app": self.app_name}
+        affinity = None
+        tolerations = None
 
         if self.spec.get_annotations():
             annotations = {}
@@ -377,12 +379,52 @@ class ClusterInfo:
                 for service_name in services:
                     labels[key.replace("{name}", service_name)] = value
 
+        if self.spec.get_node_affinities():
+            affinities = []
+            for rule in self.spec.get_node_affinities():
+                # TODO add some input validation here
+                label_name = rule['label']
+                label_value = rule['value']
+                affinities.append(client.V1NodeSelectorTerm(
+                            match_expressions=[client.V1NodeSelectorRequirement(
+                                key=label_name,
+                                operator="In",
+                                values=[label_value]
+                            )]
+                        )
+                    )
+            affinity = client.V1Affinity(
+                node_affinity=client.V1NodeAffinity(
+                    required_during_scheduling_ignored_during_execution=client.V1NodeSelector(
+                        node_selector_terms=affinities
+                    ))
+                )
+
+        if self.spec.get_node_tolerations():
+            tolerations = []
+            for toleration in self.spec.get_node_tolerations():
+                # TODO add some input validation here
+                toleration_key = toleration['key']
+                toleration_value = toleration['value']
+                tolerations.append(client.V1Toleration(
+                    effect="NoSchedule",
+                    key=toleration_key,
+                    operator="Equal",
+                    value=toleration_value
+                ))
+
         template = client.V1PodTemplateSpec(
             metadata=client.V1ObjectMeta(
                 annotations=annotations,
                 labels=labels
             ),
-            spec=client.V1PodSpec(containers=containers, image_pull_secrets=image_pull_secrets, volumes=volumes),
+            spec=client.V1PodSpec(
+                containers=containers,
+                image_pull_secrets=image_pull_secrets,
+                volumes=volumes,
+                affinity=affinity,
+                tolerations=tolerations
+                ),
         )
         spec = client.V1DeploymentSpec(
             replicas=self.spec.get_replicas(),

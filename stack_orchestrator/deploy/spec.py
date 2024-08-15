@@ -120,6 +120,12 @@ class Spec:
     def get_replicas(self):
         return self.obj.get(constants.replicas_key, 1)
 
+    def get_node_affinities(self):
+        return self.obj.get(constants.node_affinities_key, [])
+
+    def get_node_tolerations(self):
+        return self.obj.get(constants.node_tolerations_key, [])
+
     def get_labels(self):
         return self.obj.get(constants.labels_key, {})
 

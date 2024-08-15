@@ -26,11 +26,19 @@ import click
 
 from stack_orchestrator.deploy.images import remote_image_exists
 from stack_orchestrator.deploy.webapp import deploy_webapp
-from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient, TimedLogger,
-                                                   build_container_image, push_container_image,
-                                                   file_hash, deploy_to_k8s, publish_deployment,
-                                                   hostname_for_deployment_request, generate_hostname_for_app,
-                                                   match_owner, skip_by_tag)
+from stack_orchestrator.deploy.webapp.util import (
+    LaconicRegistryClient,
+    TimedLogger,
+    build_container_image,
+    push_container_image,
+    file_hash,
+    deploy_to_k8s,
+    publish_deployment,
+    hostname_for_deployment_request,
+    generate_hostname_for_app,
+    match_owner,
+    skip_by_tag,
+)
 
 
 def process_app_deployment_request(
@@ -46,12 +54,14 @@ def process_app_deployment_request(
     force_rebuild,
     fqdn_policy,
     recreate_on_deploy,
-    logger
+    logger,
 ):
     logger.log("BEGIN - process_app_deployment_request")
 
     # 1. look up application
-    app = laconic.get_record(app_deployment_request.attributes.application, require=True)
+    app = laconic.get_record(
+        app_deployment_request.attributes.application, require=True
+    )
     logger.log(f"Retrieved app record {app_deployment_request.attributes.application}")
 
     # 2. determine dns
@@ -62,7 +72,9 @@ def process_app_deployment_request(
         if "allow" == fqdn_policy or "preexisting" == fqdn_policy:
             fqdn = requested_name
         else:
-            raise Exception(f"{requested_name} is invalid: only unqualified hostnames are allowed.")
+            raise Exception(
+                f"{requested_name} is invalid: only unqualified hostnames are allowed."
+            )
     else:
         fqdn = f"{requested_name}.{default_dns_suffix}"
 
@@ -72,21 +84,31 @@ def process_app_deployment_request(
     if dns_record:
         matched_owner = match_owner(app_deployment_request, dns_record)
         if not matched_owner and dns_record.attributes.request:
-            matched_owner = match_owner(app_deployment_request, laconic.get_record(dns_record.attributes.request, require=True))
+            matched_owner = match_owner(
+                app_deployment_request,
+                laconic.get_record(dns_record.attributes.request, require=True),
+            )
 
         if matched_owner:
             logger.log(f"Matched DnsRecord ownership: {matched_owner}")
         else:
-            raise Exception("Unable to confirm ownership of DnsRecord %s for request %s" %
-                            (dns_lrn, app_deployment_request.id))
+            raise Exception(
+                "Unable to confirm ownership of DnsRecord %s for request %s"
+                % (dns_lrn, app_deployment_request.id)
+            )
     elif "preexisting" == fqdn_policy:
-        raise Exception(f"No pre-existing DnsRecord {dns_lrn} could be found for request {app_deployment_request.id}.")
+        raise Exception(
+            f"No pre-existing DnsRecord {dns_lrn} could be found for request {app_deployment_request.id}."
+        )
 
     # 4. get build and runtime config from request
     env_filename = None
-    if app_deployment_request.attributes.config and "env" in app_deployment_request.attributes.config:
+    if (
+        app_deployment_request.attributes.config
+        and "env" in app_deployment_request.attributes.config
+    ):
         env_filename = tempfile.mktemp()
-        with open(env_filename, 'w') as file:
+        with open(env_filename, "w") as file:
             for k, v in app_deployment_request.attributes.config["env"].items():
                 file.write("%s=%s\n" % (k, shlex.quote(str(v))))
 
@@ -96,7 +118,10 @@ def process_app_deployment_request(
     if app_deployment_request.attributes.deployment:
         app_deployment_lrn = app_deployment_request.attributes.deployment
     if not app_deployment_lrn.startswith(deployment_record_namespace):
-        raise Exception("Deployment CRN %s is not in a supported namespace" % app_deployment_request.attributes.deployment)
+        raise Exception(
+            "Deployment CRN %s is not in a supported namespace"
+            % app_deployment_request.attributes.deployment
+        )
 
     deployment_record = laconic.get_record(app_deployment_lrn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
@@ -109,20 +134,37 @@ def process_app_deployment_request(
     #   b. check for deployment directory (create if necessary)
     if not os.path.exists(deployment_dir):
         if deployment_record:
-            raise Exception("Deployment record %s exists, but not deployment dir %s. Please remove name." %
-                            (app_deployment_lrn, deployment_dir))
-        logger.log(f"Creating webapp deployment in: {deployment_dir} with container id: {deployment_container_tag}")
-        deploy_webapp.create_deployment(ctx, deployment_dir, deployment_container_tag,
-                                        f"https://{fqdn}", kube_config, image_registry, env_filename)
+            raise Exception(
+                "Deployment record %s exists, but not deployment dir %s. Please remove name."
+                % (app_deployment_lrn, deployment_dir)
+            )
+        logger.log(
+            f"Creating webapp deployment in: {deployment_dir} with container id: {deployment_container_tag}"
+        )
+        deploy_webapp.create_deployment(
+            ctx,
+            deployment_dir,
+            deployment_container_tag,
+            f"https://{fqdn}",
+            kube_config,
+            image_registry,
+            env_filename,
+        )
     elif env_filename:
         shutil.copyfile(env_filename, deployment_config_file)
 
     needs_k8s_deploy = False
     if force_rebuild:
-        logger.log("--force-rebuild is enabled so the container will always be built now, even if nothing has changed in the app")
+        logger.log(
+            "--force-rebuild is enabled so the container will always be built now, even if nothing has changed in the app"
+        )
     # 6. build container (if needed)
     # TODO: add a comment that explains what this code is doing (not clear to me)
-    if not deployment_record or deployment_record.attributes.application != app.id or force_rebuild:
+    if (
+        not deployment_record
+        or deployment_record.attributes.application != app.id
+        or force_rebuild
+    ):
         needs_k8s_deploy = True
         # check if the image already exists
         shared_tag_exists = remote_image_exists(image_registry, app_image_shared_tag)
@@ -137,13 +179,15 @@ def process_app_deployment_request(
             logger.log(
                 f"(SKIPPED) Existing image found for this app: {app_image_shared_tag} "
                 "tagging it with: {deployment_container_tag} to use in this deployment"
-                )
+            )
             # add_tags_to_image(image_registry, app_image_shared_tag, deployment_container_tag)
             logger.log("Tag complete")
         else:
             extra_build_args = []  # TODO: pull from request
             logger.log(f"Building container image: {deployment_container_tag}")
-            build_container_image(app, deployment_container_tag, extra_build_args, logger)
+            build_container_image(
+                app, deployment_container_tag, extra_build_args, logger
+            )
             logger.log("Build complete")
             logger.log(f"Pushing container image: {deployment_container_tag}")
             push_container_image(deployment_dir, logger)
@@ -151,24 +195,22 @@ def process_app_deployment_request(
             # The build/push commands above will use the unique deployment tag, so now we need to add the shared tag.
             logger.log(
                 f"(SKIPPED) Adding global app image tag: {app_image_shared_tag} to newly built image: {deployment_container_tag}"
-                )
+            )
             # add_tags_to_image(image_registry, deployment_container_tag, app_image_shared_tag)
             logger.log("Tag complete")
     else:
         logger.log("Requested app is already deployed, skipping build and image push")
 
     # 7. update config (if needed)
-    if not deployment_record or file_hash(deployment_config_file) != deployment_record.attributes.meta.config:
+    if (
+        not deployment_record
+        or file_hash(deployment_config_file) != deployment_record.attributes.meta.config
+    ):
         needs_k8s_deploy = True
 
     # 8. update k8s deployment
     if needs_k8s_deploy:
-        deploy_to_k8s(
-            deployment_record,
-            deployment_dir,
-            recreate_on_deploy,
-            logger
-        )
+        deploy_to_k8s(deployment_record, deployment_dir, recreate_on_deploy, logger)
 
     logger.log("Publishing deployment to registry.")
     publish_deployment(
@@ -180,7 +222,7 @@ def process_app_deployment_request(
         dns_lrn,
         deployment_dir,
         app_deployment_request,
-        logger
+        logger,
     )
     logger.log("Publication complete.")
     logger.log("END - process_app_deployment_request")
@@ -197,38 +239,94 @@ def dump_known_requests(filename, requests, status="SEEN"):
         return
     known_requests = load_known_requests(filename)
     for r in requests:
-        known_requests[r.id] = {
-            "createTime": r.createTime,
-            "status": status
-        }
+        known_requests[r.id] = {"createTime": r.createTime, "status": status}
     with open(filename, "w") as f:
         json.dump(known_requests, f)
 
 
 @click.command()
 @click.option("--kube-config", help="Provide a config file for a k8s deployment")
-@click.option("--laconic-config", help="Provide a config file for laconicd", required=True)
-@click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
-@click.option("--deployment-parent-dir", help="Create deployment directories beneath this directory", required=True)
+@click.option(
+    "--laconic-config", help="Provide a config file for laconicd", required=True
+)
+@click.option(
+    "--image-registry",
+    help="Provide a container image registry url for this k8s cluster",
+)
+@click.option(
+    "--deployment-parent-dir",
+    help="Create deployment directories beneath this directory",
+    required=True,
+)
 @click.option("--request-id", help="The ApplicationDeploymentRequest to process")
-@click.option("--discover", help="Discover and process all pending ApplicationDeploymentRequests", is_flag=True, default=False)
-@click.option("--state-file", help="File to store state about previously seen requests.")
-@click.option("--only-update-state", help="Only update the state file, don't process any requests anything.", is_flag=True)
+@click.option(
+    "--discover",
+    help="Discover and process all pending ApplicationDeploymentRequests",
+    is_flag=True,
+    default=False,
+)
+@click.option(
+    "--state-file", help="File to store state about previously seen requests."
+)
+@click.option(
+    "--only-update-state",
+    help="Only update the state file, don't process any requests anything.",
+    is_flag=True,
+)
 @click.option("--dns-suffix", help="DNS domain to use eg, laconic.servesthe.world")
-@click.option("--fqdn-policy", help="How to handle requests with an FQDN: prohibit, allow, preexisting", default="prohibit")
+@click.option(
+    "--fqdn-policy",
+    help="How to handle requests with an FQDN: prohibit, allow, preexisting",
+    default="prohibit",
+)
 @click.option("--record-namespace-dns", help="eg, lrn://laconic/dns")
 @click.option("--record-namespace-deployments", help="eg, lrn://laconic/deployments")
-@click.option("--dry-run", help="Don't do anything, just report what would be done.", is_flag=True)
-@click.option("--include-tags", help="Only include requests with matching tags (comma-separated).", default="")
-@click.option("--exclude-tags", help="Exclude requests with matching tags (comma-separated).", default="")
-@click.option("--force-rebuild", help="Rebuild even if the image already exists.", is_flag=True)
-@click.option("--recreate-on-deploy", help="Remove and recreate deployments instead of updating them.", is_flag=True)
-@click.option("--log-dir", help="Output build/deployment logs to directory.", default=None)
+@click.option(
+    "--dry-run", help="Don't do anything, just report what would be done.", is_flag=True
+)
+@click.option(
+    "--include-tags",
+    help="Only include requests with matching tags (comma-separated).",
+    default="",
+)
+@click.option(
+    "--exclude-tags",
+    help="Exclude requests with matching tags (comma-separated).",
+    default="",
+)
+@click.option(
+    "--force-rebuild", help="Rebuild even if the image already exists.", is_flag=True
+)
+@click.option(
+    "--recreate-on-deploy",
+    help="Remove and recreate deployments instead of updating them.",
+    is_flag=True,
+)
+@click.option(
+    "--log-dir", help="Output build/deployment logs to directory.", default=None
+)
 @click.pass_context
-def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_dir,  # noqa: C901
-            request_id, discover, state_file, only_update_state,
-            dns_suffix, fqdn_policy, record_namespace_dns, record_namespace_deployments, dry_run,
-            include_tags, exclude_tags, force_rebuild, recreate_on_deploy, log_dir):
+def command(  # noqa: C901
+    ctx,
+    kube_config,
+    laconic_config,
+    image_registry,
+    deployment_parent_dir,
+    request_id,
+    discover,
+    state_file,
+    only_update_state,
+    dns_suffix,
+    fqdn_policy,
+    record_namespace_dns,
+    record_namespace_deployments,
+    dry_run,
+    include_tags,
+    exclude_tags,
+    force_rebuild,
+    recreate_on_deploy,
+    log_dir,
+):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
         sys.exit(2)
@@ -242,150 +340,214 @@ def command(ctx, kube_config, laconic_config, image_registry, deployment_parent_
         sys.exit(2)
 
     if not only_update_state:
-        if not record_namespace_dns or not record_namespace_deployments or not dns_suffix:
-            print("--dns-suffix, --record-namespace-dns, and --record-namespace-deployments are all required", file=sys.stderr)
+        if (
+            not record_namespace_dns
+            or not record_namespace_deployments
+            or not dns_suffix
+        ):
+            print(
+                "--dns-suffix, --record-namespace-dns, and --record-namespace-deployments are all required",
+                file=sys.stderr,
+            )
             sys.exit(2)
 
     if fqdn_policy not in ["prohibit", "allow", "preexisting"]:
-        print("--fqdn-policy must be one of 'prohibit', 'allow', or 'preexisting'", file=sys.stderr)
+        print(
+            "--fqdn-policy must be one of 'prohibit', 'allow', or 'preexisting'",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
-    # Split CSV and clean up values.
-    include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
-    exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
+    main_logger = TimedLogger(file=sys.stderr)
 
-    laconic = LaconicRegistryClient(laconic_config)
+    try:
+        # Split CSV and clean up values.
+        include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
+        exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
-    # Find deployment requests.
-    # single request
-    if request_id:
-        requests = [laconic.get_record(request_id, require=True)]
-    # all requests
-    elif discover:
-        requests = laconic.app_deployment_requests()
+        laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr)
 
-    if only_update_state:
-        if not dry_run:
-            dump_known_requests(state_file, requests)
-        return
+        # Find deployment requests.
+        # single request
+        if request_id:
+            main_logger.log(f"Retrieving request {request_id}...")
+            requests = [laconic.get_record(request_id, require=True)]
+        # all requests
+        elif discover:
+            main_logger.log("Discovering deployment requests...")
+            requests = laconic.app_deployment_requests()
 
-    previous_requests = load_known_requests(state_file)
+        if only_update_state:
+            if not dry_run:
+                dump_known_requests(state_file, requests)
+            return
 
-    # Collapse related requests.
-    requests.sort(key=lambda r: r.createTime)
-    requests.reverse()
-    requests_by_name = {}
-    skipped_by_name = {}
-    for r in requests:
-        status = None
-        try:
-            if r.id in previous_requests and previous_requests[r.id].get("status", "") != "RETRY":
-                print(f"Skipping request {r.id}, we've already seen it.")
-                continue
-
-            app = laconic.get_record(r.attributes.application)
-            if not app:
-                print(f"Skipping request {r.id}, cannot locate app.")
-                status = "SEEN"
-                continue
-
-            requested_name = r.attributes.dns
-            if not requested_name:
-                requested_name = generate_hostname_for_app(app)
-                print("Generating name %s for request %s." % (requested_name, r.id))
-
-            if requested_name in skipped_by_name or requested_name in requests_by_name:
-                print("Ignoring request %s, it has been superseded." % r.id)
-                continue
-
-            if skip_by_tag(r, include_tags, exclude_tags):
-                print("Skipping request %s, filtered by tag (include %s, exclude %s, present %s)" % (r.id,
-                                                                                                     include_tags,
-                                                                                                     exclude_tags,
-                                                                                                     r.attributes.tags))
-                skipped_by_name[requested_name] = r
-                continue
-
-            print("Found request %s to run application %s on %s." % (r.id, r.attributes.application, requested_name))
-            requests_by_name[requested_name] = r
-        except Exception as e:
-            print(f"ERROR examining request {r.id}: " + str(e))
-            status = "ERROR"
-        finally:
-            if status:
-                dump_known_requests(state_file, [r], status)
-
-    # Find deployments.
-    deployments = laconic.app_deployments()
-    deployments_by_request = {}
-    for d in deployments:
-        if d.attributes.request:
-            deployments_by_request[d.attributes.request] = d
-
-    # Find removal requests.
-    cancellation_requests = {}
-    removal_requests = laconic.app_deployment_removal_requests()
-    for r in removal_requests:
-        if r.attributes.request:
-            cancellation_requests[r.attributes.request] = r
-
-    requests_to_execute = []
-    for r in requests_by_name.values():
-        if r.id in cancellation_requests and match_owner(cancellation_requests[r.id], r):
-            print(f"Found deployment cancellation request for {r.id} at {cancellation_requests[r.id].id}")
-        elif r.id in deployments_by_request:
-            print(f"Found satisfied request for {r.id} at {deployments_by_request[r.id].id}")
+        if state_file:
+            main_logger.log(f"Loading known requests from {state_file}...")
+            previous_requests = load_known_requests(state_file)
         else:
-            if r.id not in previous_requests:
-                print(f"Request {r.id} needs to processed.")
-                requests_to_execute.append(r)
-            else:
-                print(
-                    f"Skipping unsatisfied request {r.id} because we have seen it before."
-                )
+            previous_requests = {}
 
-    print("Found %d unsatisfied request(s) to process." % len(requests_to_execute))
-
-    if not dry_run:
-        for r in requests_to_execute:
-            dump_known_requests(state_file, [r], "DEPLOYING")
-            status = "ERROR"
-            run_log_file = None
-            run_reg_client = laconic
+        # Collapse related requests.
+        requests.sort(key=lambda r: r.createTime)
+        requests.reverse()
+        requests_by_name = {}
+        skipped_by_name = {}
+        for r in requests:
+            main_logger.log(f"BEGIN: Examining request {r.id}")
+            result = "PENDING"
             try:
-                run_id = f"{r.id}-{str(time.time()).split('.')[0]}-{str(uuid.uuid4()).split('-')[0]}"
-                if log_dir:
-                    run_log_dir = os.path.join(log_dir, r.id)
-                    if not os.path.exists(run_log_dir):
-                        os.mkdir(run_log_dir)
-                    run_log_file_path = os.path.join(run_log_dir, f"{run_id}.log")
-                    print(f"Directing deployment logs to: {run_log_file_path}")
-                    run_log_file = open(run_log_file_path, "wt")
-                    run_reg_client = LaconicRegistryClient(laconic_config, log_file=run_log_file)
+                if (
+                    r.id in previous_requests
+                    and previous_requests[r.id].get("status", "") != "RETRY"
+                ):
+                    main_logger.log(f"Skipping request {r.id}, we've already seen it.")
+                    result = "SKIP"
+                    continue
 
-                logger = TimedLogger(run_id, run_log_file)
-                logger.log("Processing ...")
-                process_app_deployment_request(
-                    ctx,
-                    run_reg_client,
-                    r,
-                    record_namespace_deployments,
-                    record_namespace_dns,
-                    dns_suffix,
-                    os.path.abspath(deployment_parent_dir),
-                    kube_config,
-                    image_registry,
-                    force_rebuild,
-                    fqdn_policy,
-                    recreate_on_deploy,
-                    logger
+                app = laconic.get_record(r.attributes.application)
+                if not app:
+                    main_logger.log(f"Skipping request {r.id}, cannot locate app.")
+                    result = "ERROR"
+                    continue
+
+                requested_name = r.attributes.dns
+                if not requested_name:
+                    requested_name = generate_hostname_for_app(app)
+                    main_logger.log(
+                        "Generating name %s for request %s." % (requested_name, r.id)
+                    )
+
+                if (
+                    requested_name in skipped_by_name
+                    or requested_name in requests_by_name
+                ):
+                    main_logger.log(
+                        "Ignoring request %s, it has been superseded." % r.id
+                    )
+                    result = "SKIP"
+                    continue
+
+                if skip_by_tag(r, include_tags, exclude_tags):
+                    main_logger.log(
+                        "Skipping request %s, filtered by tag (include %s, exclude %s, present %s)"
+                        % (r.id, include_tags, exclude_tags, r.attributes.tags)
+                    )
+                    skipped_by_name[requested_name] = r
+                    result = "SKIP"
+                    continue
+
+                main_logger.log(
+                    "Found pending request %s to run application %s on %s."
+                    % (r.id, r.attributes.application, requested_name)
                 )
-                status = "DEPLOYED"
+                requests_by_name[requested_name] = r
             except Exception as e:
-                logger.log("ERROR: " + str(e))
+                result = "ERROR"
+                main_logger.log(f"ERROR examining request {r.id}: " + str(e))
             finally:
-                if logger:
-                    logger.log(f"DONE with status {status}", show_step_time=False, show_total_time=True)
-                dump_known_requests(state_file, [r], status)
-                if run_log_file:
-                    run_log_file.close()
+                main_logger.log(f"DONE Examining request {r.id} with result {result}.")
+                if result in ["ERROR"]:
+                    dump_known_requests(state_file, [r], status=result)
+
+        # Find deployments.
+        main_logger.log("Discovering existing app deployments...")
+        deployments = laconic.app_deployments()
+        deployments_by_request = {}
+        for d in deployments:
+            if d.attributes.request:
+                deployments_by_request[d.attributes.request] = d
+
+        # Find removal requests.
+        main_logger.log("Discovering deployment removal and cancellation requests...")
+        cancellation_requests = {}
+        removal_requests = laconic.app_deployment_removal_requests()
+        for r in removal_requests:
+            if r.attributes.request:
+                cancellation_requests[r.attributes.request] = r
+
+        requests_to_execute = []
+        for r in requests_by_name.values():
+            if r.id in cancellation_requests and match_owner(
+                cancellation_requests[r.id], r
+            ):
+                main_logger.log(
+                    f"Found deployment cancellation request for {r.id} at {cancellation_requests[r.id].id}"
+                )
+            elif r.id in deployments_by_request:
+                main_logger.log(
+                    f"Found satisfied request for {r.id} at {deployments_by_request[r.id].id}"
+                )
+            else:
+                if (
+                    r.id in previous_requests
+                    and previous_requests[r.id].get("status", "") != "RETRY"
+                ):
+                    main_logger.log(
+                        f"Skipping unsatisfied request {r.id} because we have seen it before."
+                    )
+                else:
+                    main_logger.log(f"Request {r.id} needs to processed.")
+                    requests_to_execute.append(r)
+
+        main_logger.log(
+            "Found %d unsatisfied request(s) to process." % len(requests_to_execute)
+        )
+
+        if not dry_run:
+            for r in requests_to_execute:
+                main_logger.log(f"DEPLOYING {r.id}: BEGIN")
+                dump_known_requests(state_file, [r], "DEPLOYING")
+                status = "ERROR"
+                run_log_file = None
+                run_reg_client = laconic
+                try:
+                    run_id = f"{r.id}-{str(time.time()).split('.')[0]}-{str(uuid.uuid4()).split('-')[0]}"
+                    if log_dir:
+                        run_log_dir = os.path.join(log_dir, r.id)
+                        if not os.path.exists(run_log_dir):
+                            os.mkdir(run_log_dir)
+                        run_log_file_path = os.path.join(run_log_dir, f"{run_id}.log")
+                        main_logger.log(
+                            f"Directing deployment logs to: {run_log_file_path}"
+                        )
+                        run_log_file = open(run_log_file_path, "wt")
+                        run_reg_client = LaconicRegistryClient(
+                            laconic_config, log_file=run_log_file
+                        )
+
+                    build_logger = TimedLogger(run_id, run_log_file)
+                    build_logger.log("Processing ...")
+                    process_app_deployment_request(
+                        ctx,
+                        run_reg_client,
+                        r,
+                        record_namespace_deployments,
+                        record_namespace_dns,
+                        dns_suffix,
+                        os.path.abspath(deployment_parent_dir),
+                        kube_config,
+                        image_registry,
+                        force_rebuild,
+                        fqdn_policy,
+                        recreate_on_deploy,
+                        build_logger,
+                    )
+                    status = "DEPLOYED"
+                except Exception as e:
+                    main_logger.log(f"ERROR {r.id}:" + str(e))
+                    build_logger.log("ERROR: " + str(e))
+                finally:
+                    main_logger.log(f"DEPLOYING {r.id}: END - {status}")
+                    if build_logger:
+                        build_logger.log(
+                            f"DONE with status {status}",
+                            show_step_time=False,
+                            show_total_time=True,
+                        )
+                    dump_known_requests(state_file, [r], status)
+                    if run_log_file:
+                        run_log_file.close()
+    except Exception as e:
+        main_logger.log("UNCAUGHT ERROR:" + str(e))
+        raise e

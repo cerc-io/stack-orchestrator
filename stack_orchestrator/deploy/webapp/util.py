@@ -96,7 +96,7 @@ def is_id(name_or_id: str):
 
 def confirm_payment(laconic, record, payment_address, min_amount, logger):
     if not record.attributes.payment:
-        logger.log(f"{record.id}: not payment tx")
+        logger.log(f"{record.id}: no payment tx info")
         return False
 
     tx = laconic.get_tx(record.attributes.payment)
@@ -147,9 +147,12 @@ class LaconicRegistryClient:
 
         return None
 
-    def get_owner(self, record):
-        bond = self.get_bond(record.bondId, require=True)
-        return bond.owner
+    def get_owner(self, record, require=False):
+        bond = self.get_bond(record.bondId, require)
+        if bond:
+            return bond.owner
+
+        return bond
 
     def get_account(self, address, refresh=False, require=False):
         if not refresh and address in self.cache["accounts"]:
@@ -563,6 +566,7 @@ def publish_deployment(
     dns_lrn,
     deployment_dir,
     app_deployment_request=None,
+    payment_address=None,
     logger=None,
 ):
     if not deploy_record:
@@ -614,6 +618,13 @@ def publish_deployment(
     }
     if app_deployment_request:
         new_deployment_record["record"]["request"] = app_deployment_request.id
+        if app_deployment_request.attributes.payment:
+            new_deployment_record["record"][
+                "payment"
+            ] = app_deployment_request.attributes.payment
+
+    if payment_address:
+        new_deployment_record["record"]["by"] = payment_address
 
     if logger:
         logger.log("Publishing ApplicationDeploymentRecord.")

@@ -55,6 +55,7 @@ def process_app_deployment_request(
     force_rebuild,
     fqdn_policy,
     recreate_on_deploy,
+    payment_address,
     logger,
 ):
     logger.log("BEGIN - process_app_deployment_request")
@@ -226,6 +227,7 @@ def process_app_deployment_request(
         dns_lrn,
         deployment_dir,
         app_deployment_request,
+        payment_address,
         logger,
     )
     logger.log("Publication complete.")
@@ -482,11 +484,17 @@ def command(  # noqa: C901
 
         # Find deployments.
         main_logger.log("Discovering existing app deployments...")
-        deployments = laconic.app_deployments()
+        if all_requests:
+            deployments = laconic.app_deployments()
+        else:
+            deployments = laconic.app_deployments({"by": payment_address})
         deployments_by_request = {}
+        deployments_by_payment = {}
         for d in deployments:
             if d.attributes.request:
                 deployments_by_request[d.attributes.request] = d
+            if d.attributes.payment:
+                deployments_by_request[d.attributes.payment] = d
 
         # Find removal requests.
         main_logger.log("Discovering deployment removal and cancellation requests...")
@@ -524,7 +532,13 @@ def command(  # noqa: C901
         if min_required_payment:
             for r in requests_to_check_for_payment:
                 main_logger.log(f"{r.id}: Confirming payment...")
-                if confirm_payment(
+                if r.attributes.payment in deployments_by_payment:
+                    main_logger.log(
+                        f"Skipping request {r.id}: payment already applied to deployment "
+                        f"{deployments_by_payment[r.attributes.payment].id}"
+                    )
+                    dump_known_requests(state_file, [r], status="UNPAID")
+                elif confirm_payment(
                     laconic, r, payment_address, min_required_payment, main_logger
                 ):
                     main_logger.log(f"{r.id}: Payment confirmed.")
@@ -578,6 +592,7 @@ def command(  # noqa: C901
                         force_rebuild,
                         fqdn_policy,
                         recreate_on_deploy,
+                        payment_address,
                         build_logger,
                     )
                     status = "DEPLOYED"

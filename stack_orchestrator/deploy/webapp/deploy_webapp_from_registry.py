@@ -38,6 +38,7 @@ from stack_orchestrator.deploy.webapp.util import (
     generate_hostname_for_app,
     match_owner,
     skip_by_tag,
+    confirm_payment,
 )
 
 
@@ -77,6 +78,9 @@ def process_app_deployment_request(
             )
     else:
         fqdn = f"{requested_name}.{default_dns_suffix}"
+
+    # Normalize case (just in case)
+    fqdn = fqdn.lower()
 
     # 3. check ownership of existing dnsrecord vs this request
     dns_lrn = f"{dns_record_namespace}/{fqdn}"
@@ -119,7 +123,7 @@ def process_app_deployment_request(
         app_deployment_lrn = app_deployment_request.attributes.deployment
     if not app_deployment_lrn.startswith(deployment_record_namespace):
         raise Exception(
-            "Deployment CRN %s is not in a supported namespace"
+            "Deployment LRN %s is not in a supported namespace"
             % app_deployment_request.attributes.deployment
         )
 
@@ -305,6 +309,23 @@ def dump_known_requests(filename, requests, status="SEEN"):
 @click.option(
     "--log-dir", help="Output build/deployment logs to directory.", default=None
 )
+@click.option(
+    "--min-required-payment",
+    help="Requests must have a minimum payment to be processed",
+    default=0,
+)
+@click.option(
+    "--payment-address",
+    help="The address to which payments should be made.  "
+    "Default is the current laconic account.",
+    default=None,
+)
+@click.option(
+    "--all-requests",
+    help="Handle requests addressed to anyone (by default only requests to"
+    "my payment address are examined).",
+    is_flag=True,
+)
 @click.pass_context
 def command(  # noqa: C901
     ctx,
@@ -326,6 +347,9 @@ def command(  # noqa: C901
     force_rebuild,
     recreate_on_deploy,
     log_dir,
+    min_required_payment,
+    payment_address,
+    all_requests,
 ):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
@@ -366,6 +390,10 @@ def command(  # noqa: C901
         exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
         laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr)
+        if not payment_address:
+            payment_address = laconic.whoami().address
+
+        main_logger.log(f"Payment address: {payment_address}")
 
         # Find deployment requests.
         # single request
@@ -375,18 +403,20 @@ def command(  # noqa: C901
         # all requests
         elif discover:
             main_logger.log("Discovering deployment requests...")
-            requests = laconic.app_deployment_requests()
+            if all_requests:
+                requests = laconic.app_deployment_requests()
+            else:
+                requests = laconic.app_deployment_requests({"to": payment_address})
 
         if only_update_state:
             if not dry_run:
                 dump_known_requests(state_file, requests)
             return
 
+        previous_requests = {}
         if state_file:
             main_logger.log(f"Loading known requests from {state_file}...")
             previous_requests = load_known_requests(state_file)
-        else:
-            previous_requests = {}
 
         # Collapse related requests.
         requests.sort(key=lambda r: r.createTime)
@@ -466,7 +496,7 @@ def command(  # noqa: C901
             if r.attributes.request:
                 cancellation_requests[r.attributes.request] = r
 
-        requests_to_execute = []
+        requests_to_check_for_payment = []
         for r in requests_by_name.values():
             if r.id in cancellation_requests and match_owner(
                 cancellation_requests[r.id], r
@@ -488,7 +518,24 @@ def command(  # noqa: C901
                     )
                 else:
                     main_logger.log(f"Request {r.id} needs to processed.")
+                    requests_to_check_for_payment.append(r)
+
+        requests_to_execute = []
+        if min_required_payment:
+            for r in requests_to_check_for_payment:
+                main_logger.log(f"{r.id}: Confirming payment...")
+                if confirm_payment(
+                    laconic, r, payment_address, min_required_payment, main_logger
+                ):
+                    main_logger.log(f"{r.id}: Payment confirmed.")
                     requests_to_execute.append(r)
+                else:
+                    main_logger.log(
+                        f"Skipping request {r.id}: unable to verify payment."
+                    )
+                    dump_known_requests(state_file, [r], status="UNPAID")
+        else:
+            requests_to_execute = requests_to_check_for_payment
 
         main_logger.log(
             "Found %d unsatisfied request(s) to process." % len(requests_to_execute)

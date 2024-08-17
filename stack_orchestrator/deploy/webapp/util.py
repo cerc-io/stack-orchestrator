@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import uuid
+from typing import final
 
 import yaml
 
@@ -83,6 +84,41 @@ def match_owner(recordA, *records):
     return None
 
 
+def is_lrn(name_or_id: str):
+    if name_or_id:
+        return str(name_or_id).startswith("lrn://")
+    return False
+
+
+def is_id(name_or_id: str):
+    return not is_lrn(name_or_id)
+
+def confirm_payment(laconic, record, payment_address, min_amount, logger):
+    if not record.attributes.payment:
+        logger.log(f"{record.id}: not payment tx")
+        return False
+
+    tx = laconic.get_tx(record.attributes.payment)
+    if not tx:
+        logger.log(f"{record.id}: cannot locate payment tx")
+        return False
+
+    owner = laconic.get_owner(record)
+    if tx.from_address != owner:
+        logger.log(f"{record.id}: {tx.from_address} != {owner}")
+        return False
+
+    if tx.to_address != payment_address:
+        logger.log(f"{record.id}: {tx.to_address} != {payment_address}")
+        return False
+
+    if tx.amount < min_amount:
+        logger.log(f"{record.id}: {tx.amount} < {min_amount}")
+        return False
+
+    return True
+
+
 class LaconicRegistryClient:
     def __init__(self, config_file, log_file=None):
         self.config_file = config_file
@@ -90,10 +126,64 @@ class LaconicRegistryClient:
         self.cache = AttrDict(
             {
                 "name_or_id": {},
+                "accounts": {}
             }
         )
 
-    def list_records(self, criteria={}, all=False):
+    def whoami(self, refresh=False):
+        if not refresh and "whoami" in self.cache:
+            return self.cache["whoami"]
+
+        args = ["laconic", "-c", self.config_file, "registry", "account", "get"]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
+
+        if len(results):
+            self.cache["whoami"] = results[0]
+            return results[0]
+
+        return None
+
+    def get_owner(self, record):
+        bond = self.get_bond(record.bondId, require=True)
+        return bond.owner
+
+    def get_account(self, address, refresh=False, require=False):
+        if not refresh and address in self.cache["accounts"]:
+            return self.cache["accounts"][address]
+
+        args = ["laconic", "-c", self.config_file, "registry", "account", "get", "--address", address]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
+        if len(results):
+            self.cache["accounts"][address] = results[0]
+            return results[0]
+
+        if require:
+            raise Exception("Cannot locate account:", address)
+        return None
+
+    def get_bond(self, id, require=False):
+        if id in self.cache.name_or_id:
+            return self.cache.name_or_id[id]
+
+        args = ["laconic", "-c", self.config_file, "registry", "bond", "get", "--id", id]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
+        self._add_to_cache(results)
+        if len(results):
+            return results[0]
+
+        if require:
+            raise Exception("Cannot locate bond:", id)
+        return None
+
+    def list_bonds(self):
+        args = ["laconic", "-c", self.config_file, "registry", "bond", "list"]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
+        self._add_to_cache(results)
+        return results
+
+    def list_records(self, criteria=None, all=False):
+        if criteria is None:
+            criteria = {}
         args = ["laconic", "-c", self.config_file, "registry", "record", "list"]
 
         if all:
@@ -104,21 +194,14 @@ class LaconicRegistryClient:
                 args.append("--%s" % k)
                 args.append(str(v))
 
-        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
 
         # Most recent records first
         results.sort(key=lambda r: r.createTime)
         results.reverse()
+        self._add_to_cache(results)
 
         return results
-
-    def is_lrn(self, name_or_id: str):
-        if name_or_id:
-            return str(name_or_id).startswith("lrn://")
-        return False
-
-    def is_id(self, name_or_id: str):
-        return not self.is_lrn(name_or_id)
 
     def _add_to_cache(self, records):
         if not records:
@@ -129,9 +212,10 @@ class LaconicRegistryClient:
             if p.names:
                 for lrn in p.names:
                     self.cache["name_or_id"][lrn] = p
-            if p.attributes.type not in self.cache:
-                self.cache[p.attributes.type] = []
-            self.cache[p.attributes.type].append(p)
+            if p.attributes and p.attributes.type:
+                if p.attributes.type not in self.cache:
+                    self.cache[p.attributes.type] = []
+                self.cache[p.attributes.type].append(p)
 
     def resolve(self, name):
         if not name:
@@ -142,7 +226,7 @@ class LaconicRegistryClient:
 
         args = ["laconic", "-c", self.config_file, "registry", "name", "resolve", name]
 
-        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
+        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
         if parsed:
             self._add_to_cache(parsed)
             return parsed[0]
@@ -158,7 +242,7 @@ class LaconicRegistryClient:
         if name_or_id in self.cache.name_or_id:
             return self.cache.name_or_id[name_or_id]
 
-        if self.is_lrn(name_or_id):
+        if is_lrn(name_or_id):
             return self.resolve(name_or_id)
 
         args = [
@@ -181,19 +265,37 @@ class LaconicRegistryClient:
             raise Exception("Cannot locate record:", name_or_id)
         return None
 
-    def app_deployment_requests(self, all=True):
-        return self.list_records({"type": "ApplicationDeploymentRequest"}, all)
+    def app_deployment_requests(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "ApplicationDeploymentRequest"
+        return self.list_records(criteria, all)
 
-    def app_deployments(self, all=True):
-        return self.list_records({"type": "ApplicationDeploymentRecord"}, all)
+    def app_deployments(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "ApplicationDeploymentRecord"
+        return self.list_records(criteria, all)
 
-    def app_deployment_removal_requests(self, all=True):
-        return self.list_records({"type": "ApplicationDeploymentRemovalRequest"}, all)
+    def app_deployment_removal_requests(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "ApplicationDeploymentRemovalRequest"
+        return self.list_records(criteria, all)
 
-    def app_deployment_removals(self, all=True):
-        return self.list_records({"type": "ApplicationDeploymentRemovalRecord"}, all)
+    def app_deployment_removals(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "ApplicationDeploymentRemovalRecord"
+        return self.list_records(criteria, all)
 
-    def publish(self, record, names=[]):
+    def publish(self, record, names=None):
+        if names is None:
+            names = []
         tmpdir = tempfile.mkdtemp()
         try:
             record_fname = os.path.join(tmpdir, "record.yml")
@@ -248,7 +350,9 @@ def determine_base_container(clone_dir, app_type="webapp"):
     return base_container
 
 
-def build_container_image(app_record, tag, extra_build_args=[], logger=None):
+def build_container_image(app_record, tag, extra_build_args=None, logger=None):
+    if extra_build_args is None:
+        extra_build_args = []
     tmpdir = tempfile.mkdtemp()
 
     # TODO: determine if this code could be calling into the Python git library like setup-repositories

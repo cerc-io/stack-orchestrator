@@ -38,6 +38,7 @@ def process_app_removal_request(
     deployment_parent_dir,
     delete_volumes,
     delete_names,
+    payment_address,
 ):
     deployment_record = laconic.get_record(
         app_removal_request.attributes.deployment, require=True
@@ -83,8 +84,13 @@ def process_app_removal_request(
             "version": "1.0.0",
             "request": app_removal_request.id,
             "deployment": deployment_record.id,
+            "by": payment_address,
         }
     }
+
+    if app_removal_request.attributes.payment:
+        removal_record["record"]["payment"] = app_removal_request.attributes.payment
+
     laconic.publish(removal_record)
 
     if delete_names:
@@ -330,6 +336,7 @@ def command(  # noqa: C901
                     os.path.abspath(deployment_parent_dir),
                     delete_volumes,
                     delete_names,
+                    payment_address,
                 )
             except Exception as e:
                 main_logger.log(f"ERROR processing removal request {r.id}: {e}")

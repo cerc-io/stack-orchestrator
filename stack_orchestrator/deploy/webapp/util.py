@@ -104,17 +104,37 @@ def confirm_payment(laconic, record, payment_address, min_amount, logger):
         logger.log(f"{record.id}: cannot locate payment tx")
         return False
 
+    if tx.code != 0:
+        logger.log(
+            f"{record.id}: payment tx {tx.hash} was not successful - code: {tx.code}, log: {tx.log}"
+        )
+        return False
+
     owner = laconic.get_owner(record)
-    if tx.from_address != owner:
-        logger.log(f"{record.id}: {tx.from_address} != {owner}")
+    if tx.sender != owner:
+        logger.log(
+            f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment request {owner}"
+        )
         return False
 
-    if tx.to_address != payment_address:
-        logger.log(f"{record.id}: {tx.to_address} != {payment_address}")
+    if tx.recipient != payment_address:
+        logger.log(
+            f"{record.id}: payment recipient {tx.recipient} in tx {tx.hash} does not match {payment_address}"
+        )
         return False
 
-    if tx.amount < min_amount:
-        logger.log(f"{record.id}: {tx.amount} < {min_amount}")
+    pay_denom = "".join([i for i in tx.amount if not i.isdigit()])
+    if pay_denom != "alnt":
+        logger.log(
+            f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected payment denomination"
+        )
+        return False
+
+    pay_amount = int("".join([i for i in tx.amount if i.isdigit()]))
+    if pay_amount < min_amount:
+        logger.log(
+            f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}"
+        )
         return False
 
     return True
@@ -311,8 +331,8 @@ class LaconicRegistryClient:
             "-c",
             self.config_file,
             "registry",
-            "tx",
-            "get",
+            "tokens",
+            "gettx",
             "--hash",
             txHash,
         ]

@@ -93,6 +93,11 @@ def is_id(name_or_id: str):
 
 
 def confirm_payment(laconic, record, payment_address, min_amount, logger):
+    req_owner = laconic.get_owner(record)
+    if req_owner == payment_address:
+        # No need to confirm payment if the sender and recipient are the same account.
+        return True
+
     if not record.attributes.payment:
         logger.log(f"{record.id}: no payment tx info")
         return False
@@ -108,7 +113,6 @@ def confirm_payment(laconic, record, payment_address, min_amount, logger):
         )
         return False
 
-    req_owner = laconic.get_owner(record)
     if tx.sender != req_owner:
         logger.log(
             f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment "
@@ -133,6 +137,23 @@ def confirm_payment(laconic, record, payment_address, min_amount, logger):
     if pay_amount < min_amount:
         logger.log(
             f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}"
+        )
+        return False
+
+    # Check if the payment was already used on a
+    used = laconic.app_deployments(
+        {"by": payment_address, "payment": tx.hash}, all=True
+    )
+    if len(used):
+        logger.log(f"{record.id}: payment {tx.hash} already used on deployment {used}")
+        return False
+
+    used = laconic.app_deployment_removals(
+        {"by": payment_address, "payment": tx.hash}, all=True
+    )
+    if len(used):
+        logger.log(
+            f"{record.id}: payment {tx.hash} already used on deployment removal {used}"
         )
         return False
 

@@ -25,6 +25,7 @@ from stack_orchestrator.deploy.webapp.util import (
     LaconicRegistryClient,
     match_owner,
     skip_by_tag,
+    confirm_payment,
 )
 
 main_logger = TimedLogger(file=sys.stderr)
@@ -159,6 +160,23 @@ def dump_known_requests(filename, requests):
     help="Exclude requests with matching tags (comma-separated).",
     default="",
 )
+@click.option(
+    "--min-required-payment",
+    help="Requests must have a minimum payment to be processed",
+    default=0,
+)
+@click.option(
+    "--payment-address",
+    help="The address to which payments should be made.  "
+    "Default is the current laconic account.",
+    default=None,
+)
+@click.option(
+    "--all-requests",
+    help="Handle requests addressed to anyone (by default only requests to"
+    "my payment address are examined).",
+    is_flag=True,
+)
 @click.pass_context
 def command(  # noqa: C901
     ctx,
@@ -173,6 +191,9 @@ def command(  # noqa: C901
     dry_run,
     include_tags,
     exclude_tags,
+    min_required_payment,
+    payment_address,
+    all_requests,
 ):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
@@ -201,7 +222,10 @@ def command(  # noqa: C901
     # all requests
     elif discover:
         main_logger.log("Discovering removal requests...")
-        requests = laconic.app_deployment_removal_requests()
+        if all_requests:
+            requests = laconic.app_deployment_removal_requests()
+        else:
+            requests = laconic.app_deployment_removal_requests({"to": payment_address})
 
     if only_update_state:
         if not dry_run:
@@ -242,7 +266,7 @@ def command(  # noqa: C901
         else:
             one_per_deployment[r.attributes.deployment] = r
 
-    requests_to_execute = []
+    requests_to_check_for_payment = []
     for r in one_per_deployment.values():
         try:
             if r.attributes.deployment not in named_deployments:
@@ -267,13 +291,28 @@ def command(  # noqa: C901
             else:
                 if r.id not in previous_requests:
                     main_logger.log(f"Request {r.id} needs to processed.")
-                    requests_to_execute.append(r)
+                    requests_to_check_for_payment.append(r)
                 else:
                     main_logger.log(
                         f"Skipping unsatisfied request {r.id} because we have seen it before."
                     )
         except Exception as e:
             main_logger.log(f"ERROR examining {r.id}: {e}")
+
+    requests_to_execute = []
+    if min_required_payment:
+        for r in requests_to_check_for_payment:
+            main_logger.log(f"{r.id}: Confirming payment...")
+            if confirm_payment(
+                laconic, r, payment_address, min_required_payment, main_logger
+            ):
+                main_logger.log(f"{r.id}: Payment confirmed.")
+                requests_to_execute.append(r)
+            else:
+                main_logger.log(f"Skipping request {r.id}: unable to verify payment.")
+                dump_known_requests(state_file, [r])
+    else:
+        requests_to_execute = requests_to_check_for_payment
 
     main_logger.log(
         "Found %d unsatisfied request(s) to process." % len(requests_to_execute)

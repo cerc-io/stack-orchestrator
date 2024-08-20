@@ -10,7 +10,7 @@ repos:
   - git.vdb.to/cerc-io/registry-sdk
   - git.vdb.to/cerc-io/laconic-registry-cli
   - git.vdb.to/cerc-io/laconic-console
-  - github.com/ping-pub/explorer
+  - git.vdb.to/cerc-io/cosmos-explorer
 npms:
   - registry-sdk
   - laconic-registry-cli

@@ -336,12 +336,15 @@ class LaconicRegistryClient:
             txHash,
         ]
 
-        parsed = [
-            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
-        ]
-        if len(parsed):
-            self.cache["txs"][txHash] = parsed[0]
-            return parsed[0]
+        parsed = None
+        try:
+            parsed = AttrDict(json.loads(logged_cmd(self.log_file, *args)))
+        except:
+            pass
+
+        if parsed:
+            self.cache["txs"][txHash] = parsed
+            return parsed
 
         if require:
             raise Exception("Cannot locate tx:", hash)

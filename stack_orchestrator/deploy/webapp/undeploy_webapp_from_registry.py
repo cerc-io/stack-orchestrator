@@ -160,7 +160,7 @@ def dump_known_requests(filename, requests):
     default="",
 )
 @click.pass_context
-def command(
+def command(  # noqa: C901
     ctx,
     laconic_config,
     deployment_parent_dir,

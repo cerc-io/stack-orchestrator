@@ -22,8 +22,6 @@ import subprocess
 import sys
 import tempfile
 import uuid
-from typing import final
-
 import yaml
 
 

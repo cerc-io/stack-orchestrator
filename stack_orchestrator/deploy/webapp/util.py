@@ -110,10 +110,11 @@ def confirm_payment(laconic, record, payment_address, min_amount, logger):
         )
         return False
 
-    owner = laconic.get_owner(record)
-    if tx.sender != owner:
+    req_owner = laconic.get_owner(record)
+    if tx.sender != req_owner:
         logger.log(
-            f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment request {owner}"
+            f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment "
+            f"request owner {req_owner}"
         )
         return False
 

@@ -211,7 +211,9 @@ def command(  # noqa: C901
     include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
     exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
-    laconic = LaconicRegistryClient(laconic_config)
+    laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr)
+    if not payment_address:
+        payment_address = laconic.whoami().address
 
     # Find deployment removal requests.
     # single request

@@ -361,7 +361,7 @@ class LaconicRegistryClient:
         try:
             parsed = AttrDict(json.loads(logged_cmd(self.log_file, *args)))
         except:
-            pass
+            pass  # noqa: E722
 
         if parsed:
             self.cache["txs"][txHash] = parsed

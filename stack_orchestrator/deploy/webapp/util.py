@@ -22,7 +22,6 @@ import subprocess
 import sys
 import tempfile
 import uuid
-
 import yaml
 
 
@@ -83,6 +82,84 @@ def match_owner(recordA, *records):
     return None
 
 
+def is_lrn(name_or_id: str):
+    if name_or_id:
+        return str(name_or_id).startswith("lrn://")
+    return False
+
+
+def is_id(name_or_id: str):
+    return not is_lrn(name_or_id)
+
+
+def confirm_payment(laconic, record, payment_address, min_amount, logger):
+    req_owner = laconic.get_owner(record)
+    if req_owner == payment_address:
+        # No need to confirm payment if the sender and recipient are the same account.
+        return True
+
+    if not record.attributes.payment:
+        logger.log(f"{record.id}: no payment tx info")
+        return False
+
+    tx = laconic.get_tx(record.attributes.payment)
+    if not tx:
+        logger.log(f"{record.id}: cannot locate payment tx")
+        return False
+
+    if tx.code != 0:
+        logger.log(
+            f"{record.id}: payment tx {tx.hash} was not successful - code: {tx.code}, log: {tx.log}"
+        )
+        return False
+
+    if tx.sender != req_owner:
+        logger.log(
+            f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment "
+            f"request owner {req_owner}"
+        )
+        return False
+
+    if tx.recipient != payment_address:
+        logger.log(
+            f"{record.id}: payment recipient {tx.recipient} in tx {tx.hash} does not match {payment_address}"
+        )
+        return False
+
+    pay_denom = "".join([i for i in tx.amount if not i.isdigit()])
+    if pay_denom != "alnt":
+        logger.log(
+            f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected payment denomination"
+        )
+        return False
+
+    pay_amount = int("".join([i for i in tx.amount if i.isdigit()]))
+    if pay_amount < min_amount:
+        logger.log(
+            f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}"
+        )
+        return False
+
+    # Check if the payment was already used on a
+    used = laconic.app_deployments(
+        {"by": payment_address, "payment": tx.hash}, all=True
+    )
+    if len(used):
+        logger.log(f"{record.id}: payment {tx.hash} already used on deployment {used}")
+        return False
+
+    used = laconic.app_deployment_removals(
+        {"by": payment_address, "payment": tx.hash}, all=True
+    )
+    if len(used):
+        logger.log(
+            f"{record.id}: payment {tx.hash} already used on deployment removal {used}"
+        )
+        return False
+
+    return True
+
+
 class LaconicRegistryClient:
     def __init__(self, config_file, log_file=None):
         self.config_file = config_file
@@ -90,10 +167,94 @@ class LaconicRegistryClient:
         self.cache = AttrDict(
             {
                 "name_or_id": {},
+                "accounts": {},
+                "txs": {},
             }
         )
 
-    def list_records(self, criteria={}, all=False):
+    def whoami(self, refresh=False):
+        if not refresh and "whoami" in self.cache:
+            return self.cache["whoami"]
+
+        args = ["laconic", "-c", self.config_file, "registry", "account", "get"]
+        results = [
+            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
+        ]
+
+        if len(results):
+            self.cache["whoami"] = results[0]
+            return results[0]
+
+        return None
+
+    def get_owner(self, record, require=False):
+        bond = self.get_bond(record.bondId, require)
+        if bond:
+            return bond.owner
+
+        return bond
+
+    def get_account(self, address, refresh=False, require=False):
+        if not refresh and address in self.cache["accounts"]:
+            return self.cache["accounts"][address]
+
+        args = [
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "account",
+            "get",
+            "--address",
+            address,
+        ]
+        results = [
+            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
+        ]
+        if len(results):
+            self.cache["accounts"][address] = results[0]
+            return results[0]
+
+        if require:
+            raise Exception("Cannot locate account:", address)
+        return None
+
+    def get_bond(self, id, require=False):
+        if id in self.cache.name_or_id:
+            return self.cache.name_or_id[id]
+
+        args = [
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "bond",
+            "get",
+            "--id",
+            id,
+        ]
+        results = [
+            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
+        ]
+        self._add_to_cache(results)
+        if len(results):
+            return results[0]
+
+        if require:
+            raise Exception("Cannot locate bond:", id)
+        return None
+
+    def list_bonds(self):
+        args = ["laconic", "-c", self.config_file, "registry", "bond", "list"]
+        results = [
+            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
+        ]
+        self._add_to_cache(results)
+        return results
+
+    def list_records(self, criteria=None, all=False):
+        if criteria is None:
+            criteria = {}
         args = ["laconic", "-c", self.config_file, "registry", "record", "list"]
 
         if all:
@@ -104,21 +265,16 @@ class LaconicRegistryClient:
                 args.append("--%s" % k)
                 args.append(str(v))
 
-        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
+        results = [
+            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
+        ]
 
         # Most recent records first
         results.sort(key=lambda r: r.createTime)
         results.reverse()
+        self._add_to_cache(results)
 
         return results
-
-    def is_lrn(self, name_or_id: str):
-        if name_or_id:
-            return str(name_or_id).startswith("lrn://")
-        return False
-
-    def is_id(self, name_or_id: str):
-        return not self.is_lrn(name_or_id)
 
     def _add_to_cache(self, records):
         if not records:
@@ -129,9 +285,10 @@ class LaconicRegistryClient:
             if p.names:
                 for lrn in p.names:
                     self.cache["name_or_id"][lrn] = p
-            if p.attributes.type not in self.cache:
-                self.cache[p.attributes.type] = []
-            self.cache[p.attributes.type].append(p)
+            if p.attributes and p.attributes.type:
+                if p.attributes.type not in self.cache:
+                    self.cache[p.attributes.type] = []
+                self.cache[p.attributes.type].append(p)
 
     def resolve(self, name):
         if not name:
@@ -142,7 +299,9 @@ class LaconicRegistryClient:
 
         args = ["laconic", "-c", self.config_file, "registry", "name", "resolve", name]
 
-        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args))]
+        parsed = [
+            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
+        ]
         if parsed:
             self._add_to_cache(parsed)
             return parsed[0]
@@ -158,7 +317,7 @@ class LaconicRegistryClient:
         if name_or_id in self.cache.name_or_id:
             return self.cache.name_or_id[name_or_id]
 
-        if self.is_lrn(name_or_id):
+        if is_lrn(name_or_id):
             return self.resolve(name_or_id)
 
         args = [
@@ -172,7 +331,9 @@ class LaconicRegistryClient:
             name_or_id,
         ]
 
-        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
+        parsed = [
+            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
+        ]
         if len(parsed):
             self._add_to_cache(parsed)
             return parsed[0]
@@ -181,38 +342,85 @@ class LaconicRegistryClient:
             raise Exception("Cannot locate record:", name_or_id)
         return None
 
-    def app_deployment_requests(self, all=True):
-        return self.list_records({"type": "ApplicationDeploymentRequest"}, all)
+    def get_tx(self, txHash, require=False):
+        if txHash in self.cache["txs"]:
+            return self.cache["txs"][txHash]
 
-    def app_deployments(self, all=True):
-        return self.list_records({"type": "ApplicationDeploymentRecord"}, all)
+        args = [
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "tokens",
+            "gettx",
+            "--hash",
+            txHash,
+        ]
 
-    def app_deployment_removal_requests(self, all=True):
-        return self.list_records({"type": "ApplicationDeploymentRemovalRequest"}, all)
+        parsed = None
+        try:
+            parsed = AttrDict(json.loads(logged_cmd(self.log_file, *args)))
+        except:  # noqa: E722
+            pass
 
-    def app_deployment_removals(self, all=True):
-        return self.list_records({"type": "ApplicationDeploymentRemovalRecord"}, all)
+        if parsed:
+            self.cache["txs"][txHash] = parsed
+            return parsed
 
-    def publish(self, record, names=[]):
+        if require:
+            raise Exception("Cannot locate tx:", hash)
+
+    def app_deployment_requests(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "ApplicationDeploymentRequest"
+        return self.list_records(criteria, all)
+
+    def app_deployments(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "ApplicationDeploymentRecord"
+        return self.list_records(criteria, all)
+
+    def app_deployment_removal_requests(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "ApplicationDeploymentRemovalRequest"
+        return self.list_records(criteria, all)
+
+    def app_deployment_removals(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "ApplicationDeploymentRemovalRecord"
+        return self.list_records(criteria, all)
+
+    def publish(self, record, names=None):
+        if names is None:
+            names = []
         tmpdir = tempfile.mkdtemp()
         try:
             record_fname = os.path.join(tmpdir, "record.yml")
-            record_file = open(record_fname, 'w')
+            record_file = open(record_fname, "w")
             yaml.dump(record, record_file)
             record_file.close()
-            print(open(record_fname, 'r').read(), file=self.log_file)
+            print(open(record_fname, "r").read(), file=self.log_file)
 
             new_record_id = json.loads(
                 logged_cmd(
                     self.log_file,
-                    "laconic", "-c",
+                    "laconic",
+                    "-c",
                     self.config_file,
                     "registry",
                     "record",
                     "publish",
                     "--filename",
-                    record_fname
-                    )
+                    record_fname,
+                )
             )["id"]
             for name in names:
                 self.set_name(name, new_record_id)
@@ -221,10 +429,29 @@ class LaconicRegistryClient:
             logged_cmd(self.log_file, "rm", "-rf", tmpdir)
 
     def set_name(self, name, record_id):
-        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "registry", "name", "set", name, record_id)
+        logged_cmd(
+            self.log_file,
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "name",
+            "set",
+            name,
+            record_id,
+        )
 
     def delete_name(self, name):
-        logged_cmd(self.log_file, "laconic", "-c", self.config_file, "registry", "name", "delete", name)
+        logged_cmd(
+            self.log_file,
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "name",
+            "delete",
+            name,
+        )
 
 
 def file_hash(filename):
@@ -248,7 +475,9 @@ def determine_base_container(clone_dir, app_type="webapp"):
     return base_container
 
 
-def build_container_image(app_record, tag, extra_build_args=[], logger=None):
+def build_container_image(app_record, tag, extra_build_args=None, logger=None):
+    if extra_build_args is None:
+        extra_build_args = []
     tmpdir = tempfile.mkdtemp()
 
     # TODO: determine if this code could be calling into the Python git library like setup-repositories
@@ -265,9 +494,15 @@ def build_container_image(app_record, tag, extra_build_args=[], logger=None):
         if github_token:
             logger.log("Github token detected, setting it in the git environment")
             git_config_args = [
-                "git", "config", "--global", f"url.https://{github_token}:@github.com/.insteadOf", "https://github.com/"
-                ]
-            result = subprocess.run(git_config_args, stdout=logger.file, stderr=logger.file)
+                "git",
+                "config",
+                "--global",
+                f"url.https://{github_token}:@github.com/.insteadOf",
+                "https://github.com/",
+            ]
+            result = subprocess.run(
+                git_config_args, stdout=logger.file, stderr=logger.file
+            )
             result.check_returncode()
         if ref:
             # TODO: Determing branch or hash, and use depth 1 if we can.
@@ -275,30 +510,50 @@ def build_container_image(app_record, tag, extra_build_args=[], logger=None):
             # Never prompt
             git_env["GIT_TERMINAL_PROMPT"] = "0"
             try:
-                subprocess.check_call(["git", "clone", repo, clone_dir], env=git_env, stdout=logger.file, stderr=logger.file)
+                subprocess.check_call(
+                    ["git", "clone", repo, clone_dir],
+                    env=git_env,
+                    stdout=logger.file,
+                    stderr=logger.file,
+                )
             except Exception as e:
                 logger.log(f"git clone failed.  Is the repository {repo} private?")
                 raise e
             try:
-                subprocess.check_call(["git", "checkout", ref], cwd=clone_dir, env=git_env, stdout=logger.file, stderr=logger.file)
+                subprocess.check_call(
+                    ["git", "checkout", ref],
+                    cwd=clone_dir,
+                    env=git_env,
+                    stdout=logger.file,
+                    stderr=logger.file,
+                )
             except Exception as e:
                 logger.log(f"git checkout failed.  Does ref {ref} exist?")
                 raise e
         else:
             # TODO: why is this code different vs the branch above (run vs check_call, and no prompt disable)?
-            result = subprocess.run(["git", "clone", "--depth", "1", repo, clone_dir], stdout=logger.file, stderr=logger.file)
+            result = subprocess.run(
+                ["git", "clone", "--depth", "1", repo, clone_dir],
+                stdout=logger.file,
+                stderr=logger.file,
+            )
             result.check_returncode()
 
-        base_container = determine_base_container(clone_dir, app_record.attributes.app_type)
+        base_container = determine_base_container(
+            clone_dir, app_record.attributes.app_type
+        )
 
         logger.log("Building webapp ...")
         build_command = [
             sys.argv[0],
             "--verbose",
             "build-webapp",
-            "--source-repo", clone_dir,
-            "--tag", tag,
-            "--base-container", base_container
+            "--source-repo",
+            clone_dir,
+            "--tag",
+            tag,
+            "--base-container",
+            base_container,
         ]
         if extra_build_args:
             build_command.append("--extra-build-args")
@@ -312,8 +567,11 @@ def build_container_image(app_record, tag, extra_build_args=[], logger=None):
 
 def push_container_image(deployment_dir, logger):
     logger.log("Pushing images ...")
-    result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, "push-images"],
-                            stdout=logger.file, stderr=logger.file)
+    result = subprocess.run(
+        [sys.argv[0], "deployment", "--dir", deployment_dir, "push-images"],
+        stdout=logger.file,
+        stderr=logger.file,
+    )
     result.check_returncode()
     logger.log("Finished pushing images.")
 
@@ -331,27 +589,35 @@ def deploy_to_k8s(deploy_record, deployment_dir, recreate, logger):
 
     for command in commands_to_run:
         logger.log(f"Running {command} command on deployment dir: {deployment_dir}")
-        result = subprocess.run([sys.argv[0], "deployment", "--dir", deployment_dir, command],
-                                stdout=logger.file, stderr=logger.file)
+        result = subprocess.run(
+            [sys.argv[0], "deployment", "--dir", deployment_dir, command],
+            stdout=logger.file,
+            stderr=logger.file,
+        )
         result.check_returncode()
         logger.log(f"Finished {command} command on deployment dir: {deployment_dir}")
 
     logger.log("Finished deploying to k8s.")
 
 
-def publish_deployment(laconic: LaconicRegistryClient,
-                       app_record,
-                       deploy_record,
-                       deployment_lrn,
-                       dns_record,
-                       dns_lrn,
-                       deployment_dir,
-                       app_deployment_request=None,
-                       logger=None):
+def publish_deployment(
+    laconic: LaconicRegistryClient,
+    app_record,
+    deploy_record,
+    deployment_lrn,
+    dns_record,
+    dns_lrn,
+    deployment_dir,
+    app_deployment_request=None,
+    payment_address=None,
+    logger=None,
+):
     if not deploy_record:
         deploy_ver = "0.0.1"
     else:
-        deploy_ver = "0.0.%d" % (int(deploy_record.attributes.version.split(".")[-1]) + 1)
+        deploy_ver = "0.0.%d" % (
+            int(deploy_record.attributes.version.split(".")[-1]) + 1
+        )
 
     if not dns_record:
         dns_ver = "0.0.1"
@@ -369,9 +635,7 @@ def publish_deployment(laconic: LaconicRegistryClient,
             "version": dns_ver,
             "name": fqdn,
             "resource_type": "A",
-            "meta": {
-                "so": uniq.hex
-            },
+            "meta": {"so": uniq.hex},
         }
     }
     if app_deployment_request:
@@ -391,12 +655,19 @@ def publish_deployment(laconic: LaconicRegistryClient,
             "dns": dns_id,
             "meta": {
                 "config": file_hash(os.path.join(deployment_dir, "config.env")),
-                "so": uniq.hex
+                "so": uniq.hex,
             },
         }
     }
     if app_deployment_request:
         new_deployment_record["record"]["request"] = app_deployment_request.id
+        if app_deployment_request.attributes.payment:
+            new_deployment_record["record"][
+                "payment"
+            ] = app_deployment_request.attributes.payment
+
+    if payment_address:
+        new_deployment_record["record"]["by"] = payment_address
 
     if logger:
         logger.log("Publishing ApplicationDeploymentRecord.")
@@ -407,7 +678,9 @@ def publish_deployment(laconic: LaconicRegistryClient,
 def hostname_for_deployment_request(app_deployment_request, laconic):
     dns_name = app_deployment_request.attributes.dns
     if not dns_name:
-        app = laconic.get_record(app_deployment_request.attributes.application, require=True)
+        app = laconic.get_record(
+            app_deployment_request.attributes.application, require=True
+        )
         dns_name = generate_hostname_for_app(app)
     elif dns_name.startswith("lrn://"):
         record = laconic.get_record(dns_name, require=True)

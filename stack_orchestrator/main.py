@@ -24,7 +24,9 @@ from stack_orchestrator.build import build_webapp
 from stack_orchestrator.deploy.webapp import (run_webapp,
                                               deploy_webapp,
                                               deploy_webapp_from_registry,
-                                              undeploy_webapp_from_registry)
+                                              undeploy_webapp_from_registry,
+                                              publish_webapp_deployer,
+                                              request_webapp_deployment)
 from stack_orchestrator.deploy import deploy
 from stack_orchestrator import version
 from stack_orchestrator.deploy import deployment
@@ -61,6 +63,8 @@ cli.add_command(run_webapp.command, "run-webapp")
 cli.add_command(deploy_webapp.command, "deploy-webapp")
 cli.add_command(deploy_webapp_from_registry.command, "deploy-webapp-from-registry")
 cli.add_command(undeploy_webapp_from_registry.command, "undeploy-webapp-from-registry")
+cli.add_command(publish_webapp_deployer.command, "publish-deployer-to-registry")
+cli.add_command(request_webapp_deployment.command, "request-webapp-deployment")
 cli.add_command(deploy.command, "deploy")  # deploy is an alias for deploy-system
 cli.add_command(deploy.command, "deploy-system")
 cli.add_command(deployment.command, "deployment")

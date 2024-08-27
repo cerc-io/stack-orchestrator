@@ -1,4 +1,4 @@
-# Copyright © 2023 Vulcanize
+# = str(min_required_payment) Copyright © 2023 Vulcanize
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -142,14 +142,14 @@ def confirm_payment(laconic, record, payment_address, min_amount, logger):
 
     # Check if the payment was already used on a
     used = laconic.app_deployments(
-        {"by": payment_address, "payment": tx.hash}, all=True
+        {"deployer": payment_address, "payment": tx.hash}, all=True
     )
     if len(used):
         logger.log(f"{record.id}: payment {tx.hash} already used on deployment {used}")
         return False
 
     used = laconic.app_deployment_removals(
-        {"by": payment_address, "payment": tx.hash}, all=True
+        {"deployer": payment_address, "payment": tx.hash}, all=True
     )
     if len(used):
         logger.log(
@@ -453,6 +453,24 @@ class LaconicRegistryClient:
             name,
         )
 
+    def send_tokens(self, address, amount, type="alnt"):
+        args = [
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "tokens",
+            "send",
+            "--address",
+            address,
+            "--quantity",
+            str(amount),
+            "--type",
+            type,
+        ]
+
+        return AttrDict(json.loads(logged_cmd(self.log_file, *args)))
+
 
 def file_hash(filename):
     return hashlib.sha1(open(filename).read().encode()).hexdigest()
@@ -609,7 +627,7 @@ def publish_deployment(
     dns_lrn,
     deployment_dir,
     app_deployment_request=None,
-    payment_address=None,
+    webapp_deployer_record=None,
     logger=None,
 ):
     if not deploy_record:
@@ -666,8 +684,8 @@ def publish_deployment(
                 "payment"
             ] = app_deployment_request.attributes.payment
 
-    if payment_address:
-        new_deployment_record["record"]["by"] = payment_address
+    if webapp_deployer_record:
+        new_deployment_record["record"]["deployer"] = webapp_deployer_record.names[0]
 
     if logger:
         logger.log("Publishing ApplicationDeploymentRecord.")

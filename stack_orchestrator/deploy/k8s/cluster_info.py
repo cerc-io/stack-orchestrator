@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import os
+import base64
 
 from kubernetes import client
 from typing import Any, List, Set
@@ -260,12 +261,12 @@ class ClusterInfo:
             for f in os.listdir(cfg_map_path):
                 full_path = os.path.join(cfg_map_path, f)
                 if os.path.isfile(full_path):
-                    data[f] = open(full_path, 'rt').read()
+                    data[f] = base64.b64encode(open(full_path, 'rb').read()).decode('ASCII')
 
             spec = client.V1ConfigMap(
                 metadata=client.V1ObjectMeta(name=f"{self.app_name}-{cfg_map_name}",
                                              labels={"configmap-label": cfg_map_name}),
-                data=data
+                binary_data=data
             )
             result.append(spec)
         return result

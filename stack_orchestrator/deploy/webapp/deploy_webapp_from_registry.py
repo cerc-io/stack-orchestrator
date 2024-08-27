@@ -21,12 +21,15 @@ import sys
 import tempfile
 import time
 import uuid
+import yaml
 
 import click
+import gnupg
 
 from stack_orchestrator.deploy.images import remote_image_exists
 from stack_orchestrator.deploy.webapp import deploy_webapp
 from stack_orchestrator.deploy.webapp.util import (
+    AttrDict,
     LaconicRegistryClient,
     TimedLogger,
     build_container_image,
@@ -55,7 +58,10 @@ def process_app_deployment_request(
     force_rebuild,
     fqdn_policy,
     recreate_on_deploy,
-    payment_address,
+    webapp_deployer_record,
+    gpg,
+    private_key_passphrase,
+    config_upload_dir,
     logger,
 ):
     logger.log("BEGIN - process_app_deployment_request")
@@ -107,14 +113,31 @@ def process_app_deployment_request(
         )
 
     # 4. get build and runtime config from request
+    env = {}
+    if app_deployment_request.attributes.config:
+        if "ref" in app_deployment_request.attributes.config:
+            with open(
+                f"{config_upload_dir}/{app_deployment_request.attributes.config.ref}",
+                "rb",
+            ) as file:
+                record_owner = laconic.get_owner(app_deployment_request)
+                decrypted = gpg.decrypt_file(file, passphrase=private_key_passphrase)
+                parsed = AttrDict(yaml.safe_load(decrypted.data))
+                if record_owner not in parsed.authorized:
+                    raise Exception(
+                        f"{record_owner} not authorized to access config {app_deployment_request.attributes.config.ref}"
+                    )
+                if "env" in parsed.config:
+                    env.update(parsed.config.env)
+
+        if "env" in app_deployment_request.attributes.config:
+            env.update(app_deployment_request.attributes.config.env)
+
     env_filename = None
-    if (
-        app_deployment_request.attributes.config
-        and "env" in app_deployment_request.attributes.config
-    ):
+    if env:
         env_filename = tempfile.mktemp()
         with open(env_filename, "w") as file:
-            for k, v in app_deployment_request.attributes.config["env"].items():
+            for k, v in env.items():
                 file.write("%s=%s\n" % (k, shlex.quote(str(v))))
 
     # 5. determine new or existing deployment
@@ -227,7 +250,7 @@ def process_app_deployment_request(
         dns_lrn,
         deployment_dir,
         app_deployment_request,
-        payment_address,
+        webapp_deployer_record,
         logger,
     )
     logger.log("Publication complete.")
@@ -285,8 +308,12 @@ def dump_known_requests(filename, requests, status="SEEN"):
     help="How to handle requests with an FQDN: prohibit, allow, preexisting",
     default="prohibit",
 )
-@click.option("--record-namespace-dns", help="eg, lrn://laconic/dns")
-@click.option("--record-namespace-deployments", help="eg, lrn://laconic/deployments")
+@click.option("--record-namespace-dns", help="eg, lrn://laconic/dns", required=True)
+@click.option(
+    "--record-namespace-deployments",
+    help="eg, lrn://laconic/deployments",
+    required=True,
+)
 @click.option(
     "--dry-run", help="Don't do anything, just report what would be done.", is_flag=True
 )
@@ -313,20 +340,28 @@ def dump_known_requests(filename, requests, status="SEEN"):
 )
 @click.option(
     "--min-required-payment",
-    help="Requests must have a minimum payment to be processed",
+    help="Requests must have a minimum payment to be processed (in alnt)",
     default=0,
 )
-@click.option(
-    "--payment-address",
-    help="The address to which payments should be made.  "
-    "Default is the current laconic account.",
-    default=None,
-)
+@click.option("--lrn", help="The LRN of this deployer.", required=True)
 @click.option(
     "--all-requests",
     help="Handle requests addressed to anyone (by default only requests to"
     "my payment address are examined).",
     is_flag=True,
+)
+@click.option(
+    "--config-upload-dir",
+    help="The directory containing uploaded config.",
+    required=True,
+)
+@click.option(
+    "--private-key-file", help="The private key for decrypting config.", required=True
+)
+@click.option(
+    "--private-key-passphrase",
+    help="The passphrase for the private key.",
+    required=True,
 )
 @click.pass_context
 def command(  # noqa: C901
@@ -350,7 +385,10 @@ def command(  # noqa: C901
     recreate_on_deploy,
     log_dir,
     min_required_payment,
-    payment_address,
+    lrn,
+    config_upload_dir,
+    private_key_file,
+    private_key_passphrase,
     all_requests,
 ):
     if request_id and discover:
@@ -384,6 +422,18 @@ def command(  # noqa: C901
         )
         sys.exit(2)
 
+    tempdir = tempfile.mkdtemp()
+    gpg = gnupg.GPG(gnupghome=tempdir)
+
+    # Import the deployer's public key
+    result = gpg.import_keys(open(private_key_file, "rb").read())
+    if 1 != result.imported:
+        print(
+            f"Failed to load private key file: {private_key_file}.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
     main_logger = TimedLogger(file=sys.stderr)
 
     try:
@@ -392,10 +442,16 @@ def command(  # noqa: C901
         exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
         laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr)
-        if not payment_address:
-            payment_address = laconic.whoami().address
-
+        webapp_deployer_record = laconic.get_record(lrn, require=True)
+        payment_address = webapp_deployer_record.attributes.paymentAddress
         main_logger.log(f"Payment address: {payment_address}")
+
+        if min_required_payment and not payment_address:
+            print(
+                f"Minimum payment required, but no payment address listed for deployer: {lrn}.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
 
         # Find deployment requests.
         # single request
@@ -408,7 +464,7 @@ def command(  # noqa: C901
             if all_requests:
                 requests = laconic.app_deployment_requests()
             else:
-                requests = laconic.app_deployment_requests({"to": payment_address})
+                requests = laconic.app_deployment_requests({"deployer": lrn})
 
         if only_update_state:
             if not dry_run:
@@ -487,7 +543,7 @@ def command(  # noqa: C901
         if all_requests:
             deployments = laconic.app_deployments()
         else:
-            deployments = laconic.app_deployments({"by": payment_address})
+            deployments = laconic.app_deployments({"deployer": lrn})
         deployments_by_request = {}
         for d in deployments:
             if d.attributes.request:
@@ -530,7 +586,11 @@ def command(  # noqa: C901
             for r in requests_to_check_for_payment:
                 main_logger.log(f"{r.id}: Confirming payment...")
                 if confirm_payment(
-                    laconic, r, payment_address, min_required_payment, main_logger
+                    laconic,
+                    r,
+                    payment_address,
+                    min_required_payment,
+                    main_logger,
                 ):
                     main_logger.log(f"{r.id}: Payment confirmed.")
                     requests_to_execute.append(r)
@@ -583,7 +643,10 @@ def command(  # noqa: C901
                         force_rebuild,
                         fqdn_policy,
                         recreate_on_deploy,
-                        payment_address,
+                        webapp_deployer_record,
+                        gpg,
+                        private_key_passphrase,
+                        config_upload_dir,
                         build_logger,
                     )
                     status = "DEPLOYED"
@@ -604,3 +667,5 @@ def command(  # noqa: C901
     except Exception as e:
         main_logger.log("UNCAUGHT ERROR:" + str(e))
         raise e
+    finally:
+        shutil.rmtree(tempdir)

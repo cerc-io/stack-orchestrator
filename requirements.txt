@@ -11,3 +11,5 @@ tomli==2.0.1
 validators==0.22.0
 kubernetes>=28.1.0
 humanfriendly>=10.0
+python-gnupg>=0.5.2
+requests>=2.3.2

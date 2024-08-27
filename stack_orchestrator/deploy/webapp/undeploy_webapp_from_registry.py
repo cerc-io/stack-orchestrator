@@ -38,7 +38,7 @@ def process_app_removal_request(
     deployment_parent_dir,
     delete_volumes,
     delete_names,
-    payment_address,
+    webapp_deployer_record,
 ):
     deployment_record = laconic.get_record(
         app_removal_request.attributes.deployment, require=True
@@ -84,7 +84,7 @@ def process_app_removal_request(
             "version": "1.0.0",
             "request": app_removal_request.id,
             "deployment": deployment_record.id,
-            "by": payment_address,
+            "deployer": webapp_deployer_record.names[0],
         }
     }
 
@@ -168,15 +168,10 @@ def dump_known_requests(filename, requests):
 )
 @click.option(
     "--min-required-payment",
-    help="Requests must have a minimum payment to be processed",
+    help="Requests must have a minimum payment to be processed (in alnt)",
     default=0,
 )
-@click.option(
-    "--payment-address",
-    help="The address to which payments should be made.  "
-    "Default is the current laconic account.",
-    default=None,
-)
+@click.option("--lrn", help="The LRN of this deployer.", required=True)
 @click.option(
     "--all-requests",
     help="Handle requests addressed to anyone (by default only requests to"
@@ -198,7 +193,7 @@ def command(  # noqa: C901
     include_tags,
     exclude_tags,
     min_required_payment,
-    payment_address,
+    lrn,
     all_requests,
 ):
     if request_id and discover:
@@ -218,8 +213,16 @@ def command(  # noqa: C901
     exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
     laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr)
-    if not payment_address:
-        payment_address = laconic.whoami().address
+    deployer_record = laconic.get_record(lrn, require=True)
+    payment_address = deployer_record.attributes.paymentAddress
+    main_logger.log(f"Payment address: {payment_address}")
+
+    if min_required_payment and not payment_address:
+        print(
+            f"Minimum payment required, but no payment address listed for deployer: {lrn}.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
     # Find deployment removal requests.
     # single request
@@ -233,7 +236,7 @@ def command(  # noqa: C901
         if all_requests:
             requests = laconic.app_deployment_removal_requests()
         else:
-            requests = laconic.app_deployment_removal_requests({"to": payment_address})
+            requests = laconic.app_deployment_removal_requests({"deployer": lrn})
 
     if only_update_state:
         if not dry_run:
@@ -312,7 +315,11 @@ def command(  # noqa: C901
         for r in requests_to_check_for_payment:
             main_logger.log(f"{r.id}: Confirming payment...")
             if confirm_payment(
-                laconic, r, payment_address, min_required_payment, main_logger
+                laconic,
+                r,
+                payment_address,
+                min_required_payment,
+                main_logger,
             ):
                 main_logger.log(f"{r.id}: Payment confirmed.")
                 requests_to_execute.append(r)
@@ -336,7 +343,7 @@ def command(  # noqa: C901
                     os.path.abspath(deployment_parent_dir),
                     delete_volumes,
                     delete_names,
-                    payment_address,
+                    deployer_record,
                 )
             except Exception as e:
                 main_logger.log(f"ERROR processing removal request {r.id}: {e}")

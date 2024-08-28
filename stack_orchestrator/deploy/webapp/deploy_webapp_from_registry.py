@@ -668,4 +668,4 @@ def command(  # noqa: C901
         main_logger.log("UNCAUGHT ERROR:" + str(e))
         raise e
     finally:
-        shutil.rmtree(tempdir)
+        shutil.rmtree(tempdir, ignore_errors=True)

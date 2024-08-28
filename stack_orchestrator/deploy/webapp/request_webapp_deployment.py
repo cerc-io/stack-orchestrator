@@ -172,4 +172,4 @@ def command(
         # Send the request
         laconic.publish(deployment_request)
     finally:
-        shutil.rmtree(tempdir)
+        shutil.rmtree(tempdir, ignore_errors=True)

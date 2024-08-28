@@ -49,6 +49,7 @@ def fatal(msg: str):
     required=True,
 )
 @click.option("--env-file", help="environment file for webapp")
+@click.option("--config-ref", help="The ref of an existing config upload to use.")
 @click.option(
     "--make-payment",
     help="The payment to make (in alnt).  The value should be a number or 'auto' to use the deployer's minimum required payment.",
@@ -69,6 +70,7 @@ def command(
     app,
     deployer,
     env_file,
+    config_ref,
     make_payment,
     use_payment,
     dns,
@@ -86,7 +88,8 @@ def command(
         if not deployer_record:
             fatal(f"Unable to locate deployer: {deployer}")
 
-        config_ref = None
+        if env_file and config_ref:
+            fatal("Cannot use --env-file and --config-ref at the same time.")
 
         # If env_file
         if env_file:
@@ -132,9 +135,7 @@ def command(
                 "version": "1.0.0",
                 "name": f"{app_record.attributes.name}@{app_record.attributes.version}",
                 "deployer": deployer,
-                "meta": {
-                    "when": str(datetime.utcnow())
-                }
+                "meta": {"when": str(datetime.utcnow())},
             }
         }
 

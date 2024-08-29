@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import click
+import os
 from dataclasses import dataclass
 import json
 import platform
@@ -84,13 +85,18 @@ def _filter_for_platform(container: str,
                          tag_list: List[str]) -> List[str] :
     filtered_tags = []
     this_machine = platform.machine()
-    # Translate between Python and docker platform names
-    if this_machine == "x86_64":
-        this_machine = "amd64"
-    if this_machine == "aarch64":
-        this_machine = "arm64"
-    if opts.o.debug:
-        print(f"Python says the architecture is: {this_machine}")
+    if "DOCKER_DEFAULT_PLATFORM" in os.environ:
+        this_machine =  os.environ["DOCKER_DEFAULT_PLATFORM"].split("/")[-1]
+        if opts.o.debug:
+            print(f"DOCKER_DEFAULT_PLATFORM says the architecture is: {this_machine}")
+    else:
+        # Translate between Python and docker platform names
+        if this_machine == "x86_64":
+            this_machine = "amd64"
+        if this_machine == "aarch64":
+            this_machine = "arm64"
+        if opts.o.debug:
+            print(f"Python says the architecture is: {this_machine}")
     docker = DockerClient()
     for tag in tag_list:
         remote_tag = f"{registry_info.registry}/{container}:{tag}"

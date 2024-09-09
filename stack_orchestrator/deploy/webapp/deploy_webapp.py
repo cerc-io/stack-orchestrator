@@ -92,6 +92,7 @@ def create_deployment(ctx, deployment_dir, image, url, kube_config, image_regist
         spec_file_name,
         deployment_dir,
         None,
+        None,
         None
     )
     # Fix up the container tag inside the deployment compose file

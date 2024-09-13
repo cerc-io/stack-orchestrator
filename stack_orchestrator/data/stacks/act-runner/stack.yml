@@ -3,7 +3,7 @@ name: act-runner
 description: "Local act-runner"
 repos:
   - git.vdb.to/cerc-io/hosting
-  - gitea.com/telackey/act_runner@telackey/entrypoint
+  - git.vdb.to/cerc-io/act_runner
 containers:
   - cerc/act-runner
   - cerc/act-runner-task-executor

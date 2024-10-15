@@ -422,7 +422,7 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
         copy(path, os.path.join(directory, os.path.basename(path)))
 
 
-def _create_deployment_file(deployment_dir: Path, cluster: str | None):
+def _create_deployment_file(deployment_dir: Path, cluster):
     deployment_file_path = deployment_dir.joinpath(constants.deployment_file_name)
     if cluster is None:
         cluster = f"{constants.cluster_name_prefix}{token_hex(8)}"

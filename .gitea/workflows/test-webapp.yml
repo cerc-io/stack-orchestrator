@@ -32,7 +32,7 @@ jobs:
       - name: "Print Python version"
         run: python3 --version
       - name: "Install shiv"
-        run: pip install shiv
+        run: pip install shiv==1.0.6
       - name: "Generate build version file"
         run: ./scripts/create_build_tag_file.sh
       - name: "Build local shiv package"

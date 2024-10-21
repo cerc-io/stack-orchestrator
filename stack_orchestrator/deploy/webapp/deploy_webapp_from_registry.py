@@ -33,6 +33,7 @@ from stack_orchestrator.deploy.webapp.util import (
     LaconicRegistryClient,
     TimedLogger,
     build_container_image,
+    confirm_auction,
     push_container_image,
     file_hash,
     deploy_to_k8s,
@@ -42,6 +43,7 @@ from stack_orchestrator.deploy.webapp.util import (
     match_owner,
     skip_by_tag,
     confirm_payment,
+    load_known_requests,
 )
 
 
@@ -257,12 +259,6 @@ def process_app_deployment_request(
     logger.log("END - process_app_deployment_request")
 
 
-def load_known_requests(filename):
-    if filename and os.path.exists(filename):
-        return json.load(open(filename, "r"))
-    return {}
-
-
 def dump_known_requests(filename, requests, status="SEEN"):
     if not filename:
         return
@@ -351,6 +347,12 @@ def dump_known_requests(filename, requests, status="SEEN"):
     is_flag=True,
 )
 @click.option(
+    "--auction-requests",
+    help="Handle requests with auction id set (skips payment confirmation).",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     "--config-upload-dir",
     help="The directory containing uploaded config.",
     required=True,
@@ -390,6 +392,7 @@ def command(  # noqa: C901
     private_key_file,
     private_key_passphrase,
     all_requests,
+    auction_requests,
 ):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
@@ -582,8 +585,29 @@ def command(  # noqa: C901
                     requests_to_check_for_payment.append(r)
 
         requests_to_execute = []
-        if min_required_payment:
-            for r in requests_to_check_for_payment:
+        for r in requests_to_check_for_payment:
+            if r.attributes.auction:
+                if auction_requests:
+                    if confirm_auction(
+                        laconic,
+                        r,
+                        lrn,
+                        payment_address,
+                        main_logger
+                    ):
+                        main_logger.log(f"{r.id}: Auction confirmed.")
+                        requests_to_execute.append(r)
+                    else:
+                        main_logger.log(
+                            f"Skipping request {r.id}: unable to verify auction."
+                        )
+                        dump_known_requests(state_file, [r], status="SKIP")
+                else:
+                    main_logger.log(
+                        f"Skipping request {r.id}: not handling requests with auction."
+                    )
+                    dump_known_requests(state_file, [r], status="SKIP")
+            elif min_required_payment:
                 main_logger.log(f"{r.id}: Confirming payment...")
                 if confirm_payment(
                     laconic,
@@ -599,8 +623,8 @@ def command(  # noqa: C901
                         f"Skipping request {r.id}: unable to verify payment."
                     )
                     dump_known_requests(state_file, [r], status="UNPAID")
-        else:
-            requests_to_execute = requests_to_check_for_payment
+            else:
+                requests_to_execute.append(r)
 
         main_logger.log(
             "Found %d unsatisfied request(s) to process." % len(requests_to_execute)

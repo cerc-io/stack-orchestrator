@@ -24,6 +24,19 @@ import tempfile
 import uuid
 import yaml
 
+from enum import Enum
+
+
+class AuctionStatus(str, Enum):
+    COMMIT = "commit"
+    REVEAL = "reveal"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+
+
+TOKEN_DENOM = "alnt"
+AUCTION_KIND_PROVIDER = "provider"
+
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -58,6 +71,12 @@ class TimedLogger:
         self.last = datetime.datetime.now()
 
 
+def load_known_requests(filename):
+    if filename and os.path.exists(filename):
+        return json.load(open(filename, "r"))
+    return {}
+
+
 def logged_cmd(log_file, *vargs):
     result = None
     try:
@@ -90,74 +109,6 @@ def is_lrn(name_or_id: str):
 
 def is_id(name_or_id: str):
     return not is_lrn(name_or_id)
-
-
-def confirm_payment(laconic, record, payment_address, min_amount, logger):
-    req_owner = laconic.get_owner(record)
-    if req_owner == payment_address:
-        # No need to confirm payment if the sender and recipient are the same account.
-        return True
-
-    if not record.attributes.payment:
-        logger.log(f"{record.id}: no payment tx info")
-        return False
-
-    tx = laconic.get_tx(record.attributes.payment)
-    if not tx:
-        logger.log(f"{record.id}: cannot locate payment tx")
-        return False
-
-    if tx.code != 0:
-        logger.log(
-            f"{record.id}: payment tx {tx.hash} was not successful - code: {tx.code}, log: {tx.log}"
-        )
-        return False
-
-    if tx.sender != req_owner:
-        logger.log(
-            f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment "
-            f"request owner {req_owner}"
-        )
-        return False
-
-    if tx.recipient != payment_address:
-        logger.log(
-            f"{record.id}: payment recipient {tx.recipient} in tx {tx.hash} does not match {payment_address}"
-        )
-        return False
-
-    pay_denom = "".join([i for i in tx.amount if not i.isdigit()])
-    if pay_denom != "alnt":
-        logger.log(
-            f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected payment denomination"
-        )
-        return False
-
-    pay_amount = int("".join([i for i in tx.amount if i.isdigit()]))
-    if pay_amount < min_amount:
-        logger.log(
-            f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}"
-        )
-        return False
-
-    # Check if the payment was already used on a
-    used = laconic.app_deployments(
-        {"deployer": payment_address, "payment": tx.hash}, all=True
-    )
-    if len(used):
-        logger.log(f"{record.id}: payment {tx.hash} already used on deployment {used}")
-        return False
-
-    used = laconic.app_deployment_removals(
-        {"deployer": payment_address, "payment": tx.hash}, all=True
-    )
-    if len(used):
-        logger.log(
-            f"{record.id}: payment {tx.hash} already used on deployment removal {used}"
-        )
-        return False
-
-    return True
 
 
 class LaconicRegistryClient:
@@ -370,6 +321,34 @@ class LaconicRegistryClient:
         if require:
             raise Exception("Cannot locate tx:", hash)
 
+    def get_auction(self, auction_id, require=False):
+        args = [
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "auction",
+            "get",
+            "--id",
+            auction_id,
+        ]
+
+        results = None
+        try:
+            results = [
+                AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
+            ]
+        except:  # noqa: E722
+            pass
+
+        if results and len(results):
+            return results[0]
+
+        if require:
+            raise Exception("Cannot locate auction:", auction_id)
+
+        return None
+
     def app_deployment_requests(self, criteria=None, all=True):
         if criteria is None:
             criteria = {}
@@ -396,6 +375,20 @@ class LaconicRegistryClient:
             criteria = {}
         criteria = criteria.copy()
         criteria["type"] = "ApplicationDeploymentRemovalRecord"
+        return self.list_records(criteria, all)
+
+    def webapp_deployers(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "WebappDeployer"
+        return self.list_records(criteria, all)
+
+    def app_deployment_auctions(self, criteria=None, all=True):
+        if criteria is None:
+            criteria = {}
+        criteria = criteria.copy()
+        criteria["type"] = "ApplicationDeploymentAuction"
         return self.list_records(criteria, all)
 
     def publish(self, record, names=None):
@@ -470,6 +463,88 @@ class LaconicRegistryClient:
         ]
 
         return AttrDict(json.loads(logged_cmd(self.log_file, *args)))
+
+    def create_auction(self, auction):
+        if auction["kind"] == AUCTION_KIND_PROVIDER:
+            args = [
+                "laconic",
+                "-c",
+                self.config_file,
+                "registry",
+                "auction",
+                "create",
+                "--kind",
+                auction["kind"],
+                "--commits-duration",
+                str(auction["commits_duration"]),
+                "--reveals-duration",
+                str(auction["reveals_duration"]),
+                "--denom",
+                auction["denom"],
+                "--commit-fee",
+                str(auction["commit_fee"]),
+                "--reveal-fee",
+                str(auction["reveal_fee"]),
+                "--max-price",
+                str(auction["max_price"]),
+                "--num-providers",
+                str(auction["num_providers"])
+            ]
+        else:
+            args = [
+                "laconic",
+                "-c",
+                self.config_file,
+                "registry",
+                "auction",
+                "create",
+                "--kind",
+                auction["kind"],
+                "--commits-duration",
+                str(auction["commits_duration"]),
+                "--reveals-duration",
+                str(auction["reveals_duration"]),
+                "--denom",
+                auction["denom"],
+                "--commit-fee",
+                str(auction["commit_fee"]),
+                "--reveal-fee",
+                str(auction["reveal_fee"]),
+                "--minimum-bid",
+                str(auction["minimum_bid"])
+            ]
+
+        return json.loads(logged_cmd(self.log_file, *args))["auctionId"]
+
+    def commit_bid(self, auction_id, amount, type="alnt"):
+        args = [
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "auction",
+            "bid",
+            "commit",
+            auction_id,
+            str(amount),
+            type,
+        ]
+
+        return json.loads(logged_cmd(self.log_file, *args))["reveal_file"]
+
+    def reveal_bid(self, auction_id, reveal_file_path):
+        logged_cmd(
+            self.log_file,
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "auction",
+            "bid",
+            "reveal",
+            auction_id,
+            reveal_file_path,
+        )
 
 
 def file_hash(filename):
@@ -677,12 +752,15 @@ def publish_deployment(
             },
         }
     }
+
     if app_deployment_request:
         new_deployment_record["record"]["request"] = app_deployment_request.id
-        if app_deployment_request.attributes.payment:
-            new_deployment_record["record"][
-                "payment"
-            ] = app_deployment_request.attributes.payment
+
+        # Set auction or payment id from request
+        if app_deployment_request.attributes.auction:
+            new_deployment_record["record"]["auction"] = app_deployment_request.attributes.auction
+        elif app_deployment_request.attributes.payment:
+            new_deployment_record["record"]["payment"] = app_deployment_request.attributes.payment
 
     if webapp_deployer_record:
         new_deployment_record["record"]["deployer"] = webapp_deployer_record.names[0]
@@ -730,3 +808,103 @@ def skip_by_tag(r, include_tags, exclude_tags):
         return True
 
     return False
+
+
+def confirm_payment(laconic: LaconicRegistryClient, record, payment_address, min_amount, logger):
+    req_owner = laconic.get_owner(record)
+    if req_owner == payment_address:
+        # No need to confirm payment if the sender and recipient are the same account.
+        return True
+
+    if not record.attributes.payment:
+        logger.log(f"{record.id}: no payment tx info")
+        return False
+
+    tx = laconic.get_tx(record.attributes.payment)
+    if not tx:
+        logger.log(f"{record.id}: cannot locate payment tx")
+        return False
+
+    if tx.code != 0:
+        logger.log(
+            f"{record.id}: payment tx {tx.hash} was not successful - code: {tx.code}, log: {tx.log}"
+        )
+        return False
+
+    if tx.sender != req_owner:
+        logger.log(
+            f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment "
+            f"request owner {req_owner}"
+        )
+        return False
+
+    if tx.recipient != payment_address:
+        logger.log(
+            f"{record.id}: payment recipient {tx.recipient} in tx {tx.hash} does not match {payment_address}"
+        )
+        return False
+
+    pay_denom = "".join([i for i in tx.amount if not i.isdigit()])
+    if pay_denom != "alnt":
+        logger.log(
+            f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected payment denomination"
+        )
+        return False
+
+    pay_amount = int("".join([i for i in tx.amount if i.isdigit()]))
+    if pay_amount < min_amount:
+        logger.log(
+            f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}"
+        )
+        return False
+
+    # Check if the payment was already used on a
+    used = laconic.app_deployments(
+        {"deployer": payment_address, "payment": tx.hash}, all=True
+    )
+    if len(used):
+        logger.log(f"{record.id}: payment {tx.hash} already used on deployment {used}")
+        return False
+
+    used = laconic.app_deployment_removals(
+        {"deployer": payment_address, "payment": tx.hash}, all=True
+    )
+    if len(used):
+        logger.log(
+            f"{record.id}: payment {tx.hash} already used on deployment removal {used}"
+        )
+        return False
+
+    return True
+
+
+def confirm_auction(laconic: LaconicRegistryClient, record, deployer_lrn, payment_address, logger):
+    auction_id = record.attributes.auction
+    auction = laconic.get_auction(auction_id)
+
+    # Fetch auction record for given auction
+    auction_records_by_id = laconic.app_deployment_auctions({"auction": auction_id})
+    if len(auction_records_by_id) == 0:
+        logger.log(f"{record.id}: unable to locate record for auction {auction_id}")
+        return False
+
+    # Cross check app against application in the auction record
+    requested_app = laconic.get_record(record.attributes.application, require=True)
+    auction_app = laconic.get_record(auction_records_by_id[0].attributes.application, require=True)
+    if requested_app.id != auction_app.id:
+        logger.log(
+            f"{record.id}: requested application {record.attributes.application} does not match application from "
+            f"auction record {auction_records_by_id[0].attributes.application}"
+        )
+        return False
+
+    if not auction:
+        logger.log(f"{record.id}: unable to locate auction {auction_id}")
+        return False
+
+    # Check if the deployer payment address is in auction winners list
+    if payment_address not in auction.winnerAddresses:
+        logger.log(f"{record.id}: deployer payment address not in auction winners.")
+        return False
+
+    return True

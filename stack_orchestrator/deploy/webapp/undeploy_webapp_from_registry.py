@@ -311,6 +311,7 @@ def command(  # noqa: C901
             main_logger.log(f"ERROR examining {r.id}: {e}")
 
     requests_to_execute = []
+    # TODO: Handle requests with auction
     if min_required_payment:
         for r in requests_to_check_for_payment:
             main_logger.log(f"{r.id}: Confirming payment...")

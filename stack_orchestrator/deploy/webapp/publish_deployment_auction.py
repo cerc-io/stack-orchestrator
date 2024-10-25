@@ -102,7 +102,7 @@ def command(
         "max_price": max_price,
         "num_providers": num_providers,
     }
-    auction_id = laconic.create_auction(provider_auction_params)
+    auction_id = laconic.create_deployment_auction(provider_auction_params)
     print("Deployment auction created:", auction_id)
 
     if not auction_id:

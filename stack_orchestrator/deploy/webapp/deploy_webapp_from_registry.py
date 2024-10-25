@@ -361,6 +361,9 @@ def dump_known_requests(filename, requests, status="SEEN"):
     "--private-key-file", help="The private key for decrypting config.", required=True
 )
 @click.option(
+    "--registry-lock-file", help="File path to use for registry mutex lock", default=None
+)
+@click.option(
     "--private-key-passphrase",
     help="The passphrase for the private key.",
     required=True,
@@ -393,6 +396,7 @@ def command(  # noqa: C901
     private_key_passphrase,
     all_requests,
     auction_requests,
+    registry_lock_file,
 ):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
@@ -444,7 +448,7 @@ def command(  # noqa: C901
         include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
         exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
-        laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr)
+        laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file)
         webapp_deployer_record = laconic.get_record(lrn, require=True)
         payment_address = webapp_deployer_record.attributes.paymentAddress
         main_logger.log(f"Payment address: {payment_address}")
@@ -649,7 +653,7 @@ def command(  # noqa: C901
                         )
                         run_log_file = open(run_log_file_path, "wt")
                         run_reg_client = LaconicRegistryClient(
-                            laconic_config, log_file=run_log_file
+                            laconic_config, log_file=run_log_file, mutex_lock_file=registry_lock_file
                         )
 
                     build_logger = TimedLogger(run_id, run_log_file)

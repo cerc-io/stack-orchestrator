@@ -26,6 +26,8 @@ import yaml
 
 from enum import Enum
 
+from stack_orchestrator.deploy.webapp.registry_mutex import registry_mutex
+
 
 class AuctionStatus(str, Enum):
     COMMIT = "commit"
@@ -391,6 +393,7 @@ class LaconicRegistryClient:
         criteria["type"] = "ApplicationDeploymentAuction"
         return self.list_records(criteria, all)
 
+    @registry_mutex()
     def publish(self, record, names=None):
         if names is None:
             names = []
@@ -421,6 +424,7 @@ class LaconicRegistryClient:
         finally:
             logged_cmd(self.log_file, "rm", "-rf", tmpdir)
 
+    @registry_mutex()
     def set_name(self, name, record_id):
         logged_cmd(
             self.log_file,
@@ -434,6 +438,7 @@ class LaconicRegistryClient:
             record_id,
         )
 
+    @registry_mutex()
     def delete_name(self, name):
         logged_cmd(
             self.log_file,
@@ -446,6 +451,7 @@ class LaconicRegistryClient:
             name,
         )
 
+    @registry_mutex()
     def send_tokens(self, address, amount, type="alnt"):
         args = [
             "laconic",
@@ -464,58 +470,36 @@ class LaconicRegistryClient:
 
         return AttrDict(json.loads(logged_cmd(self.log_file, *args)))
 
-    def create_auction(self, auction):
-        if auction["kind"] == AUCTION_KIND_PROVIDER:
-            args = [
-                "laconic",
-                "-c",
-                self.config_file,
-                "registry",
-                "auction",
-                "create",
-                "--kind",
-                auction["kind"],
-                "--commits-duration",
-                str(auction["commits_duration"]),
-                "--reveals-duration",
-                str(auction["reveals_duration"]),
-                "--denom",
-                auction["denom"],
-                "--commit-fee",
-                str(auction["commit_fee"]),
-                "--reveal-fee",
-                str(auction["reveal_fee"]),
-                "--max-price",
-                str(auction["max_price"]),
-                "--num-providers",
-                str(auction["num_providers"])
-            ]
-        else:
-            args = [
-                "laconic",
-                "-c",
-                self.config_file,
-                "registry",
-                "auction",
-                "create",
-                "--kind",
-                auction["kind"],
-                "--commits-duration",
-                str(auction["commits_duration"]),
-                "--reveals-duration",
-                str(auction["reveals_duration"]),
-                "--denom",
-                auction["denom"],
-                "--commit-fee",
-                str(auction["commit_fee"]),
-                "--reveal-fee",
-                str(auction["reveal_fee"]),
-                "--minimum-bid",
-                str(auction["minimum_bid"])
-            ]
+    @registry_mutex()
+    def create_deployment_auction(self, auction):
+        args = [
+            "laconic",
+            "-c",
+            self.config_file,
+            "registry",
+            "auction",
+            "create",
+            "--kind",
+            auction["kind"],
+            "--commits-duration",
+            str(auction["commits_duration"]),
+            "--reveals-duration",
+            str(auction["reveals_duration"]),
+            "--denom",
+            auction["denom"],
+            "--commit-fee",
+            str(auction["commit_fee"]),
+            "--reveal-fee",
+            str(auction["reveal_fee"]),
+            "--max-price",
+            str(auction["max_price"]),
+            "--num-providers",
+            str(auction["num_providers"])
+        ]
 
         return json.loads(logged_cmd(self.log_file, *args))["auctionId"]
 
+    @registry_mutex()
     def commit_bid(self, auction_id, amount, type="alnt"):
         args = [
             "laconic",
@@ -532,6 +516,7 @@ class LaconicRegistryClient:
 
         return json.loads(logged_cmd(self.log_file, *args))["reveal_file"]
 
+    @registry_mutex()
     def reveal_bid(self, auction_id, reveal_file_path):
         logged_cmd(
             self.log_file,

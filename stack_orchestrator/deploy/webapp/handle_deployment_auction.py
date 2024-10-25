@@ -121,6 +121,9 @@ def dump_known_auction_requests(filename, requests, status="SEEN"):
     required=True,
 )
 @click.option(
+    "--registry-lock-file", help="File path to use for registry mutex lock", default=None
+)
+@click.option(
     "--dry-run", help="Don't do anything, just report what would be done.", is_flag=True
 )
 @click.pass_context
@@ -129,6 +132,7 @@ def command(
     laconic_config,
     state_file,
     bid_amount,
+    registry_lock_file,
     dry_run,
 ):
     if int(bid_amount) < 0:
@@ -138,7 +142,7 @@ def command(
     logger = TimedLogger(file=sys.stderr)
 
     try:
-        laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr)
+        laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file)
         auctions_requests = laconic.app_deployment_auctions()
 
         previous_requests = {}

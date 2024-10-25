@@ -178,6 +178,9 @@ def dump_known_requests(filename, requests):
     "my payment address are examined).",
     is_flag=True,
 )
+@click.option(
+    "--registry-lock-file", help="File path to use for registry mutex lock", default=None
+)
 @click.pass_context
 def command(  # noqa: C901
     ctx,
@@ -195,6 +198,7 @@ def command(  # noqa: C901
     min_required_payment,
     lrn,
     all_requests,
+    registry_lock_file,
 ):
     if request_id and discover:
         print("Cannot specify both --request-id and --discover", file=sys.stderr)
@@ -212,7 +216,7 @@ def command(  # noqa: C901
     include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
     exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
-    laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr)
+    laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file)
     deployer_record = laconic.get_record(lrn, require=True)
     payment_address = deployer_record.attributes.paymentAddress
     main_logger.log(f"Payment address: {payment_address}")

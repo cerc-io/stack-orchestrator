@@ -10,7 +10,7 @@ def registry_mutex():
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             lock_file_path = DEFAULT_LOCK_FILE_PATH
-            if self.mutex_lock_file is not None:
+            if self.mutex_lock_file:
                 lock_file_path = self.mutex_lock_file
 
             with open(lock_file_path, 'w') as lock_file:

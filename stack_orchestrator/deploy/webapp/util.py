@@ -114,9 +114,10 @@ def is_id(name_or_id: str):
 
 
 class LaconicRegistryClient:
-    def __init__(self, config_file, log_file=None):
+    def __init__(self, config_file, log_file=None, mutex_lock_file=None):
         self.config_file = config_file
         self.log_file = log_file
+        self.mutex_lock_file = mutex_lock_file
         self.cache = AttrDict(
             {
                 "name_or_id": {},

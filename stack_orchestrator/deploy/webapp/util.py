@@ -846,16 +846,19 @@ def confirm_payment(laconic: LaconicRegistryClient, record, payment_address, min
         )
         return False
 
-    # Check if the payment was already used on a
+    # Check if the payment was already used on a deployment
     used = laconic.app_deployments(
-        {"deployer": payment_address, "payment": tx.hash}, all=True
+        {"deployer": record.attributes.deployer, "payment": tx.hash}, all=True
     )
     if len(used):
-        logger.log(f"{record.id}: payment {tx.hash} already used on deployment {used}")
-        return False
+        # Check that payment was used for deployment of same application
+        app_record = laconic.get_record(record.attributes.application, require=True)
+        if app_record.id != used[0].attributes.application:
+            logger.log(f"{record.id}: payment {tx.hash} already used on a different application deployment {used}")
+            return False
 
     used = laconic.app_deployment_removals(
-        {"deployer": payment_address, "payment": tx.hash}, all=True
+        {"deployer": record.attributes.deployer, "payment": tx.hash}, all=True
     )
     if len(used):
         logger.log(

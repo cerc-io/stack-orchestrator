@@ -180,9 +180,7 @@ def get_k8s_dir():
 def get_parsed_deployment_spec(spec_file):
     spec_file_path = Path(spec_file)
     try:
-        with spec_file_path:
-            deploy_spec = get_yaml().load(open(spec_file_path, "r"))
-            return deploy_spec
+        return get_yaml().load(open(spec_file_path, "r"))
     except FileNotFoundError as error:
         # We try here to generate a useful diagnostic error
         print(f"Error: spec file: {spec_file_path} does not exist")

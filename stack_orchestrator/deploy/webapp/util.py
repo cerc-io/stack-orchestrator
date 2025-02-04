@@ -689,6 +689,7 @@ def publish_deployment(
     dns_record,
     dns_lrn,
     deployment_dir,
+    dns_value=None,
     app_deployment_request=None,
     webapp_deployer_record=None,
     logger=None,
@@ -721,6 +722,8 @@ def publish_deployment(
     }
     if app_deployment_request:
         new_dns_record["record"]["request"] = app_deployment_request.id
+    if dns_value:
+        new_dns_record["record"]["value"] = dns_value
 
     if logger:
         logger.log("Publishing DnsRecord.")

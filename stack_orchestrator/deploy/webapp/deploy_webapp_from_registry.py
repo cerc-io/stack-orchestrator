@@ -54,6 +54,7 @@ def process_app_deployment_request(
     deployment_record_namespace,
     dns_record_namespace,
     default_dns_suffix,
+    dns_value,
     deployment_parent_dir,
     kube_config,
     image_registry,
@@ -251,6 +252,7 @@ def process_app_deployment_request(
         dns_record,
         dns_lrn,
         deployment_dir,
+        dns_value,
         app_deployment_request,
         webapp_deployer_record,
         logger,
@@ -304,6 +306,7 @@ def dump_known_requests(filename, requests, status="SEEN"):
     help="How to handle requests with an FQDN: prohibit, allow, preexisting",
     default="prohibit",
 )
+@click.option("--ip", help="IP address of the k8s deployment (to be set in DNS record)", default=None)
 @click.option("--record-namespace-dns", help="eg, lrn://laconic/dns", required=True)
 @click.option(
     "--record-namespace-deployments",
@@ -381,6 +384,7 @@ def command(  # noqa: C901
     only_update_state,
     dns_suffix,
     fqdn_policy,
+    ip,
     record_namespace_dns,
     record_namespace_deployments,
     dry_run,
@@ -425,6 +429,13 @@ def command(  # noqa: C901
     if fqdn_policy not in ["prohibit", "allow", "preexisting"]:
         print(
             "--fqdn-policy must be one of 'prohibit', 'allow', or 'preexisting'",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    if fqdn_policy == "allow" and not ip:
+        print(
+            "--ip is required with 'allow' fqdn-policy",
             file=sys.stderr,
         )
         sys.exit(2)
@@ -665,6 +676,7 @@ def command(  # noqa: C901
                         record_namespace_deployments,
                         record_namespace_dns,
                         dns_suffix,
+                        ip,
                         os.path.abspath(deployment_parent_dir),
                         kube_config,
                         image_registry,

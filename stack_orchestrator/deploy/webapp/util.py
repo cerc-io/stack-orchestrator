@@ -801,7 +801,7 @@ def skip_by_tag(r, include_tags, exclude_tags):
     return False
 
 
-def confirm_payment(laconic: LaconicRegistryClient, record, payment_address, min_amount, logger):
+def confirm_payment(laconic: LaconicRegistryClient, record, payment_address, min_amount, logger, atom_payment_address=None, atom_min_amount=None):
     req_owner = laconic.get_owner(record)
     if req_owner == payment_address:
         # No need to confirm payment if the sender and recipient are the same account.
@@ -811,67 +811,114 @@ def confirm_payment(laconic: LaconicRegistryClient, record, payment_address, min
         logger.log(f"{record.id}: no payment tx info")
         return False
 
+    # Try to verify as a laconic payment first
     tx = laconic.get_tx(record.attributes.payment)
-    if not tx:
-        logger.log(f"{record.id}: cannot locate payment tx")
-        return False
-
-    if tx.code != 0:
-        logger.log(
-            f"{record.id}: payment tx {tx.hash} was not successful - code: {tx.code}, log: {tx.log}"
-        )
-        return False
-
-    if tx.sender != req_owner:
-        logger.log(
-            f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment "
-            f"request owner {req_owner}"
-        )
-        return False
-
-    if tx.recipient != payment_address:
-        logger.log(
-            f"{record.id}: payment recipient {tx.recipient} in tx {tx.hash} does not match {payment_address}"
-        )
-        return False
-
-    pay_denom = "".join([i for i in tx.amount if not i.isdigit()])
-    if pay_denom != "alnt":
-        logger.log(
-            f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected payment denomination"
-        )
-        return False
-
-    pay_amount = int("".join([i for i in tx.amount if i.isdigit()]))
-    if pay_amount < min_amount:
-        logger.log(
-            f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}"
-        )
-        return False
-
-    # Check if the payment was already used on a deployment
-    used = laconic.app_deployments(
-        {"deployer": record.attributes.deployer, "payment": tx.hash}, all=True
-    )
-    if len(used):
-        # Fetch the app name from request record
-        used_request = laconic.get_record(used[0].attributes.request, require=True)
-
-        # Check that payment was used for deployment of same application
-        if record.attributes.application != used_request.attributes.application:
-            logger.log(f"{record.id}: payment {tx.hash} already used on a different application deployment {used}")
+    if tx:
+        if tx.code != 0:
+            logger.log(
+                f"{record.id}: payment tx {tx.hash} was not successful - code: {tx.code}, log: {tx.log}"
+            )
             return False
 
-    used = laconic.app_deployment_removals(
-        {"deployer": record.attributes.deployer, "payment": tx.hash}, all=True
-    )
-    if len(used):
-        logger.log(
-            f"{record.id}: payment {tx.hash} already used on deployment removal {used}"
-        )
-        return False
+        if tx.sender != req_owner:
+            logger.log(
+                f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment "
+                f"request owner {req_owner}"
+            )
+            return False
 
-    return True
+        if tx.recipient != payment_address:
+            logger.log(
+                f"{record.id}: payment recipient {tx.recipient} in tx {tx.hash} does not match {payment_address}"
+            )
+            return False
+
+        pay_denom = "".join([i for i in tx.amount if not i.isdigit()])
+        if pay_denom != "alnt":
+            logger.log(
+                f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected payment denomination"
+            )
+            return False
+
+        pay_amount = int("".join([i for i in tx.amount if i.isdigit()]))
+        if pay_amount < min_amount:
+            logger.log(
+                f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}"
+            )
+            return False
+
+        # Check if the payment was already used on a deployment
+        used = laconic.app_deployments(
+            {"deployer": record.attributes.deployer, "payment": tx.hash}, all=True
+        )
+        if len(used):
+            # Fetch the app name from request record
+            used_request = laconic.get_record(used[0].attributes.request, require=True)
+
+            # Check that payment was used for deployment of same application
+            if record.attributes.application != used_request.attributes.application:
+                logger.log(f"{record.id}: payment {tx.hash} already used on a different application deployment {used}")
+                return False
+
+        used = laconic.app_deployment_removals(
+            {"deployer": record.attributes.deployer, "payment": tx.hash}, all=True
+        )
+        if len(used):
+            logger.log(
+                f"{record.id}: payment {tx.hash} already used on deployment removal {used}"
+            )
+            return False
+
+        return True
+    
+    # If we get here, the transaction hash wasn't found in the laconic testnet
+    # Let's check if it's a valid Cosmos ATOM payment if configuration is available
+    if atom_payment_address:
+        logger.log(f"{record.id}: checking if payment is a valid Cosmos ATOM transaction")
+        
+        try:
+            import requests
+            
+            # Use the webapp-deployment-status-api to verify the ATOM payment
+            deployer_record = laconic.get_record(record.attributes.deployer)
+            if not deployer_record or not deployer_record.attributes.apiUrl:
+                logger.log(f"{record.id}: cannot find deployer API URL to verify ATOM payment")
+                return False
+                
+            api_url = deployer_record.attributes.apiUrl
+            verify_url = f"{api_url}/verify/atom-payment"
+            
+            # Make a request to the API to verify the ATOM payment
+            # Pass markAsUsed=true to prevent this transaction from being used again
+            response = requests.post(
+                verify_url,
+                json={
+                    "txHash": record.attributes.payment,
+                    "minAmount": atom_min_amount,
+                    "markAsUsed": True
+                },
+                timeout=10
+            )
+            
+            if response.status_code != 200:
+                logger.log(f"{record.id}: ATOM payment verification API request failed with status {response.status_code}")
+                return False
+                
+            result = response.json()
+            if not result.get("valid", False):
+                logger.log(f"{record.id}: ATOM payment verification failed: {result.get('reason', 'unknown reason')}")
+                return False
+                
+            # Payment is valid
+            logger.log(f"{record.id}: ATOM payment verified successfully, amount: {result.get('amount')} ATOM")
+            return True
+            
+        except Exception as e:
+            logger.log(f"{record.id}: error verifying ATOM payment: {str(e)}")
+            return False
+    
+    logger.log(f"{record.id}: payment tx {record.attributes.payment} not found in laconic testnet and ATOM payment verification not configured")
+    return False
 
 
 def confirm_auction(laconic: LaconicRegistryClient, record, deployer_lrn, payment_address, logger):

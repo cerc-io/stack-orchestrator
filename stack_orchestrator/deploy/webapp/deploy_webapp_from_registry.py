@@ -342,6 +342,17 @@ def dump_known_requests(filename, requests, status="SEEN"):
     help="Requests must have a minimum payment to be processed (in alnt)",
     default=0,
 )
+@click.option(
+    "--atom-payment-address",
+    help="Cosmos ATOM address to receive payments",
+    default=None,
+)
+@click.option(
+    "--min-atom-payment",
+    help="Minimum required ATOM payment amount",
+    default=1,
+    type=float,
+)
 @click.option("--lrn", help="The LRN of this deployer.", required=True)
 @click.option(
     "--all-requests",
@@ -394,6 +405,8 @@ def command(  # noqa: C901
     recreate_on_deploy,
     log_dir,
     min_required_payment,
+    atom_payment_address,
+    min_atom_payment,
     lrn,
     config_upload_dir,
     private_key_file,
@@ -630,6 +643,8 @@ def command(  # noqa: C901
                     payment_address,
                     min_required_payment,
                     main_logger,
+                    atom_payment_address,
+                    min_atom_payment,
                 ):
                     main_logger.log(f"{r.id}: Payment confirmed.")
                     requests_to_execute.append(r)

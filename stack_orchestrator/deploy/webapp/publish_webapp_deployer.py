@@ -47,6 +47,17 @@ from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient
     default=0,
 )
 @click.option(
+    "--atom-payment-address",
+    help="The Cosmos ATOM address to which payments should be made.",
+    default=None,
+)
+@click.option(
+    "--min-atom-payment",
+    help="List the minimum required payment (in ATOM) to process a deployment request.",
+    default=1,
+    type=float,
+)
+@click.option(
     "--dry-run",
     help="Don't publish anything, just report what would be done.",
     is_flag=True,
@@ -60,6 +71,8 @@ def command(  # noqa: C901
     lrn,
     payment_address,
     min_required_payment,
+    atom_payment_address,
+    min_atom_payment,
     dry_run,
 ):
     laconic = LaconicRegistryClient(laconic_config)
@@ -83,6 +96,10 @@ def command(  # noqa: C901
         webapp_deployer_record["record"][
             "minimumPayment"
         ] = f"{min_required_payment}alnt"
+        
+    if atom_payment_address:
+        webapp_deployer_record["record"]["atomPaymentAddress"] = atom_payment_address
+        webapp_deployer_record["record"]["minimumAtomPayment"] = min_atom_payment
 
     if dry_run:
         yaml.dump(webapp_deployer_record, sys.stdout)

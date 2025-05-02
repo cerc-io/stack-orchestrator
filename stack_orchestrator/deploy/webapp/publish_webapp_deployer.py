@@ -53,9 +53,9 @@ from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient
 )
 @click.option(
     "--min-atom-payment",
-    help="List the minimum required payment (in ATOM) to process a deployment request.",
-    default=1,
-    type=float,
+    help="List the minimum required payment (in uatom) to process a deployment request.",
+    default="1000000uatom",
+    type=str,
 )
 @click.option(
     "--dry-run",

@@ -26,7 +26,13 @@ fi
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 WORK_DIR="${1:-/app}"
 
+if [ -f "${WORK_DIR}/build-webapp.sh" ]; then
+  echo "Building webapp with ${WORK_DIR}/build-webapp.sh ..."
 cd "${WORK_DIR}" || exit 1
+
+  ./build-webapp.sh || exit 1
+  exit 0
+fi
 
 if [ -f "next.config.mjs" ]; then
   NEXT_CONFIG_JS="next.config.mjs"

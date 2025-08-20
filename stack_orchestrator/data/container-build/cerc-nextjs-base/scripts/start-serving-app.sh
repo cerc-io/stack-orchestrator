@@ -30,36 +30,44 @@ fi
 CERC_WEBAPP_FILES_DIR="${CERC_WEBAPP_FILES_DIR:-/app}"
 cd "$CERC_WEBAPP_FILES_DIR"
 
-"$SCRIPT_DIR/apply-runtime-env.sh" "`pwd`" .next .next-r
-mv .next .next.old
-mv .next-r/.next .
+if [ -f "./run-webapp.sh" ]; then
+  echo "Running webapp with run-webapp.sh ..."
+  cd "${WORK_DIR}" || exit 1
+  ./run-webapp.sh &
+  tpid=$!
+  wait $tpid
+else 
+  "$SCRIPT_DIR/apply-runtime-env.sh" "`pwd`" .next .next-r
+  mv .next .next.old
+  mv .next-r/.next .
 
-if [ "$CERC_NEXTJS_SKIP_GENERATE" != "true" ]; then
-  jq -e '.scripts.cerc_generate' package.json >/dev/null
-  if [ $? -eq 0 ]; then
-    npm run cerc_generate > gen.out 2>&1 &
-    tail -f gen.out &
-    tpid=$!
+  if [ "$CERC_NEXTJS_SKIP_GENERATE" != "true" ]; then
+    jq -e '.scripts.cerc_generate' package.json >/dev/null
+    if [ $? -eq 0 ]; then
+      npm run cerc_generate > gen.out 2>&1 &
+      tail -f gen.out &
+      tpid=$!
 
-    count=0
-    generate_done="false"
-    while [ $count -lt $CERC_MAX_GENERATE_TIME ] && [ "$generate_done" == "false" ]; do
-      sleep 1
-      count=$((count + 1))
-      grep 'rendered as static' gen.out > /dev/null
-      if [ $? -eq 0 ]; then
-        generate_done="true"
+      count=0
+      generate_done="false"
+      while [ $count -lt $CERC_MAX_GENERATE_TIME ] && [ "$generate_done" == "false" ]; do
+        sleep 1
+        count=$((count + 1))
+        grep 'rendered as static' gen.out > /dev/null
+        if [ $? -eq 0 ]; then
+          generate_done="true"
+        fi
+      done
+
+      if [ $generate_done != "true" ]; then
+        echo "ERROR: 'npm run cerc_generate' not successful within CERC_MAX_GENERATE_TIME" 1>&2
+        exit 1
       fi
-    done
 
-    if [ $generate_done != "true" ]; then
-      echo "ERROR: 'npm run cerc_generate' not successful within CERC_MAX_GENERATE_TIME" 1>&2
-      exit 1
+      kill $tpid $(ps -ef | grep node | grep next | grep generate | awk '{print $2}') 2>/dev/null
+      tpid=""
     fi
-
-    kill $tpid $(ps -ef | grep node | grep next | grep generate | awk '{print $2}') 2>/dev/null
-    tpid=""
   fi
-fi
 
-$CERC_BUILD_TOOL start . -- -p ${CERC_LISTEN_PORT:-80}
+  $CERC_BUILD_TOOL start . -- -p ${CERC_LISTEN_PORT:-80}
+fi

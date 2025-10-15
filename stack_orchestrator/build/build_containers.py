@@ -26,6 +26,7 @@ from decouple import config
 import subprocess
 import click
 from pathlib import Path
+from typing import Any
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import include_exclude_check, stack_is_external, error_exit
 from stack_orchestrator.base import get_npm_registry_url
@@ -42,7 +43,7 @@ def make_container_build_env(dev_root_path: str,
                              debug: bool,
                              force_rebuild: bool,
                              extra_build_args: str):
-    container_build_env = {
+    command_env: dict[str, Any] = {
         "CERC_NPM_REGISTRY_URL": get_npm_registry_url(),
         "CERC_GO_AUTH_TOKEN": config("CERC_GO_AUTH_TOKEN", default=""),
         "CERC_NPM_AUTH_TOKEN": config("CERC_NPM_AUTH_TOKEN", default=""),
@@ -52,14 +53,16 @@ def make_container_build_env(dev_root_path: str,
         "CERC_HOST_GID": f"{os.getgid()}",
         "DOCKER_BUILDKIT": config("DOCKER_BUILDKIT", default="0")
     }
-    container_build_env.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
-    container_build_env.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})
-    container_build_env.update({"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args} if extra_build_args else {})
-    docker_host_env = os.getenv("DOCKER_HOST")
-    if docker_host_env:
-        container_build_env.update({"DOCKER_HOST": docker_host_env})
+    command_env.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
+    command_env.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})
+    command_env.update({"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args} if extra_build_args else {})
 
-    return container_build_env
+    forwarded_vars = ("DOCKER_HOST", "BUILDKIT_PROGRESS", "http_proxy", "https_proxy")
+    for var in forwarded_vars:
+        if value := config(var, default=None):
+            command_env[var] = value
+
+    return command_env
 
 
 def process_container(build_context: BuildContext) -> bool:

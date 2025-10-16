@@ -92,9 +92,8 @@ class Spec:
         return self.obj.get(item, default)
 
     def init_from_file(self, file_path: Path):
-        with file_path:
-            self.obj = get_yaml().load(open(file_path, "r"))
-            self.file_path = file_path
+        self.obj = get_yaml().load(open(file_path, "r"))
+        self.file_path = file_path
 
     def get_image_registry(self):
         return self.obj.get(constants.image_registry_key)

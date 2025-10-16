@@ -56,9 +56,8 @@ class DeploymentContext:
         self.stack.init_from_file(self.get_stack_file())
         deployment_file_path = self.get_deployment_file()
         if deployment_file_path.exists():
-            with deployment_file_path:
-                obj = get_yaml().load(open(deployment_file_path, "r"))
-                self.id = obj[constants.cluster_id_key]
+            obj = get_yaml().load(open(deployment_file_path, "r"))
+            self.id = obj[constants.cluster_id_key]
         # Handle the case of a legacy deployment with no file
         # Code below is intended to match the output from _make_default_cluster_name()
         # TODO: remove when we no longer need to support legacy deployments

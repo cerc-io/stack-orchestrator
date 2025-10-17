@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 set -e
 
 if [ -n "$CERC_SCRIPT_DEBUG" ]; then
@@ -8,14 +8,14 @@ fi
 echo "Test container starting"
 
 DATA_DEVICE=$(df | grep "/data$" | awk '{ print $1 }')
-if [[ -n "$DATA_DEVICE" ]]; then
+if [ -n "$DATA_DEVICE" ]; then
   echo "/data: MOUNTED dev=${DATA_DEVICE}"
 else
   echo "/data: not mounted"
 fi
 
 DATA2_DEVICE=$(df | grep "/data2$" | awk '{ print $1 }')
-if [[ -n "$DATA_DEVICE" ]]; then
+if [ -n "$DATA_DEVICE" ]; then
   echo "/data2: MOUNTED dev=${DATA2_DEVICE}"
 else
   echo "/data2: not mounted"
@@ -23,7 +23,7 @@ fi
 
 # Test if the container's filesystem is old (run previously) or new
 for d in /data /data2; do
-  if [[ -f "$d/exists" ]];
+  if [ -f "$d/exists" ];
   then
       TIMESTAMP=`cat $d/exists`
       echo "$d filesystem is old, created: $TIMESTAMP"
@@ -52,7 +52,7 @@ fi
 if [ -d "/config" ]; then
   echo "/config: EXISTS"
   for f in /config/*; do
-    if [[ -f "$f" ]] || [[ -L "$f" ]]; then
+    if [ -f "$f" ] || [ -L "$f" ]; then
       echo "$f:"
       cat "$f"
       echo ""
@@ -64,4 +64,4 @@ else
 fi
 
 # Run nginx which will block here forever
-/usr/sbin/nginx -g "daemon off;"
+nginx -g "daemon off;"

@@ -19,9 +19,12 @@ import os
 from pathlib import Path
 from typing import List
 import random
-from shutil import copy, copyfile, copytree
+from shutil import copy, copyfile, copytree, rmtree
 from secrets import token_hex
 import sys
+import filecmp
+import tempfile
+
 from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (
@@ -525,6 +528,12 @@ def _check_volume_definitions(spec):
 )
 @click.option("--deployment-dir", help="Create deployment files in this directory")
 @click.option(
+    "--update",
+    is_flag=True,
+    default=False,
+    help="Update existing deployment directory, preserving data volumes and env file",
+)
+@click.option(
     "--helm-chart",
     is_flag=True,
     default=False,
@@ -536,13 +545,21 @@ def _check_volume_definitions(spec):
 @click.argument("extra_args", nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 def create(
-    ctx, spec_file, deployment_dir, helm_chart, network_dir, initial_peers, extra_args
+    ctx,
+    spec_file,
+    deployment_dir,
+    update,
+    helm_chart,
+    network_dir,
+    initial_peers,
+    extra_args,
 ):
     deployment_command_context = ctx.obj
     return create_operation(
         deployment_command_context,
         spec_file,
         deployment_dir,
+        update,
         helm_chart,
         network_dir,
         initial_peers,
@@ -556,6 +573,7 @@ def create_operation(
     deployment_command_context,
     spec_file,
     deployment_dir,
+    update=False,
     helm_chart=False,
     network_dir=None,
     initial_peers=None,
@@ -568,23 +586,23 @@ def create_operation(
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
 
-    stack_file = get_stack_path(stack_name).joinpath(constants.stack_file_name)
-    parsed_stack = get_parsed_stack_config(stack_name)
     if opts.o.debug:
         print(f"parsed spec: {parsed_spec}")
+
     if deployment_dir is None:
         deployment_dir_path = _make_default_deployment_dir()
     else:
         deployment_dir_path = Path(deployment_dir)
-    if deployment_dir_path.exists():
-        error_exit(f"{deployment_dir_path} already exists")
-    os.mkdir(deployment_dir_path)
-    # Copy spec file and the stack file into the deployment dir
-    copyfile(spec_file, deployment_dir_path.joinpath(constants.spec_file_name))
-    copyfile(stack_file, deployment_dir_path.joinpath(constants.stack_file_name))
 
-    # Create deployment.yml with cluster-id
-    _create_deployment_file(deployment_dir_path)
+    if deployment_dir_path.exists():
+        if not update:
+            error_exit(f"{deployment_dir_path} already exists")
+        if opts.o.debug:
+            print(f"Updating existing deployment at {deployment_dir_path}")
+    else:
+        if update:
+            error_exit(f"--update requires that {deployment_dir_path} already exists")
+        os.mkdir(deployment_dir_path)
 
     # Branch to Helm chart generation flow if --helm-chart flag is set
     if deployment_type == "k8s" and helm_chart:
@@ -595,104 +613,41 @@ def create_operation(
         generate_helm_chart(stack_name, spec_file, deployment_dir_path)
         return  # Exit early for helm chart generation
 
-    # Existing deployment flow continues unchanged
-    # Copy any config varibles from the spec file into an env file suitable for compose
-    _write_config_file(
-        spec_file, deployment_dir_path.joinpath(constants.config_file_name)
-    )
-    # Copy any k8s config file into the deployment dir
-    if deployment_type == "k8s":
-        _write_kube_config_file(
-            Path(parsed_spec[constants.kube_config_key]),
-            deployment_dir_path.joinpath(constants.kube_config_filename),
-        )
-    # Copy the pod files into the deployment dir, fixing up content
-    pods = get_pod_list(parsed_stack)
-    destination_compose_dir = deployment_dir_path.joinpath("compose")
-    os.mkdir(destination_compose_dir)
-    destination_pods_dir = deployment_dir_path.joinpath("pods")
-    os.mkdir(destination_pods_dir)
-    yaml = get_yaml()
-    for pod in pods:
-        pod_file_path = get_pod_file_path(stack_name, parsed_stack, pod)
-        if pod_file_path is None:
-            continue
-        parsed_pod_file = yaml.load(open(pod_file_path, "r"))
-        extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
-        destination_pod_dir = destination_pods_dir.joinpath(pod)
-        os.mkdir(destination_pod_dir)
-        if opts.o.debug:
-            print(f"extra config dirs: {extra_config_dirs}")
-        _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
-        with open(
-            destination_compose_dir.joinpath("docker-compose-%s.yml" % pod), "w"
-        ) as output_file:
-            yaml.dump(parsed_pod_file, output_file)
-        # Copy the config files for the pod, if any
-        config_dirs = {pod}
-        config_dirs = config_dirs.union(extra_config_dirs)
-        for config_dir in config_dirs:
-            source_config_dir = resolve_config_dir(stack_name, config_dir)
-            if os.path.exists(source_config_dir):
-                destination_config_dir = deployment_dir_path.joinpath(
-                    "config", config_dir
-                )
-                # If the same config dir appears in multiple pods, it may already have
-                # been copied
-                if not os.path.exists(destination_config_dir):
-                    copytree(source_config_dir, destination_config_dir)
-        # Copy the script files for the pod, if any
-        if pod_has_scripts(parsed_stack, pod):
-            destination_script_dir = destination_pod_dir.joinpath("scripts")
-            os.mkdir(destination_script_dir)
-            script_paths = get_pod_script_paths(parsed_stack, pod)
-            _copy_files_to_directory(script_paths, destination_script_dir)
-        if parsed_spec.is_kubernetes_deployment():
-            for configmap in parsed_spec.get_configmaps():
-                source_config_dir = resolve_config_dir(stack_name, configmap)
-                if os.path.exists(source_config_dir):
-                    destination_config_dir = deployment_dir_path.joinpath(
-                        "configmaps", configmap
-                    )
-                    copytree(
-                        source_config_dir, destination_config_dir, dirs_exist_ok=True
-                    )
-        else:
-            # TODO: We should probably only do this if the volume is marked :ro.
-            for volume_name, volume_path in parsed_spec.get_volumes().items():
-                source_config_dir = resolve_config_dir(stack_name, volume_name)
-                # Only copy if the source exists and is _not_ empty.
-                if os.path.exists(source_config_dir) and os.listdir(source_config_dir):
-                    destination_config_dir = deployment_dir_path.joinpath(volume_path)
-                    # Only copy if the destination exists and _is_ empty.
-                    if os.path.exists(destination_config_dir) and not os.listdir(
-                        destination_config_dir
-                    ):
-                        copytree(
-                            source_config_dir,
-                            destination_config_dir,
-                            dirs_exist_ok=True,
-                        )
+    if update:
+        # Sync mode: write to temp dir, then copy to deployment dir with backups
+        temp_dir = Path(tempfile.mkdtemp(prefix="deployment-sync-"))
+        try:
+            # Write deployment files to temp dir (skip deployment.yml to preserve cluster ID)
+            _write_deployment_files(
+                temp_dir,
+                Path(spec_file),
+                parsed_spec,
+                stack_name,
+                deployment_type,
+                include_deployment_file=False,
+            )
 
-    # Copy the job files into the deployment dir (for Docker deployments)
-    jobs = get_job_list(parsed_stack)
-    if jobs and not parsed_spec.is_kubernetes_deployment():
-        destination_compose_jobs_dir = deployment_dir_path.joinpath("compose-jobs")
-        os.mkdir(destination_compose_jobs_dir)
-        for job in jobs:
-            job_file_path = get_job_file_path(stack_name, parsed_stack, job)
-            if job_file_path and job_file_path.exists():
-                parsed_job_file = yaml.load(open(job_file_path, "r"))
-                _fixup_pod_file(parsed_job_file, parsed_spec, destination_compose_dir)
-                with open(
-                    destination_compose_jobs_dir.joinpath(
-                        "docker-compose-%s.yml" % job
-                    ),
-                    "w",
-                ) as output_file:
-                    yaml.dump(parsed_job_file, output_file)
-                if opts.o.debug:
-                    print(f"Copied job compose file: {job}")
+            # Copy from temp to deployment dir, excluding data volumes and backing up changed files
+            # Exclude data/* to avoid touching user data volumes
+            # Exclude config file to preserve deployment settings (XXX breaks passing config vars
+            # from spec. could warn about this or not exclude...)
+            exclude_patterns = ["data", "data/*", constants.config_file_name]
+            _safe_copy_tree(
+                temp_dir, deployment_dir_path, exclude_patterns=exclude_patterns
+            )
+        finally:
+            # Clean up temp dir
+            rmtree(temp_dir)
+    else:
+        # Normal mode: write directly to deployment dir
+        _write_deployment_files(
+            deployment_dir_path,
+            Path(spec_file),
+            parsed_spec,
+            stack_name,
+            deployment_type,
+            include_deployment_file=True,
+        )
 
     # Delegate to the stack's Python code
     # The deploy create command doesn't require a --stack argument so we need
@@ -710,6 +665,181 @@ def create_operation(
     call_stack_deploy_create(
         deployment_context, [network_dir, initial_peers, *extra_args]
     )
+
+
+def _safe_copy_tree(src: Path, dst: Path, exclude_patterns: List[str] = None):
+    """
+    Recursively copy a directory tree, backing up changed files with .bak suffix.
+
+    :param src: Source directory
+    :param dst: Destination directory
+    :param exclude_patterns: List of path patterns to exclude (relative to src)
+    """
+    if exclude_patterns is None:
+        exclude_patterns = []
+
+    def should_exclude(path: Path) -> bool:
+        """Check if path matches any exclude pattern."""
+        rel_path = path.relative_to(src)
+        for pattern in exclude_patterns:
+            if rel_path.match(pattern):
+                return True
+        return False
+
+    def safe_copy_file(src_file: Path, dst_file: Path):
+        """Copy file, backing up destination if it differs."""
+        if (
+            dst_file.exists()
+            and not dst_file.is_dir()
+            and not filecmp.cmp(src_file, dst_file)
+        ):
+            os.rename(dst_file, f"{dst_file}.bak")
+        copy(src_file, dst_file)
+
+    # Walk the source tree
+    for src_path in src.rglob("*"):
+        if should_exclude(src_path):
+            continue
+
+        rel_path = src_path.relative_to(src)
+        dst_path = dst / rel_path
+
+        if src_path.is_dir():
+            dst_path.mkdir(parents=True, exist_ok=True)
+        else:
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            safe_copy_file(src_path, dst_path)
+
+
+def _write_deployment_files(
+    target_dir: Path,
+    spec_file: Path,
+    parsed_spec: Spec,
+    stack_name: str,
+    deployment_type: str,
+    include_deployment_file: bool = True,
+):
+    """
+    Write deployment files to target directory.
+
+    :param target_dir: Directory to write files to
+    :param spec_file: Path to spec file
+    :param parsed_spec: Parsed spec object
+    :param stack_name: Name of stack
+    :param deployment_type: Type of deployment
+    :param include_deployment_file: Whether to create deployment.yml file (skip for update)
+    """
+    stack_file = get_stack_path(stack_name).joinpath(constants.stack_file_name)
+    parsed_stack = get_parsed_stack_config(stack_name)
+
+    # Copy spec file and the stack file into the target dir
+    copyfile(spec_file, target_dir.joinpath(constants.spec_file_name))
+    copyfile(stack_file, target_dir.joinpath(constants.stack_file_name))
+
+    # Create deployment file if requested
+    if include_deployment_file:
+        _create_deployment_file(target_dir)
+
+    # Copy any config variables from the spec file into an env file suitable for compose
+    _write_config_file(spec_file, target_dir.joinpath(constants.config_file_name))
+
+    # Copy any k8s config file into the target dir
+    if deployment_type == "k8s":
+        _write_kube_config_file(
+            Path(parsed_spec[constants.kube_config_key]),
+            target_dir.joinpath(constants.kube_config_filename),
+        )
+
+    # Copy the pod files into the target dir, fixing up content
+    pods = get_pod_list(parsed_stack)
+    destination_compose_dir = target_dir.joinpath("compose")
+    os.makedirs(destination_compose_dir, exist_ok=True)
+    destination_pods_dir = target_dir.joinpath("pods")
+    os.makedirs(destination_pods_dir, exist_ok=True)
+    yaml = get_yaml()
+
+    for pod in pods:
+        pod_file_path = get_pod_file_path(stack_name, parsed_stack, pod)
+        if pod_file_path is None:
+            continue
+        parsed_pod_file = yaml.load(open(pod_file_path, "r"))
+        extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
+        destination_pod_dir = destination_pods_dir.joinpath(pod)
+        os.makedirs(destination_pod_dir, exist_ok=True)
+        if opts.o.debug:
+            print(f"extra config dirs: {extra_config_dirs}")
+        _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
+        with open(
+            destination_compose_dir.joinpath("docker-compose-%s.yml" % pod), "w"
+        ) as output_file:
+            yaml.dump(parsed_pod_file, output_file)
+
+        # Copy the config files for the pod, if any
+        config_dirs = {pod}
+        config_dirs = config_dirs.union(extra_config_dirs)
+        for config_dir in config_dirs:
+            source_config_dir = resolve_config_dir(stack_name, config_dir)
+            if os.path.exists(source_config_dir):
+                destination_config_dir = target_dir.joinpath("config", config_dir)
+                copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
+
+        # Copy the script files for the pod, if any
+        if pod_has_scripts(parsed_stack, pod):
+            destination_script_dir = destination_pod_dir.joinpath("scripts")
+            os.makedirs(destination_script_dir, exist_ok=True)
+            script_paths = get_pod_script_paths(parsed_stack, pod)
+            _copy_files_to_directory(script_paths, destination_script_dir)
+
+        if parsed_spec.is_kubernetes_deployment():
+            for configmap in parsed_spec.get_configmaps():
+                source_config_dir = resolve_config_dir(stack_name, configmap)
+                if os.path.exists(source_config_dir):
+                    destination_config_dir = target_dir.joinpath(
+                        "configmaps", configmap
+                    )
+                    copytree(
+                        source_config_dir, destination_config_dir, dirs_exist_ok=True
+                    )
+        else:
+            # TODO:
+            # this is odd - looks up config dir that matches a volume name, then copies as a mount dir?
+            # AFAICT this is not used by or relevant to any existing stack - roy
+
+            # TODO: We should probably only do this if the volume is marked :ro.
+            for volume_name, volume_path in parsed_spec.get_volumes().items():
+                source_config_dir = resolve_config_dir(stack_name, volume_name)
+                # Only copy if the source exists and is _not_ empty.
+                if os.path.exists(source_config_dir) and os.listdir(source_config_dir):
+                    destination_config_dir = target_dir.joinpath(volume_path)
+                    # Only copy if the destination exists and _is_ empty.
+                    if os.path.exists(destination_config_dir) and not os.listdir(
+                        destination_config_dir
+                    ):
+                        copytree(
+                            source_config_dir,
+                            destination_config_dir,
+                            dirs_exist_ok=True,
+                        )
+
+    # Copy the job files into the target dir (for Docker deployments)
+    jobs = get_job_list(parsed_stack)
+    if jobs and not parsed_spec.is_kubernetes_deployment():
+        destination_compose_jobs_dir = target_dir.joinpath("compose-jobs")
+        os.makedirs(destination_compose_jobs_dir, exist_ok=True)
+        for job in jobs:
+            job_file_path = get_job_file_path(stack_name, parsed_stack, job)
+            if job_file_path and job_file_path.exists():
+                parsed_job_file = yaml.load(open(job_file_path, "r"))
+                _fixup_pod_file(parsed_job_file, parsed_spec, destination_compose_dir)
+                with open(
+                    destination_compose_jobs_dir.joinpath(
+                        "docker-compose-%s.yml" % job
+                    ),
+                    "w",
+                ) as output_file:
+                    yaml.dump(parsed_job_file, output_file)
+                if opts.o.debug:
+                    print(f"Copied job compose file: {job}")
 
 
 # TODO: this code should be in the stack .py files but

@@ -94,7 +94,7 @@ def create_deployment(
     # Add the TLS and DNS spec
     _fixup_url_spec(spec_file_name, url)
     create_operation(
-        deploy_command_context, spec_file_name, deployment_dir, False, None, None
+        deploy_command_context, spec_file_name, deployment_dir, False, False, None, None
     )
     # Fix up the container tag inside the deployment compose file
     _fixup_container_tag(deployment_dir, image)

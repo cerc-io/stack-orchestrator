@@ -445,7 +445,7 @@ def _check_volume_definitions(spec):
 @click.option("--deployment-dir", help="Create deployment files in this directory")
 @click.argument('extra_args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
-def create(ctx, spec_file, deployment_dir, sync, extra_args):
+def create(ctx, spec_file, deployment_dir, extra_args):
     deployment_command_context = ctx.obj
     return create_operation(deployment_command_context, spec_file, deployment_dir, extra_args)
 

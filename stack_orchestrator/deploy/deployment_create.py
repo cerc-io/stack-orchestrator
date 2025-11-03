@@ -422,9 +422,10 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
         copy(path, os.path.join(directory, os.path.basename(path)))
 
 
-def _create_deployment_file(deployment_dir: Path):
+def _create_deployment_file(deployment_dir: Path, cluster):
     deployment_file_path = deployment_dir.joinpath(constants.deployment_file_name)
-    cluster = f"{constants.cluster_name_prefix}{token_hex(8)}"
+    if cluster is None:
+        cluster = f"{constants.cluster_name_prefix}{token_hex(8)}"
     with open(deployment_file_path, "w") as output_file:
         output_file.write(f"{constants.cluster_id_key}: {cluster}\n")
 
@@ -471,7 +472,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, extr
     # Copy spec file and the stack file into the deployment dir
     copyfile(spec_file, deployment_dir_path.joinpath(constants.spec_file_name))
     copyfile(stack_file, deployment_dir_path.joinpath(constants.stack_file_name))
-    _create_deployment_file(deployment_dir_path)
+    _create_deployment_file(deployment_dir_path, deployment_command_context.cluster_context.cluster)
     # Copy any config varibles from the spec file into an env file suitable for compose
     _write_config_file(spec_file, deployment_dir_path.joinpath(constants.config_file_name))
     # Copy any k8s config file into the deployment dir

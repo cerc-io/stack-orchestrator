@@ -443,18 +443,16 @@ def _check_volume_definitions(spec):
 @click.command()
 @click.option("--spec-file", required=True, help="Spec file to use to create this deployment")
 @click.option("--deployment-dir", help="Create deployment files in this directory")
-# TODO: Hack
-@click.option("--network-dir", help="Network configuration supplied in this directory")
-@click.option("--initial-peers", help="Initial set of persistent peers")
+@click.argument('extra_args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
-def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
+def create(ctx, spec_file, deployment_dir, extra_args):
     deployment_command_context = ctx.obj
-    return create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers)
+    return create_operation(deployment_command_context, spec_file, deployment_dir, extra_args)
 
 
 # The init command's implementation is in a separate function so that we can
 # call it from other commands, bypassing the click decoration stuff
-def create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers):
+def create_operation(deployment_command_context, spec_file, deployment_dir, extra_args):
     parsed_spec = Spec(os.path.abspath(spec_file), get_parsed_deployment_spec(spec_file))
     _check_volume_definitions(parsed_spec)
     stack_name = parsed_spec["stack"]
@@ -541,7 +539,7 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, netw
     deployer_config_generator = getDeployerConfigGenerator(deployment_type, deployment_context)
     # TODO: make deployment_dir_path a Path above
     deployer_config_generator.generate(deployment_dir_path)
-    call_stack_deploy_create(deployment_context, [network_dir, initial_peers, deployment_command_context])
+    call_stack_deploy_create(deployment_context, extra_args)
 
 
 # TODO: this code should be in the stack .py files but

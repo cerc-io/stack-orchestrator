@@ -443,22 +443,31 @@ def _check_volume_definitions(spec):
 @click.command()
 @click.option("--spec-file", required=True, help="Spec file to use to create this deployment")
 @click.option("--deployment-dir", help="Create deployment files in this directory")
+@click.option("--helm-chart", is_flag=True, default=False, help="Generate Helm chart instead of deploying (k8s only)")
 # TODO: Hack
 @click.option("--network-dir", help="Network configuration supplied in this directory")
 @click.option("--initial-peers", help="Initial set of persistent peers")
 @click.pass_context
-def create(ctx, spec_file, deployment_dir, network_dir, initial_peers):
+def create(ctx, spec_file, deployment_dir, helm_chart, network_dir, initial_peers):
     deployment_command_context = ctx.obj
-    return create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers)
+    return create_operation(deployment_command_context, spec_file, deployment_dir, helm_chart, network_dir, initial_peers)
 
 
 # The init command's implementation is in a separate function so that we can
 # call it from other commands, bypassing the click decoration stuff
-def create_operation(deployment_command_context, spec_file, deployment_dir, network_dir, initial_peers):
+def create_operation(deployment_command_context, spec_file, deployment_dir, helm_chart, network_dir, initial_peers):
     parsed_spec = Spec(os.path.abspath(spec_file), get_parsed_deployment_spec(spec_file))
     _check_volume_definitions(parsed_spec)
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
+
+    # Branch to Helm chart generation flow early if --helm-chart flag is set
+    if deployment_type == "k8s" and helm_chart:
+        from stack_orchestrator.deploy.k8s.helm.chart_generator import generate_helm_chart
+        generate_helm_chart(stack_name, spec_file, deployment_dir)
+        return  # Exit early, completely separate from existing k8s deployment flow
+
+    # Existing deployment flow continues unchanged
     stack_file = get_stack_path(stack_name).joinpath(constants.stack_file_name)
     parsed_stack = get_parsed_stack_config(stack_name)
     if opts.o.debug:

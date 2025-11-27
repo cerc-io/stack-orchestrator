@@ -91,6 +91,7 @@ def create_deployment(ctx, deployment_dir, image, url, kube_config, image_regist
         deploy_command_context,
         spec_file_name,
         deployment_dir,
+        False,
         None,
         None
     )

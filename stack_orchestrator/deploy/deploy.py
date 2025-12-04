@@ -84,7 +84,22 @@ def create_deploy_context(
     # Extract the cluster name from the deployment, if we have one
     if deployment_context and cluster is None:
         cluster = deployment_context.get_cluster_id()
-    cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
+
+    # Check if this is a helm chart deployment (has chart/ but no compose/)
+    # TODO: Add a new deployment type for helm chart deployments
+    # To avoid relying on chart existence in such cases
+    is_helm_chart_deployment = False
+    if deployment_context:
+        chart_dir = deployment_context.deployment_dir / "chart"
+        compose_dir = deployment_context.deployment_dir / "compose"
+        is_helm_chart_deployment = chart_dir.exists() and not compose_dir.exists()
+
+    # For helm chart deployments, skip compose file loading
+    if is_helm_chart_deployment:
+        cluster_context = ClusterContext(global_context, cluster, [], [], [], None, env_file)
+    else:
+        cluster_context = _make_cluster_context(global_context, stack, include, exclude, cluster, env_file)
+
     deployer = getDeployer(deploy_to, deployment_context, compose_files=cluster_context.compose_files,
                            compose_project_name=cluster_context.cluster,
                            compose_env_file=cluster_context.env_file)
@@ -186,6 +201,17 @@ def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
     logs_stream = ctx.obj.deployer.logs(services=services_list, tail=tail, follow=follow, stream=True)
     for stream_type, stream_content in logs_stream:
         print(stream_content.decode("utf-8"), end="")
+
+
+def run_job_operation(ctx, job_name: str, helm_release: str = None):
+    global_context = ctx.parent.parent.obj
+    if not global_context.dry_run:
+        print(f"Running job: {job_name}")
+        try:
+            ctx.obj.deployer.run_job(job_name, helm_release)
+        except Exception as e:
+            print(f"Error running job {job_name}: {e}")
+            sys.exit(1)
 
 
 @command.command()

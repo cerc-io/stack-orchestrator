@@ -27,7 +27,7 @@ from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (get_stack_path, get_parsed_deployment_spec, get_parsed_stack_config,
                                      global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
                                      get_pod_script_paths, get_plugin_code_paths, error_exit, env_var_map_from_file,
-                                     resolve_config_dir)
+                                     resolve_config_dir, get_job_list, get_job_file_path)
 from stack_orchestrator.deploy.spec import Spec
 from stack_orchestrator.deploy.deploy_types import LaconicStackSetupCommand
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
@@ -461,13 +461,6 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
 
-    # Branch to Helm chart generation flow early if --helm-chart flag is set
-    if deployment_type == "k8s" and helm_chart:
-        from stack_orchestrator.deploy.k8s.helm.chart_generator import generate_helm_chart
-        generate_helm_chart(stack_name, spec_file, deployment_dir)
-        return  # Exit early, completely separate from existing k8s deployment flow
-
-    # Existing deployment flow continues unchanged
     stack_file = get_stack_path(stack_name).joinpath(constants.stack_file_name)
     parsed_stack = get_parsed_stack_config(stack_name)
     if opts.o.debug:
@@ -482,7 +475,17 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
     # Copy spec file and the stack file into the deployment dir
     copyfile(spec_file, deployment_dir_path.joinpath(constants.spec_file_name))
     copyfile(stack_file, deployment_dir_path.joinpath(constants.stack_file_name))
+
+    # Create deployment.yml with cluster-id
     _create_deployment_file(deployment_dir_path)
+
+    # Branch to Helm chart generation flow if --helm-chart flag is set
+    if deployment_type == "k8s" and helm_chart:
+        from stack_orchestrator.deploy.k8s.helm.chart_generator import generate_helm_chart
+        generate_helm_chart(stack_name, spec_file, deployment_dir_path)
+        return  # Exit early for helm chart generation
+
+    # Existing deployment flow continues unchanged
     # Copy any config varibles from the spec file into an env file suitable for compose
     _write_config_file(spec_file, deployment_dir_path.joinpath(constants.config_file_name))
     # Copy any k8s config file into the deployment dir
@@ -539,6 +542,21 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
                     # Only copy if the destination exists and _is_ empty.
                     if os.path.exists(destination_config_dir) and not os.listdir(destination_config_dir):
                         copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
+
+    # Copy the job files into the deployment dir (for Docker deployments)
+    jobs = get_job_list(parsed_stack)
+    if jobs and not parsed_spec.is_kubernetes_deployment():
+        destination_compose_jobs_dir = deployment_dir_path.joinpath("compose-jobs")
+        os.mkdir(destination_compose_jobs_dir)
+        for job in jobs:
+            job_file_path = get_job_file_path(stack_name, parsed_stack, job)
+            if job_file_path and job_file_path.exists():
+                parsed_job_file = yaml.load(open(job_file_path, "r"))
+                _fixup_pod_file(parsed_job_file, parsed_spec, destination_compose_dir)
+                with open(destination_compose_jobs_dir.joinpath("docker-compose-%s.yml" % job), "w") as output_file:
+                    yaml.dump(parsed_job_file, output_file)
+                if opts.o.debug:
+                    print(f"Copied job compose file: {job}")
 
     # Delegate to the stack's Python code
     # The deploy create command doesn't require a --stack argument so we need to insert the

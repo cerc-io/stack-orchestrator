@@ -167,3 +167,14 @@ def status(ctx):
 def update(ctx):
     ctx.obj = make_deploy_context(ctx)
     update_operation(ctx)
+
+
+@command.command()
+@click.argument('job_name')
+@click.option('--helm-release', help='Helm release name (only for k8s helm chart deployments, defaults to chart name)')
+@click.pass_context
+def run_job(ctx, job_name, helm_release):
+    '''run a one-time job from the stack'''
+    from stack_orchestrator.deploy.deploy import run_job_operation
+    ctx.obj = make_deploy_context(ctx)
+    run_job_operation(ctx, job_name, helm_release)

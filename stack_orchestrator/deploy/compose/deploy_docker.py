@@ -94,6 +94,40 @@ class DockerDeployer(Deployer):
             except DockerException as e:
                 raise DeployerException(e)
 
+    def run_job(self, job_name: str, release_name: str = None):
+        # release_name is ignored for Docker deployments (only used for K8s/Helm)
+        if not opts.o.dry_run:
+            try:
+                # Find job compose file in compose-jobs directory
+                # The deployment should have compose-jobs/docker-compose-<job_name>.yml
+                if not self.docker.compose_files:
+                    raise DeployerException("No compose files configured")
+
+                # Deployment directory is parent of compose directory
+                compose_dir = Path(self.docker.compose_files[0]).parent
+                deployment_dir = compose_dir.parent
+                job_compose_file = deployment_dir / "compose-jobs" / f"docker-compose-{job_name}.yml"
+
+                if not job_compose_file.exists():
+                    raise DeployerException(f"Job compose file not found: {job_compose_file}")
+
+                if opts.o.verbose:
+                    print(f"Running job from: {job_compose_file}")
+
+                # Create a DockerClient for the job compose file with same project name and env file
+                # This allows the job to access volumes from the main deployment
+                job_docker = DockerClient(
+                    compose_files=[job_compose_file],
+                    compose_project_name=self.docker.compose_project_name,
+                    compose_env_file=self.docker.compose_env_file
+                )
+
+                # Run the job with --rm flag to remove container after completion
+                return job_docker.compose.run(service=job_name, remove=True, tty=True)
+
+            except DockerException as e:
+                raise DeployerException(e)
+
 
 class DockerDeployerConfigGenerator(DeployerConfigGenerator):
 

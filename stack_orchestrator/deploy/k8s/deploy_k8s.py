@@ -510,6 +510,26 @@ class K8sDeployer(Deployer):
         # We need to figure out how to do this -- check why we're being called first
         pass
 
+    def run_job(self, job_name: str, helm_release: str = None):
+        if not opts.o.dry_run:
+            from stack_orchestrator.deploy.k8s.helm.job_runner import run_helm_job
+
+            # Check if this is a helm-based deployment
+            chart_dir = self.deployment_dir / "chart"
+            if not chart_dir.exists():
+                # TODO: Implement job support for compose-based K8s deployments
+                raise Exception(f"Job support is only available for helm-based deployments. Chart directory not found: {chart_dir}")
+
+            # Run the job using the helm job runner
+            run_helm_job(
+                chart_dir=chart_dir,
+                job_name=job_name,
+                release=helm_release,
+                namespace=self.k8s_namespace,
+                timeout=600,
+                verbose=opts.o.verbose
+            )
+
     def is_kind(self):
         return self.type == "k8s-kind"
 

@@ -55,6 +55,10 @@ class Deployer(ABC):
     def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
         pass
 
+    @abstractmethod
+    def run_job(self, job_name: str, release_name: str = None):
+        pass
+
 
 class DeployerException(Exception):
     def __init__(self, *args: object) -> None:

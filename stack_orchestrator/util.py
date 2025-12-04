@@ -78,6 +78,22 @@ def get_pod_list(parsed_stack):
     return result
 
 
+def get_job_list(parsed_stack):
+    # Return list of jobs from stack config, or empty list if no jobs defined
+    if "jobs" not in parsed_stack:
+        return []
+    jobs = parsed_stack["jobs"]
+    if not jobs:
+        return []
+    if type(jobs[0]) is str:
+        result = jobs
+    else:
+        result = []
+        for job in jobs:
+            result.append(job["name"])
+    return result
+
+
 def get_plugin_code_paths(stack) -> List[Path]:
     parsed_stack = get_parsed_stack_config(stack)
     pods = parsed_stack["pods"]
@@ -119,6 +135,21 @@ def resolve_compose_file(stack, pod_name: str):
     return compose_base.joinpath(f"docker-compose-{pod_name}.yml")
 
 
+# Find a job compose file in compose-jobs directory
+def resolve_job_compose_file(stack, job_name: str):
+    if stack_is_external(stack):
+        # First try looking in the external stack for the job compose file
+        compose_jobs_base = Path(stack).parent.parent.joinpath("compose-jobs")
+        proposed_file = compose_jobs_base.joinpath(f"docker-compose-{job_name}.yml")
+        if proposed_file.exists():
+            return proposed_file
+        # If we don't find it fall through to the internal case
+    # TODO: Add internal compose-jobs directory support if needed
+    # For now, jobs are expected to be in external stacks only
+    compose_jobs_base = Path(stack).parent.parent.joinpath("compose-jobs")
+    return compose_jobs_base.joinpath(f"docker-compose-{job_name}.yml")
+
+
 def get_pod_file_path(stack, parsed_stack, pod_name: str):
     pods = parsed_stack["pods"]
     if type(pods[0]) is str:
@@ -128,6 +159,18 @@ def get_pod_file_path(stack, parsed_stack, pod_name: str):
             if pod["name"] == pod_name:
                 pod_root_dir = os.path.join(get_dev_root_path(None), pod["repository"].split("/")[-1], pod["path"])
                 result = os.path.join(pod_root_dir, "docker-compose.yml")
+    return result
+
+
+def get_job_file_path(stack, parsed_stack, job_name: str):
+    if "jobs" not in parsed_stack or not parsed_stack["jobs"]:
+        return None
+    jobs = parsed_stack["jobs"]
+    if type(jobs[0]) is str:
+        result = resolve_job_compose_file(stack, job_name)
+    else:
+        # TODO: Support complex job definitions if needed
+        result = resolve_job_compose_file(stack, job_name)
     return result
 
 

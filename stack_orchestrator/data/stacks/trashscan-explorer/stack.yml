@@ -1,0 +1,9 @@
+version: "1.0"
+name: trashscan-explorer
+description: "TrashScan blockchain explorer for Gorbagana mainnet"
+repos:
+  - github.com/gorbagana-dev/TrashScan-Explorer
+containers:
+  - cerc/trashscan-explorer
+pods:
+  - trashscan-explorer

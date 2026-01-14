@@ -1,0 +1,47 @@
+services:
+  trashscan-db:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${TRASHSCAN_DB_USER:-trashscan}
+      POSTGRES_PASSWORD: ${TRASHSCAN_DB_PASSWORD:-password}
+      POSTGRES_DB: ${TRASHSCAN_DB_NAME:-trashscan}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+    volumes:
+      - trashscan_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "trashscan"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  trashscan-explorer:
+    image: cerc/trashscan-explorer:local
+    restart: unless-stopped
+    depends_on:
+      trashscan-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-postgres://trashscan:password@trashscan-db:5432/trashscan}
+      PORT: ${TRASHSCAN_PORT:-5000}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+      RPC_URL: ${RPC_URL:-https://rpc.trashscan.io/}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+    ports:
+      - "${TRASHSCAN_HOST_PORT:-5001}:5000"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  trashscan_db_data:

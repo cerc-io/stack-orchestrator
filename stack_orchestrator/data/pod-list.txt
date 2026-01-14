@@ -45,3 +45,4 @@ ponder
 ipld-eth-server-payments
 merkl-sushiswap-v3
 sushiswap-v3
+trashscan-explorer

@@ -50,3 +50,4 @@ github.com/cerc-io/ponder
 github.com/cerc-io/merkl-sushiswap-v3-watcher-ts
 github.com/cerc-io/sushiswap-v3-watcher-ts
 github.com/cerc-io/uniswap-interface
+github.com/gorbagana-dev/TrashScan-Explorer

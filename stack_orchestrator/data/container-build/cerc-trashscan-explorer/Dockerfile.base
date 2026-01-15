@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     make \
     g++ \
     git \
+    imagemagick \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -15,6 +16,25 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+
+# Create placeholder assets if missing (required for build)
+RUN mkdir -p attached_assets && \
+    cd attached_assets && \
+    for f in sticker2_1755759744667.webp sticker23_1755237287920.webp gormain_1759315091728.webp; do \
+        [ ! -f "$f" ] && convert -size 200x200 xc:gray "$f" 2>/dev/null || true; \
+    done && \
+    for f in canvas_1758470431079.png 6940a1305f6e525130bf_1762958059343.png icon_1763016116252.png \
+             image_1763473142686.png image_1763533198459.png trash-coin-with-text_1763537605889.png \
+             trashbun-logo.png Perps_1755290078134.png e6bf0fb3-0a22-485b-acd2-46e987e98c8f_1755633493962.png \
+             LendingBorrwing_1755289821275.png LaunchPad_1755289631741.png breakgorbagana_1755290274068.png \
+             "Gor Swap_1755289631741.png" bridge_1755289631741.png NFTMarketplace_1755289909254.png; do \
+        [ ! -f "$f" ] && convert -size 200x200 xc:gray "$f" 2>/dev/null || true; \
+    done && \
+    for f in gor-incinerator-logo.jpg; do \
+        [ ! -f "$f" ] && convert -size 200x200 xc:gray "$f" 2>/dev/null || true; \
+    done && \
+    [ ! -f "maintenance1_1759314383900.mp3" ] && printf '\xff\xfb\x90\x00' > maintenance1_1759314383900.mp3 || true
+
 RUN npm run build
 
 # Stage 2: Production runtime
@@ -27,9 +47,13 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY --from=builder /app/package*.json ./
-# Install production deps + vite (needed for server runtime even in prod due to module import structure)
-RUN npm ci --omit=dev && npm install vite
+COPY --from=builder /app/drizzle.config.ts ./
+COPY --from=builder /app/shared ./shared
+# Install production deps + vite + drizzle-kit (needed for migrations and server runtime)
+RUN npm ci --omit=dev && npm install vite drizzle-kit
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/attached_assets ./attached_assets
 
 EXPOSE 5000

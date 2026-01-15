@@ -36,7 +36,7 @@ fi
 # Run database migrations if needed
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     echo "Running database migrations..."
-    npm run db:push 2>/dev/null || echo "No migration script found or migration failed, continuing..."
+    npx drizzle-kit push --config=drizzle.config.ts 2>&1 || echo "Migration warning (tables may already exist), continuing..."
 fi
 
 # Start the application

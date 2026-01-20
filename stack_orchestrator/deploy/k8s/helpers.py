@@ -45,30 +45,55 @@ def destroy_cluster(name: str):
     _run_command(f"kind delete cluster --name {name}")
 
 
-def wait_for_ingress_in_kind():
+def wait_for_ingress_in_kind(ingress_type="caddy"):
+    """Wait for ingress controller to become ready.
+
+    Args:
+        ingress_type: "caddy" or "nginx" - determines which namespace and labels to check
+    """
     core_v1 = client.CoreV1Api()
+
+    if ingress_type == "caddy":
+        namespace = "caddy-system"
+        label_selector = "app.kubernetes.io/component=controller"
+    else:
+        namespace = "ingress-nginx"
+        label_selector = "app.kubernetes.io/component=controller"
+
     for i in range(20):
         warned_waiting = False
         w = watch.Watch()
         for event in w.stream(func=core_v1.list_namespaced_pod,
-                              namespace="ingress-nginx",
-                              label_selector="app.kubernetes.io/component=controller",
+                              namespace=namespace,
+                              label_selector=label_selector,
                               timeout_seconds=30):
             if event['object'].status.container_statuses:
                 if event['object'].status.container_statuses[0].ready is True:
                     if warned_waiting:
-                        print("Ingress controller is ready")
+                        print(f"{ingress_type.capitalize()} ingress controller is ready")
                     return
-            print("Waiting for ingress controller to become ready...")
+            print(f"Waiting for {ingress_type} ingress controller to become ready...")
             warned_waiting = True
-    error_exit("ERROR: Timed out waiting for ingress to become ready")
+    error_exit(f"ERROR: Timed out waiting for {ingress_type} ingress to become ready")
 
 
-def install_ingress_for_kind():
+def install_ingress_for_kind(ingress_type="caddy"):
+    """Install ingress controller in kind cluster.
+
+    Args:
+        ingress_type: "caddy" or "nginx" - determines which ingress controller to install
+    """
     api_client = client.ApiClient()
-    ingress_install = os.path.abspath(get_k8s_dir().joinpath("components", "ingress", "ingress-nginx-kind-deploy.yaml"))
-    if opts.o.debug:
-        print("Installing nginx ingress controller in kind cluster")
+
+    if ingress_type == "caddy":
+        ingress_install = os.path.abspath(get_k8s_dir().joinpath("components", "ingress", "ingress-caddy-kind-deploy.yaml"))
+        if opts.o.debug:
+            print("Installing Caddy ingress controller in kind cluster")
+    else:
+        ingress_install = os.path.abspath(get_k8s_dir().joinpath("components", "ingress", "ingress-nginx-kind-deploy.yaml"))
+        if opts.o.debug:
+            print("Installing nginx ingress controller in kind cluster")
+
     utils.create_from_yaml(api_client, yaml_file=ingress_install)
 
 
@@ -251,9 +276,9 @@ def _generate_kind_port_mappings_from_services(parsed_pod_files):
 
 def _generate_kind_port_mappings(parsed_pod_files):
     port_definitions = []
-    # For now we just map port 80 for the nginx ingress controller we install in kind
-    port_string = "80"
-    port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
+    # Map port 80 (HTTP) and 443 (HTTPS) for the ingress controller
+    for port_string in ["80", "443"]:
+        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
     return (
         "" if len(port_definitions) == 0 else (
             "  extraPortMappings:\n"

@@ -162,10 +162,12 @@ class ClusterInfo:
             )
 
             ingress_annotations = {
-                "kubernetes.io/ingress.class": "nginx",
+                "kubernetes.io/ingress.class": "caddy",
             }
-            if not certificate:
-                ingress_annotations["cert-manager.io/cluster-issuer"] = cluster_issuer
+            # Note: Caddy handles TLS automatically via Let's Encrypt, no cert-manager needed
+            if not certificate and cluster_issuer:
+                # Only add cert-manager annotation if using nginx ingress with cert-manager
+                pass  # Caddy handles certificates automatically
 
             ingress = client.V1Ingress(
                 metadata=client.V1ObjectMeta(

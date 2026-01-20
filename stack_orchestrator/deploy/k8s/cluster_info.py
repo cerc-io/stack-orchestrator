@@ -354,7 +354,7 @@ class ClusterInfo:
                         print(f"service ports: {container_ports}")
                 merged_envs = merge_envs(
                     envs_from_compose_file(
-                        service_info["environment"]), self.environment_variables.map
+                        service_info["environment"], self.environment_variables.map), self.environment_variables.map
                 ) if "environment" in service_info else self.environment_variables.map
                 envs = envs_from_environment_variables_map(merged_envs)
                 if opts.o.debug:

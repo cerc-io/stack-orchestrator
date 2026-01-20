@@ -175,7 +175,7 @@ spec:
           operator: Equal
       containers:
         - name: caddy-ingress-controller
-          image: ghcr.io/caddyserver/ingress:latest
+          image: caddy/ingress:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

@@ -35,10 +35,51 @@ def _run_command(command: str):
     return result
 
 
+def get_kind_cluster():
+    """Get an existing kind cluster, if any.
+
+    Uses `kind get clusters` to find existing clusters.
+    Returns the cluster name or None if no cluster exists.
+    """
+    result = subprocess.run(
+        "kind get clusters",
+        shell=True,
+        capture_output=True,
+        text=True
+    )
+    if result.returncode != 0:
+        return None
+
+    clusters = result.stdout.strip().splitlines()
+    if clusters:
+        return clusters[0]  # Return the first cluster found
+    return None
+
+
 def create_cluster(name: str, config_file: str):
+    """Create a kind cluster, or reuse an existing one.
+
+    Checks if any kind cluster already exists. If so, uses that cluster
+    instead of creating a new one. This allows multiple deployments to
+    share the same kind cluster.
+
+    Args:
+        name: The desired cluster name (used only if creating new)
+        config_file: Path to kind config file (used only if creating new)
+
+    Returns:
+        The name of the cluster being used (either existing or newly created)
+    """
+    existing = get_kind_cluster()
+    if existing:
+        print(f"Using existing cluster: {existing}")
+        return existing
+
+    print(f"Creating new cluster: {name}")
     result = _run_command(f"kind create cluster --name {name} --config {config_file}")
     if result.returncode != 0:
         raise DeployerException(f"kind create cluster failed: {result}")
+    return name
 
 
 def destroy_cluster(name: str):

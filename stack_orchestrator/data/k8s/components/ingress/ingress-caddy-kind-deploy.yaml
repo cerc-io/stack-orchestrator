@@ -33,13 +33,23 @@ rules:
       - endpoints
       - nodes
       - pods
-      - secrets
       - namespaces
       - services
     verbs:
       - list
       - watch
       - get
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - list
+      - watch
+      - get
+      - create
+      - update
+      - delete
   - apiGroups:
       - ""
     resources:

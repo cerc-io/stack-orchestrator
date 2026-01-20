@@ -231,7 +231,8 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
             volumes = parsed_pod_file["volumes"]
             for volume_name in volumes.keys():
                 if volume_name in spec.get_configmaps():
-                    config_map = client.V1ConfigMapVolumeSource(name=f"{app_name}-{volume_name}")
+                    # Set defaultMode=0o755 to make scripts executable
+                    config_map = client.V1ConfigMapVolumeSource(name=f"{app_name}-{volume_name}", default_mode=0o755)
                     volume = client.V1Volume(name=volume_name, config_map=config_map)
                     result.append(volume)
                 else:

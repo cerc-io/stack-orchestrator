@@ -366,10 +366,22 @@ class ClusterInfo:
                     self.spec.get_image_registry(),
                     self.app_name) if self.spec.get_image_registry() is not None else image
                 volume_mounts = volume_mounts_for_service(self.parsed_pod_yaml_map, service_name)
+                # Handle command/entrypoint from compose file
+                # In docker-compose: entrypoint -> k8s command, command -> k8s args
+                container_command = None
+                container_args = None
+                if "entrypoint" in service_info:
+                    entrypoint = service_info["entrypoint"]
+                    container_command = entrypoint if isinstance(entrypoint, list) else [entrypoint]
+                if "command" in service_info:
+                    cmd = service_info["command"]
+                    container_args = cmd if isinstance(cmd, list) else cmd.split()
                 container = client.V1Container(
                     name=container_name,
                     image=image_to_use,
                     image_pull_policy=image_pull_policy,
+                    command=container_command,
+                    args=container_args,
                     env=envs,
                     ports=container_ports if container_ports else None,
                     volume_mounts=volume_mounts,

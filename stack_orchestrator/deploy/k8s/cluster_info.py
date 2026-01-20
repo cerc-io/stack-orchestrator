@@ -34,8 +34,8 @@ DEFAULT_VOLUME_RESOURCES = Resources({
 })
 
 DEFAULT_CONTAINER_RESOURCES = Resources({
-    "reservations": {"cpus": "0.1", "memory": "200M"},
-    "limits": {"cpus": "1.0", "memory": "2000M"},
+    "reservations": {"cpus": "1.0", "memory": "2000M"},
+    "limits": {"cpus": "4.0", "memory": "8000M"},
 })
 
 

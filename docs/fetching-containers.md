@@ -1,5 +1,5 @@
 # Fetching pre-built container images
-When Stack Orchestrator deploys a stack containing a suite of one or more containers it expects images for those containers to be on the local machine with a tag of the form `<image-name>:local` Images for these containers can be built from source (and optionally base container images from public registries) with the `build-containers` subcommand. 
+When Stack Orchestrator deploys a stack containing a suite of one or more containers it expects images for those containers to be on the local machine with a tag of the form `<image-name>:local` Images for these containers can be built from source (and optionally base container images from public registries) with the `build-containers` subcommand.
 
 However, the task of building a large number of containers from source may consume considerable time and machine resources. This is where the `fetch-containers` subcommand steps in. It is designed to work exactly like `build-containers` but instead the images, pre-built, are fetched from an image registry then re-tagged for deployment. It can be used in place of `build-containers` for any stack provided the necessary containers, built for the local machine architecture (e.g. arm64 or x86-64) have already been published in an image registry.
 ## Usage

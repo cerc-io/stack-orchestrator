@@ -7,7 +7,7 @@ We will use the [ethereum-gravatar](https://github.com/graphprotocol/graph-tooli
 - Clone the repo
   ```bash
   git clone git@github.com:graphprotocol/graph-tooling.git
-  
+
   cd graph-tooling
   ```
 
@@ -54,11 +54,11 @@ The following steps should be similar for every subgraph
 - Create and deploy the subgraph
   ```bash
   pnpm graph create example --node <GRAPH_NODE_DEPLOY_ENDPOINT>
-  
+
   pnpm graph deploy example --ipfs <GRAPH_NODE_IPFS_ENDPOINT> --node <GRAPH_NODE_DEPLOY_ENDPOINT>
   ```
   - `GRAPH_NODE_DEPLOY_ENDPOINT` and `GRAPH_NODE_IPFS_ENDPOINT` will be available after graph-node has been deployed
-  - More details can be seen in [Create a deployment](./README.md#create-a-deployment) section 
+  - More details can be seen in [Create a deployment](./README.md#create-a-deployment) section
 
 - The subgraph GQL endpoint will be seen after deploy command runs successfully
 

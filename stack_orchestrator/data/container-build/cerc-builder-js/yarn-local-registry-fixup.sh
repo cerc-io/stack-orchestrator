@@ -23,7 +23,7 @@ local_npm_registry_url=$2
 versioned_target_package=$(yarn list --pattern ${target_package} --depth=0 --json --non-interactive --no-progress | jq -r '.data.trees[].name')
 # Use yarn info to get URL checksums etc from the new registry
 yarn_info_output=$(yarn info --json $versioned_target_package 2>/dev/null)
-# First check if the target version actually exists. 
+# First check if the target version actually exists.
 # If it doesn't exist there will be no .data.dist.tarball element,
 # and jq will output the string "null"
 package_tarball=$(echo $yarn_info_output | jq -r .data.dist.tarball)

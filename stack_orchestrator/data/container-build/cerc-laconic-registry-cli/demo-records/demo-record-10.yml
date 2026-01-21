@@ -11,4 +11,4 @@ record:
     foo: bar
   tags:
     - a
-    - b 
+    - b

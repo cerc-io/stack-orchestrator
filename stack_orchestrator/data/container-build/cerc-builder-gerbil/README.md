@@ -18,4 +18,3 @@ root@7c4124bb09e3:/src#
 ```
 
 Now gerbil commands can be run.
-

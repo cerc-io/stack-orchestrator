@@ -79,7 +79,7 @@ def _find_latest(candidate_tags: List[str]):
     return sorted_candidates[-1]
 
 
-def _filter_for_platform(container: str, 
+def _filter_for_platform(container: str,
                          registry_info: RegistryInfo,
                          tag_list: List[str]) -> List[str] :
     filtered_tags = []

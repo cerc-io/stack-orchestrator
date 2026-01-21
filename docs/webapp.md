@@ -7,7 +7,7 @@ compilation and static page generation are separated in the `build-webapp` and `
 
 This offers much more flexibilty than standard Next.js build methods, since any environment variables accessed
 via `process.env`, whether for pages or for API, will have values drawn from their runtime deployment environment,
-not their build environment. 
+not their build environment.
 
 ## Building
 

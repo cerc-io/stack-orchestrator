@@ -14,7 +14,7 @@ echo ACCOUNT_PRIVATE_KEY=${CERC_PRIVATE_KEY_DEPLOYER} >> .env
 if [ -f ${erc20_address_file} ]; then
   echo "${erc20_address_file} already exists, skipping ERC20 contract deployment"
   cat ${erc20_address_file}
-  
+
   # Keep the container running
   tail -f
 fi

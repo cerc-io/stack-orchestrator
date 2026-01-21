@@ -128,7 +128,7 @@ Stack components:
       removed
       topics
       transactionHash
-      transactionIndex 
+      transactionIndex
     }
 
     getEthBlock(
@@ -211,14 +211,14 @@ Stack components:
         hash
       }
       log {
-        id 
+        id
       }
       block {
         number
       }
     }
     metadata {
-      pageEndsAtTimestamp	
+      pageEndsAtTimestamp
       isLastPage
     }
   }
@@ -227,7 +227,7 @@ Stack components:
 * Open watcher Ponder app endpoint http://localhost:42069
 
   * Try GQL query to see transfer events
-    
+
     ```graphql
     {
       transferEvents (orderBy: "timestamp", orderDirection: "desc") {
@@ -251,9 +251,9 @@ Stack components:
     ```bash
     export TOKEN_ADDRESS=$(docker exec payments-ponder-er20-contracts-1 jq -r '.address' ./deployment/erc20-address.json)
     ```
-  
+
   * Transfer token
-  
+
     ```bash
     docker exec -it payments-ponder-er20-contracts-1 bash -c "yarn token:transfer:docker --token ${TOKEN_ADDRESS} --to 0xe22AD83A0dE117bA0d03d5E94Eb4E0d80a69C62a --amount 5000"
     ```

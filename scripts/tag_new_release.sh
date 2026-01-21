@@ -3,7 +3,7 @@
 # Uses this script package to tag a new release:
 # User must define: CERC_GH_RELEASE_SCRIPTS_DIR
 # pointing to the location of that cloned repository
-# e.g. 
+# e.g.
 # cd ~/projects
 # git clone https://github.com/cerc-io/github-release-api
 # cd ./stack-orchestrator

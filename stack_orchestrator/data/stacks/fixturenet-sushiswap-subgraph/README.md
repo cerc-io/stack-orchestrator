@@ -154,12 +154,12 @@ http://127.0.0.1:<HOST_PORT>/subgraphs/name/sushiswap/v3-lotus/graphql
       deployment
       hasIndexingErrors
     }
-    
+
     factories {
       poolCount
       id
     }
-    
+
     pools {
       id
       token0 {

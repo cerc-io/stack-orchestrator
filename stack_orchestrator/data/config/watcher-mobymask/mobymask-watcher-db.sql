@@ -940,4 +940,3 @@ ALTER TABLE ONLY public.state
 --
 -- PostgreSQL database dump complete
 --
-

@@ -15,7 +15,7 @@ echo "Test version command"
 reported_version_string=$( $TEST_TARGET_SO version )
 echo "Version reported is: ${reported_version_string}"
 echo "Cloning repositories into: $CERC_REPO_BASE_DIR"
-$TEST_TARGET_SO --stack mainnet-eth setup-repositories 
+$TEST_TARGET_SO --stack mainnet-eth setup-repositories
 $TEST_TARGET_SO --stack mainnet-eth build-containers
 $TEST_TARGET_SO --stack mainnet-eth deploy init --output mainnet-eth-spec.yml
 $TEST_TARGET_SO deploy create --spec-file mainnet-eth-spec.yml --deployment-dir $DEPLOYMENT_DIR

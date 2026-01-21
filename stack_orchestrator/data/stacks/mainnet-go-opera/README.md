@@ -36,9 +36,9 @@ laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | 'mainnet-109331-no-histor
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.034] Maximum peer count                       total=50
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.034] Smartcard socket not found, disabling    err="stat /run/pcscd/pcscd.comm: no such file or directory"
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.034] Genesis file is a known preset           name="Mainnet-109331 without history"
-laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.052] Applying genesis state 
-laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.052] - Reading epochs unit 0 
-laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.054] - Reading blocks unit 0 
+laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.052] Applying genesis state
+laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.052] - Reading epochs unit 0
+laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.054] - Reading blocks unit 0
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.530] Applied genesis state                    name=main                             id=250 genesis=0x4a53c5445584b3bfc20dbfb2ec18ae20037c716f3ba2d9e1da768a9deca17cb4
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.531] Regenerated local transaction journal    transactions=0 accounts=0
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.532] Starting peer-to-peer node               instance=go-opera/v1.1.2-rc.5-50cd051d-1677276206/linux-amd64/go1.19.10
@@ -47,7 +47,7 @@ laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.537]
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.537] IPC endpoint opened                      url=/root/.opera/opera.ipc
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.538] HTTP server started                      endpoint=[::]:18545 prefix= cors=* vhosts=localhost
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.538] WebSocket enabled                        url=ws://[::]:18546
-laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.538] Rebuilding state snapshot 
+laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.538] Rebuilding state snapshot
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.538] EVM snapshot                             module=gossip-store at=000000..000000 generating=true
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.538] Resuming state snapshot generation       accounts=0 slots=0 storage=0.00B elapsed="189.74µs"
 laconic-f028f14527b95e2eb97f0c0229d00939-go-opera-1  | INFO [06-20|13:32:33.538] Generated state snapshot                 accounts=0 slots=0 storage=0.00B elapsed="265.061µs"

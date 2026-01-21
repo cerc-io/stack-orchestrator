@@ -7,7 +7,7 @@ Deploy a local Gitea server, publish NPM packages to it, then use those packages
 ```bash
 laconic-so --stack build-support build-containers
 laconic-so --stack package-registry setup-repositories
-laconic-so --stack package-registry build-containers 
+laconic-so --stack package-registry build-containers
 laconic-so --stack package-registry deploy up
 ```
 

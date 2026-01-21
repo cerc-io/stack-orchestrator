@@ -6,7 +6,7 @@ JS/TS/NPM builds need an npm registry to store intermediate package artifacts.
 This can be supplied by the user (e.g. using a hosted registry or even npmjs.com), or a local registry using gitea can be deployed by stack orchestrator.
 To use a user-supplied registry set these environment variables:
 
-`CERC_NPM_REGISTRY_URL` and 
+`CERC_NPM_REGISTRY_URL` and
 `CERC_NPM_AUTH_TOKEN`
 
 Leave `CERC_NPM_REGISTRY_URL` un-set to use the local gitea registry.
@@ -22,7 +22,7 @@ $ laconic-so --stack build-support build-containers
 
 ```
 $ laconic-so --stack package-registry setup-repositories
-$ laconic-so --stack package-registry build-containers 
+$ laconic-so --stack package-registry build-containers
 $ laconic-so --stack package-registry deploy up
 [+] Running 3/3
  ⠿ Network laconic-aecc4a21d3a502b14522db97d427e850_gitea       Created                                                                                    0.0s

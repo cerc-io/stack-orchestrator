@@ -4,9 +4,9 @@ Note: this page is out of date (but still useful) - it will no longer be useful 
 
 ## Implementation
 
-The orchestrator's operation is driven by files shown below. 
+The orchestrator's operation is driven by files shown below.
 
-- `repository-list.txt` contains the list of git repositories; 
+- `repository-list.txt` contains the list of git repositories;
 - `container-image-list.txt` contains the list of container image names
 - `pod-list.txt` specifies the set of compose components (corresponding to individual docker-compose-xxx.yml files which may in turn specify more than one container).
 - `container-build/` contains the files required to build each container image

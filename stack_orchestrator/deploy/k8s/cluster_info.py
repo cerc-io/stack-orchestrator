@@ -34,8 +34,8 @@ DEFAULT_VOLUME_RESOURCES = Resources({
 })
 
 DEFAULT_CONTAINER_RESOURCES = Resources({
-    "reservations": {"cpus": "0.1", "memory": "200M"},
-    "limits": {"cpus": "1.0", "memory": "2000M"},
+    "reservations": {"cpus": "1.0", "memory": "2000M"},
+    "limits": {"cpus": "4.0", "memory": "8000M"},
 })
 
 
@@ -90,23 +90,30 @@ class ClusterInfo:
                     for raw_port in [str(p) for p in service_info["ports"]]:
                         if opts.o.debug:
                             print(f"service port: {raw_port}")
-                        if ":" in raw_port:
-                            parts = raw_port.split(":")
+                        # Parse protocol suffix (e.g., "8001/udp" -> port=8001, protocol=UDP)
+                        protocol = "TCP"
+                        port_str = raw_port
+                        if "/" in raw_port:
+                            port_str, proto = raw_port.rsplit("/", 1)
+                            protocol = proto.upper()
+                        if ":" in port_str:
+                            parts = port_str.split(":")
                             if len(parts) != 2:
                                 raise Exception(f"Invalid port definition: {raw_port}")
                             node_port = int(parts[0])
                             pod_port = int(parts[1])
                         else:
                             node_port = None
-                            pod_port = int(raw_port)
+                            pod_port = int(port_str)
                         service = client.V1Service(
-                            metadata=client.V1ObjectMeta(name=f"{self.app_name}-nodeport-{pod_port}"),
+                            metadata=client.V1ObjectMeta(name=f"{self.app_name}-nodeport-{pod_port}-{protocol.lower()}"),
                             spec=client.V1ServiceSpec(
                                 type="NodePort",
                                 ports=[client.V1ServicePort(
                                     port=pod_port,
                                     target_port=pod_port,
-                                    node_port=node_port
+                                    node_port=node_port,
+                                    protocol=protocol
                                 )],
                                 selector={"app": self.app_name}
                             )
@@ -326,14 +333,26 @@ class ClusterInfo:
                 container_name = service_name
                 service_info = services[service_name]
                 image = service_info["image"]
+                container_ports = []
                 if "ports" in service_info:
-                    port = int(service_info["ports"][0])
+                    for raw_port in [str(p) for p in service_info["ports"]]:
+                        # Parse protocol suffix (e.g., "8001/udp" -> port=8001, protocol=UDP)
+                        protocol = "TCP"
+                        port_str = raw_port
+                        if "/" in raw_port:
+                            port_str, proto = raw_port.rsplit("/", 1)
+                            protocol = proto.upper()
+                        # Handle host:container port mapping - use container port
+                        if ":" in port_str:
+                            port_str = port_str.split(":")[-1]
+                        port = int(port_str)
+                        container_ports.append(client.V1ContainerPort(container_port=port, protocol=protocol))
                     if opts.o.debug:
                         print(f"image: {image}")
-                        print(f"service port: {port}")
+                        print(f"service ports: {container_ports}")
                 merged_envs = merge_envs(
                     envs_from_compose_file(
-                        service_info["environment"]), self.environment_variables.map
+                        service_info["environment"], self.environment_variables.map), self.environment_variables.map
                 ) if "environment" in service_info else self.environment_variables.map
                 envs = envs_from_environment_variables_map(merged_envs)
                 if opts.o.debug:
@@ -345,12 +364,24 @@ class ClusterInfo:
                     self.spec.get_image_registry(),
                     self.app_name) if self.spec.get_image_registry() is not None else image
                 volume_mounts = volume_mounts_for_service(self.parsed_pod_yaml_map, service_name)
+                # Handle command/entrypoint from compose file
+                # In docker-compose: entrypoint -> k8s command, command -> k8s args
+                container_command = None
+                container_args = None
+                if "entrypoint" in service_info:
+                    entrypoint = service_info["entrypoint"]
+                    container_command = entrypoint if isinstance(entrypoint, list) else [entrypoint]
+                if "command" in service_info:
+                    cmd = service_info["command"]
+                    container_args = cmd if isinstance(cmd, list) else cmd.split()
                 container = client.V1Container(
                     name=container_name,
                     image=image_to_use,
                     image_pull_policy=image_pull_policy,
+                    command=container_command,
+                    args=container_args,
                     env=envs,
-                    ports=[client.V1ContainerPort(container_port=port)],
+                    ports=container_ports if container_ports else None,
                     volume_mounts=volume_mounts,
                     security_context=client.V1SecurityContext(
                         privileged=self.spec.get_privileged(),

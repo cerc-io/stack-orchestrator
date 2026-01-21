@@ -42,6 +42,7 @@ from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.deployment_create import create as deployment_create
 from stack_orchestrator.deploy.deployment_create import init as deployment_init
 from stack_orchestrator.deploy.deployment_create import setup as deployment_setup
+from stack_orchestrator.deploy.k8s import k8s_command
 
 
 @click.group()
@@ -53,6 +54,10 @@ from stack_orchestrator.deploy.deployment_create import setup as deployment_setu
 @click.pass_context
 def command(ctx, include, exclude, env_file, cluster, deploy_to):
     '''deploy a stack'''
+
+    # k8s subcommand doesn't require a stack
+    if ctx.invoked_subcommand == "k8s":
+        return
 
     # Although in theory for some subcommands (e.g. deploy create) the stack can be inferred,
     # Click doesn't allow us to know that here, so we make providing the stack mandatory
@@ -486,3 +491,4 @@ def _orchestrate_cluster_config(ctx, cluster_config, deployer, container_exec_en
 command.add_command(deployment_init)
 command.add_command(deployment_create)
 command.add_command(deployment_setup)
+command.add_command(k8s_command.command, "k8s")

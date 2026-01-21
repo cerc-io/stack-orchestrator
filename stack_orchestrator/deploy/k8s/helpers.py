@@ -165,7 +165,8 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
             volumes = parsed_pod_file["volumes"]
             for volume_name in volumes.keys():
                 if volume_name in spec.get_configmaps():
-                    config_map = client.V1ConfigMapVolumeSource(name=f"{app_name}-{volume_name}")
+                    # Set defaultMode=0o755 to make scripts executable
+                    config_map = client.V1ConfigMapVolumeSource(name=f"{app_name}-{volume_name}", default_mode=0o755)
                     volume = client.V1Volume(name=volume_name, config_map=config_map)
                     result.append(volume)
                 else:
@@ -268,23 +269,34 @@ def merge_envs(a: Mapping[str, str], b: Mapping[str, str]) -> Mapping[str, str]:
     return result
 
 
-def _expand_shell_vars(raw_val: str) -> str:
-    # could be: <string> or ${<env-var-name>} or ${<env-var-name>:-<default-value>}
-    # TODO: implement support for variable substitution and default values
-    # if raw_val is like ${<something>} print a warning and substitute an empty string
-    # otherwise return raw_val
-    match = re.search(r"^\$\{(.*)\}$", raw_val)
+def _expand_shell_vars(raw_val: str, env_map: Mapping[str, str] = None) -> str:
+    # Expand docker-compose style variable substitution:
+    # ${VAR} - use VAR value or empty string
+    # ${VAR:-default} - use VAR value or default if unset/empty
+    # ${VAR-default} - use VAR value or default if unset
+    if env_map is None:
+        env_map = {}
+    if raw_val is None:
+        return ""
+    match = re.search(r"^\$\{([^}]+)\}$", raw_val)
     if match:
-        print(f"WARNING: found unimplemented environment variable substitution: {raw_val}")
-    else:
-        return raw_val
+        inner = match.group(1)
+        # Check for default value syntax
+        if ":-" in inner:
+            var_name, default_val = inner.split(":-", 1)
+            return env_map.get(var_name, "") or default_val
+        elif "-" in inner:
+            var_name, default_val = inner.split("-", 1)
+            return env_map.get(var_name, default_val)
+        else:
+            return env_map.get(inner, "")
+    return raw_val
 
 
-# TODO: handle the case where the same env var is defined in multiple places
-def envs_from_compose_file(compose_file_envs: Mapping[str, str]) -> Mapping[str, str]:
+def envs_from_compose_file(compose_file_envs: Mapping[str, str], env_map: Mapping[str, str] = None) -> Mapping[str, str]:
     result = {}
     for env_var, env_val in compose_file_envs.items():
-        expanded_env_val = _expand_shell_vars(env_val)
+        expanded_env_val = _expand_shell_vars(env_val, env_map)
         result.update({env_var: expanded_env_val})
     return result
 

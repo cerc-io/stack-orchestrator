@@ -368,7 +368,9 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
             spec_file_content.update({"config": merged_config})
 
     ports = _get_mapped_ports(stack, map_ports_to_host)
-    spec_file_content.update({"network": {"ports": ports}})
+    orig_network = spec_file_content.get("network", {})
+    orig_network["ports"] = ports
+    spec_file_content["network"] = orig_network
 
     named_volumes = _get_named_volumes(stack)
     if named_volumes:

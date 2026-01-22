@@ -26,6 +26,27 @@ from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file
 from stack_orchestrator.deploy.deployer import DeployerException
 
 
+def get_kind_cluster():
+    """Get an existing kind cluster, if any.
+
+    Uses `kind get clusters` to find existing clusters.
+    Returns the cluster name or None if no cluster exists.
+    """
+    result = subprocess.run(
+        "kind get clusters",
+        shell=True,
+        capture_output=True,
+        text=True
+    )
+    if result.returncode != 0:
+        return None
+
+    clusters = result.stdout.strip().splitlines()
+    if clusters:
+        return clusters[0]  # Return the first cluster found
+    return None
+
+
 def _run_command(command: str):
     if opts.o.debug:
         print(f"Running: {command}")

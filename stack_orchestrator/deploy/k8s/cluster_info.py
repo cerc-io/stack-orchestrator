@@ -201,7 +201,7 @@ class ClusterInfo:
             spec = client.V1IngressSpec(tls=tls, rules=rules)
 
             ingress_annotations = {
-                "kubernetes.io/ingress.class": "nginx",
+                "kubernetes.io/ingress.class": "caddy",
             }
             if not certificate:
                 ingress_annotations["cert-manager.io/cluster-issuer"] = cluster_issuer

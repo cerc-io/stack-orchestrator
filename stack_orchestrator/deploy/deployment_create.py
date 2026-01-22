@@ -533,8 +533,11 @@ def _check_volume_definitions(spec):
 # TODO: Hack
 @click.option("--network-dir", help="Network configuration supplied in this directory")
 @click.option("--initial-peers", help="Initial set of persistent peers")
+@click.argument("extra_args", nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
-def create(ctx, spec_file, deployment_dir, helm_chart, network_dir, initial_peers):
+def create(
+    ctx, spec_file, deployment_dir, helm_chart, network_dir, initial_peers, extra_args
+):
     deployment_command_context = ctx.obj
     return create_operation(
         deployment_command_context,
@@ -543,6 +546,7 @@ def create(ctx, spec_file, deployment_dir, helm_chart, network_dir, initial_peer
         helm_chart,
         network_dir,
         initial_peers,
+        extra_args,
     )
 
 
@@ -555,6 +559,7 @@ def create_operation(
     helm_chart,
     network_dir,
     initial_peers,
+    extra_args=(),
 ):
     parsed_spec = Spec(
         os.path.abspath(spec_file), get_parsed_deployment_spec(spec_file)
@@ -703,7 +708,7 @@ def create_operation(
     if deployer_config_generator is not None:
         deployer_config_generator.generate(deployment_dir_path)
     call_stack_deploy_create(
-        deployment_context, [network_dir, initial_peers, deployment_command_context]
+        deployment_context, [network_dir, initial_peers, *extra_args]
     )
 
 

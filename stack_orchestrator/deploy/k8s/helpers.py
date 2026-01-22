@@ -336,19 +336,159 @@ def generate_high_memlock_spec_json():
 
     The IPC_LOCK capability alone doesn't raise the RLIMIT_MEMLOCK limit - it only
     allows mlock() calls. We need to set the rlimit in the OCI runtime spec.
+
+    IMPORTANT: This must be a complete OCI runtime spec, not just the rlimits
+    section. The spec is based on kind's default cri-base.json with rlimits added.
     """
     import json
 
     # Use maximum 64-bit signed integer value for unlimited
     max_rlimit = 9223372036854775807
+    # Based on kind's /etc/containerd/cri-base.json with rlimits added
     spec = {
-        "ociVersion": "1.0.2-dev",
+        "ociVersion": "1.1.0-rc.1",
         "process": {
+            "user": {"uid": 0, "gid": 0},
+            "cwd": "/",
+            "capabilities": {
+                "bounding": [
+                    "CAP_CHOWN",
+                    "CAP_DAC_OVERRIDE",
+                    "CAP_FSETID",
+                    "CAP_FOWNER",
+                    "CAP_MKNOD",
+                    "CAP_NET_RAW",
+                    "CAP_SETGID",
+                    "CAP_SETUID",
+                    "CAP_SETFCAP",
+                    "CAP_SETPCAP",
+                    "CAP_NET_BIND_SERVICE",
+                    "CAP_SYS_CHROOT",
+                    "CAP_KILL",
+                    "CAP_AUDIT_WRITE",
+                ],
+                "effective": [
+                    "CAP_CHOWN",
+                    "CAP_DAC_OVERRIDE",
+                    "CAP_FSETID",
+                    "CAP_FOWNER",
+                    "CAP_MKNOD",
+                    "CAP_NET_RAW",
+                    "CAP_SETGID",
+                    "CAP_SETUID",
+                    "CAP_SETFCAP",
+                    "CAP_SETPCAP",
+                    "CAP_NET_BIND_SERVICE",
+                    "CAP_SYS_CHROOT",
+                    "CAP_KILL",
+                    "CAP_AUDIT_WRITE",
+                ],
+                "permitted": [
+                    "CAP_CHOWN",
+                    "CAP_DAC_OVERRIDE",
+                    "CAP_FSETID",
+                    "CAP_FOWNER",
+                    "CAP_MKNOD",
+                    "CAP_NET_RAW",
+                    "CAP_SETGID",
+                    "CAP_SETUID",
+                    "CAP_SETFCAP",
+                    "CAP_SETPCAP",
+                    "CAP_NET_BIND_SERVICE",
+                    "CAP_SYS_CHROOT",
+                    "CAP_KILL",
+                    "CAP_AUDIT_WRITE",
+                ],
+            },
             "rlimits": [
                 {"type": "RLIMIT_MEMLOCK", "hard": max_rlimit, "soft": max_rlimit},
                 {"type": "RLIMIT_NOFILE", "hard": 1048576, "soft": 1048576},
-            ]
+            ],
+            "noNewPrivileges": True,
         },
+        "root": {"path": "rootfs"},
+        "mounts": [
+            {
+                "destination": "/proc",
+                "type": "proc",
+                "source": "proc",
+                "options": ["nosuid", "noexec", "nodev"],
+            },
+            {
+                "destination": "/dev",
+                "type": "tmpfs",
+                "source": "tmpfs",
+                "options": ["nosuid", "strictatime", "mode=755", "size=65536k"],
+            },
+            {
+                "destination": "/dev/pts",
+                "type": "devpts",
+                "source": "devpts",
+                "options": [
+                    "nosuid",
+                    "noexec",
+                    "newinstance",
+                    "ptmxmode=0666",
+                    "mode=0620",
+                    "gid=5",
+                ],
+            },
+            {
+                "destination": "/dev/shm",
+                "type": "tmpfs",
+                "source": "shm",
+                "options": ["nosuid", "noexec", "nodev", "mode=1777", "size=65536k"],
+            },
+            {
+                "destination": "/dev/mqueue",
+                "type": "mqueue",
+                "source": "mqueue",
+                "options": ["nosuid", "noexec", "nodev"],
+            },
+            {
+                "destination": "/sys",
+                "type": "sysfs",
+                "source": "sysfs",
+                "options": ["nosuid", "noexec", "nodev", "ro"],
+            },
+            {
+                "destination": "/run",
+                "type": "tmpfs",
+                "source": "tmpfs",
+                "options": ["nosuid", "strictatime", "mode=755", "size=65536k"],
+            },
+        ],
+        "linux": {
+            "resources": {"devices": [{"allow": False, "access": "rwm"}]},
+            "cgroupsPath": "/default",
+            "namespaces": [
+                {"type": "pid"},
+                {"type": "ipc"},
+                {"type": "uts"},
+                {"type": "mount"},
+                {"type": "network"},
+            ],
+            "maskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/sys/firmware",
+                "/proc/scsi",
+            ],
+            "readonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger",
+            ],
+        },
+        "hooks": {"createContainer": [{"path": "/kind/bin/mount-product-files.sh"}]},
     }
     return json.dumps(spec, indent=2)
 

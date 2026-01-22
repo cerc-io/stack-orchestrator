@@ -21,21 +21,21 @@ from stack_orchestrator.deploy.k8s.helpers import get_kind_cluster
 @click.group()
 @click.pass_context
 def command(ctx):
-    '''k8s cluster management commands'''
+    """k8s cluster management commands"""
     pass
 
 
 @command.group()
 @click.pass_context
 def list(ctx):
-    '''list k8s resources'''
+    """list k8s resources"""
     pass
 
 
 @list.command()
 @click.pass_context
 def cluster(ctx):
-    '''Show the existing kind cluster'''
+    """Show the existing kind cluster"""
     existing_cluster = get_kind_cluster()
     if existing_cluster:
         print(existing_cluster)

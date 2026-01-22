@@ -57,7 +57,10 @@ def fatal(msg: str):
 @click.option("--config-ref", help="The ref of an existing config upload to use.")
 @click.option(
     "--make-payment",
-    help="The payment to make (in alnt).  The value should be a number or 'auto' to use the deployer's minimum required payment.",
+    help=(
+        "The payment to make (in alnt). The value should be a number or "
+        "'auto' to use the deployer's minimum required payment."
+    ),
 )
 @click.option(
     "--use-payment", help="The TX id of an existing, unused payment", default=None
@@ -91,7 +94,10 @@ def command(  # noqa: C901
         sys.exit(2)
 
     if auction_id and (make_payment or use_payment):
-        print("Cannot specify --auction-id with --make-payment or --use-payment", file=sys.stderr)
+        print(
+            "Cannot specify --auction-id with --make-payment or --use-payment",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     if env_file and config_ref:
@@ -117,7 +123,10 @@ def command(  # noqa: C901
         # Cross check app against application in the auction record
         auction_app = auction_records_by_id[0].attributes.application
         if auction_app != app:
-            fatal(f"Requested application {app} does not match application from auction record {auction_app}")
+            fatal(
+                f"Requested application {app} does not match application "
+                f"from auction record {auction_app}"
+            )
 
         # Fetch auction details
         auction = laconic.get_auction(auction_id)
@@ -130,7 +139,9 @@ def command(  # noqa: C901
 
         # Check auction kind
         if auction.kind != AUCTION_KIND_PROVIDER:
-            fatal(f"Auction kind needs to be ${AUCTION_KIND_PROVIDER}, got {auction.kind}")
+            fatal(
+                f"Auction kind needs to be ${AUCTION_KIND_PROVIDER}, got {auction.kind}"
+            )
 
         # Check auction status
         if auction.status != AuctionStatus.COMPLETED:
@@ -145,9 +156,14 @@ def command(  # noqa: C901
         # Get deployer record for all the auction winners
         for auction_winner in auction_winners:
             # TODO: Match auction winner address with provider address?
-            deployer_records_by_owner = laconic.webapp_deployers({"paymentAddress": auction_winner})
+            deployer_records_by_owner = laconic.webapp_deployers(
+                {"paymentAddress": auction_winner}
+            )
             if len(deployer_records_by_owner) == 0:
-                print(f"WARNING: Unable to locate deployer for auction winner {auction_winner}")
+                print(
+                    f"WARNING: Unable to locate deployer for auction winner "
+                    f"{auction_winner}"
+                )
 
             # Take first record with name set
             target_deployer_record = deployer_records_by_owner[0]

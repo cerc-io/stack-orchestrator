@@ -51,7 +51,8 @@ def process_app_removal_request(
     if not os.path.exists(deployment_dir):
         raise Exception("Deployment directory %s does not exist." % deployment_dir)
 
-    # Check if the removal request is from the owner of the DnsRecord or deployment record.
+    # Check if the removal request is from the owner of the DnsRecord or
+    # deployment record.
     matched_owner = match_owner(app_removal_request, deployment_record, dns_record)
 
     # Or of the original deployment request.
@@ -69,9 +70,10 @@ def process_app_removal_request(
             % (deployment_record.id, app_removal_request.id)
         )
 
-    # TODO(telackey): Call the function directly.  The easiest way to build the correct click context is to
-    # exec the process, but it would be better to refactor so we could just call down_operation with the
-    # necessary parameters
+    # TODO(telackey): Call the function directly. The easiest way to build
+    # the correct click context is to exec the process, but it would be better
+    # to refactor so we could just call down_operation with the necessary
+    # parameters
     down_command = [sys.argv[0], "deployment", "--dir", deployment_dir, "down"]
     if delete_volumes:
         down_command.append("--delete-volumes")
@@ -179,7 +181,9 @@ def dump_known_requests(filename, requests):
     is_flag=True,
 )
 @click.option(
-    "--registry-lock-file", help="File path to use for registry mutex lock", default=None
+    "--registry-lock-file",
+    help="File path to use for registry mutex lock",
+    default=None,
 )
 @click.pass_context
 def command(  # noqa: C901
@@ -216,14 +220,17 @@ def command(  # noqa: C901
     include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
     exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
-    laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file)
+    laconic = LaconicRegistryClient(
+        laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file
+    )
     deployer_record = laconic.get_record(lrn, require=True)
     payment_address = deployer_record.attributes.paymentAddress
     main_logger.log(f"Payment address: {payment_address}")
 
     if min_required_payment and not payment_address:
         print(
-            f"Minimum payment required, but no payment address listed for deployer: {lrn}.",
+            f"Minimum payment required, but no payment address listed "
+            f"for deployer: {lrn}.",
             file=sys.stderr,
         )
         sys.exit(2)
@@ -286,21 +293,25 @@ def command(  # noqa: C901
         try:
             if r.attributes.deployment not in named_deployments:
                 main_logger.log(
-                    f"Skipping removal request {r.id} for {r.attributes.deployment} because it does"
-                    f"not appear to refer to a live, named deployment."
+                    f"Skipping removal request {r.id} for "
+                    f"{r.attributes.deployment} because it does not appear to "
+                    "refer to a live, named deployment."
                 )
             elif skip_by_tag(r, include_tags, exclude_tags):
                 main_logger.log(
-                    "Skipping removal request %s, filtered by tag (include %s, exclude %s, present %s)"
+                    "Skipping removal request %s, filtered by tag "
+                    "(include %s, exclude %s, present %s)"
                     % (r.id, include_tags, exclude_tags, r.attributes.tags)
                 )
             elif r.id in removals_by_request:
                 main_logger.log(
-                    f"Found satisfied request for {r.id} at {removals_by_request[r.id].id}"
+                    f"Found satisfied request for {r.id} "
+                    f"at {removals_by_request[r.id].id}"
                 )
             elif r.attributes.deployment in removals_by_deployment:
                 main_logger.log(
-                    f"Found removal record for indicated deployment {r.attributes.deployment} at "
+                    f"Found removal record for indicated deployment "
+                    f"{r.attributes.deployment} at "
                     f"{removals_by_deployment[r.attributes.deployment].id}"
                 )
             else:
@@ -309,7 +320,8 @@ def command(  # noqa: C901
                     requests_to_check_for_payment.append(r)
                 else:
                     main_logger.log(
-                        f"Skipping unsatisfied request {r.id} because we have seen it before."
+                        f"Skipping unsatisfied request {r.id} "
+                        "because we have seen it before."
                     )
         except Exception as e:
             main_logger.log(f"ERROR examining {r.id}: {e}")

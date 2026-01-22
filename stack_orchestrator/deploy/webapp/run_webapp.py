@@ -18,7 +18,8 @@
 # env vars:
 # CERC_REPO_BASE_DIR defaults to ~/cerc
 
-# TODO: display the available list of containers; allow re-build of either all or specific containers
+# TODO: display the available list of containers; allow re-build of either
+# all or specific containers
 
 import hashlib
 import click
@@ -36,7 +37,7 @@ WEBAPP_PORT = 80
 @click.option("--port", help="port to use (default random)")
 @click.pass_context
 def command(ctx, image, env_file, port):
-    '''run the specified webapp container'''
+    """run the specified webapp container"""
 
     env = {}
     if env_file:
@@ -46,20 +47,35 @@ def command(ctx, image, env_file, port):
     hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()
     cluster = f"laconic-webapp-{hash}"
 
-    deployer = getDeployer(type=constants.compose_deploy_type,
-                           deployment_context=None,
-                           compose_files=None,
-                           compose_project_name=cluster,
-                           compose_env_file=None)
+    deployer = getDeployer(
+        type=constants.compose_deploy_type,
+        deployment_context=None,
+        compose_files=None,
+        compose_project_name=cluster,
+        compose_env_file=None,
+    )
 
     ports = []
     if port:
         ports = [(port, WEBAPP_PORT)]
-    container = deployer.run(image, command=[], user=None, volumes=[], entrypoint=None, env=env, ports=ports, detach=True)
+    container = deployer.run(
+        image,
+        command=[],
+        user=None,
+        volumes=[],
+        entrypoint=None,
+        env=env,
+        ports=ports,
+        detach=True,
+    )
 
     # Make configurable?
     webappPort = f"{WEBAPP_PORT}/tcp"
     # TODO: This assumes a Docker container object...
     if webappPort in container.network_settings.ports:
         mapping = container.network_settings.ports[webappPort][0]
-        print(f"""Image: {image}\nID: {container.id}\nURL: http://localhost:{mapping['HostPort']}""")
+        print(
+            f"Image: {image}\n"
+            f"ID: {container.id}\n"
+            f"URL: http://localhost:{mapping['HostPort']}"
+        )

@@ -27,6 +27,8 @@ def setup(ctx):
 def create(ctx, extra_args):
     # Generate the JWT secret and save to its config file
     secret = token_hex(32)
-    jwt_file_path = ctx.deployment_dir.joinpath("data", "mainnet_eth_plugeth_config_data", "jwtsecret")
-    with open(jwt_file_path, 'w+') as jwt_file:
+    jwt_file_path = ctx.deployment_dir.joinpath(
+        "data", "mainnet_eth_plugeth_config_data", "jwtsecret"
+    )
+    with open(jwt_file_path, "w+") as jwt_file:
         jwt_file.write(secret)

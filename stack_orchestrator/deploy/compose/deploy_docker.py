@@ -15,7 +15,11 @@
 
 from pathlib import Path
 from python_on_whales import DockerClient, DockerException
-from stack_orchestrator.deploy.deployer import Deployer, DeployerException, DeployerConfigGenerator
+from stack_orchestrator.deploy.deployer import (
+    Deployer,
+    DeployerException,
+    DeployerConfigGenerator,
+)
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.opts import opts
 
@@ -24,9 +28,19 @@ class DockerDeployer(Deployer):
     name: str = "compose"
     type: str
 
-    def __init__(self, type, deployment_context: DeploymentContext, compose_files, compose_project_name, compose_env_file) -> None:
-        self.docker = DockerClient(compose_files=compose_files, compose_project_name=compose_project_name,
-                                   compose_env_file=compose_env_file)
+    def __init__(
+        self,
+        type,
+        deployment_context: DeploymentContext,
+        compose_files,
+        compose_project_name,
+        compose_env_file,
+    ) -> None:
+        self.docker = DockerClient(
+            compose_files=compose_files,
+            compose_project_name=compose_project_name,
+            compose_env_file=compose_env_file,
+        )
         self.type = type
 
     def up(self, detach, skip_cluster_management, services):
@@ -68,29 +82,54 @@ class DockerDeployer(Deployer):
     def port(self, service, private_port):
         if not opts.o.dry_run:
             try:
-                return self.docker.compose.port(service=service, private_port=private_port)
+                return self.docker.compose.port(
+                    service=service, private_port=private_port
+                )
             except DockerException as e:
                 raise DeployerException(e)
 
     def execute(self, service, command, tty, envs):
         if not opts.o.dry_run:
             try:
-                return self.docker.compose.execute(service=service, command=command, tty=tty, envs=envs)
+                return self.docker.compose.execute(
+                    service=service, command=command, tty=tty, envs=envs
+                )
             except DockerException as e:
                 raise DeployerException(e)
 
     def logs(self, services, tail, follow, stream):
         if not opts.o.dry_run:
             try:
-                return self.docker.compose.logs(services=services, tail=tail, follow=follow, stream=stream)
+                return self.docker.compose.logs(
+                    services=services, tail=tail, follow=follow, stream=stream
+                )
             except DockerException as e:
                 raise DeployerException(e)
 
-    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
+    def run(
+        self,
+        image: str,
+        command=None,
+        user=None,
+        volumes=None,
+        entrypoint=None,
+        env={},
+        ports=[],
+        detach=False,
+    ):
         if not opts.o.dry_run:
             try:
-                return self.docker.run(image=image, command=command, user=user, volumes=volumes,
-                                       entrypoint=entrypoint, envs=env, detach=detach, publish=ports, publish_all=len(ports) == 0)
+                return self.docker.run(
+                    image=image,
+                    command=command,
+                    user=user,
+                    volumes=volumes,
+                    entrypoint=entrypoint,
+                    envs=env,
+                    detach=detach,
+                    publish=ports,
+                    publish_all=len(ports) == 0,
+                )
             except DockerException as e:
                 raise DeployerException(e)
 
@@ -106,20 +145,25 @@ class DockerDeployer(Deployer):
                 # Deployment directory is parent of compose directory
                 compose_dir = Path(self.docker.compose_files[0]).parent
                 deployment_dir = compose_dir.parent
-                job_compose_file = deployment_dir / "compose-jobs" / f"docker-compose-{job_name}.yml"
+                job_compose_file = (
+                    deployment_dir / "compose-jobs" / f"docker-compose-{job_name}.yml"
+                )
 
                 if not job_compose_file.exists():
-                    raise DeployerException(f"Job compose file not found: {job_compose_file}")
+                    raise DeployerException(
+                        f"Job compose file not found: {job_compose_file}"
+                    )
 
                 if opts.o.verbose:
                     print(f"Running job from: {job_compose_file}")
 
-                # Create a DockerClient for the job compose file with same project name and env file
+                # Create a DockerClient for the job compose file with same
+                # project name and env file
                 # This allows the job to access volumes from the main deployment
                 job_docker = DockerClient(
                     compose_files=[job_compose_file],
                     compose_project_name=self.docker.compose_project_name,
-                    compose_env_file=self.docker.compose_env_file
+                    compose_env_file=self.docker.compose_env_file,
                 )
 
                 # Run the job with --rm flag to remove container after completion
@@ -130,7 +174,6 @@ class DockerDeployer(Deployer):
 
 
 class DockerDeployerConfigGenerator(DeployerConfigGenerator):
-
     def __init__(self, type: str) -> None:
         super().__init__()
 

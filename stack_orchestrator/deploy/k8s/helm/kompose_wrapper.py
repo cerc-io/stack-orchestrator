@@ -38,10 +38,7 @@ def get_kompose_version() -> str:
         raise Exception("kompose not found in PATH")
 
     result = subprocess.run(
-        ["kompose", "version"],
-        capture_output=True,
-        text=True,
-        timeout=10
+        ["kompose", "version"], capture_output=True, text=True, timeout=10
     )
 
     if result.returncode != 0:
@@ -55,7 +52,9 @@ def get_kompose_version() -> str:
     return version
 
 
-def convert_to_helm_chart(compose_files: List[Path], output_dir: Path, chart_name: str = None) -> str:
+def convert_to_helm_chart(
+    compose_files: List[Path], output_dir: Path, chart_name: str = None
+) -> str:
     """
     Invoke kompose to convert Docker Compose files to a Helm chart.
 
@@ -92,12 +91,7 @@ def convert_to_helm_chart(compose_files: List[Path], output_dir: Path, chart_nam
     cmd.extend(["--chart", "-o", str(output_dir)])
 
     # Execute kompose
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=60
-    )
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
     if result.returncode != 0:
         raise Exception(

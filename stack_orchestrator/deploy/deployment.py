@@ -18,8 +18,19 @@ from pathlib import Path
 import sys
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.images import push_images_operation
-from stack_orchestrator.deploy.deploy import up_operation, down_operation, ps_operation, port_operation, status_operation
-from stack_orchestrator.deploy.deploy import exec_operation, logs_operation, create_deploy_context, update_operation
+from stack_orchestrator.deploy.deploy import (
+    up_operation,
+    down_operation,
+    ps_operation,
+    port_operation,
+    status_operation,
+)
+from stack_orchestrator.deploy.deploy import (
+    exec_operation,
+    logs_operation,
+    create_deploy_context,
+    update_operation,
+)
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
@@ -28,7 +39,7 @@ from stack_orchestrator.deploy.deployment_context import DeploymentContext
 @click.option("--dir", required=True, help="path to deployment directory")
 @click.pass_context
 def command(ctx, dir):
-    '''manage a deployment'''
+    """manage a deployment"""
 
     # Check that --stack wasn't supplied
     if ctx.parent.obj.stack:
@@ -40,7 +51,10 @@ def command(ctx, dir):
         print(f"Error: deployment directory {dir} does not exist")
         sys.exit(1)
     if not dir_path.is_dir():
-        print(f"Error: supplied deployment directory path {dir} exists but is a file not a directory")
+        print(
+            f"Error: supplied deployment directory path {dir} exists but is a "
+            "file not a directory"
+        )
         sys.exit(1)
     # Store the deployment context for subcommands
     deployment_context = DeploymentContext()
@@ -57,16 +71,31 @@ def make_deploy_context(ctx) -> DeployCommandContext:
     else:
         deployment_type = constants.compose_deploy_type
     stack = context.deployment_dir
-    return create_deploy_context(ctx.parent.parent.obj, context, stack, None, None,
-                                 cluster_name, env_file, deployment_type)
+    return create_deploy_context(
+        ctx.parent.parent.obj,
+        context,
+        stack,
+        None,
+        None,
+        cluster_name,
+        env_file,
+        deployment_type,
+    )
 
 
 # TODO: remove legacy up command since it's an alias for start
 @command.command()
-@click.option("--stay-attached/--detatch-terminal", default=False, help="detatch or not to see container stdout")
-@click.option("--skip-cluster-management/--perform-cluster-management",
-              default=False, help="Skip cluster initialization/tear-down (only for kind-k8s deployments)")
-@click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
+@click.option(
+    "--stay-attached/--detatch-terminal",
+    default=False,
+    help="detatch or not to see container stdout",
+)
+@click.option(
+    "--skip-cluster-management/--perform-cluster-management",
+    default=False,
+    help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
+)
+@click.argument("extra_args", nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
 def up(ctx, stay_attached, skip_cluster_management, extra_args):
     ctx.obj = make_deploy_context(ctx)
@@ -76,10 +105,17 @@ def up(ctx, stay_attached, skip_cluster_management, extra_args):
 
 # start is the preferred alias for up
 @command.command()
-@click.option("--stay-attached/--detatch-terminal", default=False, help="detatch or not to see container stdout")
-@click.option("--skip-cluster-management/--perform-cluster-management",
-              default=False, help="Skip cluster initialization/tear-down (only for kind-k8s deployments)")
-@click.argument('extra_args', nargs=-1)  # help: command: up <service1> <service2>
+@click.option(
+    "--stay-attached/--detatch-terminal",
+    default=False,
+    help="detatch or not to see container stdout",
+)
+@click.option(
+    "--skip-cluster-management/--perform-cluster-management",
+    default=False,
+    help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
+)
+@click.argument("extra_args", nargs=-1)  # help: command: up <service1> <service2>
 @click.pass_context
 def start(ctx, stay_attached, skip_cluster_management, extra_args):
     ctx.obj = make_deploy_context(ctx)
@@ -89,10 +125,15 @@ def start(ctx, stay_attached, skip_cluster_management, extra_args):
 
 # TODO: remove legacy up command since it's an alias for stop
 @command.command()
-@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
-@click.option("--skip-cluster-management/--perform-cluster-management",
-              default=False, help="Skip cluster initialization/tear-down (only for kind-k8s deployments)")
-@click.argument('extra_args', nargs=-1)  # help: command: down <service1> <service2>
+@click.option(
+    "--delete-volumes/--preserve-volumes", default=False, help="delete data volumes"
+)
+@click.option(
+    "--skip-cluster-management/--perform-cluster-management",
+    default=False,
+    help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
+)
+@click.argument("extra_args", nargs=-1)  # help: command: down <service1> <service2>
 @click.pass_context
 def down(ctx, delete_volumes, skip_cluster_management, extra_args):
     # Get the stack config file name
@@ -103,10 +144,15 @@ def down(ctx, delete_volumes, skip_cluster_management, extra_args):
 
 # stop is the preferred alias for down
 @command.command()
-@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
-@click.option("--skip-cluster-management/--perform-cluster-management",
-              default=False, help="Skip cluster initialization/tear-down (only for kind-k8s deployments)")
-@click.argument('extra_args', nargs=-1)  # help: command: down <service1> <service2>
+@click.option(
+    "--delete-volumes/--preserve-volumes", default=False, help="delete data volumes"
+)
+@click.option(
+    "--skip-cluster-management/--perform-cluster-management",
+    default=False,
+    help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
+)
+@click.argument("extra_args", nargs=-1)  # help: command: down <service1> <service2>
 @click.pass_context
 def stop(ctx, delete_volumes, skip_cluster_management, extra_args):
     # TODO: add cluster name and env file here
@@ -130,7 +176,7 @@ def push_images(ctx):
 
 
 @command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: port <service1> <service2>
+@click.argument("extra_args", nargs=-1)  # help: command: port <service1> <service2>
 @click.pass_context
 def port(ctx, extra_args):
     ctx.obj = make_deploy_context(ctx)
@@ -138,7 +184,7 @@ def port(ctx, extra_args):
 
 
 @command.command()
-@click.argument('extra_args', nargs=-1)  # help: command: exec <service> <command>
+@click.argument("extra_args", nargs=-1)  # help: command: exec <service> <command>
 @click.pass_context
 def exec(ctx, extra_args):
     ctx.obj = make_deploy_context(ctx)
@@ -148,7 +194,7 @@ def exec(ctx, extra_args):
 @command.command()
 @click.option("--tail", "-n", default=None, help="number of lines to display")
 @click.option("--follow", "-f", is_flag=True, default=False, help="follow log output")
-@click.argument('extra_args', nargs=-1)  # help: command: logs <service1> <service2>
+@click.argument("extra_args", nargs=-1)  # help: command: logs <service1> <service2>
 @click.pass_context
 def logs(ctx, tail, follow, extra_args):
     ctx.obj = make_deploy_context(ctx)
@@ -170,11 +216,15 @@ def update(ctx):
 
 
 @command.command()
-@click.argument('job_name')
-@click.option('--helm-release', help='Helm release name (only for k8s helm chart deployments, defaults to chart name)')
+@click.argument("job_name")
+@click.option(
+    "--helm-release",
+    help="Helm release name (for k8s helm chart deployments, defaults to chart name)",
+)
 @click.pass_context
 def run_job(ctx, job_name, helm_release):
-    '''run a one-time job from the stack'''
+    """run a one-time job from the stack"""
     from stack_orchestrator.deploy.deploy import run_job_operation
+
     ctx.obj = make_deploy_context(ctx)
     run_job_operation(ctx, job_name, helm_release)

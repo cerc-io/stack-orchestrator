@@ -19,7 +19,6 @@ from stack_orchestrator.util import get_yaml
 
 
 class Stack:
-
     name: str
     obj: typing.Any
 

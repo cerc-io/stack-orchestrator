@@ -24,10 +24,23 @@ from secrets import token_hex
 import sys
 from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
-from stack_orchestrator.util import (get_stack_path, get_parsed_deployment_spec, get_parsed_stack_config,
-                                     global_options, get_yaml, get_pod_list, get_pod_file_path, pod_has_scripts,
-                                     get_pod_script_paths, get_plugin_code_paths, error_exit, env_var_map_from_file,
-                                     resolve_config_dir, get_job_list, get_job_file_path)
+from stack_orchestrator.util import (
+    get_stack_path,
+    get_parsed_deployment_spec,
+    get_parsed_stack_config,
+    global_options,
+    get_yaml,
+    get_pod_list,
+    get_pod_file_path,
+    pod_has_scripts,
+    get_pod_script_paths,
+    get_plugin_code_paths,
+    error_exit,
+    env_var_map_from_file,
+    resolve_config_dir,
+    get_job_list,
+    get_job_file_path,
+)
 from stack_orchestrator.deploy.spec import Spec
 from stack_orchestrator.deploy.deploy_types import LaconicStackSetupCommand
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
@@ -49,17 +62,15 @@ def _get_ports(stack):
         if "services" in parsed_pod_file:
             for svc_name, svc in parsed_pod_file["services"].items():
                 if "ports" in svc:
-                    # Ports can appear as strings or numbers.  We normalize them as strings.
+                    # Ports can appear as strings or numbers.  We normalize them as
+                    # strings.
                     ports[svc_name] = [str(x) for x in svc["ports"]]
     return ports
 
 
 def _get_named_volumes(stack):
     # Parse the compose files looking for named volumes
-    named_volumes = {
-        "rw": [],
-        "ro": []
-    }
+    named_volumes = {"rw": [], "ro": []}
     parsed_stack = get_parsed_stack_config(stack)
     pods = get_pod_list(parsed_stack)
     yaml = get_yaml()
@@ -75,7 +86,7 @@ def _get_named_volumes(stack):
                             ret[svc_name] = {
                                 "volume": parts[0],
                                 "mount": parts[1],
-                                "options": parts[2] if len(parts) == 3 else None
+                                "options": parts[2] if len(parts) == 3 else None,
                             }
         return ret
 
@@ -88,7 +99,10 @@ def _get_named_volumes(stack):
                 for vu in find_vol_usage(parsed_pod_file, volume).values():
                     read_only = vu["options"] == "ro"
                     if read_only:
-                        if vu["volume"] not in named_volumes["rw"] and vu["volume"] not in named_volumes["ro"]:
+                        if (
+                            vu["volume"] not in named_volumes["rw"]
+                            and vu["volume"] not in named_volumes["ro"]
+                        ):
                             named_volumes["ro"].append(vu["volume"])
                     else:
                         if vu["volume"] not in named_volumes["rw"]:
@@ -108,10 +122,13 @@ def _create_bind_dir_if_relative(volume, path_string, compose_dir):
         absolute_path.mkdir(parents=True, exist_ok=True)
     else:
         if not path.exists():
-            print(f"WARNING: mount path for volume {volume} does not exist: {path_string}")
+            print(
+                f"WARNING: mount path for volume {volume} does not exist: {path_string}"
+            )
 
 
-# See: https://stackoverflow.com/questions/45699189/editing-docker-compose-yml-with-pyyaml
+# See:
+# https://stackoverflow.com/questions/45699189/editing-docker-compose-yml-with-pyyaml
 def _fixup_pod_file(pod, spec, compose_dir):
     deployment_type = spec[constants.deploy_to_key]
     # Fix up volumes
@@ -123,7 +140,11 @@ def _fixup_pod_file(pod, spec, compose_dir):
                 if volume in spec_volumes:
                     volume_spec = spec_volumes[volume]
                     if volume_spec:
-                        volume_spec_fixedup = volume_spec if Path(volume_spec).is_absolute() else f".{volume_spec}"
+                        volume_spec_fixedup = (
+                            volume_spec
+                            if Path(volume_spec).is_absolute()
+                            else f".{volume_spec}"
+                        )
                         _create_bind_dir_if_relative(volume, volume_spec, compose_dir)
                         # this is Docker specific
                         if spec.is_docker_deployment():
@@ -132,8 +153,8 @@ def _fixup_pod_file(pod, spec, compose_dir):
                                 "driver_opts": {
                                     "type": "none",
                                     "device": volume_spec_fixedup,
-                                    "o": "bind"
-                                }
+                                    "o": "bind",
+                                },
                             }
                             pod["volumes"][volume] = new_volume_spec
 
@@ -189,12 +210,17 @@ def call_stack_deploy_init(deploy_command_context):
                     init_done = True
                 else:
                     # TODO: remove this restriction
-                    print(f"Skipping init() from plugin {python_file_path}. Only one init() is allowed.")
+                    print(
+                        f"Skipping init() from plugin {python_file_path}. "
+                        "Only one init() is allowed."
+                    )
     return ret
 
 
 # TODO: fold this with function above
-def call_stack_deploy_setup(deploy_command_context, parameters: LaconicStackSetupCommand, extra_args):
+def call_stack_deploy_setup(
+    deploy_command_context, parameters: LaconicStackSetupCommand, extra_args
+):
     # Link with the python file in the stack
     # Call a function in it
     # If no function found, return None
@@ -247,7 +273,13 @@ def _find_extra_config_dirs(parsed_pod_file, pod):
 
 
 def _get_mapped_ports(stack: str, map_recipe: str):
-    port_map_recipes = ["any-variable-random", "localhost-same", "any-same", "localhost-fixed-random", "any-fixed-random"]
+    port_map_recipes = [
+        "any-variable-random",
+        "localhost-same",
+        "any-same",
+        "localhost-fixed-random",
+        "any-fixed-random",
+    ]
     ports = _get_ports(stack)
     if ports:
         # Implement any requested mapping recipe
@@ -259,7 +291,9 @@ def _get_mapped_ports(stack: str, map_recipe: str):
                         orig_port = ports_array[x]
                         # Strip /udp suffix if present
                         bare_orig_port = orig_port.replace("/udp", "")
-                        random_port = random.randint(20000, 50000)  # Beware: we're relying on luck to not collide
+                        random_port = random.randint(
+                            20000, 50000
+                        )  # Beware: we're relying on luck to not collide
                         if map_recipe == "any-variable-random":
                             # This is the default so take no action
                             pass
@@ -278,7 +312,10 @@ def _get_mapped_ports(stack: str, map_recipe: str):
                         else:
                             print("Error: bad map_recipe")
             else:
-                print(f"Error: --map-ports-to-host must specify one of: {port_map_recipes}")
+                print(
+                    f"Error: --map-ports-to-host must specify one of: "
+                    f"{port_map_recipes}"
+                )
                 sys.exit(1)
     return ports
 
@@ -303,33 +340,54 @@ def _parse_config_variables(variable_values: str):
 
 @click.command()
 @click.option("--config", help="Provide config variables for the deployment")
-@click.option("--config-file", help="Provide config variables in a file for the deployment")
+@click.option(
+    "--config-file", help="Provide config variables in a file for the deployment"
+)
 @click.option("--kube-config", help="Provide a config file for a k8s deployment")
-@click.option("--image-registry", help="Provide a container image registry url for this k8s cluster")
+@click.option(
+    "--image-registry",
+    help="Provide a container image registry url for this k8s cluster",
+)
 @click.option("--output", required=True, help="Write yaml spec file here")
-@click.option("--map-ports-to-host", required=False,
-              help="Map ports to the host as one of: any-variable-random (default), "
-              "localhost-same, any-same, localhost-fixed-random, any-fixed-random")
+@click.option(
+    "--map-ports-to-host",
+    required=False,
+    help="Map ports to the host as one of: any-variable-random (default), "
+    "localhost-same, any-same, localhost-fixed-random, any-fixed-random",
+)
 @click.pass_context
-def init(ctx, config, config_file, kube_config, image_registry, output, map_ports_to_host):
+def init(
+    ctx, config, config_file, kube_config, image_registry, output, map_ports_to_host
+):
     stack = global_options(ctx).stack
     deployer_type = ctx.obj.deployer.type
     deploy_command_context = ctx.obj
     return init_operation(
         deploy_command_context,
-        stack, deployer_type,
-        config, config_file,
+        stack,
+        deployer_type,
+        config,
+        config_file,
         kube_config,
         image_registry,
         output,
-        map_ports_to_host)
+        map_ports_to_host,
+    )
 
 
 # The init command's implementation is in a separate function so that we can
 # call it from other commands, bypassing the click decoration stuff
-def init_operation(deploy_command_context, stack, deployer_type, config,
-                   config_file, kube_config, image_registry, output, map_ports_to_host):
-
+def init_operation(
+    deploy_command_context,
+    stack,
+    deployer_type,
+    config,
+    config_file,
+    kube_config,
+    image_registry,
+    output,
+    map_ports_to_host,
+):
     default_spec_file_content = call_stack_deploy_init(deploy_command_context)
     spec_file_content = {"stack": stack, constants.deploy_to_key: deployer_type}
     if deployer_type == "k8s":
@@ -340,13 +398,20 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
         if image_registry:
             spec_file_content.update({constants.image_registry_key: image_registry})
         else:
-            print("WARNING: --image-registry not specified, only default container registries (eg, Docker Hub) will be available")
+            print(
+                "WARNING: --image-registry not specified, only default container "
+                "registries (eg, Docker Hub) will be available"
+            )
     else:
         # Check for --kube-config supplied for non-relevant deployer types
         if kube_config is not None:
-            error_exit(f"--kube-config is not allowed with a {deployer_type} deployment")
+            error_exit(
+                f"--kube-config is not allowed with a {deployer_type} deployment"
+            )
         if image_registry is not None:
-            error_exit(f"--image-registry is not allowed with a {deployer_type} deployment")
+            error_exit(
+                f"--image-registry is not allowed with a {deployer_type} deployment"
+            )
     if default_spec_file_content:
         spec_file_content.update(default_spec_file_content)
     config_variables = _parse_config_variables(config)
@@ -395,7 +460,9 @@ def init_operation(deploy_command_context, stack, deployer_type, config,
             spec_file_content["configmaps"] = configmap_descriptors
 
     if opts.o.debug:
-        print(f"Creating spec file for stack: {stack} with content: {spec_file_content}")
+        print(
+            f"Creating spec file for stack: {stack} with content: {spec_file_content}"
+        )
 
     with open(output, "w") as output_file:
         get_yaml().dump(spec_file_content, output_file)
@@ -443,22 +510,45 @@ def _check_volume_definitions(spec):
 
 
 @click.command()
-@click.option("--spec-file", required=True, help="Spec file to use to create this deployment")
+@click.option(
+    "--spec-file", required=True, help="Spec file to use to create this deployment"
+)
 @click.option("--deployment-dir", help="Create deployment files in this directory")
-@click.option("--helm-chart", is_flag=True, default=False, help="Generate Helm chart instead of deploying (k8s only)")
+@click.option(
+    "--helm-chart",
+    is_flag=True,
+    default=False,
+    help="Generate Helm chart instead of deploying (k8s only)",
+)
 # TODO: Hack
 @click.option("--network-dir", help="Network configuration supplied in this directory")
 @click.option("--initial-peers", help="Initial set of persistent peers")
 @click.pass_context
 def create(ctx, spec_file, deployment_dir, helm_chart, network_dir, initial_peers):
     deployment_command_context = ctx.obj
-    return create_operation(deployment_command_context, spec_file, deployment_dir, helm_chart, network_dir, initial_peers)
+    return create_operation(
+        deployment_command_context,
+        spec_file,
+        deployment_dir,
+        helm_chart,
+        network_dir,
+        initial_peers,
+    )
 
 
 # The init command's implementation is in a separate function so that we can
 # call it from other commands, bypassing the click decoration stuff
-def create_operation(deployment_command_context, spec_file, deployment_dir, helm_chart, network_dir, initial_peers):
-    parsed_spec = Spec(os.path.abspath(spec_file), get_parsed_deployment_spec(spec_file))
+def create_operation(
+    deployment_command_context,
+    spec_file,
+    deployment_dir,
+    helm_chart,
+    network_dir,
+    initial_peers,
+):
+    parsed_spec = Spec(
+        os.path.abspath(spec_file), get_parsed_deployment_spec(spec_file)
+    )
     _check_volume_definitions(parsed_spec)
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
@@ -483,17 +573,24 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
 
     # Branch to Helm chart generation flow if --helm-chart flag is set
     if deployment_type == "k8s" and helm_chart:
-        from stack_orchestrator.deploy.k8s.helm.chart_generator import generate_helm_chart
+        from stack_orchestrator.deploy.k8s.helm.chart_generator import (
+            generate_helm_chart,
+        )
+
         generate_helm_chart(stack_name, spec_file, deployment_dir_path)
         return  # Exit early for helm chart generation
 
     # Existing deployment flow continues unchanged
     # Copy any config varibles from the spec file into an env file suitable for compose
-    _write_config_file(spec_file, deployment_dir_path.joinpath(constants.config_file_name))
+    _write_config_file(
+        spec_file, deployment_dir_path.joinpath(constants.config_file_name)
+    )
     # Copy any k8s config file into the deployment dir
     if deployment_type == "k8s":
-        _write_kube_config_file(Path(parsed_spec[constants.kube_config_key]),
-                                deployment_dir_path.joinpath(constants.kube_config_filename))
+        _write_kube_config_file(
+            Path(parsed_spec[constants.kube_config_key]),
+            deployment_dir_path.joinpath(constants.kube_config_filename),
+        )
     # Copy the pod files into the deployment dir, fixing up content
     pods = get_pod_list(parsed_stack)
     destination_compose_dir = deployment_dir_path.joinpath("compose")
@@ -510,7 +607,9 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
         if opts.o.debug:
             print(f"extra config dirs: {extra_config_dirs}")
         _fixup_pod_file(parsed_pod_file, parsed_spec, destination_compose_dir)
-        with open(destination_compose_dir.joinpath("docker-compose-%s.yml" % pod), "w") as output_file:
+        with open(
+            destination_compose_dir.joinpath("docker-compose-%s.yml" % pod), "w"
+        ) as output_file:
             yaml.dump(parsed_pod_file, output_file)
         # Copy the config files for the pod, if any
         config_dirs = {pod}
@@ -518,8 +617,11 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
         for config_dir in config_dirs:
             source_config_dir = resolve_config_dir(stack_name, config_dir)
             if os.path.exists(source_config_dir):
-                destination_config_dir = deployment_dir_path.joinpath("config", config_dir)
-                # If the same config dir appears in multiple pods, it may already have been copied
+                destination_config_dir = deployment_dir_path.joinpath(
+                    "config", config_dir
+                )
+                # If the same config dir appears in multiple pods, it may already have
+                # been copied
                 if not os.path.exists(destination_config_dir):
                     copytree(source_config_dir, destination_config_dir)
         # Copy the script files for the pod, if any
@@ -532,8 +634,12 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
             for configmap in parsed_spec.get_configmaps():
                 source_config_dir = resolve_config_dir(stack_name, configmap)
                 if os.path.exists(source_config_dir):
-                    destination_config_dir = deployment_dir_path.joinpath("configmaps", configmap)
-                    copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
+                    destination_config_dir = deployment_dir_path.joinpath(
+                        "configmaps", configmap
+                    )
+                    copytree(
+                        source_config_dir, destination_config_dir, dirs_exist_ok=True
+                    )
         else:
             # TODO: We should probably only do this if the volume is marked :ro.
             for volume_name, volume_path in parsed_spec.get_volumes().items():
@@ -542,8 +648,14 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
                 if os.path.exists(source_config_dir) and os.listdir(source_config_dir):
                     destination_config_dir = deployment_dir_path.joinpath(volume_path)
                     # Only copy if the destination exists and _is_ empty.
-                    if os.path.exists(destination_config_dir) and not os.listdir(destination_config_dir):
-                        copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
+                    if os.path.exists(destination_config_dir) and not os.listdir(
+                        destination_config_dir
+                    ):
+                        copytree(
+                            source_config_dir,
+                            destination_config_dir,
+                            dirs_exist_ok=True,
+                        )
 
     # Copy the job files into the deployment dir (for Docker deployments)
     jobs = get_job_list(parsed_stack)
@@ -555,22 +667,31 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
             if job_file_path and job_file_path.exists():
                 parsed_job_file = yaml.load(open(job_file_path, "r"))
                 _fixup_pod_file(parsed_job_file, parsed_spec, destination_compose_dir)
-                with open(destination_compose_jobs_dir.joinpath("docker-compose-%s.yml" % job), "w") as output_file:
+                with open(
+                    destination_compose_jobs_dir.joinpath(
+                        "docker-compose-%s.yml" % job
+                    ),
+                    "w",
+                ) as output_file:
                     yaml.dump(parsed_job_file, output_file)
                 if opts.o.debug:
                     print(f"Copied job compose file: {job}")
 
     # Delegate to the stack's Python code
-    # The deploy create command doesn't require a --stack argument so we need to insert the
-    # stack member here.
+    # The deploy create command doesn't require a --stack argument so we need
+    # to insert the stack member here.
     deployment_command_context.stack = stack_name
     deployment_context = DeploymentContext()
     deployment_context.init(deployment_dir_path)
     # Call the deployer to generate any deployer-specific files (e.g. for kind)
-    deployer_config_generator = getDeployerConfigGenerator(deployment_type, deployment_context)
+    deployer_config_generator = getDeployerConfigGenerator(
+        deployment_type, deployment_context
+    )
     # TODO: make deployment_dir_path a Path above
     deployer_config_generator.generate(deployment_dir_path)
-    call_stack_deploy_create(deployment_context, [network_dir, initial_peers, deployment_command_context])
+    call_stack_deploy_create(
+        deployment_context, [network_dir, initial_peers, deployment_command_context]
+    )
 
 
 # TODO: this code should be in the stack .py files but
@@ -580,18 +701,50 @@ def create_operation(deployment_command_context, spec_file, deployment_dir, helm
 @click.option("--node-moniker", help="Moniker for this node")
 @click.option("--chain-id", help="The new chain id")
 @click.option("--key-name", help="Name for new node key")
-@click.option("--gentx-files", help="List of comma-delimited gentx filenames from other nodes")
-@click.option("--gentx-addresses", type=str, help="List of comma-delimited validator addresses for other nodes")
+@click.option(
+    "--gentx-files", help="List of comma-delimited gentx filenames from other nodes"
+)
+@click.option(
+    "--gentx-addresses",
+    type=str,
+    help="List of comma-delimited validator addresses for other nodes",
+)
 @click.option("--genesis-file", help="Genesis file for the network")
-@click.option("--initialize-network", is_flag=True, default=False, help="Initialize phase")
+@click.option(
+    "--initialize-network", is_flag=True, default=False, help="Initialize phase"
+)
 @click.option("--join-network", is_flag=True, default=False, help="Join phase")
 @click.option("--connect-network", is_flag=True, default=False, help="Connect phase")
 @click.option("--create-network", is_flag=True, default=False, help="Create phase")
 @click.option("--network-dir", help="Directory for network files")
-@click.argument('extra_args', nargs=-1)
+@click.argument("extra_args", nargs=-1)
 @click.pass_context
-def setup(ctx, node_moniker, chain_id, key_name, gentx_files, gentx_addresses, genesis_file, initialize_network, join_network,
-          connect_network, create_network, network_dir, extra_args):
-    parmeters = LaconicStackSetupCommand(chain_id, node_moniker, key_name, initialize_network, join_network, connect_network,
-                                         create_network, gentx_files, gentx_addresses, genesis_file, network_dir)
+def setup(
+    ctx,
+    node_moniker,
+    chain_id,
+    key_name,
+    gentx_files,
+    gentx_addresses,
+    genesis_file,
+    initialize_network,
+    join_network,
+    connect_network,
+    create_network,
+    network_dir,
+    extra_args,
+):
+    parmeters = LaconicStackSetupCommand(
+        chain_id,
+        node_moniker,
+        key_name,
+        initialize_network,
+        join_network,
+        connect_network,
+        create_network,
+        gentx_files,
+        gentx_addresses,
+        genesis_file,
+        network_dir,
+    )
     call_stack_deploy_setup(ctx.obj, parmeters, extra_args)

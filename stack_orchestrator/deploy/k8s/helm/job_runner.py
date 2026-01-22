@@ -53,7 +53,7 @@ def run_helm_job(
     release: str = None,
     namespace: str = "default",
     timeout: int = 600,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> None:
     """
     Run a one-time job from a Helm chart.
@@ -93,22 +93,31 @@ def run_helm_job(
         print(f"Running job '{job_name}' from helm chart: {chart_dir}")
 
     # Use helm template to render the job manifest
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as tmp_file:
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".yaml", delete=False
+    ) as tmp_file:
         try:
             # Render job template with job enabled
             # Use --set-json to properly handle job names with dashes
             jobs_dict = {job_name: {"enabled": True}}
             values_json = json.dumps(jobs_dict)
             helm_cmd = [
-                "helm", "template", release, str(chart_dir),
-                "--show-only", job_template_file,
-                "--set-json", f"jobs={values_json}"
+                "helm",
+                "template",
+                release,
+                str(chart_dir),
+                "--show-only",
+                job_template_file,
+                "--set-json",
+                f"jobs={values_json}",
             ]
 
             if verbose:
                 print(f"Running: {' '.join(helm_cmd)}")
 
-            result = subprocess.run(helm_cmd, check=True, capture_output=True, text=True)
+            result = subprocess.run(
+                helm_cmd, check=True, capture_output=True, text=True
+            )
             tmp_file.write(result.stdout)
             tmp_file.flush()
 
@@ -121,18 +130,30 @@ def run_helm_job(
             actual_job_name = manifest.get("metadata", {}).get("name", job_name)
 
             # Apply the job manifest
-            kubectl_apply_cmd = ["kubectl", "apply", "-f", tmp_file.name, "-n", namespace]
-            subprocess.run(kubectl_apply_cmd, check=True, capture_output=True, text=True)
+            kubectl_apply_cmd = [
+                "kubectl",
+                "apply",
+                "-f",
+                tmp_file.name,
+                "-n",
+                namespace,
+            ]
+            subprocess.run(
+                kubectl_apply_cmd, check=True, capture_output=True, text=True
+            )
 
             if verbose:
                 print(f"Job {actual_job_name} created, waiting for completion...")
 
             # Wait for job completion
             wait_cmd = [
-                "kubectl", "wait", "--for=condition=complete",
+                "kubectl",
+                "wait",
+                "--for=condition=complete",
                 f"job/{actual_job_name}",
                 f"--timeout={timeout}s",
-                "-n", namespace
+                "-n",
+                namespace,
             ]
 
             subprocess.run(wait_cmd, check=True, capture_output=True, text=True)

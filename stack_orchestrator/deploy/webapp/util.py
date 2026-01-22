@@ -497,7 +497,7 @@ class LaconicRegistryClient:
             "--max-price",
             str(auction["max_price"]),
             "--num-providers",
-            str(auction["num_providers"])
+            str(auction["num_providers"]),
         ]
 
         return json.loads(logged_cmd(self.log_file, *args))["auctionId"]
@@ -561,7 +561,8 @@ def build_container_image(app_record, tag, extra_build_args=None, logger=None):
         extra_build_args = []
     tmpdir = tempfile.mkdtemp()
 
-    # TODO: determine if this code could be calling into the Python git library like setup-repositories
+    # TODO: determine if this code could be calling into the Python git
+    # library like setup-repositories
     try:
         record_id = app_record["id"]
         ref = app_record.attributes.repository_ref
@@ -570,7 +571,8 @@ def build_container_image(app_record, tag, extra_build_args=None, logger=None):
 
         logger.log(f"Cloning repository {repo} to {clone_dir} ...")
         # Set github credentials if present running a command like:
-        # git config --global url."https://${TOKEN}:@github.com/".insteadOf "https://github.com/"
+        # git config --global url."https://${TOKEN}:@github.com/".insteadOf
+        # "https://github.com/"
         github_token = os.environ.get("DEPLOYER_GITHUB_TOKEN")
         if github_token:
             logger.log("Github token detected, setting it in the git environment")
@@ -612,7 +614,8 @@ def build_container_image(app_record, tag, extra_build_args=None, logger=None):
                 logger.log(f"git checkout failed.  Does ref {ref} exist?")
                 raise e
         else:
-            # TODO: why is this code different vs the branch above (run vs check_call, and no prompt disable)?
+            # TODO: why is this code different vs the branch above (run vs check_call,
+            # and no prompt disable)?
             result = subprocess.run(
                 ["git", "clone", "--depth", "1", repo, clone_dir],
                 stdout=logger.file,
@@ -749,9 +752,13 @@ def publish_deployment(
 
         # Set auction or payment id from request
         if app_deployment_request.attributes.auction:
-            new_deployment_record["record"]["auction"] = app_deployment_request.attributes.auction
+            new_deployment_record["record"][
+                "auction"
+            ] = app_deployment_request.attributes.auction
         elif app_deployment_request.attributes.payment:
-            new_deployment_record["record"]["payment"] = app_deployment_request.attributes.payment
+            new_deployment_record["record"][
+                "payment"
+            ] = app_deployment_request.attributes.payment
 
     if webapp_deployer_record:
         new_deployment_record["record"]["deployer"] = webapp_deployer_record.names[0]
@@ -801,7 +808,9 @@ def skip_by_tag(r, include_tags, exclude_tags):
     return False
 
 
-def confirm_payment(laconic: LaconicRegistryClient, record, payment_address, min_amount, logger):
+def confirm_payment(
+    laconic: LaconicRegistryClient, record, payment_address, min_amount, logger
+):
     req_owner = laconic.get_owner(record)
     if req_owner == payment_address:
         # No need to confirm payment if the sender and recipient are the same account.
@@ -818,27 +827,30 @@ def confirm_payment(laconic: LaconicRegistryClient, record, payment_address, min
 
     if tx.code != 0:
         logger.log(
-            f"{record.id}: payment tx {tx.hash} was not successful - code: {tx.code}, log: {tx.log}"
+            f"{record.id}: payment tx {tx.hash} was not successful - "
+            f"code: {tx.code}, log: {tx.log}"
         )
         return False
 
     if tx.sender != req_owner:
         logger.log(
-            f"{record.id}: payment sender {tx.sender} in tx {tx.hash} does not match deployment "
-            f"request owner {req_owner}"
+            f"{record.id}: payment sender {tx.sender} in tx {tx.hash} "
+            f"does not match deployment request owner {req_owner}"
         )
         return False
 
     if tx.recipient != payment_address:
         logger.log(
-            f"{record.id}: payment recipient {tx.recipient} in tx {tx.hash} does not match {payment_address}"
+            f"{record.id}: payment recipient {tx.recipient} in tx {tx.hash} "
+            f"does not match {payment_address}"
         )
         return False
 
     pay_denom = "".join([i for i in tx.amount if not i.isdigit()])
     if pay_denom != "alnt":
         logger.log(
-            f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected payment denomination"
+            f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected "
+            "payment denomination"
         )
         return False
 
@@ -859,7 +871,10 @@ def confirm_payment(laconic: LaconicRegistryClient, record, payment_address, min
 
         # Check that payment was used for deployment of same application
         if record.attributes.application != used_request.attributes.application:
-            logger.log(f"{record.id}: payment {tx.hash} already used on a different application deployment {used}")
+            logger.log(
+                f"{record.id}: payment {tx.hash} already used on a different "
+                f"application deployment {used}"
+            )
             return False
 
     used = laconic.app_deployment_removals(
@@ -874,7 +889,9 @@ def confirm_payment(laconic: LaconicRegistryClient, record, payment_address, min
     return True
 
 
-def confirm_auction(laconic: LaconicRegistryClient, record, deployer_lrn, payment_address, logger):
+def confirm_auction(
+    laconic: LaconicRegistryClient, record, deployer_lrn, payment_address, logger
+):
     auction_id = record.attributes.auction
     auction = laconic.get_auction(auction_id)
 
@@ -886,11 +903,14 @@ def confirm_auction(laconic: LaconicRegistryClient, record, deployer_lrn, paymen
 
     # Cross check app against application in the auction record
     requested_app = laconic.get_record(record.attributes.application, require=True)
-    auction_app = laconic.get_record(auction_records_by_id[0].attributes.application, require=True)
+    auction_app = laconic.get_record(
+        auction_records_by_id[0].attributes.application, require=True
+    )
     if requested_app.id != auction_app.id:
         logger.log(
-            f"{record.id}: requested application {record.attributes.application} does not match application from "
-            f"auction record {auction_records_by_id[0].attributes.application}"
+            f"{record.id}: requested application {record.attributes.application} "
+            f"does not match application from auction record "
+            f"{auction_records_by_id[0].attributes.application}"
         )
         return False
 

@@ -17,7 +17,7 @@ import sys
 import click
 import yaml
 
-from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient)
+from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient
 
 
 def fatal(msg: str):
@@ -30,18 +30,19 @@ def fatal(msg: str):
     "--laconic-config", help="Provide a config file for laconicd", required=True
 )
 @click.option(
-    "--deployer",
-    help="The LRN of the deployer to process this request.",
-    required=True
+    "--deployer", help="The LRN of the deployer to process this request.", required=True
 )
 @click.option(
     "--deployment",
-    help="Deployment record (ApplicationDeploymentRecord) id of the deployment to remove.",
+    help="Deployment record (ApplicationDeploymentRecord) id of the deployment.",
     required=True,
 )
 @click.option(
     "--make-payment",
-    help="The payment to make (in alnt).  The value should be a number or 'auto' to use the deployer's minimum required payment.",
+    help=(
+        "The payment to make (in alnt). The value should be a number or "
+        "'auto' to use the deployer's minimum required payment."
+    ),
 )
 @click.option(
     "--use-payment", help="The TX id of an existing, unused payment", default=None

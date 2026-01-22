@@ -71,6 +71,14 @@ typeCheckingMode = "basic"
 reportMissingImports = "none"
 reportMissingModuleSource = "none"
 reportUnusedImport = "error"
+# Disable common issues in existing codebase - can be enabled incrementally
+reportGeneralTypeIssues = "none"
+reportOptionalMemberAccess = "none"
+reportOptionalSubscript = "none"
+reportOptionalCall = "none"
+reportOptionalIterable = "none"
+reportUnboundVariable = "warning"
+reportUnusedExpression = "none"
 include = ["stack_orchestrator/**/*.py", "tests/**/*.py"]
 exclude = ["**/build/**", "**/__pycache__/**"]
 

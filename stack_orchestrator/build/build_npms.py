@@ -32,14 +32,18 @@ builder_js_image_name = "cerc/builder-js:local"
 
 
 @click.command()
-@click.option('--include', help="only build these packages")
-@click.option('--exclude', help="don\'t build these packages")
-@click.option("--force-rebuild", is_flag=True, default=False,
-              help="Override existing target package version check -- force rebuild")
+@click.option("--include", help="only build these packages")
+@click.option("--exclude", help="don't build these packages")
+@click.option(
+    "--force-rebuild",
+    is_flag=True,
+    default=False,
+    help="Override existing target package version check -- force rebuild",
+)
 @click.option("--extra-build-args", help="Supply extra arguments to build")
 @click.pass_context
 def command(ctx, include, exclude, force_rebuild, extra_build_args):
-    '''build the set of npm packages required for a complete stack'''
+    """build the set of npm packages required for a complete stack"""
 
     quiet = ctx.obj.quiet
     verbose = ctx.obj.verbose
@@ -65,45 +69,54 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         sys.exit(1)
 
     if local_stack:
-        dev_root_path = os.getcwd()[0:os.getcwd().rindex("stack-orchestrator")]
-        print(f'Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: {dev_root_path}')
+        dev_root_path = os.getcwd()[0 : os.getcwd().rindex("stack-orchestrator")]
+        print(
+            f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: "
+            f"{dev_root_path}"
+        )
     else:
-        dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
+        dev_root_path = os.path.expanduser(
+            config("CERC_REPO_BASE_DIR", default="~/cerc")
+        )
 
     build_root_path = os.path.join(dev_root_path, "build-trees")
 
     if verbose:
-        print(f'Dev Root is: {dev_root_path}')
+        print(f"Dev Root is: {dev_root_path}")
 
     if not os.path.isdir(dev_root_path):
-        print('Dev root directory doesn\'t exist, creating')
+        print("Dev root directory doesn't exist, creating")
         os.makedirs(dev_root_path)
     if not os.path.isdir(dev_root_path):
-        print('Build root directory doesn\'t exist, creating')
+        print("Build root directory doesn't exist, creating")
         os.makedirs(build_root_path)
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from stack_orchestrator import data
-    with importlib.resources.open_text(data, "npm-package-list.txt") as package_list_file:
+
+    with importlib.resources.open_text(
+        data, "npm-package-list.txt"
+    ) as package_list_file:
         all_packages = package_list_file.read().splitlines()
 
     packages_in_scope = []
     if stack:
         stack_config = get_parsed_stack_config(stack)
         # TODO: syntax check the input here
-        packages_in_scope = stack_config['npms']
+        packages_in_scope = stack_config["npms"]
     else:
         packages_in_scope = all_packages
 
     if verbose:
-        print(f'Packages: {packages_in_scope}')
+        print(f"Packages: {packages_in_scope}")
 
     def build_package(package):
         if not quiet:
             print(f"Building npm package: {package}")
         repo_dir = package
         repo_full_path = os.path.join(dev_root_path, repo_dir)
-        # Copy the repo and build that to avoid propagating JS tooling file changes back into the cloned repo
+        # Copy the repo and build that to avoid propagating
+        # JS tooling file changes back into the cloned repo
         repo_copy_path = os.path.join(build_root_path, repo_dir)
         # First delete any old build tree
         if os.path.isdir(repo_copy_path):
@@ -116,41 +129,63 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
             print(f"Copying build tree from: {repo_full_path} to: {repo_copy_path}")
         if not dry_run:
             copytree(repo_full_path, repo_copy_path)
-        build_command = ["sh", "-c", f"cd /workspace && build-npm-package-local-dependencies.sh {npm_registry_url}"]
+        build_command = [
+            "sh",
+            "-c",
+            "cd /workspace && "
+            f"build-npm-package-local-dependencies.sh {npm_registry_url}",
+        ]
         if not dry_run:
             if verbose:
                 print(f"Executing: {build_command}")
             # Originally we used the PEP 584 merge operator:
-            # envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token} | ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
-            # but that isn't available in Python 3.8 (default in Ubuntu 20) so for now we use dict.update:
-            envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token,
-                    "LACONIC_HOSTED_CONFIG_FILE": "config-hosted.yml"  # Convention used by our web app packages
-                    }
+            # envs = {"CERC_NPM_AUTH_TOKEN": npm_registry_url_token} |
+            #        ({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
+            # but that isn't available in Python 3.8 (default in Ubuntu 20)
+            # so for now we use dict.update:
+            envs = {
+                "CERC_NPM_AUTH_TOKEN": npm_registry_url_token,
+                # Convention used by our web app packages
+                "LACONIC_HOSTED_CONFIG_FILE": "config-hosted.yml",
+            }
             envs.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
             envs.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})
-            envs.update({"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args} if extra_build_args else {})
+            envs.update(
+                {"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args}
+                if extra_build_args
+                else {}
+            )
             try:
-                docker.run(builder_js_image_name,
-                           remove=True,
-                           interactive=True,
-                           tty=True,
-                           user=f"{os.getuid()}:{os.getgid()}",
-                           envs=envs,
-                           # TODO: detect this host name in npm_registry_url rather than hard-wiring it
-                           add_hosts=[("gitea.local", "host-gateway")],
-                           volumes=[(repo_copy_path, "/workspace")],
-                           command=build_command
-                           )
-                # Note that although the docs say that build_result should contain
-                # the command output as a string, in reality it is always the empty string.
-                # Since we detect errors via catching exceptions below, we can safely ignore it here.
+                docker.run(
+                    builder_js_image_name,
+                    remove=True,
+                    interactive=True,
+                    tty=True,
+                    user=f"{os.getuid()}:{os.getgid()}",
+                    envs=envs,
+                    # TODO: detect this host name in npm_registry_url
+                    # rather than hard-wiring it
+                    add_hosts=[("gitea.local", "host-gateway")],
+                    volumes=[(repo_copy_path, "/workspace")],
+                    command=build_command,
+                )
+                # Note that although the docs say that build_result should
+                # contain the command output as a string, in reality it is
+                # always the empty string. Since we detect errors via catching
+                # exceptions below, we can safely ignore it here.
             except DockerException as e:
                 print(f"Error executing build for {package} in container:\n {e}")
                 if not continue_on_error:
-                    print("FATAL Error: build failed and --continue-on-error not set, exiting")
+                    print(
+                        "FATAL Error: build failed and --continue-on-error "
+                        "not set, exiting"
+                    )
                     sys.exit(1)
                 else:
-                    print("****** Build Error, continuing because --continue-on-error is set")
+                    print(
+                        "****** Build Error, continuing because "
+                        "--continue-on-error is set"
+                    )
 
         else:
             print("Skipped")
@@ -168,6 +203,12 @@ def _ensure_prerequisites():
     # Tell the user how to build it if not
     images = docker.image.list(builder_js_image_name)
     if len(images) == 0:
-        print(f"FATAL: builder image: {builder_js_image_name} is required but was not found")
-        print("Please run this command to create it: laconic-so --stack build-support build-containers")
+        print(
+            f"FATAL: builder image: {builder_js_image_name} is required "
+            "but was not found"
+        )
+        print(
+            "Please run this command to create it: "
+            "laconic-so --stack build-support build-containers"
+        )
         sys.exit(1)

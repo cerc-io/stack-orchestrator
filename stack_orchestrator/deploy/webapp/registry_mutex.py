@@ -17,7 +17,7 @@ def acquire_lock(client, lock_file_path, timeout):
         try:
             # Check if lock file exists and is potentially stale
             if os.path.exists(lock_file_path):
-                with open(lock_file_path, 'r') as lock_file:
+                with open(lock_file_path, "r") as lock_file:
                     timestamp = float(lock_file.read().strip())
 
                 # If lock is stale, remove the lock file
@@ -25,13 +25,15 @@ def acquire_lock(client, lock_file_path, timeout):
                     print(f"Stale lock detected, removing lock file {lock_file_path}")
                     os.remove(lock_file_path)
                 else:
-                    print(f"Lock file {lock_file_path} exists and is recent, waiting...")
+                    print(
+                        f"Lock file {lock_file_path} exists and is recent, waiting..."
+                    )
                     time.sleep(LOCK_RETRY_INTERVAL)
                     continue
 
             # Try to create a new lock file with the current timestamp
             fd = os.open(lock_file_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
-            with os.fdopen(fd, 'w') as lock_file:
+            with os.fdopen(fd, "w") as lock_file:
                 lock_file.write(str(time.time()))
 
             client.mutex_lock_acquired = True

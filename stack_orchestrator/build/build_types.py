@@ -24,5 +24,5 @@ class BuildContext:
     stack: str
     container: str
     container_build_dir: Path
-    container_build_env: Mapping[str,str]
+    container_build_env: Mapping[str, str]
     dev_root_path: str

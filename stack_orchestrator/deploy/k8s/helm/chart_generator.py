@@ -23,12 +23,12 @@ from stack_orchestrator.util import (
     get_pod_file_path,
     get_job_list,
     get_job_file_path,
-    error_exit
+    error_exit,
 )
 from stack_orchestrator.deploy.k8s.helm.kompose_wrapper import (
     check_kompose_available,
     get_kompose_version,
-    convert_to_helm_chart
+    convert_to_helm_chart,
 )
 from stack_orchestrator.util import get_yaml
 
@@ -108,14 +108,17 @@ def _post_process_chart(chart_dir: Path, chart_name: str, jobs: list) -> None:
         _wrap_job_templates_with_conditionals(chart_dir, jobs)
 
 
-def generate_helm_chart(stack_path: str, spec_file: str, deployment_dir_path: Path) -> None:
+def generate_helm_chart(
+    stack_path: str, spec_file: str, deployment_dir_path: Path
+) -> None:
     """
     Generate a self-sufficient Helm chart from stack compose files using Kompose.
 
     Args:
         stack_path: Path to the stack directory
         spec_file: Path to the deployment spec file
-        deployment_dir_path: Deployment directory path (already created with deployment.yml)
+        deployment_dir_path: Deployment directory path
+            (already created with deployment.yml)
 
     Output structure:
         deployment-dir/
@@ -208,13 +211,14 @@ def generate_helm_chart(stack_path: str, spec_file: str, deployment_dir_path: Pa
     # 5. Create chart directory and invoke Kompose
     chart_dir = deployment_dir_path / "chart"
 
-    print(f"Converting {len(compose_files)} compose file(s) to Helm chart using Kompose...")
+    print(
+        f"Converting {len(compose_files)} compose file(s) to Helm chart "
+        "using Kompose..."
+    )
 
     try:
         output = convert_to_helm_chart(
-            compose_files=compose_files,
-            output_dir=chart_dir,
-            chart_name=chart_name
+            compose_files=compose_files, output_dir=chart_dir, chart_name=chart_name
         )
         if opts.o.debug:
             print(f"Kompose output:\n{output}")
@@ -291,7 +295,11 @@ Edit the generated template files in `templates/` to customize:
     print(f"  Stack:    {stack_path}")
 
     # Count generated files
-    template_files = list((chart_dir / "templates").glob("*.yaml")) if (chart_dir / "templates").exists() else []
+    template_files = (
+        list((chart_dir / "templates").glob("*.yaml"))
+        if (chart_dir / "templates").exists()
+        else []
+    )
     print(f"  Files:    {len(template_files)} template(s) generated")
 
     print("\nDeployment directory structure:")

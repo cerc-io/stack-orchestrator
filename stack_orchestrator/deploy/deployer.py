@@ -18,7 +18,6 @@ from pathlib import Path
 
 
 class Deployer(ABC):
-
     @abstractmethod
     def up(self, detach, skip_cluster_management, services):
         pass
@@ -52,7 +51,17 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
+    def run(
+        self,
+        image: str,
+        command=None,
+        user=None,
+        volumes=None,
+        entrypoint=None,
+        env={},
+        ports=[],
+        detach=False,
+    ):
         pass
 
     @abstractmethod
@@ -66,7 +75,6 @@ class DeployerException(Exception):
 
 
 class DeployerConfigGenerator(ABC):
-
     @abstractmethod
     def generate(self, deployment_dir: Path):
         pass

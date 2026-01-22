@@ -21,7 +21,8 @@ from stack_orchestrator.deploy.deployer import Deployer
 
 @dataclass
 class ClusterContext:
-    options: CommandOptions  # TODO: this should be in its own object not stuffed in here
+    # TODO: this should be in its own object not stuffed in here
+    options: CommandOptions
     cluster: str
     compose_files: List[str]
     pre_start_commands: List[str]

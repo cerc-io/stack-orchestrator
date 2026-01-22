@@ -308,11 +308,11 @@ def _generate_kind_port_mappings_from_services(parsed_pod_files):
 
 def _generate_kind_port_mappings(parsed_pod_files):
     port_definitions = []
-    # For now we just map port 80 for the nginx ingress controller we install in kind
-    port_string = "80"
-    port_definitions.append(
-        f"  - containerPort: {port_string}\n    hostPort: {port_string}\n"
-    )
+    # Map port 80 and 443 for the Caddy ingress controller (HTTPS support)
+    for port_string in ["80", "443"]:
+        port_definitions.append(
+            f"  - containerPort: {port_string}\n    hostPort: {port_string}\n"
+        )
     return (
         ""
         if len(port_definitions) == 0

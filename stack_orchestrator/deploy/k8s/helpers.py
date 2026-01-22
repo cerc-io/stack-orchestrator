@@ -97,7 +97,7 @@ def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
     for image in image_set:
         result = _run_command(f"kind load docker-image {image} --name {kind_cluster_name}")
         if result.returncode != 0:
-            raise DeployerException(f"kind create cluster failed: {result}")
+            raise DeployerException(f"kind load docker-image failed: {result}")
 
 
 def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):

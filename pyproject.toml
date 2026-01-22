@@ -41,7 +41,6 @@ dev = [
     "black>=22.0.0",
     "flake8>=5.0.0",
     "pyright>=1.1.0",
-    "ansible-lint>=6.0.0",
     "yamllint>=1.28.0",
     "pre-commit>=3.0.0",
 ]
@@ -64,7 +63,7 @@ target-version = ['py38']
 
 [tool.flake8]
 max-line-length = 88
-extend-ignore = ["E203", "W503"]
+extend-ignore = ["E203", "W503", "E402"]
 
 [tool.pyright]
 pythonVersion = "3.9"

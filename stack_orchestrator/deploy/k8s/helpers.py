@@ -24,6 +24,7 @@ from stack_orchestrator.util import get_k8s_dir, error_exit
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names
 from stack_orchestrator.deploy.deployer import DeployerException
+from stack_orchestrator import constants
 
 
 def get_kind_cluster():
@@ -33,10 +34,7 @@ def get_kind_cluster():
     Returns the cluster name or None if no cluster exists.
     """
     result = subprocess.run(
-        "kind get clusters",
-        shell=True,
-        capture_output=True,
-        text=True
+        "kind get clusters", shell=True, capture_output=True, text=True
     )
     if result.returncode != 0:
         return None
@@ -71,12 +69,14 @@ def wait_for_ingress_in_kind():
     for i in range(20):
         warned_waiting = False
         w = watch.Watch()
-        for event in w.stream(func=core_v1.list_namespaced_pod,
-                              namespace="ingress-nginx",
-                              label_selector="app.kubernetes.io/component=controller",
-                              timeout_seconds=30):
-            if event['object'].status.container_statuses:
-                if event['object'].status.container_statuses[0].ready is True:
+        for event in w.stream(
+            func=core_v1.list_namespaced_pod,
+            namespace="ingress-nginx",
+            label_selector="app.kubernetes.io/component=controller",
+            timeout_seconds=30,
+        ):
+            if event["object"].status.container_statuses:
+                if event["object"].status.container_statuses[0].ready is True:
                     if warned_waiting:
                         print("Ingress controller is ready")
                     return
@@ -87,7 +87,11 @@ def wait_for_ingress_in_kind():
 
 def install_ingress_for_kind():
     api_client = client.ApiClient()
-    ingress_install = os.path.abspath(get_k8s_dir().joinpath("components", "ingress", "ingress-nginx-kind-deploy.yaml"))
+    ingress_install = os.path.abspath(
+        get_k8s_dir().joinpath(
+            "components", "ingress", "ingress-nginx-kind-deploy.yaml"
+        )
+    )
     if opts.o.debug:
         print("Installing nginx ingress controller in kind cluster")
     utils.create_from_yaml(api_client, yaml_file=ingress_install)
@@ -95,14 +99,18 @@ def install_ingress_for_kind():
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
     for image in image_set:
-        result = _run_command(f"kind load docker-image {image} --name {kind_cluster_name}")
+        result = _run_command(
+            f"kind load docker-image {image} --name {kind_cluster_name}"
+        )
         if result.returncode != 0:
             raise DeployerException(f"kind load docker-image failed: {result}")
 
 
 def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
     pods = []
-    pod_response = core_api.list_namespaced_pod(namespace="default", label_selector=f"app={deployment_name}")
+    pod_response = core_api.list_namespaced_pod(
+        namespace="default", label_selector=f"app={deployment_name}"
+    )
     if opts.o.debug:
         print(f"pod_response: {pod_response}")
     for pod_info in pod_response.items:
@@ -158,13 +166,16 @@ def volume_mounts_for_service(parsed_pod_files, service):
                     if "volumes" in service_obj:
                         volumes = service_obj["volumes"]
                         for mount_string in volumes:
-                            # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                            # Looks like: test-data:/data
+                            # or test-data:/data:ro or test-data:/data:rw
                             if opts.o.debug:
                                 print(f"mount_string: {mount_string}")
                             mount_split = mount_string.split(":")
                             volume_name = mount_split[0]
                             mount_path = mount_split[1]
-                            mount_options = mount_split[2] if len(mount_split) == 3 else None
+                            mount_options = (
+                                mount_split[2] if len(mount_split) == 3 else None
+                            )
                             if opts.o.debug:
                                 print(f"volume_name: {volume_name}")
                                 print(f"mount path: {mount_path}")
@@ -172,7 +183,7 @@ def volume_mounts_for_service(parsed_pod_files, service):
                             volume_device = client.V1VolumeMount(
                                 mount_path=mount_path,
                                 name=volume_name,
-                                read_only="ro" == mount_options
+                                read_only="ro" == mount_options,
                             )
                             result.append(volume_device)
     return result
@@ -187,12 +198,18 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
             for volume_name in volumes.keys():
                 if volume_name in spec.get_configmaps():
                     # Set defaultMode=0o755 to make scripts executable
-                    config_map = client.V1ConfigMapVolumeSource(name=f"{app_name}-{volume_name}", default_mode=0o755)
+                    config_map = client.V1ConfigMapVolumeSource(
+                        name=f"{app_name}-{volume_name}", default_mode=0o755
+                    )
                     volume = client.V1Volume(name=volume_name, config_map=config_map)
                     result.append(volume)
                 else:
-                    claim = client.V1PersistentVolumeClaimVolumeSource(claim_name=f"{app_name}-{volume_name}")
-                    volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
+                    claim = client.V1PersistentVolumeClaimVolumeSource(
+                        claim_name=f"{app_name}-{volume_name}"
+                    )
+                    volume = client.V1Volume(
+                        name=volume_name, persistent_volume_claim=claim
+                    )
                     result.append(volume)
     return result
 
@@ -224,7 +241,8 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                 if "volumes" in service_obj:
                     volumes = service_obj["volumes"]
                     for mount_string in volumes:
-                        # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                        # Looks like: test-data:/data
+                        # or test-data:/data:ro or test-data:/data:rw
                         if opts.o.debug:
                             print(f"mount_string: {mount_string}")
                         mount_split = mount_string.split(":")
@@ -236,15 +254,21 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                             print(f"mount path: {mount_path}")
                         if volume_name not in deployment_context.spec.get_configmaps():
                             if volume_host_path_map[volume_name]:
+                                host_path = _make_absolute_host_path(
+                                    volume_host_path_map[volume_name],
+                                    deployment_dir,
+                                )
+                                container_path = get_kind_pv_bind_mount_path(
+                                    volume_name
+                                )
                                 volume_definitions.append(
-                                    f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
-                                    f"    containerPath: {get_kind_pv_bind_mount_path(volume_name)}\n"
+                                    f"  - hostPath: {host_path}\n"
+                                    f"    containerPath: {container_path}\n"
                                 )
     return (
-        "" if len(volume_definitions) == 0 else (
-            "  extraMounts:\n"
-            f"{''.join(volume_definitions)}"
-        )
+        ""
+        if len(volume_definitions) == 0
+        else ("  extraMounts:\n" f"{''.join(volume_definitions)}")
     )
 
 
@@ -262,12 +286,14 @@ def _generate_kind_port_mappings_from_services(parsed_pod_files):
                     for port_string in ports:
                         # TODO handle the complex cases
                         # Looks like: 80 or something more complicated
-                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
+                        port_definitions.append(
+                            f"  - containerPort: {port_string}\n"
+                            f"    hostPort: {port_string}\n"
+                        )
     return (
-        "" if len(port_definitions) == 0 else (
-            "  extraPortMappings:\n"
-            f"{''.join(port_definitions)}"
-        )
+        ""
+        if len(port_definitions) == 0
+        else ("  extraPortMappings:\n" f"{''.join(port_definitions)}")
     )
 
 
@@ -275,13 +301,48 @@ def _generate_kind_port_mappings(parsed_pod_files):
     port_definitions = []
     # For now we just map port 80 for the nginx ingress controller we install in kind
     port_string = "80"
-    port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
-    return (
-        "" if len(port_definitions) == 0 else (
-            "  extraPortMappings:\n"
-            f"{''.join(port_definitions)}"
-        )
+    port_definitions.append(
+        f"  - containerPort: {port_string}\n    hostPort: {port_string}\n"
     )
+    return (
+        ""
+        if len(port_definitions) == 0
+        else ("  extraPortMappings:\n" f"{''.join(port_definitions)}")
+    )
+
+
+def _generate_cri_base_mount(deployment_dir: Path):
+    """Generate the extraMount entry for cri-base.json to set RLIMIT_MEMLOCK."""
+    cri_base_path = deployment_dir.joinpath(constants.cri_base_filename).resolve()
+    return (
+        f"  - hostPath: {cri_base_path}\n"
+        f"    containerPath: /etc/containerd/cri-base.json\n"
+    )
+
+
+def generate_cri_base_json():
+    """Generate cri-base.json content with unlimited RLIMIT_MEMLOCK.
+
+    This is needed for workloads like Solana validators that require large
+    amounts of locked memory for memory-mapped files during snapshot decompression.
+
+    The IPC_LOCK capability alone doesn't raise the RLIMIT_MEMLOCK limit - it only
+    allows mlock() calls. We need to set the rlimit in the OCI runtime spec.
+    """
+    import json
+
+    # Use maximum 64-bit signed integer value for unlimited
+    max_rlimit = 9223372036854775807
+    cri_base = {
+        "ociVersion": "1.0.2-dev",
+        "process": {
+            "rlimits": [
+                {"type": "RLIMIT_MEMLOCK", "hard": max_rlimit, "soft": max_rlimit},
+                {"type": "RLIMIT_NOFILE", "hard": 1048576, "soft": 1048576},
+            ]
+        },
+    }
+    return json.dumps(cri_base, indent=2)
 
 
 # Note: this makes any duplicate definition in b overwrite a
@@ -314,7 +375,9 @@ def _expand_shell_vars(raw_val: str, env_map: Mapping[str, str] = None) -> str:
     return raw_val
 
 
-def envs_from_compose_file(compose_file_envs: Mapping[str, str], env_map: Mapping[str, str] = None) -> Mapping[str, str]:
+def envs_from_compose_file(
+    compose_file_envs: Mapping[str, str], env_map: Mapping[str, str] = None
+) -> Mapping[str, str]:
     result = {}
     for env_var, env_val in compose_file_envs.items():
         expanded_env_val = _expand_shell_vars(env_val, env_map)
@@ -322,7 +385,9 @@ def envs_from_compose_file(compose_file_envs: Mapping[str, str], env_map: Mappin
     return result
 
 
-def envs_from_environment_variables_map(map: Mapping[str, str]) -> List[client.V1EnvVar]:
+def envs_from_environment_variables_map(
+    map: Mapping[str, str]
+) -> List[client.V1EnvVar]:
     result = []
     for env_var, env_val in map.items():
         result.append(client.V1EnvVar(env_var, env_val))
@@ -353,7 +418,20 @@ def generate_kind_config(deployment_dir: Path, deployment_context):
     pod_files = [p for p in compose_file_dir.iterdir() if p.is_file()]
     parsed_pod_files_map = parsed_pod_files_map_from_file_names(pod_files)
     port_mappings_yml = _generate_kind_port_mappings(parsed_pod_files_map)
-    mounts_yml = _generate_kind_mounts(parsed_pod_files_map, deployment_dir, deployment_context)
+    mounts_yml = _generate_kind_mounts(
+        parsed_pod_files_map, deployment_dir, deployment_context
+    )
+
+    # Check if unlimited_memlock is enabled and add cri-base.json mount
+    unlimited_memlock = deployment_context.spec.get_unlimited_memlock()
+    if unlimited_memlock:
+        cri_base_mount = _generate_cri_base_mount(deployment_dir)
+        if mounts_yml:
+            # Append to existing mounts
+            mounts_yml = mounts_yml.rstrip() + "\n" + cri_base_mount
+        else:
+            mounts_yml = f"  extraMounts:\n{cri_base_mount}"
+
     return (
         "kind: Cluster\n"
         "apiVersion: kind.x-k8s.io/v1alpha4\n"
@@ -364,7 +442,7 @@ def generate_kind_config(deployment_dir: Path, deployment_context):
         "      kind: InitConfiguration\n"
         "      nodeRegistration:\n"
         "        kubeletExtraArgs:\n"
-        "          node-labels: \"ingress-ready=true\"\n"
+        '          node-labels: "ingress-ready=true"\n'
         f"{port_mappings_yml}\n"
         f"{mounts_yml}\n"
     )

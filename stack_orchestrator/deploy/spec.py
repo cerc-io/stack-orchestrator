@@ -72,7 +72,6 @@ class Resources:
 
 
 class Spec:
-
     obj: typing.Any
     file_path: Path
 
@@ -105,10 +104,14 @@ class Spec:
         return self.obj.get(constants.configmaps_key, {})
 
     def get_container_resources(self):
-        return Resources(self.obj.get(constants.resources_key, {}).get("containers", {}))
+        return Resources(
+            self.obj.get(constants.resources_key, {}).get("containers", {})
+        )
 
     def get_volume_resources(self):
-        return Resources(self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {}))
+        return Resources(
+            self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {})
+        )
 
     def get_http_proxy(self):
         return self.obj.get(constants.network_key, {}).get(constants.http_proxy_key, [])
@@ -129,17 +132,34 @@ class Spec:
         return self.obj.get(constants.labels_key, {})
 
     def get_privileged(self):
-        return "true" == str(self.obj.get(constants.security_key, {}).get("privileged", "false")).lower()
+        return (
+            "true"
+            == str(
+                self.obj.get(constants.security_key, {}).get("privileged", "false")
+            ).lower()
+        )
 
     def get_capabilities(self):
         return self.obj.get(constants.security_key, {}).get("capabilities", [])
+
+    def get_unlimited_memlock(self):
+        return (
+            "true"
+            == str(
+                self.obj.get(constants.security_key, {}).get(
+                    constants.unlimited_memlock_key, "false"
+                )
+            ).lower()
+        )
 
     def get_deployment_type(self):
         return self.obj.get(constants.deploy_to_key)
 
     def is_kubernetes_deployment(self):
-        return self.get_deployment_type() in [constants.k8s_kind_deploy_type,
-                                              constants.k8s_deploy_type]
+        return self.get_deployment_type() in [
+            constants.k8s_kind_deploy_type,
+            constants.k8s_deploy_type,
+        ]
 
     def is_kind_deployment(self):
         return self.get_deployment_type() in [constants.k8s_kind_deploy_type]

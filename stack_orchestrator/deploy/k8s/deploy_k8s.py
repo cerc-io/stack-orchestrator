@@ -20,10 +20,24 @@ from typing import List
 
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
-from stack_orchestrator.deploy.k8s.helpers import create_cluster, destroy_cluster, load_images_into_kind
-from stack_orchestrator.deploy.k8s.helpers import install_ingress_for_kind, wait_for_ingress_in_kind
-from stack_orchestrator.deploy.k8s.helpers import pods_in_deployment, containers_in_pod, log_stream_from_string
-from stack_orchestrator.deploy.k8s.helpers import generate_kind_config
+from stack_orchestrator.deploy.k8s.helpers import (
+    create_cluster,
+    destroy_cluster,
+    load_images_into_kind,
+)
+from stack_orchestrator.deploy.k8s.helpers import (
+    install_ingress_for_kind,
+    wait_for_ingress_in_kind,
+)
+from stack_orchestrator.deploy.k8s.helpers import (
+    pods_in_deployment,
+    containers_in_pod,
+    log_stream_from_string,
+)
+from stack_orchestrator.deploy.k8s.helpers import (
+    generate_kind_config,
+    generate_cri_base_json,
+)
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
@@ -57,18 +71,31 @@ class K8sDeployer(Deployer):
     deployment_dir: Path
     deployment_context: DeploymentContext
 
-    def __init__(self, type, deployment_context: DeploymentContext, compose_files, compose_project_name, compose_env_file) -> None:
+    def __init__(
+        self,
+        type,
+        deployment_context: DeploymentContext,
+        compose_files,
+        compose_project_name,
+        compose_env_file,
+    ) -> None:
         self.type = type
         self.skip_cluster_management = False
-        # TODO: workaround pending refactoring above to cope with being created with a null deployment_context
+        # TODO: workaround pending refactoring above to cope with being
+        # created with a null deployment_context
         if deployment_context is None:
             return
         self.deployment_dir = deployment_context.deployment_dir
         self.deployment_context = deployment_context
         self.kind_cluster_name = compose_project_name
         self.cluster_info = ClusterInfo()
-        self.cluster_info.int(compose_files, compose_env_file, compose_project_name, deployment_context.spec)
-        if (opts.o.debug):
+        self.cluster_info.int(
+            compose_files,
+            compose_env_file,
+            compose_project_name,
+            deployment_context.spec,
+        )
+        if opts.o.debug:
             print(f"Deployment dir: {deployment_context.deployment_dir}")
             print(f"Compose files: {compose_files}")
             print(f"Project name: {compose_project_name}")
@@ -80,7 +107,11 @@ class K8sDeployer(Deployer):
             config.load_kube_config(context=f"kind-{self.kind_cluster_name}")
         else:
             # Get the config file and pass to load_kube_config()
-            config.load_kube_config(config_file=self.deployment_dir.joinpath(constants.kube_config_filename).as_posix())
+            config.load_kube_config(
+                config_file=self.deployment_dir.joinpath(
+                    constants.kube_config_filename
+                ).as_posix()
+            )
         self.core_api = client.CoreV1Api()
         self.networking_api = client.NetworkingV1Api()
         self.apps_api = client.AppsV1Api()
@@ -94,7 +125,9 @@ class K8sDeployer(Deployer):
                 print(f"Sending this pv: {pv}")
             if not opts.o.dry_run:
                 try:
-                    pv_resp = self.core_api.read_persistent_volume(name=pv.metadata.name)
+                    pv_resp = self.core_api.read_persistent_volume(
+                        name=pv.metadata.name
+                    )
                     if pv_resp:
                         if opts.o.debug:
                             print("PVs already present:")
@@ -117,7 +150,8 @@ class K8sDeployer(Deployer):
             if not opts.o.dry_run:
                 try:
                     pvc_resp = self.core_api.read_namespaced_persistent_volume_claim(
-                        name=pvc.metadata.name, namespace=self.k8s_namespace)
+                        name=pvc.metadata.name, namespace=self.k8s_namespace
+                    )
                     if pvc_resp:
                         if opts.o.debug:
                             print("PVCs already present:")
@@ -126,7 +160,9 @@ class K8sDeployer(Deployer):
                 except:  # noqa: E722
                     pass
 
-                pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(body=pvc, namespace=self.k8s_namespace)
+                pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(
+                    body=pvc, namespace=self.k8s_namespace
+                )
                 if opts.o.debug:
                     print("PVCs created:")
                     print(f"{pvc_resp}")
@@ -138,8 +174,7 @@ class K8sDeployer(Deployer):
                 print(f"Sending this ConfigMap: {cfg_map}")
             if not opts.o.dry_run:
                 cfg_rsp = self.core_api.create_namespaced_config_map(
-                    body=cfg_map,
-                    namespace=self.k8s_namespace
+                    body=cfg_map, namespace=self.k8s_namespace
                 )
                 if opts.o.debug:
                     print("ConfigMap created:")
@@ -147,7 +182,9 @@ class K8sDeployer(Deployer):
 
     def _create_deployment(self):
         # Process compose files into a Deployment
-        deployment = self.cluster_info.get_deployment(image_pull_policy=None if self.is_kind() else "Always")
+        deployment = self.cluster_info.get_deployment(
+            image_pull_policy=None if self.is_kind() else "Always"
+        )
         # Create the k8s objects
         if opts.o.debug:
             print(f"Sending this deployment: {deployment}")
@@ -157,16 +194,18 @@ class K8sDeployer(Deployer):
             )
             if opts.o.debug:
                 print("Deployment created:")
-                print(f"{deployment_resp.metadata.namespace} {deployment_resp.metadata.name} \
-                    {deployment_resp.metadata.generation} {deployment_resp.spec.template.spec.containers[0].image}")
+                ns = deployment_resp.metadata.namespace
+                name = deployment_resp.metadata.name
+                gen = deployment_resp.metadata.generation
+                img = deployment_resp.spec.template.spec.containers[0].image
+                print(f"{ns} {name} {gen} {img}")
 
         service: client.V1Service = self.cluster_info.get_service()
         if opts.o.debug:
             print(f"Sending this service: {service}")
         if not opts.o.dry_run:
             service_resp = self.core_api.create_namespaced_service(
-                namespace=self.k8s_namespace,
-                body=service
+                namespace=self.k8s_namespace, body=service
             )
             if opts.o.debug:
                 print("Service created:")
@@ -177,7 +216,7 @@ class K8sDeployer(Deployer):
             group="cert-manager.io",
             version="v1",
             namespace=self.k8s_namespace,
-            plural="certificates"
+            plural="certificates",
         )
 
         host_parts = host_name.split(".", 1)
@@ -202,7 +241,9 @@ class K8sDeployer(Deployer):
                     if before < now < after:
                         # Check the status is Ready
                         for condition in status.get("conditions", []):
-                            if "True" == condition.get("status") and "Ready" == condition.get("type"):
+                            if "True" == condition.get(
+                                "status"
+                            ) and "Ready" == condition.get("type"):
                                 return cert
         return None
 
@@ -211,14 +252,20 @@ class K8sDeployer(Deployer):
         if not opts.o.dry_run:
             if self.is_kind() and not self.skip_cluster_management:
                 # Create the kind cluster
-                create_cluster(self.kind_cluster_name, self.deployment_dir.joinpath(constants.kind_config_filename))
+                create_cluster(
+                    self.kind_cluster_name,
+                    self.deployment_dir.joinpath(constants.kind_config_filename),
+                )
                 # Ensure the referenced containers are copied into kind
-                load_images_into_kind(self.kind_cluster_name, self.cluster_info.image_set)
+                load_images_into_kind(
+                    self.kind_cluster_name, self.cluster_info.image_set
+                )
             self.connect_api()
             if self.is_kind() and not self.skip_cluster_management:
-                # Now configure an ingress controller (not installed by default in kind)
+                # Configure ingress controller (not installed by default in kind)
                 install_ingress_for_kind()
-                # Wait for ingress to start (deployment provisioning will fail unless this is done)
+                # Wait for ingress to start
+                # (deployment provisioning will fail unless this is done)
                 wait_for_ingress_in_kind()
 
         else:
@@ -228,21 +275,26 @@ class K8sDeployer(Deployer):
         self._create_deployment()
 
         http_proxy_info = self.cluster_info.spec.get_http_proxy()
-        # Note: at present we don't support tls for kind (and enabling tls causes errors)
+        # Note: we don't support tls for kind (enabling tls causes errors)
         use_tls = http_proxy_info and not self.is_kind()
-        certificate = self._find_certificate_for_host_name(http_proxy_info[0]["host-name"]) if use_tls else None
+        certificate = (
+            self._find_certificate_for_host_name(http_proxy_info[0]["host-name"])
+            if use_tls
+            else None
+        )
         if opts.o.debug:
             if certificate:
                 print(f"Using existing certificate: {certificate}")
 
-        ingress: client.V1Ingress = self.cluster_info.get_ingress(use_tls=use_tls, certificate=certificate)
+        ingress: client.V1Ingress = self.cluster_info.get_ingress(
+            use_tls=use_tls, certificate=certificate
+        )
         if ingress:
             if opts.o.debug:
                 print(f"Sending this ingress: {ingress}")
             if not opts.o.dry_run:
                 ingress_resp = self.networking_api.create_namespaced_ingress(
-                    namespace=self.k8s_namespace,
-                    body=ingress
+                    namespace=self.k8s_namespace, body=ingress
                 )
                 if opts.o.debug:
                     print("Ingress created:")
@@ -257,8 +309,7 @@ class K8sDeployer(Deployer):
                 print(f"Sending this nodeport: {nodeport}")
             if not opts.o.dry_run:
                 nodeport_resp = self.core_api.create_namespaced_service(
-                    namespace=self.k8s_namespace,
-                    body=nodeport
+                    namespace=self.k8s_namespace, body=nodeport
                 )
                 if opts.o.debug:
                     print("NodePort created:")
@@ -276,7 +327,9 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print(f"Deleting this pv: {pv}")
                 try:
-                    pv_resp = self.core_api.delete_persistent_volume(name=pv.metadata.name)
+                    pv_resp = self.core_api.delete_persistent_volume(
+                        name=pv.metadata.name
+                    )
                     if opts.o.debug:
                         print("PV deleted:")
                         print(f"{pv_resp}")
@@ -328,13 +381,14 @@ class K8sDeployer(Deployer):
             print(f"Deleting service: {service}")
         try:
             self.core_api.delete_namespaced_service(
-                namespace=self.k8s_namespace,
-                name=service.metadata.name
+                namespace=self.k8s_namespace, name=service.metadata.name
             )
         except client.exceptions.ApiException as e:
             _check_delete_exception(e)
 
-        ingress: client.V1Ingress = self.cluster_info.get_ingress(use_tls=not self.is_kind())
+        ingress: client.V1Ingress = self.cluster_info.get_ingress(
+            use_tls=not self.is_kind()
+        )
         if ingress:
             if opts.o.debug:
                 print(f"Deleting this ingress: {ingress}")
@@ -354,8 +408,7 @@ class K8sDeployer(Deployer):
                 print(f"Deleting this nodeport: {nodeport}")
             try:
                 self.core_api.delete_namespaced_service(
-                    namespace=self.k8s_namespace,
-                    name=nodeport.metadata.name
+                    namespace=self.k8s_namespace, name=nodeport.metadata.name
                 )
             except client.exceptions.ApiException as e:
                 _check_delete_exception(e)
@@ -385,21 +438,25 @@ class K8sDeployer(Deployer):
         ip = "?"
         tls = "?"
         try:
-            ingress = self.networking_api.read_namespaced_ingress(namespace=self.k8s_namespace,
-                                                                  name=self.cluster_info.get_ingress().metadata.name)
+            ingress = self.networking_api.read_namespaced_ingress(
+                namespace=self.k8s_namespace,
+                name=self.cluster_info.get_ingress().metadata.name,
+            )
 
             cert = self.custom_obj_api.get_namespaced_custom_object(
                 group="cert-manager.io",
                 version="v1",
                 namespace=self.k8s_namespace,
                 plural="certificates",
-                name=ingress.spec.tls[0].secret_name
+                name=ingress.spec.tls[0].secret_name,
             )
 
             hostname = ingress.spec.rules[0].host
             ip = ingress.status.load_balancer.ingress[0].ip
             tls = "notBefore: %s; notAfter: %s; names: %s" % (
-                cert["status"]["notBefore"], cert["status"]["notAfter"], ingress.spec.tls[0].hosts
+                cert["status"]["notBefore"],
+                cert["status"]["notAfter"],
+                ingress.spec.tls[0].hosts,
             )
         except:  # noqa: E722
             pass
@@ -412,10 +469,14 @@ class K8sDeployer(Deployer):
         print("Pods:")
 
         for p in pods:
+            ns = p.metadata.namespace
+            name = p.metadata.name
             if p.metadata.deletion_timestamp:
-                print(f"\t{p.metadata.namespace}/{p.metadata.name}: Terminating ({p.metadata.deletion_timestamp})")
+                ts = p.metadata.deletion_timestamp
+                print(f"\t{ns}/{name}: Terminating ({ts})")
             else:
-                print(f"\t{p.metadata.namespace}/{p.metadata.name}: Running ({p.metadata.creation_timestamp})")
+                ts = p.metadata.creation_timestamp
+                print(f"\t{ns}/{name}: Running ({ts})")
 
     def ps(self):
         self.connect_api()
@@ -430,19 +491,22 @@ class K8sDeployer(Deployer):
                 for c in p.spec.containers:
                     if c.ports:
                         for prt in c.ports:
-                            ports[str(prt.container_port)] = [AttrDict({
-                                "HostIp": pod_ip,
-                                "HostPort": prt.container_port
-                            })]
+                            ports[str(prt.container_port)] = [
+                                AttrDict(
+                                    {"HostIp": pod_ip, "HostPort": prt.container_port}
+                                )
+                            ]
 
-                ret.append(AttrDict({
-                    "id": f"{p.metadata.namespace}/{p.metadata.name}",
-                    "name": p.metadata.name,
-                    "namespace": p.metadata.namespace,
-                    "network_settings": AttrDict({
-                        "ports": ports
-                    })
-                }))
+                ret.append(
+                    AttrDict(
+                        {
+                            "id": f"{p.metadata.namespace}/{p.metadata.name}",
+                            "name": p.metadata.name,
+                            "namespace": p.metadata.namespace,
+                            "network_settings": AttrDict({"ports": ports}),
+                        }
+                    )
+                )
 
         return ret
 
@@ -465,11 +529,13 @@ class K8sDeployer(Deployer):
         else:
             k8s_pod_name = pods[0]
             containers = containers_in_pod(self.core_api, k8s_pod_name)
-            # If the pod is not yet started, the logs request below will throw an exception
+            # If pod not started, logs request below will throw an exception
             try:
                 log_data = ""
                 for container in containers:
-                    container_log = self.core_api.read_namespaced_pod_log(k8s_pod_name, namespace="default", container=container)
+                    container_log = self.core_api.read_namespaced_pod_log(
+                        k8s_pod_name, namespace="default", container=container
+                    )
                     container_log_lines = container_log.splitlines()
                     for line in container_log_lines:
                         log_data += f"{container}: {line}\n"
@@ -484,8 +550,7 @@ class K8sDeployer(Deployer):
         ref_deployment = self.cluster_info.get_deployment()
 
         deployment = self.apps_api.read_namespaced_deployment(
-            name=ref_deployment.metadata.name,
-            namespace=self.k8s_namespace
+            name=ref_deployment.metadata.name, namespace=self.k8s_namespace
         )
 
         new_env = ref_deployment.spec.template.spec.containers[0].env
@@ -503,10 +568,20 @@ class K8sDeployer(Deployer):
         self.apps_api.patch_namespaced_deployment(
             name=ref_deployment.metadata.name,
             namespace=self.k8s_namespace,
-            body=deployment
+            body=deployment,
         )
 
-    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
+    def run(
+        self,
+        image: str,
+        command=None,
+        user=None,
+        volumes=None,
+        entrypoint=None,
+        env={},
+        ports=[],
+        detach=False,
+    ):
         # We need to figure out how to do this -- check why we're being called first
         pass
 
@@ -518,7 +593,10 @@ class K8sDeployer(Deployer):
             chart_dir = self.deployment_dir / "chart"
             if not chart_dir.exists():
                 # TODO: Implement job support for compose-based K8s deployments
-                raise Exception(f"Job support is only available for helm-based deployments. Chart directory not found: {chart_dir}")
+                raise Exception(
+                    f"Job support is only available for helm-based "
+                    f"deployments. Chart directory not found: {chart_dir}"
+                )
 
             # Run the job using the helm job runner
             run_helm_job(
@@ -527,7 +605,7 @@ class K8sDeployer(Deployer):
                 release=helm_release,
                 namespace=self.k8s_namespace,
                 timeout=600,
-                verbose=opts.o.verbose
+                verbose=opts.o.verbose,
             )
 
     def is_kind(self):
@@ -545,6 +623,18 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
     def generate(self, deployment_dir: Path):
         # No need to do this for the remote k8s case
         if self.type == "k8s-kind":
+            # Generate cri-base.json if unlimited_memlock is enabled.
+            # Must be done before generate_kind_config() which references it.
+            if self.deployment_context.spec.get_unlimited_memlock():
+                cri_base_content = generate_cri_base_json()
+                cri_base_file = deployment_dir.joinpath(constants.cri_base_filename)
+                if opts.o.debug:
+                    print(
+                        f"Creating cri-base.json for unlimited memlock: {cri_base_file}"
+                    )
+                with open(cri_base_file, "w") as output_file:
+                    output_file.write(cri_base_content)
+
             # Check the file isn't already there
             # Get the config file contents
             content = generate_kind_config(deployment_dir, self.deployment_context)

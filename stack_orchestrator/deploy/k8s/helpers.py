@@ -317,17 +317,19 @@ def _generate_kind_port_mappings(parsed_pod_files):
     )
 
 
-def _generate_cri_base_mount(deployment_dir: Path):
-    """Generate the extraMount entry for cri-base.json to set RLIMIT_MEMLOCK."""
-    cri_base_path = deployment_dir.joinpath(constants.cri_base_filename).resolve()
-    return (
-        f"  - hostPath: {cri_base_path}\n"
-        f"    containerPath: /etc/containerd/cri-base.json\n"
-    )
+def _generate_high_memlock_spec_mount(deployment_dir: Path):
+    """Generate the extraMount entry for high-memlock-spec.json.
+
+    The spec file must be mounted at the same path inside the kind node
+    as it appears on the host, because containerd's base_runtime_spec
+    references an absolute path.
+    """
+    spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
+    return f"  - hostPath: {spec_path}\n" f"    containerPath: {spec_path}\n"
 
 
-def generate_cri_base_json():
-    """Generate cri-base.json content with unlimited RLIMIT_MEMLOCK.
+def generate_high_memlock_spec_json():
+    """Generate OCI spec JSON with unlimited RLIMIT_MEMLOCK.
 
     This is needed for workloads like Solana validators that require large
     amounts of locked memory for memory-mapped files during snapshot decompression.
@@ -339,7 +341,7 @@ def generate_cri_base_json():
 
     # Use maximum 64-bit signed integer value for unlimited
     max_rlimit = 9223372036854775807
-    cri_base = {
+    spec = {
         "ociVersion": "1.0.2-dev",
         "process": {
             "rlimits": [
@@ -348,7 +350,36 @@ def generate_cri_base_json():
             ]
         },
     }
-    return json.dumps(cri_base, indent=2)
+    return json.dumps(spec, indent=2)
+
+
+# Keep old name as alias for backward compatibility
+def generate_cri_base_json():
+    """Deprecated: Use generate_high_memlock_spec_json() instead."""
+    return generate_high_memlock_spec_json()
+
+
+def _generate_containerd_config_patches(
+    deployment_dir: Path, has_high_memlock: bool
+) -> str:
+    """Generate containerdConfigPatches YAML for custom runtime handlers.
+
+    This configures containerd to have a runtime handler named 'high-memlock'
+    that uses a custom OCI base spec with unlimited RLIMIT_MEMLOCK.
+    """
+    if not has_high_memlock:
+        return ""
+
+    spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
+    runtime_name = constants.high_memlock_runtime
+    plugin_path = 'plugins."io.containerd.grpc.v1.cri".containerd.runtimes'
+    return (
+        "containerdConfigPatches:\n"
+        "  - |-\n"
+        f"    [{plugin_path}.{runtime_name}]\n"
+        '      runtime_type = "io.containerd.runc.v2"\n'
+        f'      base_runtime_spec = "{spec_path}"\n'
+    )
 
 
 # Note: this makes any duplicate definition in b overwrite a
@@ -430,19 +461,30 @@ def generate_kind_config(deployment_dir: Path, deployment_context):
         parsed_pod_files_map, deployment_dir, deployment_context
     )
 
-    # Check if unlimited_memlock is enabled and add cri-base.json mount
+    # Check if unlimited_memlock is enabled
     unlimited_memlock = deployment_context.spec.get_unlimited_memlock()
+
+    # Generate containerdConfigPatches for RuntimeClass support
+    containerd_patches_yml = _generate_containerd_config_patches(
+        deployment_dir, unlimited_memlock
+    )
+
+    # Add high-memlock spec file mount if needed
     if unlimited_memlock:
-        cri_base_mount = _generate_cri_base_mount(deployment_dir)
+        spec_mount = _generate_high_memlock_spec_mount(deployment_dir)
         if mounts_yml:
             # Append to existing mounts
-            mounts_yml = mounts_yml.rstrip() + "\n" + cri_base_mount
+            mounts_yml = mounts_yml.rstrip() + "\n" + spec_mount
         else:
-            mounts_yml = f"  extraMounts:\n{cri_base_mount}"
+            mounts_yml = f"  extraMounts:\n{spec_mount}"
 
-    return (
-        "kind: Cluster\n"
-        "apiVersion: kind.x-k8s.io/v1alpha4\n"
+    # Build the config - containerdConfigPatches must be at cluster level (before nodes)
+    config = "kind: Cluster\n" "apiVersion: kind.x-k8s.io/v1alpha4\n"
+
+    if containerd_patches_yml:
+        config += containerd_patches_yml
+
+    config += (
         "nodes:\n"
         "- role: control-plane\n"
         "  kubeadmConfigPatches:\n"
@@ -454,3 +496,5 @@ def generate_kind_config(deployment_dir: Path, deployment_context):
         f"{port_mappings_yml}\n"
         f"{mounts_yml}\n"
     )
+
+    return config

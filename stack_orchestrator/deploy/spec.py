@@ -153,6 +153,29 @@ class Spec:
             ).lower()
         )
 
+    def get_runtime_class(self):
+        """Get runtime class name from spec, or derive from security settings.
+
+        The runtime class determines which containerd runtime handler to use,
+        allowing different pods to have different rlimit profiles (e.g., for
+        unlimited RLIMIT_MEMLOCK).
+
+        Returns:
+            Runtime class name string, or None to use default runtime.
+        """
+        # Explicit runtime class takes precedence
+        explicit = self.obj.get(constants.security_key, {}).get(
+            constants.runtime_class_key, None
+        )
+        if explicit:
+            return explicit
+
+        # Auto-derive from unlimited-memlock setting
+        if self.get_unlimited_memlock():
+            return constants.high_memlock_runtime
+
+        return None  # Use default runtime
+
     def get_deployment_type(self):
         return self.obj.get(constants.deploy_to_key)
 

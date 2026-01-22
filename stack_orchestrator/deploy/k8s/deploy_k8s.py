@@ -37,7 +37,7 @@ from stack_orchestrator.deploy.k8s.helpers import (
 )
 from stack_orchestrator.deploy.k8s.helpers import (
     generate_kind_config,
-    generate_cri_base_json,
+    generate_high_memlock_spec_json,
 )
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.opts import opts
@@ -57,6 +57,36 @@ def _check_delete_exception(e: ApiException) -> None:
             print("Failed to delete object, continuing")
     else:
         error_exit(f"k8s api error: {e}")
+
+
+def _create_runtime_class(name: str, handler: str):
+    """Create a RuntimeClass resource for custom containerd runtime handlers.
+
+    RuntimeClass allows pods to specify which runtime handler to use, enabling
+    different pods to have different rlimit profiles (e.g., high-memlock).
+
+    Args:
+        name: The name of the RuntimeClass resource
+        handler: The containerd runtime handler name
+            (must match containerdConfigPatches)
+    """
+    api = client.NodeV1Api()
+    runtime_class = client.V1RuntimeClass(
+        api_version="node.k8s.io/v1",
+        kind="RuntimeClass",
+        metadata=client.V1ObjectMeta(name=name),
+        handler=handler,
+    )
+    try:
+        api.create_runtime_class(runtime_class)
+        if opts.o.debug:
+            print(f"Created RuntimeClass: {name}")
+    except ApiException as e:
+        if e.status == 409:  # Already exists
+            if opts.o.debug:
+                print(f"RuntimeClass {name} already exists")
+        else:
+            raise
 
 
 class K8sDeployer(Deployer):
@@ -275,6 +305,12 @@ class K8sDeployer(Deployer):
                 # Wait for ingress to start
                 # (deployment provisioning will fail unless this is done)
                 wait_for_ingress_in_kind()
+                # Create RuntimeClass if unlimited_memlock is enabled
+                if self.cluster_info.spec.get_unlimited_memlock():
+                    _create_runtime_class(
+                        constants.high_memlock_runtime,
+                        constants.high_memlock_runtime,
+                    )
 
         else:
             print("Dry run mode enabled, skipping k8s API connect")
@@ -669,17 +705,19 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
     def generate(self, deployment_dir: Path):
         # No need to do this for the remote k8s case
         if self.type == "k8s-kind":
-            # Generate cri-base.json if unlimited_memlock is enabled.
+            # Generate high-memlock-spec.json if unlimited_memlock is enabled.
             # Must be done before generate_kind_config() which references it.
             if self.deployment_context.spec.get_unlimited_memlock():
-                cri_base_content = generate_cri_base_json()
-                cri_base_file = deployment_dir.joinpath(constants.cri_base_filename)
+                spec_content = generate_high_memlock_spec_json()
+                spec_file = deployment_dir.joinpath(
+                    constants.high_memlock_spec_filename
+                )
                 if opts.o.debug:
                     print(
-                        f"Creating cri-base.json for unlimited memlock: {cri_base_file}"
+                        f"Creating high-memlock spec for unlimited memlock: {spec_file}"
                     )
-                with open(cri_base_file, "w") as output_file:
-                    output_file.write(cri_base_content)
+                with open(spec_file, "w") as output_file:
+                    output_file.write(spec_content)
 
             # Check the file isn't already there
             # Get the config file contents

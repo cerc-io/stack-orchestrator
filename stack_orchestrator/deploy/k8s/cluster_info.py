@@ -531,6 +531,7 @@ class ClusterInfo:
                 volumes=volumes,
                 affinity=affinity,
                 tolerations=tolerations,
+                runtime_class_name=self.spec.get_runtime_class(),
             ),
         )
         spec = client.V1DeploymentSpec(

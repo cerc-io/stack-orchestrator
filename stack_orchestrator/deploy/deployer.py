@@ -15,6 +15,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Optional
 
 
 class Deployer(ABC):
@@ -65,7 +66,7 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def run_job(self, job_name: str, release_name: str = None):
+    def run_job(self, job_name: str, release_name: Optional[str] = None):
         pass
 
 

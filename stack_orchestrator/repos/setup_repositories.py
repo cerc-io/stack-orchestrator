@@ -20,7 +20,8 @@ import os
 import sys
 from decouple import config
 import git
-from git.exc import GitCommandError
+from git.exc import GitCommandError, InvalidGitRepositoryError
+from typing import Any
 from tqdm import tqdm
 import click
 import importlib.resources
@@ -48,7 +49,7 @@ def is_git_repo(path):
     try:
         _ = git.Repo(path).git_dir
         return True
-    except git.exc.InvalidGitRepositoryError:
+    except InvalidGitRepositoryError:
         return False
 
 
@@ -70,10 +71,14 @@ def host_and_path_for_repo(fully_qualified_repo):
     # Legacy unqualified repo means github
     if len(repo_host_split) == 2:
         return "github.com", "/".join(repo_host_split), repo_branch
+    elif len(repo_host_split) == 3:
+        # First part is the host
+        return repo_host_split[0], "/".join(repo_host_split[1:]), repo_branch
     else:
-        if len(repo_host_split) == 3:
-            # First part is the host
-            return repo_host_split[0], "/".join(repo_host_split[1:]), repo_branch
+        raise ValueError(
+            f"Invalid repository format: {fully_qualified_repo}. "
+            "Expected format: host/org/repo or org/repo"
+        )
 
 
 # See: https://stackoverflow.com/questions/18659425/get-git-current-branch-tag-name
@@ -161,10 +166,12 @@ def process_repo(
                 f"into {full_filesystem_repo_path}"
             )
         if not opts.o.dry_run:
+            # Cast to Any to work around GitPython's incomplete type stubs
+            progress: Any = None if opts.o.quiet else GitProgress()
             git.Repo.clone_from(
                 full_github_repo_path,
                 full_filesystem_repo_path,
-                progress=None if opts.o.quiet else GitProgress(),
+                progress=progress,
             )
         else:
             print("(git clone skipped)")
@@ -244,7 +251,7 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches):
         )
     else:
         dev_root_path = os.path.expanduser(
-            config("CERC_REPO_BASE_DIR", default="~/cerc")
+            str(config("CERC_REPO_BASE_DIR", default="~/cerc"))
         )
 
     if not quiet:
@@ -288,5 +295,5 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches):
     for repo in repos:
         try:
             process_repo(pull, check_only, git_ssh, dev_root_path, branches_array, repo)
-        except git.exc.GitCommandError as error:
+        except GitCommandError as error:
             error_exit(f"\n******* git command returned error exit status:\n{error}")

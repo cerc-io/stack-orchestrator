@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from pathlib import Path
+from typing import Optional
 from python_on_whales import DockerClient, DockerException
 from stack_orchestrator.deploy.deployer import (
     Deployer,
@@ -30,11 +31,11 @@ class DockerDeployer(Deployer):
 
     def __init__(
         self,
-        type,
-        deployment_context: DeploymentContext,
-        compose_files,
-        compose_project_name,
-        compose_env_file,
+        type: str,
+        deployment_context: Optional[DeploymentContext],
+        compose_files: list,
+        compose_project_name: Optional[str],
+        compose_env_file: Optional[str],
     ) -> None:
         self.docker = DockerClient(
             compose_files=compose_files,
@@ -42,6 +43,10 @@ class DockerDeployer(Deployer):
             compose_env_file=compose_env_file,
         )
         self.type = type
+        # Store these for later use in run_job
+        self.compose_files = compose_files
+        self.compose_project_name = compose_project_name
+        self.compose_env_file = compose_env_file
 
     def up(self, detach, skip_cluster_management, services):
         if not opts.o.dry_run:
@@ -121,7 +126,7 @@ class DockerDeployer(Deployer):
             try:
                 return self.docker.run(
                     image=image,
-                    command=command,
+                    command=command if command else [],
                     user=user,
                     volumes=volumes,
                     entrypoint=entrypoint,
@@ -133,17 +138,17 @@ class DockerDeployer(Deployer):
             except DockerException as e:
                 raise DeployerException(e)
 
-    def run_job(self, job_name: str, release_name: str = None):
+    def run_job(self, job_name: str, release_name: Optional[str] = None):
         # release_name is ignored for Docker deployments (only used for K8s/Helm)
         if not opts.o.dry_run:
             try:
                 # Find job compose file in compose-jobs directory
                 # The deployment should have compose-jobs/docker-compose-<job_name>.yml
-                if not self.docker.compose_files:
+                if not self.compose_files:
                     raise DeployerException("No compose files configured")
 
                 # Deployment directory is parent of compose directory
-                compose_dir = Path(self.docker.compose_files[0]).parent
+                compose_dir = Path(self.compose_files[0]).parent
                 deployment_dir = compose_dir.parent
                 job_compose_file = (
                     deployment_dir / "compose-jobs" / f"docker-compose-{job_name}.yml"
@@ -162,8 +167,8 @@ class DockerDeployer(Deployer):
                 # This allows the job to access volumes from the main deployment
                 job_docker = DockerClient(
                     compose_files=[job_compose_file],
-                    compose_project_name=self.docker.compose_project_name,
-                    compose_env_file=self.docker.compose_env_file,
+                    compose_project_name=self.compose_project_name,
+                    compose_env_file=self.compose_env_file,
                 )
 
                 # Run the job with --rm flag to remove container after completion

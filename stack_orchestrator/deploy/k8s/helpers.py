@@ -18,7 +18,7 @@ import os
 from pathlib import Path
 import subprocess
 import re
-from typing import Set, Mapping, List
+from typing import Set, Mapping, List, Optional, cast
 
 from stack_orchestrator.util import get_k8s_dir, error_exit
 from stack_orchestrator.opts import opts
@@ -75,8 +75,10 @@ def wait_for_ingress_in_kind():
             label_selector="app.kubernetes.io/component=controller",
             timeout_seconds=30,
         ):
-            if event["object"].status.container_statuses:
-                if event["object"].status.container_statuses[0].ready is True:
+            event_dict = cast(dict, event)
+            pod = cast(client.V1Pod, event_dict.get("object"))
+            if pod and pod.status and pod.status.container_statuses:
+                if pod.status.container_statuses[0].ready is True:
                     if warned_waiting:
                         print("Ingress controller is ready")
                     return
@@ -119,14 +121,18 @@ def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
     return pods
 
 
-def containers_in_pod(core_api: client.CoreV1Api, pod_name: str):
-    containers = []
-    pod_response = core_api.read_namespaced_pod(pod_name, namespace="default")
+def containers_in_pod(core_api: client.CoreV1Api, pod_name: str) -> List[str]:
+    containers: List[str] = []
+    pod_response = cast(
+        client.V1Pod, core_api.read_namespaced_pod(pod_name, namespace="default")
+    )
     if opts.o.debug:
         print(f"pod_response: {pod_response}")
-    pod_containers = pod_response.spec.containers
-    for pod_container in pod_containers:
-        containers.append(pod_container.name)
+    if not pod_response.spec or not pod_response.spec.containers:
+        return containers
+    for pod_container in pod_response.spec.containers:
+        if pod_container.name:
+            containers.append(pod_container.name)
     return containers
 
 
@@ -351,7 +357,9 @@ def merge_envs(a: Mapping[str, str], b: Mapping[str, str]) -> Mapping[str, str]:
     return result
 
 
-def _expand_shell_vars(raw_val: str, env_map: Mapping[str, str] = None) -> str:
+def _expand_shell_vars(
+    raw_val: str, env_map: Optional[Mapping[str, str]] = None
+) -> str:
     # Expand docker-compose style variable substitution:
     # ${VAR} - use VAR value or empty string
     # ${VAR:-default} - use VAR value or default if unset/empty
@@ -376,7 +384,7 @@ def _expand_shell_vars(raw_val: str, env_map: Mapping[str, str] = None) -> str:
 
 
 def envs_from_compose_file(
-    compose_file_envs: Mapping[str, str], env_map: Mapping[str, str] = None
+    compose_file_envs: Mapping[str, str], env_map: Optional[Mapping[str, str]] = None
 ) -> Mapping[str, str]:
     result = {}
     for env_var, env_val in compose_file_envs.items():

@@ -21,6 +21,7 @@ import os
 import sys
 from dataclasses import dataclass
 from importlib import resources
+from typing import Optional
 import subprocess
 import click
 from pathlib import Path
@@ -35,8 +36,9 @@ from stack_orchestrator.util import (
     stack_is_in_deployment,
     resolve_compose_file,
 )
-from stack_orchestrator.deploy.deployer import Deployer, DeployerException
+from stack_orchestrator.deploy.deployer import DeployerException
 from stack_orchestrator.deploy.deployer_factory import getDeployer
+from stack_orchestrator.deploy.compose.deploy_docker import DockerDeployer
 from stack_orchestrator.deploy.deploy_types import ClusterContext, DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.deployment_create import create as deployment_create
@@ -91,7 +93,7 @@ def command(ctx, include, exclude, env_file, cluster, deploy_to):
 
 def create_deploy_context(
     global_context,
-    deployment_context: DeploymentContext,
+    deployment_context: Optional[DeploymentContext],
     stack,
     include,
     exclude,
@@ -256,7 +258,7 @@ def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
         print(stream_content.decode("utf-8"), end="")
 
 
-def run_job_operation(ctx, job_name: str, helm_release: str = None):
+def run_job_operation(ctx, job_name: str, helm_release: Optional[str] = None):
     global_context = ctx.parent.parent.obj
     if not global_context.dry_run:
         print(f"Running job: {job_name}")
@@ -320,22 +322,24 @@ def get_stack_status(ctx, stack):
     ctx_copy.stack = stack
 
     cluster_context = _make_cluster_context(ctx_copy, stack, None, None, None, None)
-    deployer = Deployer(
+    deployer = DockerDeployer(
+        type="compose",
+        deployment_context=None,
         compose_files=cluster_context.compose_files,
         compose_project_name=cluster_context.cluster,
+        compose_env_file=cluster_context.env_file,
     )
     # TODO: refactor to avoid duplicating this code above
     if ctx.verbose:
         print("Running compose ps")
     container_list = deployer.ps()
-    if len(container_list) > 0:
-        if ctx.debug:
-            print(f"Container list from compose ps: {container_list}")
-        return True
-    else:
+    if container_list is None or len(container_list) == 0:
         if ctx.debug:
             print("No containers found from compose ps")
-        False
+        return False
+    if ctx.debug:
+        print(f"Container list from compose ps: {container_list}")
+    return True
 
 
 def _make_runtime_env(ctx):
@@ -394,14 +398,17 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         all_pods = pod_list_file.read().splitlines()
 
     pods_in_scope = []
+    cluster_config = None
     if stack:
         stack_config = get_parsed_stack_config(stack)
-        # TODO: syntax check the input here
-        pods_in_scope = stack_config["pods"]
-        cluster_config = stack_config["config"] if "config" in stack_config else None
+        if stack_config is not None:
+            # TODO: syntax check the input here
+            pods_in_scope = stack_config["pods"]
+            cluster_config = (
+                stack_config["config"] if "config" in stack_config else None
+            )
     else:
         pods_in_scope = all_pods
-        cluster_config = None
 
     # Convert all pod definitions to v1.1 format
     pods_in_scope = _convert_to_new_format(pods_in_scope)

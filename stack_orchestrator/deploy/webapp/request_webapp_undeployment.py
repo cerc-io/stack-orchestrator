@@ -20,9 +20,9 @@ import yaml
 from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient
 
 
-def fatal(msg: str):
+def fatal(msg: str) -> None:
     print(msg, file=sys.stderr)
-    sys.exit(1)
+    sys.exit(1)  # noqa: This function never returns
 
 
 @click.command()
@@ -85,18 +85,17 @@ def command(
         if dry_run:
             undeployment_request["record"]["payment"] = "DRY_RUN"
         elif "auto" == make_payment:
-            if "minimumPayment" in deployer_record.attributes:
-                amount = int(
-                    deployer_record.attributes.minimumPayment.replace("alnt", "")
-                )
+            attrs = deployer_record.attributes if deployer_record else None
+            if attrs and "minimumPayment" in attrs:
+                amount = int(attrs.minimumPayment.replace("alnt", ""))
         else:
             amount = make_payment
         if amount:
-            receipt = laconic.send_tokens(
-                deployer_record.attributes.paymentAddress, amount
-            )
-            undeployment_request["record"]["payment"] = receipt.tx.hash
-            print("Payment TX:", receipt.tx.hash)
+            attrs = deployer_record.attributes if deployer_record else None
+            if attrs and attrs.paymentAddress:
+                receipt = laconic.send_tokens(attrs.paymentAddress, amount)
+                undeployment_request["record"]["payment"] = receipt.tx.hash
+                print("Payment TX:", receipt.tx.hash)
     elif use_payment:
         undeployment_request["record"]["payment"] = use_payment
 

@@ -73,6 +73,7 @@ def process_app_deployment_request(
     app = laconic.get_record(
         app_deployment_request.attributes.application, require=True
     )
+    assert app is not None  # require=True ensures this
     logger.log(f"Retrieved app record {app_deployment_request.attributes.application}")
 
     # 2. determine dns
@@ -483,6 +484,8 @@ def command(  # noqa: C901
             laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file
         )
         webapp_deployer_record = laconic.get_record(lrn, require=True)
+        assert webapp_deployer_record is not None  # require=True ensures this
+        assert webapp_deployer_record.attributes is not None
         payment_address = webapp_deployer_record.attributes.paymentAddress
         main_logger.log(f"Payment address: {payment_address}")
 
@@ -495,6 +498,7 @@ def command(  # noqa: C901
             sys.exit(2)
 
         # Find deployment requests.
+        requests = []
         # single request
         if request_id:
             main_logger.log(f"Retrieving request {request_id}...")
@@ -518,25 +522,35 @@ def command(  # noqa: C901
             previous_requests = load_known_requests(state_file)
 
         # Collapse related requests.
-        requests.sort(key=lambda r: r.createTime)
-        requests.reverse()
+        # Filter out None values and sort
+        valid_requests = [r for r in requests if r is not None]
+        valid_requests.sort(key=lambda r: r.createTime if r else "")
+        valid_requests.reverse()
         requests_by_name = {}
         skipped_by_name = {}
-        for r in requests:
-            main_logger.log(f"BEGIN: Examining request {r.id}")
+        for r in valid_requests:
+            if not r:
+                continue
+            r_id = r.id if r else "unknown"
+            main_logger.log(f"BEGIN: Examining request {r_id}")
             result = "PENDING"
             try:
                 if (
-                    r.id in previous_requests
-                    and previous_requests[r.id].get("status", "") != "RETRY"
+                    r_id in previous_requests
+                    and previous_requests[r_id].get("status", "") != "RETRY"
                 ):
-                    main_logger.log(f"Skipping request {r.id}, we've already seen it.")
+                    main_logger.log(f"Skipping request {r_id}, we've already seen it.")
                     result = "SKIP"
+                    continue
+
+                if not r.attributes:
+                    main_logger.log(f"Skipping request {r_id}, no attributes.")
+                    result = "ERROR"
                     continue
 
                 app = laconic.get_record(r.attributes.application)
                 if not app:
-                    main_logger.log(f"Skipping request {r.id}, cannot locate app.")
+                    main_logger.log(f"Skipping request {r_id}, cannot locate app.")
                     result = "ERROR"
                     continue
 
@@ -544,7 +558,7 @@ def command(  # noqa: C901
                 if not requested_name:
                     requested_name = generate_hostname_for_app(app)
                     main_logger.log(
-                        "Generating name %s for request %s." % (requested_name, r.id)
+                        "Generating name %s for request %s." % (requested_name, r_id)
                     )
 
                 if (
@@ -552,31 +566,33 @@ def command(  # noqa: C901
                     or requested_name in requests_by_name
                 ):
                     main_logger.log(
-                        "Ignoring request %s, it has been superseded." % r.id
+                        "Ignoring request %s, it has been superseded." % r_id
                     )
                     result = "SKIP"
                     continue
 
                 if skip_by_tag(r, include_tags, exclude_tags):
+                    r_tags = r.attributes.tags if r.attributes else None
                     main_logger.log(
                         "Skipping request %s, filtered by tag "
                         "(include %s, exclude %s, present %s)"
-                        % (r.id, include_tags, exclude_tags, r.attributes.tags)
+                        % (r_id, include_tags, exclude_tags, r_tags)
                     )
                     skipped_by_name[requested_name] = r
                     result = "SKIP"
                     continue
 
+                r_app = r.attributes.application if r.attributes else "unknown"
                 main_logger.log(
                     "Found pending request %s to run application %s on %s."
-                    % (r.id, r.attributes.application, requested_name)
+                    % (r_id, r_app, requested_name)
                 )
                 requests_by_name[requested_name] = r
             except Exception as e:
                 result = "ERROR"
-                main_logger.log(f"ERROR examining request {r.id}: " + str(e))
+                main_logger.log(f"ERROR examining request {r_id}: " + str(e))
             finally:
-                main_logger.log(f"DONE Examining request {r.id} with result {result}.")
+                main_logger.log(f"DONE Examining request {r_id} with result {result}.")
                 if result in ["ERROR"]:
                     dump_known_requests(state_file, [r], status=result)
 
@@ -673,6 +689,7 @@ def command(  # noqa: C901
                 status = "ERROR"
                 run_log_file = None
                 run_reg_client = laconic
+                build_logger = None
                 try:
                     run_id = (
                         f"{r.id}-{str(time.time()).split('.')[0]}-"
@@ -718,7 +735,8 @@ def command(  # noqa: C901
                     status = "DEPLOYED"
                 except Exception as e:
                     main_logger.log(f"ERROR {r.id}:" + str(e))
-                    build_logger.log("ERROR: " + str(e))
+                    if build_logger:
+                        build_logger.log("ERROR: " + str(e))
                 finally:
                     main_logger.log(f"DEPLOYING {r.id}: END - {status}")
                     if build_logger:

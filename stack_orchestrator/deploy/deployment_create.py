@@ -58,6 +58,8 @@ def _get_ports(stack):
     yaml = get_yaml()
     for pod in pods:
         pod_file_path = get_pod_file_path(stack, parsed_stack, pod)
+        if pod_file_path is None:
+            continue
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "services" in parsed_pod_file:
             for svc_name, svc in parsed_pod_file["services"].items():
@@ -92,6 +94,8 @@ def _get_named_volumes(stack):
 
     for pod in pods:
         pod_file_path = get_pod_file_path(stack, parsed_stack, pod)
+        if pod_file_path is None:
+            continue
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
@@ -202,6 +206,8 @@ def call_stack_deploy_init(deploy_command_context):
     for python_file_path in python_file_paths:
         if python_file_path.exists():
             spec = util.spec_from_file_location("commands", python_file_path)
+            if spec is None or spec.loader is None:
+                continue
             imported_stack = util.module_from_spec(spec)
             spec.loader.exec_module(imported_stack)
             if _has_method(imported_stack, "init"):
@@ -228,6 +234,8 @@ def call_stack_deploy_setup(
     for python_file_path in python_file_paths:
         if python_file_path.exists():
             spec = util.spec_from_file_location("commands", python_file_path)
+            if spec is None or spec.loader is None:
+                continue
             imported_stack = util.module_from_spec(spec)
             spec.loader.exec_module(imported_stack)
             if _has_method(imported_stack, "setup"):
@@ -243,6 +251,8 @@ def call_stack_deploy_create(deployment_context, extra_args):
     for python_file_path in python_file_paths:
         if python_file_path.exists():
             spec = util.spec_from_file_location("commands", python_file_path)
+            if spec is None or spec.loader is None:
+                continue
             imported_stack = util.module_from_spec(spec)
             spec.loader.exec_module(imported_stack)
             if _has_method(imported_stack, "create"):
@@ -600,6 +610,8 @@ def create_operation(
     yaml = get_yaml()
     for pod in pods:
         pod_file_path = get_pod_file_path(stack_name, parsed_stack, pod)
+        if pod_file_path is None:
+            continue
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
         destination_pod_dir = destination_pods_dir.joinpath(pod)
@@ -688,7 +700,8 @@ def create_operation(
         deployment_type, deployment_context
     )
     # TODO: make deployment_dir_path a Path above
-    deployer_config_generator.generate(deployment_dir_path)
+    if deployer_config_generator is not None:
+        deployer_config_generator.generate(deployment_dir_path)
     call_stack_deploy_create(
         deployment_context, [network_dir, initial_peers, deployment_command_context]
     )

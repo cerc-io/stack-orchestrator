@@ -25,6 +25,7 @@ import uuid
 import yaml
 
 from enum import Enum
+from typing import Any, List, Optional, TextIO
 
 from stack_orchestrator.deploy.webapp.registry_mutex import registry_mutex
 
@@ -41,27 +42,35 @@ AUCTION_KIND_PROVIDER = "provider"
 
 
 class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
-    def __getattribute__(self, attr):
+    def __getattribute__(self, attr: str) -> Any:
         __dict__ = super(AttrDict, self).__getattribute__("__dict__")
         if attr in __dict__:
             v = super(AttrDict, self).__getattribute__(attr)
             if isinstance(v, dict):
                 return AttrDict(v)
             return v
+        return super(AttrDict, self).__getattribute__(attr)
+
+    def __getattr__(self, attr: str) -> Any:
+        # This method is called when attribute is not found
+        # Return None for missing attributes (matches original behavior)
+        return None
 
 
 class TimedLogger:
-    def __init__(self, id="", file=None):
+    def __init__(self, id: str = "", file: Optional[TextIO] = None) -> None:
         self.start = datetime.datetime.now()
         self.last = self.start
         self.id = id
         self.file = file
 
-    def log(self, msg, show_step_time=True, show_total_time=False):
+    def log(
+        self, msg: str, show_step_time: bool = True, show_total_time: bool = False
+    ) -> None:
         prefix = f"{datetime.datetime.utcnow()} - {self.id}"
         if show_step_time:
             prefix += f" - {datetime.datetime.now() - self.last} (step)"
@@ -79,7 +88,7 @@ def load_known_requests(filename):
     return {}
 
 
-def logged_cmd(log_file, *vargs):
+def logged_cmd(log_file: Optional[TextIO], *vargs: str) -> str:
     result = None
     try:
         if log_file:
@@ -88,17 +97,22 @@ def logged_cmd(log_file, *vargs):
         result.check_returncode()
         return result.stdout.decode()
     except Exception as err:
-        if result:
-            print(result.stderr.decode(), file=log_file)
-        else:
-            print(str(err), file=log_file)
+        if log_file:
+            if result:
+                print(result.stderr.decode(), file=log_file)
+            else:
+                print(str(err), file=log_file)
         raise err
 
 
-def match_owner(recordA, *records):
+def match_owner(
+    recordA: Optional[AttrDict], *records: Optional[AttrDict]
+) -> Optional[str]:
+    if not recordA or not recordA.owners:
+        return None
     for owner in recordA.owners:
         for otherRecord in records:
-            if owner in otherRecord.owners:
+            if otherRecord and otherRecord.owners and owner in otherRecord.owners:
                 return owner
     return None
 
@@ -226,25 +240,27 @@ class LaconicRegistryClient:
         ]
 
         # Most recent records first
-        results.sort(key=lambda r: r.createTime)
+        results.sort(key=lambda r: r.createTime or "")
         results.reverse()
         self._add_to_cache(results)
 
         return results
 
-    def _add_to_cache(self, records):
+    def _add_to_cache(self, records: List[AttrDict]) -> None:
         if not records:
             return
 
         for p in records:
-            self.cache["name_or_id"][p.id] = p
+            if p.id:
+                self.cache["name_or_id"][p.id] = p
             if p.names:
                 for lrn in p.names:
                     self.cache["name_or_id"][lrn] = p
             if p.attributes and p.attributes.type:
-                if p.attributes.type not in self.cache:
-                    self.cache[p.attributes.type] = []
-                self.cache[p.attributes.type].append(p)
+                attr_type = p.attributes.type
+                if attr_type not in self.cache:
+                    self.cache[attr_type] = []
+                self.cache[attr_type].append(p)
 
     def resolve(self, name):
         if not name:
@@ -556,26 +572,36 @@ def determine_base_container(clone_dir, app_type="webapp"):
     return base_container
 
 
-def build_container_image(app_record, tag, extra_build_args=None, logger=None):
+def build_container_image(
+    app_record: Optional[AttrDict],
+    tag: str,
+    extra_build_args: Optional[List[str]] = None,
+    logger: Optional[TimedLogger] = None,
+) -> None:
+    if app_record is None:
+        raise ValueError("app_record cannot be None")
     if extra_build_args is None:
         extra_build_args = []
     tmpdir = tempfile.mkdtemp()
 
     # TODO: determine if this code could be calling into the Python git
     # library like setup-repositories
+    log_file = logger.file if logger else None
     try:
         record_id = app_record["id"]
         ref = app_record.attributes.repository_ref
         repo = random.choice(app_record.attributes.repository)
         clone_dir = os.path.join(tmpdir, record_id)
 
-        logger.log(f"Cloning repository {repo} to {clone_dir} ...")
+        if logger:
+            logger.log(f"Cloning repository {repo} to {clone_dir} ...")
         # Set github credentials if present running a command like:
         # git config --global url."https://${TOKEN}:@github.com/".insteadOf
         # "https://github.com/"
         github_token = os.environ.get("DEPLOYER_GITHUB_TOKEN")
         if github_token:
-            logger.log("Github token detected, setting it in the git environment")
+            if logger:
+                logger.log("Github token detected, setting it in the git environment")
             git_config_args = [
                 "git",
                 "config",
@@ -583,9 +609,7 @@ def build_container_image(app_record, tag, extra_build_args=None, logger=None):
                 f"url.https://{github_token}:@github.com/.insteadOf",
                 "https://github.com/",
             ]
-            result = subprocess.run(
-                git_config_args, stdout=logger.file, stderr=logger.file
-            )
+            result = subprocess.run(git_config_args, stdout=log_file, stderr=log_file)
             result.check_returncode()
         if ref:
             # TODO: Determing branch or hash, and use depth 1 if we can.
@@ -596,30 +620,32 @@ def build_container_image(app_record, tag, extra_build_args=None, logger=None):
                 subprocess.check_call(
                     ["git", "clone", repo, clone_dir],
                     env=git_env,
-                    stdout=logger.file,
-                    stderr=logger.file,
+                    stdout=log_file,
+                    stderr=log_file,
                 )
             except Exception as e:
-                logger.log(f"git clone failed.  Is the repository {repo} private?")
+                if logger:
+                    logger.log(f"git clone failed.  Is the repository {repo} private?")
                 raise e
             try:
                 subprocess.check_call(
                     ["git", "checkout", ref],
                     cwd=clone_dir,
                     env=git_env,
-                    stdout=logger.file,
-                    stderr=logger.file,
+                    stdout=log_file,
+                    stderr=log_file,
                 )
             except Exception as e:
-                logger.log(f"git checkout failed.  Does ref {ref} exist?")
+                if logger:
+                    logger.log(f"git checkout failed.  Does ref {ref} exist?")
                 raise e
         else:
             # TODO: why is this code different vs the branch above (run vs check_call,
             # and no prompt disable)?
             result = subprocess.run(
                 ["git", "clone", "--depth", "1", repo, clone_dir],
-                stdout=logger.file,
-                stderr=logger.file,
+                stdout=log_file,
+                stderr=log_file,
             )
             result.check_returncode()
 
@@ -627,7 +653,8 @@ def build_container_image(app_record, tag, extra_build_args=None, logger=None):
             clone_dir, app_record.attributes.app_type
         )
 
-        logger.log("Building webapp ...")
+        if logger:
+            logger.log("Building webapp ...")
         build_command = [
             sys.argv[0],
             "--verbose",
@@ -643,10 +670,10 @@ def build_container_image(app_record, tag, extra_build_args=None, logger=None):
             build_command.append("--extra-build-args")
             build_command.append(" ".join(extra_build_args))
 
-        result = subprocess.run(build_command, stdout=logger.file, stderr=logger.file)
+        result = subprocess.run(build_command, stdout=log_file, stderr=log_file)
         result.check_returncode()
     finally:
-        logged_cmd(logger.file, "rm", "-rf", tmpdir)
+        logged_cmd(log_file, "rm", "-rf", tmpdir)
 
 
 def push_container_image(deployment_dir, logger):
@@ -809,8 +836,12 @@ def skip_by_tag(r, include_tags, exclude_tags):
 
 
 def confirm_payment(
-    laconic: LaconicRegistryClient, record, payment_address, min_amount, logger
-):
+    laconic: LaconicRegistryClient,
+    record: AttrDict,
+    payment_address: str,
+    min_amount: int,
+    logger: TimedLogger,
+) -> bool:
     req_owner = laconic.get_owner(record)
     if req_owner == payment_address:
         # No need to confirm payment if the sender and recipient are the same account.
@@ -846,7 +877,8 @@ def confirm_payment(
         )
         return False
 
-    pay_denom = "".join([i for i in tx.amount if not i.isdigit()])
+    tx_amount = tx.amount or ""
+    pay_denom = "".join([i for i in tx_amount if not i.isdigit()])
     if pay_denom != "alnt":
         logger.log(
             f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected "
@@ -854,7 +886,7 @@ def confirm_payment(
         )
         return False
 
-    pay_amount = int("".join([i for i in tx.amount if i.isdigit()]))
+    pay_amount = int("".join([i for i in tx_amount if i.isdigit()]) or "0")
     if pay_amount < min_amount:
         logger.log(
             f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}"
@@ -870,7 +902,8 @@ def confirm_payment(
         used_request = laconic.get_record(used[0].attributes.request, require=True)
 
         # Check that payment was used for deployment of same application
-        if record.attributes.application != used_request.attributes.application:
+        used_app = used_request.attributes.application if used_request else None
+        if record.attributes.application != used_app:
             logger.log(
                 f"{record.id}: payment {tx.hash} already used on a different "
                 f"application deployment {used}"
@@ -890,8 +923,12 @@ def confirm_payment(
 
 
 def confirm_auction(
-    laconic: LaconicRegistryClient, record, deployer_lrn, payment_address, logger
-):
+    laconic: LaconicRegistryClient,
+    record: AttrDict,
+    deployer_lrn: str,
+    payment_address: str,
+    logger: TimedLogger,
+) -> bool:
     auction_id = record.attributes.auction
     auction = laconic.get_auction(auction_id)
 
@@ -906,7 +943,9 @@ def confirm_auction(
     auction_app = laconic.get_record(
         auction_records_by_id[0].attributes.application, require=True
     )
-    if requested_app.id != auction_app.id:
+    requested_app_id = requested_app.id if requested_app else None
+    auction_app_id = auction_app.id if auction_app else None
+    if requested_app_id != auction_app_id:
         logger.log(
             f"{record.id}: requested application {record.attributes.application} "
             f"does not match application from auction record "

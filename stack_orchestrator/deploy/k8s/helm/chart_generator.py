@@ -138,6 +138,8 @@ def generate_helm_chart(
     """
 
     parsed_stack = get_parsed_stack_config(stack_path)
+    if parsed_stack is None:
+        error_exit(f"Failed to parse stack config: {stack_path}")
     stack_name = parsed_stack.get("name", stack_path)
 
     # 1. Check Kompose availability
@@ -185,22 +187,28 @@ def generate_helm_chart(
     compose_files = []
     for pod in pods:
         pod_file = get_pod_file_path(stack_path, parsed_stack, pod)
-        if not pod_file.exists():
-            error_exit(f"Pod file not found: {pod_file}")
-        compose_files.append(pod_file)
+        if pod_file is None:
+            error_exit(f"Pod file path not found for pod: {pod}")
+        pod_file_path = Path(pod_file) if isinstance(pod_file, str) else pod_file
+        if not pod_file_path.exists():
+            error_exit(f"Pod file not found: {pod_file_path}")
+        compose_files.append(pod_file_path)
         if opts.o.debug:
-            print(f"Found compose file: {pod_file.name}")
+            print(f"Found compose file: {pod_file_path.name}")
 
     # Add job compose files
     job_files = []
     for job in jobs:
         job_file = get_job_file_path(stack_path, parsed_stack, job)
-        if not job_file.exists():
-            error_exit(f"Job file not found: {job_file}")
-        compose_files.append(job_file)
-        job_files.append(job_file)
+        if job_file is None:
+            error_exit(f"Job file path not found for job: {job}")
+        job_file_path = Path(job_file) if isinstance(job_file, str) else job_file
+        if not job_file_path.exists():
+            error_exit(f"Job file not found: {job_file_path}")
+        compose_files.append(job_file_path)
+        job_files.append(job_file_path)
         if opts.o.debug:
-            print(f"Found job compose file: {job_file.name}")
+            print(f"Found job compose file: {job_file_path.name}")
 
     try:
         version = get_kompose_version()

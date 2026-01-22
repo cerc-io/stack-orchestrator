@@ -82,7 +82,11 @@ def run_container_command(
     ctx: DeployCommandContext, service: str, command: str, mounts: List[VolumeMapping]
 ):
     deployer = ctx.deployer
+    if deployer is None:
+        raise ValueError("Deployer is not configured")
     container_image = _container_image_from_service(ctx.stack, service)
+    if container_image is None:
+        raise ValueError(f"Container image not found for service: {service}")
     docker_volumes = _volumes_to_docker(mounts)
     if ctx.cluster_context.options.debug:
         print(f"Running this command in {service} container: {command}")

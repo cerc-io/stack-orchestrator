@@ -39,9 +39,12 @@ WEBAPP_PORT = 80
 def command(ctx, image, env_file, port):
     """run the specified webapp container"""
 
-    env = {}
+    env: dict[str, str] = {}
     if env_file:
-        env = dotenv_values(env_file)
+        # Filter out None values from dotenv
+        for k, v in dotenv_values(env_file).items():
+            if v is not None:
+                env[k] = v
 
     unique_cluster_descriptor = f"{image},{env}"
     hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()
@@ -54,6 +57,11 @@ def command(ctx, image, env_file, port):
         compose_project_name=cluster,
         compose_env_file=None,
     )
+
+    if not deployer:
+        print("Failed to create deployer", file=click.get_text_stream("stderr"))
+        ctx.exit(1)
+        return  # Unreachable, but helps type checker
 
     ports = []
     if port:
@@ -72,10 +80,19 @@ def command(ctx, image, env_file, port):
     # Make configurable?
     webappPort = f"{WEBAPP_PORT}/tcp"
     # TODO: This assumes a Docker container object...
-    if webappPort in container.network_settings.ports:
+    # Check if container has network_settings (Docker container object)
+    if (
+        container
+        and hasattr(container, "network_settings")
+        and container.network_settings
+        and hasattr(container.network_settings, "ports")
+        and container.network_settings.ports
+        and webappPort in container.network_settings.ports
+    ):
         mapping = container.network_settings.ports[webappPort][0]
+        container_id = getattr(container, "id", "unknown")
         print(
             f"Image: {image}\n"
-            f"ID: {container.id}\n"
+            f"ID: {container_id}\n"
             f"URL: http://localhost:{mapping['HostPort']}"
         )

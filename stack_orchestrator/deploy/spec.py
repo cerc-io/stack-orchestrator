@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import typing
+from typing import Optional
 import humanfriendly
 
 from pathlib import Path
@@ -23,9 +24,9 @@ from stack_orchestrator import constants
 
 
 class ResourceLimits:
-    cpus: float = None
-    memory: int = None
-    storage: int = None
+    cpus: Optional[float] = None
+    memory: Optional[int] = None
+    storage: Optional[int] = None
 
     def __init__(self, obj=None):
         if obj is None:
@@ -49,8 +50,8 @@ class ResourceLimits:
 
 
 class Resources:
-    limits: ResourceLimits = None
-    reservations: ResourceLimits = None
+    limits: Optional[ResourceLimits] = None
+    reservations: Optional[ResourceLimits] = None
 
     def __init__(self, obj=None):
         if obj is None:
@@ -73,9 +74,9 @@ class Resources:
 
 class Spec:
     obj: typing.Any
-    file_path: Path
+    file_path: Optional[Path]
 
-    def __init__(self, file_path: Path = None, obj=None) -> None:
+    def __init__(self, file_path: Optional[Path] = None, obj=None) -> None:
         if obj is None:
             obj = {}
         self.file_path = file_path

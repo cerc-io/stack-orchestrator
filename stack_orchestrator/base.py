@@ -23,7 +23,7 @@ def get_stack(config, stack):
     if stack == "package-registry":
         return package_registry_stack(config, stack)
     else:
-        return base_stack(config, stack)
+        return default_stack(config, stack)
 
 
 class base_stack(ABC):
@@ -38,6 +38,16 @@ class base_stack(ABC):
     @abstractmethod
     def get_url(self):
         pass
+
+
+class default_stack(base_stack):
+    """Default stack implementation for stacks without specific handling."""
+
+    def ensure_available(self):
+        return True
+
+    def get_url(self):
+        return None
 
 
 class package_registry_stack(base_stack):

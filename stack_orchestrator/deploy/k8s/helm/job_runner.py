@@ -18,6 +18,7 @@ import tempfile
 import os
 import json
 from pathlib import Path
+from typing import Optional
 from stack_orchestrator.util import get_yaml
 
 
@@ -50,7 +51,7 @@ def get_release_name_from_chart(chart_dir: Path) -> str:
 def run_helm_job(
     chart_dir: Path,
     job_name: str,
-    release: str = None,
+    release: Optional[str] = None,
     namespace: str = "default",
     timeout: int = 600,
     verbose: bool = False,

@@ -43,7 +43,13 @@ def process_app_removal_request(
     deployment_record = laconic.get_record(
         app_removal_request.attributes.deployment, require=True
     )
+    assert deployment_record is not None  # require=True ensures this
+    assert deployment_record.attributes is not None
+
     dns_record = laconic.get_record(deployment_record.attributes.dns, require=True)
+    assert dns_record is not None  # require=True ensures this
+    assert dns_record.attributes is not None
+
     deployment_dir = os.path.join(
         deployment_parent_dir, dns_record.attributes.name.lower()
     )
@@ -57,17 +63,20 @@ def process_app_removal_request(
 
     # Or of the original deployment request.
     if not matched_owner and deployment_record.attributes.request:
-        matched_owner = match_owner(
-            app_removal_request,
-            laconic.get_record(deployment_record.attributes.request, require=True),
+        original_request = laconic.get_record(
+            deployment_record.attributes.request, require=True
         )
+        assert original_request is not None  # require=True ensures this
+        matched_owner = match_owner(app_removal_request, original_request)
 
     if matched_owner:
-        main_logger.log("Matched deployment ownership:", matched_owner)
+        main_logger.log(f"Matched deployment ownership: {matched_owner}")
     else:
+        deployment_id = deployment_record.id if deployment_record else "unknown"
+        request_id = app_removal_request.id if app_removal_request else "unknown"
         raise Exception(
             "Unable to confirm ownership of deployment %s for removal request %s"
-            % (deployment_record.id, app_removal_request.id)
+            % (deployment_id, request_id)
         )
 
     # TODO(telackey): Call the function directly. The easiest way to build
@@ -80,13 +89,18 @@ def process_app_removal_request(
     result = subprocess.run(down_command)
     result.check_returncode()
 
+    deployer_name = (
+        webapp_deployer_record.names[0]
+        if webapp_deployer_record and webapp_deployer_record.names
+        else ""
+    )
     removal_record = {
         "record": {
             "type": "ApplicationDeploymentRemovalRecord",
             "version": "1.0.0",
-            "request": app_removal_request.id,
-            "deployment": deployment_record.id,
-            "deployer": webapp_deployer_record.names[0],
+            "request": app_removal_request.id if app_removal_request else "",
+            "deployment": deployment_record.id if deployment_record else "",
+            "deployer": deployer_name,
         }
     }
 
@@ -96,11 +110,11 @@ def process_app_removal_request(
     laconic.publish(removal_record)
 
     if delete_names:
-        if deployment_record.names:
+        if deployment_record and deployment_record.names:
             for name in deployment_record.names:
                 laconic.delete_name(name)
 
-        if dns_record.names:
+        if dns_record and dns_record.names:
             for name in dns_record.names:
                 laconic.delete_name(name)
 
@@ -224,6 +238,8 @@ def command(  # noqa: C901
         laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file
     )
     deployer_record = laconic.get_record(lrn, require=True)
+    assert deployer_record is not None  # require=True ensures this
+    assert deployer_record.attributes is not None
     payment_address = deployer_record.attributes.paymentAddress
     main_logger.log(f"Payment address: {payment_address}")
 
@@ -236,6 +252,7 @@ def command(  # noqa: C901
         sys.exit(2)
 
     # Find deployment removal requests.
+    requests = []
     # single request
     if request_id:
         main_logger.log(f"Retrieving request {request_id}...")
@@ -259,32 +276,39 @@ def command(  # noqa: C901
         main_logger.log(f"Loading known requests from {state_file}...")
         previous_requests = load_known_requests(state_file)
 
-    requests.sort(key=lambda r: r.createTime)
-    requests.reverse()
+    # Filter out None values and sort by createTime
+    valid_requests = [r for r in requests if r is not None]
+    valid_requests.sort(key=lambda r: r.createTime if r else "")
+    valid_requests.reverse()
 
     # Find deployments.
     named_deployments = {}
     main_logger.log("Discovering app deployments...")
     for d in laconic.app_deployments(all=False):
-        named_deployments[d.id] = d
+        if d and d.id:
+            named_deployments[d.id] = d
 
     # Find removal requests.
     removals_by_deployment = {}
     removals_by_request = {}
     main_logger.log("Discovering deployment removals...")
     for r in laconic.app_deployment_removals():
-        if r.attributes.deployment:
+        if r and r.attributes and r.attributes.deployment:
             # TODO: should we handle CRNs?
             removals_by_deployment[r.attributes.deployment] = r
 
     one_per_deployment = {}
-    for r in requests:
+    for r in valid_requests:
+        if not r or not r.attributes:
+            continue
         if not r.attributes.deployment:
+            r_id = r.id if r else "unknown"
             main_logger.log(
-                f"Skipping removal request {r.id} since it was a cancellation."
+                f"Skipping removal request {r_id} since it was a cancellation."
             )
         elif r.attributes.deployment in one_per_deployment:
-            main_logger.log(f"Skipping removal request {r.id} since it was superseded.")
+            r_id = r.id if r else "unknown"
+            main_logger.log(f"Skipping removal request {r_id} since it was superseded.")
         else:
             one_per_deployment[r.attributes.deployment] = r
 

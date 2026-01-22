@@ -248,7 +248,7 @@ def setup(
 
     network_dir = Path(parameters.network_dir).absolute()
     laconicd_home_path_in_container = "/laconicd-home"
-    mounts = [VolumeMapping(network_dir, laconicd_home_path_in_container)]
+    mounts = [VolumeMapping(str(network_dir), laconicd_home_path_in_container)]
 
     if phase == SetupPhase.INITIALIZE:
         # We want to create the directory so if it exists that's an error
@@ -379,6 +379,7 @@ def setup(
                 parameters.gentx_address_list
             )
             # Add those keys to our genesis, with balances we determine here (why?)
+            outputk = None
             for other_node_key in other_node_keys:
                 outputk, statusk = run_container_command(
                     command_context,
@@ -389,7 +390,7 @@ def setup(
                     "--keyring-backend test",
                     mounts,
                 )
-            if options.debug:
+            if options.debug and outputk is not None:
                 print(f"Command output: {outputk}")
             # Copy the gentx json files into our network dir
             _copy_gentx_files(network_dir, parameters.gentx_file_list)

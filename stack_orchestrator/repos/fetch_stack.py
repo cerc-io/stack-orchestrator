@@ -36,7 +36,9 @@ from stack_orchestrator.util import error_exit
 @click.pass_context
 def command(ctx, stack_locator, git_ssh, check_only, pull):
     """Optionally resolve then git clone a repository with stack definitions."""
-    dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
+    dev_root_path = os.path.expanduser(
+        str(config("CERC_REPO_BASE_DIR", default="~/cerc"))
+    )
     if not opts.o.quiet:
         print(f"Dev Root is: {dev_root_path}")
     try:

@@ -16,7 +16,7 @@
 import subprocess
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 
 def check_kompose_available() -> bool:
@@ -53,7 +53,7 @@ def get_kompose_version() -> str:
 
 
 def convert_to_helm_chart(
-    compose_files: List[Path], output_dir: Path, chart_name: str = None
+    compose_files: List[Path], output_dir: Path, chart_name: Optional[str] = None
 ) -> str:
     """
     Invoke kompose to convert Docker Compose files to a Helm chart.

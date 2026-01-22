@@ -17,7 +17,7 @@ import os
 import base64
 
 from kubernetes import client
-from typing import Any, List, Set
+from typing import Any, List, Optional, Set
 
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import env_var_map_from_file
@@ -51,7 +51,7 @@ DEFAULT_CONTAINER_RESOURCES = Resources(
 
 
 def to_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequirements:
-    def to_dict(limits: ResourceLimits):
+    def to_dict(limits: Optional[ResourceLimits]):
         if not limits:
             return None
 
@@ -83,9 +83,11 @@ class ClusterInfo:
         self.parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
         # Find the set of images in the pods
         self.image_set = images_for_deployment(pod_files)
-        self.environment_variables = DeployEnvVars(
-            env_var_map_from_file(compose_env_file)
-        )
+        # Filter out None values from env file
+        env_vars = {
+            k: v for k, v in env_var_map_from_file(compose_env_file).items() if v
+        }
+        self.environment_variables = DeployEnvVars(env_vars)
         self.app_name = deployment_name
         self.spec = spec
         if opts.o.debug:
@@ -214,6 +216,7 @@ class ClusterInfo:
 
     # TODO: suppoprt multiple services
     def get_service(self):
+        port = None
         for pod_name in self.parsed_pod_yaml_map:
             pod = self.parsed_pod_yaml_map[pod_name]
             services = pod["services"]
@@ -223,6 +226,8 @@ class ClusterInfo:
                     port = int(service_info["ports"][0])
                     if opts.o.debug:
                         print(f"service port: {port}")
+        if port is None:
+            return None
         service = client.V1Service(
             metadata=client.V1ObjectMeta(name=f"{self.app_name}-service"),
             spec=client.V1ServiceSpec(
@@ -287,9 +292,9 @@ class ClusterInfo:
                     print(f"{cfg_map_name} not in pod files")
                 continue
 
-            if not cfg_map_path.startswith("/"):
+            if not cfg_map_path.startswith("/") and self.spec.file_path is not None:
                 cfg_map_path = os.path.join(
-                    os.path.dirname(self.spec.file_path), cfg_map_path
+                    os.path.dirname(str(self.spec.file_path)), cfg_map_path
                 )
 
             # Read in all the files at a single-level of the directory.
@@ -367,8 +372,9 @@ class ClusterInfo:
         return result
 
     # TODO: put things like image pull policy into an object-scope struct
-    def get_deployment(self, image_pull_policy: str = None):
+    def get_deployment(self, image_pull_policy: Optional[str] = None):
         containers = []
+        services = {}
         resources = self.spec.get_container_resources()
         if not resources:
             resources = DEFAULT_CONTAINER_RESOURCES

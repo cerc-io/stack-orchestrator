@@ -19,7 +19,7 @@ import sys
 import ruamel.yaml
 from pathlib import Path
 from dotenv import dotenv_values
-from typing import Mapping, Set, List
+from typing import Mapping, NoReturn, Optional, Set, List
 from stack_orchestrator.constants import stack_file_name, deployment_file_name
 
 
@@ -56,7 +56,7 @@ def get_dev_root_path(ctx):
         )
     else:
         dev_root_path = os.path.expanduser(
-            config("CERC_REPO_BASE_DIR", default="~/cerc")
+            str(config("CERC_REPO_BASE_DIR", default="~/cerc"))
         )
     return dev_root_path
 
@@ -161,6 +161,7 @@ def resolve_job_compose_file(stack, job_name: str):
 
 def get_pod_file_path(stack, parsed_stack, pod_name: str):
     pods = parsed_stack["pods"]
+    result = None
     if type(pods[0]) is str:
         result = resolve_compose_file(stack, pod_name)
     else:
@@ -207,6 +208,7 @@ def get_pod_script_paths(parsed_stack, pod_name: str):
 
 def pod_has_scripts(parsed_stack, pod_name: str):
     pods = parsed_stack["pods"]
+    result = False
     if type(pods[0]) is str:
         result = False
     else:
@@ -281,15 +283,15 @@ def global_options2(ctx):
     return ctx.parent.obj
 
 
-def error_exit(s):
+def error_exit(s) -> NoReturn:
     print(f"ERROR: {s}")
     sys.exit(1)
 
 
-def warn_exit(s):
+def warn_exit(s) -> NoReturn:
     print(f"WARN: {s}")
     sys.exit(0)
 
 
-def env_var_map_from_file(file: Path) -> Mapping[str, str]:
+def env_var_map_from_file(file: Path) -> Mapping[str, Optional[str]]:
     return dotenv_values(file)

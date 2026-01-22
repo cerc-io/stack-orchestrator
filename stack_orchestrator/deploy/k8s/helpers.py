@@ -71,8 +71,11 @@ def wait_for_ingress_in_kind():
         w = watch.Watch()
         for event in w.stream(
             func=core_v1.list_namespaced_pod,
-            namespace="ingress-nginx",
-            label_selector="app.kubernetes.io/component=controller",
+            namespace="caddy-system",
+            label_selector=(
+                "app.kubernetes.io/name=caddy-ingress-controller,"
+                "app.kubernetes.io/component=controller"
+            ),
             timeout_seconds=30,
         ):
             event_dict = cast(dict, event)
@@ -80,22 +83,22 @@ def wait_for_ingress_in_kind():
             if pod and pod.status and pod.status.container_statuses:
                 if pod.status.container_statuses[0].ready is True:
                     if warned_waiting:
-                        print("Ingress controller is ready")
+                        print("Caddy ingress controller is ready")
                     return
-            print("Waiting for ingress controller to become ready...")
+            print("Waiting for Caddy ingress controller to become ready...")
             warned_waiting = True
-    error_exit("ERROR: Timed out waiting for ingress to become ready")
+    error_exit("ERROR: Timed out waiting for Caddy ingress to become ready")
 
 
 def install_ingress_for_kind():
     api_client = client.ApiClient()
     ingress_install = os.path.abspath(
         get_k8s_dir().joinpath(
-            "components", "ingress", "ingress-nginx-kind-deploy.yaml"
+            "components", "ingress", "ingress-caddy-kind-deploy.yaml"
         )
     )
     if opts.o.debug:
-        print("Installing nginx ingress controller in kind cluster")
+        print("Installing Caddy ingress controller in kind cluster")
     utils.create_from_yaml(api_client, yaml_file=ingress_install)
 
 

@@ -52,7 +52,8 @@ def _local_tag_for(container: str):
 
 # See: https://docker-docs.uclv.cu/registry/spec/api/
 # Emulate this:
-# $ curl -u "my-username:my-token" -X GET "https://<container-registry-hostname>/v2/cerc-io/cerc/test-container/tags/list"
+# $ curl -u "my-username:my-token" -X GET \
+#   "https://<container-registry-hostname>/v2/cerc-io/cerc/test-container/tags/list"
 # {"name":"cerc-io/cerc/test-container","tags":["202402232130","202402232208"]}
 def _get_tags_for_container(container: str, registry_info: RegistryInfo) -> List[str]:
     # registry looks like: git.vdb.to/cerc-io
@@ -60,7 +61,9 @@ def _get_tags_for_container(container: str, registry_info: RegistryInfo) -> List
     url = f"https://{registry_parts[0]}/v2/{registry_parts[1]}/{container}/tags/list"
     if opts.o.debug:
         print(f"Fetching tags from: {url}")
-    response = requests.get(url, auth=(registry_info.registry_username, registry_info.registry_token))
+    response = requests.get(
+        url, auth=(registry_info.registry_username, registry_info.registry_token)
+    )
     if response.status_code == 200:
         tag_info = response.json()
         if opts.o.debug:
@@ -68,7 +71,10 @@ def _get_tags_for_container(container: str, registry_info: RegistryInfo) -> List
         tags_array = tag_info["tags"]
         return tags_array
     else:
-        error_exit(f"failed to fetch tags from image registry, status code: {response.status_code}")
+        error_exit(
+            f"failed to fetch tags from image registry, "
+            f"status code: {response.status_code}"
+        )
 
 
 def _find_latest(candidate_tags: List[str]):
@@ -79,9 +85,9 @@ def _find_latest(candidate_tags: List[str]):
     return sorted_candidates[-1]
 
 
-def _filter_for_platform(container: str, 
-                         registry_info: RegistryInfo,
-                         tag_list: List[str]) -> List[str] :
+def _filter_for_platform(
+    container: str, registry_info: RegistryInfo, tag_list: List[str]
+) -> List[str]:
     filtered_tags = []
     this_machine = platform.machine()
     # Translate between Python and docker platform names
@@ -98,7 +104,7 @@ def _filter_for_platform(container: str,
         manifest = manifest_cmd.inspect_verbose(remote_tag)
         if opts.o.debug:
             print(f"manifest: {manifest}")
-        image_architecture =  manifest["Descriptor"]["platform"]["architecture"]
+        image_architecture = manifest["Descriptor"]["platform"]["architecture"]
         if opts.o.debug:
             print(f"image_architecture: {image_architecture}")
         if this_machine == image_architecture:
@@ -137,21 +143,44 @@ def _add_local_tag(remote_tag: str, registry: str, local_tag: str):
 
 
 @click.command()
-@click.option('--include', help="only fetch these containers")
-@click.option('--exclude', help="don\'t fetch these containers")
-@click.option("--force-local-overwrite", is_flag=True, default=False, help="Overwrite a locally built image, if present")
-@click.option("--image-registry", required=True, help="Specify the image registry to fetch from")
-@click.option("--registry-username", required=True, help="Specify the image registry username")
-@click.option("--registry-token", required=True, help="Specify the image registry access token")
+@click.option("--include", help="only fetch these containers")
+@click.option("--exclude", help="don't fetch these containers")
+@click.option(
+    "--force-local-overwrite",
+    is_flag=True,
+    default=False,
+    help="Overwrite a locally built image, if present",
+)
+@click.option(
+    "--image-registry", required=True, help="Specify the image registry to fetch from"
+)
+@click.option(
+    "--registry-username", required=True, help="Specify the image registry username"
+)
+@click.option(
+    "--registry-token", required=True, help="Specify the image registry access token"
+)
 @click.pass_context
-def command(ctx, include, exclude, force_local_overwrite, image_registry, registry_username, registry_token):
-    '''EXPERIMENTAL: fetch the images for a stack from remote registry'''
+def command(
+    ctx,
+    include,
+    exclude,
+    force_local_overwrite,
+    image_registry,
+    registry_username,
+    registry_token,
+):
+    """EXPERIMENTAL: fetch the images for a stack from remote registry"""
 
     registry_info = RegistryInfo(image_registry, registry_username, registry_token)
     docker = DockerClient()
     if not opts.o.quiet:
         print("Logging into container registry:")
-    docker.login(registry_info.registry, registry_info.registry_username, registry_info.registry_token)
+    docker.login(
+        registry_info.registry,
+        registry_info.registry_username,
+        registry_info.registry_token,
+    )
     # Generate list of target containers
     stack = ctx.obj.stack
     containers_in_scope = get_containers_in_scope(stack)
@@ -172,19 +201,24 @@ def command(ctx, include, exclude, force_local_overwrite, image_registry, regist
                 print(f"Fetching: {image_to_fetch}")
             _fetch_image(image_to_fetch, registry_info)
             # Now check if the target container already exists exists locally already
-            if (_exists_locally(container)):
+            if _exists_locally(container):
                 if not opts.o.quiet:
                     print(f"Container image {container} already exists locally")
                 # if so, fail unless the user specified force-local-overwrite
-                if (force_local_overwrite):
+                if force_local_overwrite:
                     # In that case remove the existing :local tag
                     if not opts.o.quiet:
-                        print(f"Warning: overwriting local tag from this image: {container} because "
-                              "--force-local-overwrite was specified")
+                        print(
+                            f"Warning: overwriting local tag from this image: "
+                            f"{container} because --force-local-overwrite was specified"
+                        )
                 else:
                     if not opts.o.quiet:
-                        print(f"Skipping local tagging for this image: {container} because that would "
-                              "overwrite an existing :local tagged image, use --force-local-overwrite to do so.")
+                        print(
+                            f"Skipping local tagging for this image: {container} "
+                            "because that would overwrite an existing :local tagged "
+                            "image, use --force-local-overwrite to do so."
+                        )
                     continue
             # Tag the fetched image with the :local tag
             _add_local_tag(image_to_fetch, image_registry, local_tag)
@@ -192,4 +226,7 @@ def command(ctx, include, exclude, force_local_overwrite, image_registry, regist
             if opts.o.verbose:
                 print(f"Excluding: {container}")
     if not all_containers_found:
-        print("Warning: couldn't find usable images for one or more containers, this stack will not deploy")
+        print(
+            "Warning: couldn't find usable images for one or more containers, "
+            "this stack will not deploy"
+        )

@@ -15,7 +15,12 @@
 
 from typing import List, Any
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext, VolumeMapping
-from stack_orchestrator.util import get_parsed_stack_config, get_yaml, get_pod_list, resolve_compose_file
+from stack_orchestrator.util import (
+    get_parsed_stack_config,
+    get_yaml,
+    get_pod_list,
+    resolve_compose_file,
+)
 from stack_orchestrator.opts import opts
 
 
@@ -38,7 +43,7 @@ def _container_image_from_service(stack: str, service: str):
 
 
 def parsed_pod_files_map_from_file_names(pod_files):
-    parsed_pod_yaml_map : Any = {}
+    parsed_pod_yaml_map: Any = {}
     for pod_file in pod_files:
         with open(pod_file, "r") as pod_file_descriptor:
             parsed_pod_file = get_yaml().load(pod_file_descriptor)
@@ -73,19 +78,28 @@ def _volumes_to_docker(mounts: List[VolumeMapping]):
     return result
 
 
-def run_container_command(ctx: DeployCommandContext, service: str, command: str, mounts: List[VolumeMapping]):
+def run_container_command(
+    ctx: DeployCommandContext, service: str, command: str, mounts: List[VolumeMapping]
+):
     deployer = ctx.deployer
+    if deployer is None:
+        raise ValueError("Deployer is not configured")
     container_image = _container_image_from_service(ctx.stack, service)
+    if container_image is None:
+        raise ValueError(f"Container image not found for service: {service}")
     docker_volumes = _volumes_to_docker(mounts)
     if ctx.cluster_context.options.debug:
         print(f"Running this command in {service} container: {command}")
     docker_output = deployer.run(
         container_image,
-        ["-c", command], entrypoint="sh",
-        # Current laconicd container has a bug where it crashes when run not as root
-        # Commented out line below is a workaround. Created files end up owned by root on the host
+        ["-c", command],
+        entrypoint="sh",
+        # Current laconicd container has a bug where it crashes when run not
+        # as root
+        # Commented out line below is a workaround. Created files end up
+        # owned by root on the host
         # user=f"{os.getuid()}:{os.getgid()}",
-        volumes=docker_volumes
-        )
+        volumes=docker_volumes,
+    )
     # There doesn't seem to be a way to get an exit code from docker.run()
     return (docker_output, 0)

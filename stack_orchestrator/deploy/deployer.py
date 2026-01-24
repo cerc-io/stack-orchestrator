@@ -15,10 +15,10 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Optional
 
 
 class Deployer(ABC):
-
     @abstractmethod
     def up(self, detach, skip_cluster_management, services):
         pass
@@ -52,7 +52,21 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
+    def run(
+        self,
+        image: str,
+        command=None,
+        user=None,
+        volumes=None,
+        entrypoint=None,
+        env={},
+        ports=[],
+        detach=False,
+    ):
+        pass
+
+    @abstractmethod
+    def run_job(self, job_name: str, release_name: Optional[str] = None):
         pass
 
 
@@ -62,7 +76,6 @@ class DeployerException(Exception):
 
 
 class DeployerConfigGenerator(ABC):
-
     @abstractmethod
     def generate(self, deployment_dir: Path):
         pass

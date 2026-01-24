@@ -94,7 +94,7 @@ sudo apt -y install jq
 # laconic-so depends on git
 sudo apt -y install git
 # curl used below
-sudo apt -y install curl 
+sudo apt -y install curl
 # docker repo add depends on gnupg and updated ca-certificates
 sudo apt -y install ca-certificates gnupg
 

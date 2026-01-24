@@ -20,7 +20,7 @@ services:
     depends_on:
       generate-jwt:
         condition: service_completed_successfully
-    env_file: 
+    env_file:
       - ../config/fixturenet-blast/${NETWORK:-fixturenet}.config
   blast-geth:
     image: blastio/blast-geth:${NETWORK:-testnet-sepolia}
@@ -51,7 +51,7 @@ services:
       --nodiscover
       --maxpeers=0
       --rollup.disabletxpoolgossip=true
-    env_file: 
+    env_file:
       - ../config/fixturenet-blast/${NETWORK:-fixturenet}.config
     depends_on:
       geth-init:
@@ -73,7 +73,7 @@ services:
       --rollup.config="/blast/rollup.json"
     depends_on:
       - blast-geth
-    env_file: 
+    env_file:
       - ../config/fixturenet-blast/${NETWORK:-fixturenet}.config
 
 volumes:

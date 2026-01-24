@@ -17,12 +17,12 @@ import sys
 import click
 import yaml
 
-from stack_orchestrator.deploy.webapp.util import (LaconicRegistryClient)
+from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient
 
 
-def fatal(msg: str):
+def fatal(msg: str) -> None:
     print(msg, file=sys.stderr)
-    sys.exit(1)
+    sys.exit(1)  # noqa: This function never returns
 
 
 @click.command()
@@ -30,18 +30,19 @@ def fatal(msg: str):
     "--laconic-config", help="Provide a config file for laconicd", required=True
 )
 @click.option(
-    "--deployer",
-    help="The LRN of the deployer to process this request.",
-    required=True
+    "--deployer", help="The LRN of the deployer to process this request.", required=True
 )
 @click.option(
     "--deployment",
-    help="Deployment record (ApplicationDeploymentRecord) id of the deployment to remove.",
+    help="Deployment record (ApplicationDeploymentRecord) id of the deployment.",
     required=True,
 )
 @click.option(
     "--make-payment",
-    help="The payment to make (in alnt).  The value should be a number or 'auto' to use the deployer's minimum required payment.",
+    help=(
+        "The payment to make (in alnt). The value should be a number or "
+        "'auto' to use the deployer's minimum required payment."
+    ),
 )
 @click.option(
     "--use-payment", help="The TX id of an existing, unused payment", default=None
@@ -84,18 +85,17 @@ def command(
         if dry_run:
             undeployment_request["record"]["payment"] = "DRY_RUN"
         elif "auto" == make_payment:
-            if "minimumPayment" in deployer_record.attributes:
-                amount = int(
-                    deployer_record.attributes.minimumPayment.replace("alnt", "")
-                )
+            attrs = deployer_record.attributes if deployer_record else None
+            if attrs and "minimumPayment" in attrs:
+                amount = int(attrs.minimumPayment.replace("alnt", ""))
         else:
             amount = make_payment
         if amount:
-            receipt = laconic.send_tokens(
-                deployer_record.attributes.paymentAddress, amount
-            )
-            undeployment_request["record"]["payment"] = receipt.tx.hash
-            print("Payment TX:", receipt.tx.hash)
+            attrs = deployer_record.attributes if deployer_record else None
+            if attrs and attrs.paymentAddress:
+                receipt = laconic.send_tokens(attrs.paymentAddress, amount)
+                undeployment_request["record"]["payment"] = receipt.tx.hash
+                print("Payment TX:", receipt.tx.hash)
     elif use_payment:
         undeployment_request["record"]["payment"] = use_payment
 

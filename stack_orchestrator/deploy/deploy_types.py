@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from typing import List, Mapping
+from typing import List, Mapping, Optional
 from dataclasses import dataclass
 from stack_orchestrator.command_types import CommandOptions
 from stack_orchestrator.deploy.deployer import Deployer
@@ -21,20 +21,21 @@ from stack_orchestrator.deploy.deployer import Deployer
 
 @dataclass
 class ClusterContext:
-    options: CommandOptions  # TODO: this should be in its own object not stuffed in here
-    cluster: str
+    # TODO: this should be in its own object not stuffed in here
+    options: CommandOptions
+    cluster: Optional[str]
     compose_files: List[str]
     pre_start_commands: List[str]
     post_start_commands: List[str]
-    config: str
-    env_file: str
+    config: Optional[str]
+    env_file: Optional[str]
 
 
 @dataclass
 class DeployCommandContext:
     stack: str
     cluster_context: ClusterContext
-    deployer: Deployer
+    deployer: Optional[Deployer]
 
 
 @dataclass

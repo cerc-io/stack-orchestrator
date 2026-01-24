@@ -16,6 +16,7 @@ import shutil
 import sys
 import tempfile
 from datetime import datetime
+from typing import NoReturn
 import base64
 
 import gnupg
@@ -31,7 +32,7 @@ from stack_orchestrator.deploy.webapp.util import (
 from dotenv import dotenv_values
 
 
-def fatal(msg: str):
+def fatal(msg: str) -> NoReturn:
     print(msg, file=sys.stderr)
     sys.exit(1)
 
@@ -57,7 +58,10 @@ def fatal(msg: str):
 @click.option("--config-ref", help="The ref of an existing config upload to use.")
 @click.option(
     "--make-payment",
-    help="The payment to make (in alnt).  The value should be a number or 'auto' to use the deployer's minimum required payment.",
+    help=(
+        "The payment to make (in alnt). The value should be a number or "
+        "'auto' to use the deployer's minimum required payment."
+    ),
 )
 @click.option(
     "--use-payment", help="The TX id of an existing, unused payment", default=None
@@ -91,7 +95,10 @@ def command(  # noqa: C901
         sys.exit(2)
 
     if auction_id and (make_payment or use_payment):
-        print("Cannot specify --auction-id with --make-payment or --use-payment", file=sys.stderr)
+        print(
+            "Cannot specify --auction-id with --make-payment or --use-payment",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     if env_file and config_ref:
@@ -117,7 +124,10 @@ def command(  # noqa: C901
         # Cross check app against application in the auction record
         auction_app = auction_records_by_id[0].attributes.application
         if auction_app != app:
-            fatal(f"Requested application {app} does not match application from auction record {auction_app}")
+            fatal(
+                f"Requested application {app} does not match application "
+                f"from auction record {auction_app}"
+            )
 
         # Fetch auction details
         auction = laconic.get_auction(auction_id)
@@ -125,29 +135,42 @@ def command(  # noqa: C901
             fatal(f"Unable to locate auction: {auction_id}")
 
         # Check auction owner
-        if auction.ownerAddress != laconic.whoami().address:
+        whoami = laconic.whoami()
+        if not whoami or not whoami.address:
+            fatal("Unable to determine current account address")
+        if auction.ownerAddress != whoami.address:
             fatal(f"Auction {auction_id} owner mismatch")
 
         # Check auction kind
-        if auction.kind != AUCTION_KIND_PROVIDER:
-            fatal(f"Auction kind needs to be ${AUCTION_KIND_PROVIDER}, got {auction.kind}")
+        auction_kind = auction.kind if auction else None
+        if auction_kind != AUCTION_KIND_PROVIDER:
+            fatal(
+                f"Auction kind needs to be ${AUCTION_KIND_PROVIDER}, got {auction_kind}"
+            )
 
         # Check auction status
-        if auction.status != AuctionStatus.COMPLETED:
-            fatal(f"Auction {auction_id} not completed yet, status {auction.status}")
+        auction_status = auction.status if auction else None
+        if auction_status != AuctionStatus.COMPLETED:
+            fatal(f"Auction {auction_id} not completed yet, status {auction_status}")
 
         # Check that winner list is not empty
-        if len(auction.winnerAddresses) == 0:
+        winner_addresses = auction.winnerAddresses if auction else []
+        if not winner_addresses or len(winner_addresses) == 0:
             fatal(f"Auction {auction_id} has no winners")
 
-        auction_winners = auction.winnerAddresses
+        auction_winners = winner_addresses
 
         # Get deployer record for all the auction winners
         for auction_winner in auction_winners:
             # TODO: Match auction winner address with provider address?
-            deployer_records_by_owner = laconic.webapp_deployers({"paymentAddress": auction_winner})
+            deployer_records_by_owner = laconic.webapp_deployers(
+                {"paymentAddress": auction_winner}
+            )
             if len(deployer_records_by_owner) == 0:
-                print(f"WARNING: Unable to locate deployer for auction winner {auction_winner}")
+                print(
+                    f"WARNING: Unable to locate deployer for auction winner "
+                    f"{auction_winner}"
+                )
 
             # Take first record with name set
             target_deployer_record = deployer_records_by_owner[0]
@@ -182,9 +205,12 @@ def command(  # noqa: C901
                 recip = gpg.list_keys()[0]["uids"][0]
 
                 # Wrap the config
+                whoami_result = laconic.whoami()
+                if not whoami_result or not whoami_result.address:
+                    fatal("Unable to determine current account address")
                 config = {
                     # Include account (and payment?) details
-                    "authorized": [laconic.whoami().address],
+                    "authorized": [whoami_result.address],
                     "config": {"env": dict(dotenv_values(env_file))},
                 }
                 serialized = yaml.dump(config)
@@ -211,12 +237,22 @@ def command(  # noqa: C901
         if (not deployer) and len(deployer_record.names):
             target_deployer = deployer_record.names[0]
 
+        app_name = (
+            app_record.attributes.name
+            if app_record and app_record.attributes
+            else "unknown"
+        )
+        app_version = (
+            app_record.attributes.version
+            if app_record and app_record.attributes
+            else "unknown"
+        )
         deployment_request = {
             "record": {
                 "type": "ApplicationDeploymentRequest",
                 "application": app,
                 "version": "1.0.0",
-                "name": f"{app_record.attributes.name}@{app_record.attributes.version}",
+                "name": f"{app_name}@{app_version}",
                 "deployer": target_deployer,
                 "meta": {"when": str(datetime.utcnow())},
             }

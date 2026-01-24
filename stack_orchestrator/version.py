@@ -20,10 +20,11 @@ from importlib import resources, metadata
 @click.command()
 @click.pass_context
 def command(ctx):
-    '''print tool version'''
+    """print tool version"""
 
     # See: https://stackoverflow.com/a/20885799/1701505
     from stack_orchestrator import data
+
     if resources.is_resource(data, "build_tag.txt"):
         with resources.open_text(data, "build_tag.txt") as version_file:
             # TODO: code better version that skips comment lines

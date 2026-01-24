@@ -180,7 +180,7 @@ Set the following env variables in the deployment env config file (`monitoring-d
   # (Optional, default: http://localhost:3000)
   GF_SERVER_ROOT_URL=
 
-  
+
   # RPC endpoint used by graph-node for upstream head metric
   # (Optional, default: https://mainnet.infura.io/v3)
   GRAPH_NODE_RPC_ENDPOINT=

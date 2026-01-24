@@ -22,7 +22,7 @@ fi
 # infers the directory from which to load chain configuration files
 # by the presence or absense of the substring "testnet" in the host name
 # (browser side -- the host name of the host in the address bar of the browser)
-# Accordingly we configure our network in both directories in order to 
+# Accordingly we configure our network in both directories in order to
 # subvert this lunacy.
 explorer_mainnet_config_dir=/app/chains/mainnet
 explorer_testnet_config_dir=/app/chains/testnet

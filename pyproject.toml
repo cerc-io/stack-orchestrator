@@ -1,0 +1,110 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "laconic-stack-orchestrator"
+version = "1.1.0"
+description = "Orchestrates deployment of the Laconic stack"
+readme = "README.md"
+license = {text = "GNU Affero General Public License"}
+authors = [
+    {name = "Cerc", email = "info@cerc.io"}
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3.8",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "python-decouple>=3.8",
+    "python-dotenv==1.0.0",
+    "GitPython>=3.1.32",
+    "tqdm>=4.65.0",
+    "python-on-whales>=0.64.0",
+    "click>=8.1.6",
+    "PyYAML>=6.0.1",
+    "ruamel.yaml>=0.17.32",
+    "pydantic==1.10.9",
+    "tomli==2.0.1",
+    "validators==0.22.0",
+    "kubernetes>=28.1.0",
+    "humanfriendly>=10.0",
+    "python-gnupg>=0.5.2",
+    "requests>=2.3.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "pyright>=1.1.0",
+    "yamllint>=1.28.0",
+    "pre-commit>=3.0.0",
+]
+
+[project.scripts]
+laconic-so = "stack_orchestrator.main:cli"
+
+[project.urls]
+Homepage = "https://git.vdb.to/cerc-io/stack-orchestrator"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+"*" = ["data/**"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503", "E402"]
+
+[tool.pyright]
+pythonVersion = "3.9"
+typeCheckingMode = "basic"
+reportMissingImports = "none"
+reportMissingModuleSource = "none"
+reportUnusedImport = "error"
+include = ["stack_orchestrator/**/*.py", "tests/**/*.py"]
+exclude = ["**/build/**", "**/__pycache__/**"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "e2e: marks tests as end-to-end (requires real infrastructure)",
+]
+addopts = [
+    "--cov",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--strict-markers",
+]
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+source = ["stack_orchestrator"]
+disable_warnings = ["couldnt-parse"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]

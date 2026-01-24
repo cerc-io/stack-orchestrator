@@ -64,7 +64,11 @@ def command(  # noqa: C901
 ):
     laconic = LaconicRegistryClient(laconic_config)
     if not payment_address:
-        payment_address = laconic.whoami().address
+        whoami_result = laconic.whoami()
+        if whoami_result and whoami_result.address:
+            payment_address = whoami_result.address
+        else:
+            raise ValueError("Could not determine payment address from laconic whoami")
 
     pub_key = base64.b64encode(open(public_key_file, "rb").read()).decode("ASCII")
     hostname = urlparse(api_url).hostname

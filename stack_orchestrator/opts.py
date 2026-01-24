@@ -17,4 +17,4 @@ from stack_orchestrator.command_types import CommandOptions
 
 
 class opts:
-    o: CommandOptions = None
+    o: CommandOptions = None  # type: ignore[assignment]  # Set at runtime

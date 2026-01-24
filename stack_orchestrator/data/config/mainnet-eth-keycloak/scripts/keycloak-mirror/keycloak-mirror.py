@@ -12,7 +12,10 @@ from fabric import Connection
 
 
 def dump_src_db_to_file(db_host, db_port, db_user, db_password, db_name, file_name):
-    command = f"pg_dump -h {db_host} -p {db_port} -U {db_user} -d {db_name} -c --inserts -f {file_name}"
+    command = (
+        f"pg_dump -h {db_host} -p {db_port} -U {db_user} "
+        f"-d {db_name} -c --inserts -f {file_name}"
+    )
     my_env = os.environ.copy()
     my_env["PGPASSWORD"] = db_password
     print(f"Exporting from {db_host}:{db_port}/{db_name} to {file_name}... ", end="")

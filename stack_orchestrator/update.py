@@ -29,7 +29,7 @@ from stack_orchestrator.util import get_yaml
 def _download_url(url: str, file_path: Path):
     r = requests.get(url, stream=True)
     r.raw.decode_content = True
-    with open(file_path, 'wb') as f:
+    with open(file_path, "wb") as f:
         shutil.copyfileobj(r.raw, f)
 
 
@@ -40,12 +40,14 @@ def _error_exit(s: str):
 
 # Note at present this probably won't work on non-Unix based OSes like Windows
 @click.command()
-@click.option("--check-only", is_flag=True, default=False, help="only check, don't update")
+@click.option(
+    "--check-only", is_flag=True, default=False, help="only check, don't update"
+)
 @click.pass_context
 def command(ctx, check_only):
-    '''update shiv binary from a distribution url'''
+    """update shiv binary from a distribution url"""
     # Get the distribution URL from config
-    config_key = 'distribution-url'
+    config_key = "distribution-url"
     config_file_path = Path(os.path.expanduser("~/.laconic-so/config.yml"))
     if not config_file_path.exists():
         _error_exit(f"Error: Config file: {config_file_path} not found")
@@ -59,7 +61,9 @@ def command(ctx, check_only):
         _error_exit(f"ERROR: distribution url: {distribution_url} is not valid")
     # Figure out the filename for ourselves
     shiv_binary_path = Path(sys.argv[0])
-    timestamp_filename = f"laconic-so-download-{datetime.datetime.now().strftime('%y%m%d-%H%M%S')}"
+    timestamp_filename = (
+        f"laconic-so-download-{datetime.datetime.now().strftime('%y%m%d-%H%M%S')}"
+    )
     temp_download_path = shiv_binary_path.parent.joinpath(timestamp_filename)
     # Download the file to a temp filename
     if ctx.obj.verbose:
@@ -87,4 +91,4 @@ def command(ctx, check_only):
                 print(f"Replacing: {shiv_binary_path} with {temp_download_path}")
             os.replace(temp_download_path, shiv_binary_path)
             if not ctx.obj.quiet:
-                print("Run \"laconic-so version\" to see the newly installed version")
+                print('Run "laconic-so version" to see the newly installed version')

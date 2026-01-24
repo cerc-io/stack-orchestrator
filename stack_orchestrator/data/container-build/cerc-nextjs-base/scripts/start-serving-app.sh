@@ -36,7 +36,7 @@ if [ -f "./run-webapp.sh" ]; then
   ./run-webapp.sh &
   tpid=$!
   wait $tpid
-else 
+else
   "$SCRIPT_DIR/apply-runtime-env.sh" "`pwd`" .next .next-r
   mv .next .next.old
   mv .next-r/.next .

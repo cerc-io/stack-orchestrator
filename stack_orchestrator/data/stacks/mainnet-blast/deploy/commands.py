@@ -22,18 +22,24 @@ import yaml
 def create(context, extra_args):
     # Our goal here is just to copy the json files for blast
     yml_path = context.deployment_dir.joinpath("spec.yml")
-    with open(yml_path, 'r') as file:
+    with open(yml_path, "r") as file:
         data = yaml.safe_load(file)
 
-    mount_point = data['volumes']['blast-data']
+    mount_point = data["volumes"]["blast-data"]
     if mount_point[0] == "/":
         deploy_dir = Path(mount_point)
     else:
         deploy_dir = context.deployment_dir.joinpath(mount_point)
 
     command_context = extra_args[2]
-    compose_file = [f for f in command_context.cluster_context.compose_files if "mainnet-blast" in f][0]
-    source_config_file = Path(compose_file).parent.parent.joinpath("config", "mainnet-blast", "genesis.json")
+    compose_file = [
+        f for f in command_context.cluster_context.compose_files if "mainnet-blast" in f
+    ][0]
+    source_config_file = Path(compose_file).parent.parent.joinpath(
+        "config", "mainnet-blast", "genesis.json"
+    )
     copy(source_config_file, deploy_dir)
-    source_config_file = Path(compose_file).parent.parent.joinpath("config", "mainnet-blast", "rollup.json")
+    source_config_file = Path(compose_file).parent.parent.joinpath(
+        "config", "mainnet-blast", "rollup.json"
+    )
     copy(source_config_file, deploy_dir)

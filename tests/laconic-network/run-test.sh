@@ -14,7 +14,7 @@ chain_id="laconic_81337-6"
 node_moniker_prefix="node"
 
 echo "Deleting any existing network directories..."
-for (( i=1 ; i<=$node_count ; i++ )); 
+for (( i=1 ; i<=$node_count ; i++ ));
 do
     node_network_dir=${node_dir_prefix}${i}
     if [[ -d $node_network_dir ]]; then
@@ -38,7 +38,7 @@ do
 done
 
 echo "Initalizing ${node_count} nodes networks..."
-for (( i=1 ; i<=$node_count ; i++ )); 
+for (( i=1 ; i<=$node_count ; i++ ));
 do
     node_network_dir=${node_dir_prefix}${i}
     node_moniker=${node_moniker_prefix}${i}
@@ -47,7 +47,7 @@ do
 done
 
 echo "Joining ${node_count} nodes to the network..."
-for (( i=1 ; i<=$node_count ; i++ )); 
+for (( i=1 ; i<=$node_count ; i++ ));
 do
     node_network_dir=${node_dir_prefix}${i}
     node_moniker=${node_moniker_prefix}${i}

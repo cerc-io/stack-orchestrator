@@ -849,7 +849,7 @@ groups:
         annotations:
           summary: Watcher {{ index $labels "instance" }} of group {{ index $labels "job" }} is falling behind external head by {{ index $values "diff" }}
         isPaused: false
-      
+
       # Secured Finance
       - uid: secured_finance_diff_external
         title: secured_finance_watcher_head_tracking

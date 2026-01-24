@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import typing
+from typing import Optional
 import humanfriendly
 
 from pathlib import Path
@@ -23,9 +24,9 @@ from stack_orchestrator import constants
 
 
 class ResourceLimits:
-    cpus: float = None
-    memory: int = None
-    storage: int = None
+    cpus: Optional[float] = None
+    memory: Optional[int] = None
+    storage: Optional[int] = None
 
     def __init__(self, obj=None):
         if obj is None:
@@ -49,8 +50,8 @@ class ResourceLimits:
 
 
 class Resources:
-    limits: ResourceLimits = None
-    reservations: ResourceLimits = None
+    limits: Optional[ResourceLimits] = None
+    reservations: Optional[ResourceLimits] = None
 
     def __init__(self, obj=None):
         if obj is None:
@@ -72,11 +73,10 @@ class Resources:
 
 
 class Spec:
-
     obj: typing.Any
-    file_path: Path
+    file_path: Optional[Path]
 
-    def __init__(self, file_path: Path = None, obj=None) -> None:
+    def __init__(self, file_path: Optional[Path] = None, obj=None) -> None:
         if obj is None:
             obj = {}
         self.file_path = file_path
@@ -105,10 +105,14 @@ class Spec:
         return self.obj.get(constants.configmaps_key, {})
 
     def get_container_resources(self):
-        return Resources(self.obj.get(constants.resources_key, {}).get("containers", {}))
+        return Resources(
+            self.obj.get(constants.resources_key, {}).get("containers", {})
+        )
 
     def get_volume_resources(self):
-        return Resources(self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {}))
+        return Resources(
+            self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {})
+        )
 
     def get_http_proxy(self):
         return self.obj.get(constants.network_key, {}).get(constants.http_proxy_key, [])
@@ -129,17 +133,57 @@ class Spec:
         return self.obj.get(constants.labels_key, {})
 
     def get_privileged(self):
-        return "true" == str(self.obj.get(constants.security_key, {}).get("privileged", "false")).lower()
+        return (
+            "true"
+            == str(
+                self.obj.get(constants.security_key, {}).get("privileged", "false")
+            ).lower()
+        )
 
     def get_capabilities(self):
         return self.obj.get(constants.security_key, {}).get("capabilities", [])
+
+    def get_unlimited_memlock(self):
+        return (
+            "true"
+            == str(
+                self.obj.get(constants.security_key, {}).get(
+                    constants.unlimited_memlock_key, "false"
+                )
+            ).lower()
+        )
+
+    def get_runtime_class(self):
+        """Get runtime class name from spec, or derive from security settings.
+
+        The runtime class determines which containerd runtime handler to use,
+        allowing different pods to have different rlimit profiles (e.g., for
+        unlimited RLIMIT_MEMLOCK).
+
+        Returns:
+            Runtime class name string, or None to use default runtime.
+        """
+        # Explicit runtime class takes precedence
+        explicit = self.obj.get(constants.security_key, {}).get(
+            constants.runtime_class_key, None
+        )
+        if explicit:
+            return explicit
+
+        # Auto-derive from unlimited-memlock setting
+        if self.get_unlimited_memlock():
+            return constants.high_memlock_runtime
+
+        return None  # Use default runtime
 
     def get_deployment_type(self):
         return self.obj.get(constants.deploy_to_key)
 
     def is_kubernetes_deployment(self):
-        return self.get_deployment_type() in [constants.k8s_kind_deploy_type,
-                                              constants.k8s_deploy_type]
+        return self.get_deployment_type() in [
+            constants.k8s_kind_deploy_type,
+            constants.k8s_deploy_type,
+        ]
 
     def is_kind_deployment(self):
         return self.get_deployment_type() in [constants.k8s_kind_deploy_type]

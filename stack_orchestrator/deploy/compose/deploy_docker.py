@@ -14,8 +14,13 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from pathlib import Path
+from typing import Optional
 from python_on_whales import DockerClient, DockerException
-from stack_orchestrator.deploy.deployer import Deployer, DeployerException, DeployerConfigGenerator
+from stack_orchestrator.deploy.deployer import (
+    Deployer,
+    DeployerException,
+    DeployerConfigGenerator,
+)
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.opts import opts
 
@@ -24,10 +29,24 @@ class DockerDeployer(Deployer):
     name: str = "compose"
     type: str
 
-    def __init__(self, type, deployment_context: DeploymentContext, compose_files, compose_project_name, compose_env_file) -> None:
-        self.docker = DockerClient(compose_files=compose_files, compose_project_name=compose_project_name,
-                                   compose_env_file=compose_env_file)
+    def __init__(
+        self,
+        type: str,
+        deployment_context: Optional[DeploymentContext],
+        compose_files: list,
+        compose_project_name: Optional[str],
+        compose_env_file: Optional[str],
+    ) -> None:
+        self.docker = DockerClient(
+            compose_files=compose_files,
+            compose_project_name=compose_project_name,
+            compose_env_file=compose_env_file,
+        )
         self.type = type
+        # Store these for later use in run_job
+        self.compose_files = compose_files
+        self.compose_project_name = compose_project_name
+        self.compose_env_file = compose_env_file
 
     def up(self, detach, skip_cluster_management, services):
         if not opts.o.dry_run:
@@ -68,35 +87,98 @@ class DockerDeployer(Deployer):
     def port(self, service, private_port):
         if not opts.o.dry_run:
             try:
-                return self.docker.compose.port(service=service, private_port=private_port)
+                return self.docker.compose.port(
+                    service=service, private_port=private_port
+                )
             except DockerException as e:
                 raise DeployerException(e)
 
     def execute(self, service, command, tty, envs):
         if not opts.o.dry_run:
             try:
-                return self.docker.compose.execute(service=service, command=command, tty=tty, envs=envs)
+                return self.docker.compose.execute(
+                    service=service, command=command, tty=tty, envs=envs
+                )
             except DockerException as e:
                 raise DeployerException(e)
 
     def logs(self, services, tail, follow, stream):
         if not opts.o.dry_run:
             try:
-                return self.docker.compose.logs(services=services, tail=tail, follow=follow, stream=stream)
+                return self.docker.compose.logs(
+                    services=services, tail=tail, follow=follow, stream=stream
+                )
             except DockerException as e:
                 raise DeployerException(e)
 
-    def run(self, image: str, command=None, user=None, volumes=None, entrypoint=None, env={}, ports=[], detach=False):
+    def run(
+        self,
+        image: str,
+        command=None,
+        user=None,
+        volumes=None,
+        entrypoint=None,
+        env={},
+        ports=[],
+        detach=False,
+    ):
         if not opts.o.dry_run:
             try:
-                return self.docker.run(image=image, command=command, user=user, volumes=volumes,
-                                       entrypoint=entrypoint, envs=env, detach=detach, publish=ports, publish_all=len(ports) == 0)
+                return self.docker.run(
+                    image=image,
+                    command=command if command else [],
+                    user=user,
+                    volumes=volumes,
+                    entrypoint=entrypoint,
+                    envs=env,
+                    detach=detach,
+                    publish=ports,
+                    publish_all=len(ports) == 0,
+                )
+            except DockerException as e:
+                raise DeployerException(e)
+
+    def run_job(self, job_name: str, release_name: Optional[str] = None):
+        # release_name is ignored for Docker deployments (only used for K8s/Helm)
+        if not opts.o.dry_run:
+            try:
+                # Find job compose file in compose-jobs directory
+                # The deployment should have compose-jobs/docker-compose-<job_name>.yml
+                if not self.compose_files:
+                    raise DeployerException("No compose files configured")
+
+                # Deployment directory is parent of compose directory
+                compose_dir = Path(self.compose_files[0]).parent
+                deployment_dir = compose_dir.parent
+                job_compose_file = (
+                    deployment_dir / "compose-jobs" / f"docker-compose-{job_name}.yml"
+                )
+
+                if not job_compose_file.exists():
+                    raise DeployerException(
+                        f"Job compose file not found: {job_compose_file}"
+                    )
+
+                if opts.o.verbose:
+                    print(f"Running job from: {job_compose_file}")
+
+                # Create a DockerClient for the job compose file with same
+                # project name and env file
+                # This allows the job to access volumes from the main deployment
+                job_docker = DockerClient(
+                    compose_files=[job_compose_file],
+                    compose_project_name=self.compose_project_name,
+                    compose_env_file=self.compose_env_file,
+                )
+
+                # Run the job with --rm flag to remove container after completion
+                return job_docker.compose.run(service=job_name, remove=True, tty=True)
+
             except DockerException as e:
                 raise DeployerException(e)
 
 
 class DockerDeployerConfigGenerator(DeployerConfigGenerator):
-
     def __init__(self, type: str) -> None:
         super().__init__()
 

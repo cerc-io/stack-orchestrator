@@ -18,12 +18,31 @@ import os
 from pathlib import Path
 import subprocess
 import re
-from typing import Set, Mapping, List
+from typing import Set, Mapping, List, Optional, cast
 
 from stack_orchestrator.util import get_k8s_dir, error_exit
 from stack_orchestrator.opts import opts
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names
 from stack_orchestrator.deploy.deployer import DeployerException
+from stack_orchestrator import constants
+
+
+def get_kind_cluster():
+    """Get an existing kind cluster, if any.
+
+    Uses `kind get clusters` to find existing clusters.
+    Returns the cluster name or None if no cluster exists.
+    """
+    result = subprocess.run(
+        "kind get clusters", shell=True, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        return None
+
+    clusters = result.stdout.strip().splitlines()
+    if clusters:
+        return clusters[0]  # Return the first cluster found
+    return None
 
 
 def _run_command(command: str):
@@ -50,38 +69,53 @@ def wait_for_ingress_in_kind():
     for i in range(20):
         warned_waiting = False
         w = watch.Watch()
-        for event in w.stream(func=core_v1.list_namespaced_pod,
-                              namespace="ingress-nginx",
-                              label_selector="app.kubernetes.io/component=controller",
-                              timeout_seconds=30):
-            if event['object'].status.container_statuses:
-                if event['object'].status.container_statuses[0].ready is True:
+        for event in w.stream(
+            func=core_v1.list_namespaced_pod,
+            namespace="caddy-system",
+            label_selector=(
+                "app.kubernetes.io/name=caddy-ingress-controller,"
+                "app.kubernetes.io/component=controller"
+            ),
+            timeout_seconds=30,
+        ):
+            event_dict = cast(dict, event)
+            pod = cast(client.V1Pod, event_dict.get("object"))
+            if pod and pod.status and pod.status.container_statuses:
+                if pod.status.container_statuses[0].ready is True:
                     if warned_waiting:
-                        print("Ingress controller is ready")
+                        print("Caddy ingress controller is ready")
                     return
-            print("Waiting for ingress controller to become ready...")
+            print("Waiting for Caddy ingress controller to become ready...")
             warned_waiting = True
-    error_exit("ERROR: Timed out waiting for ingress to become ready")
+    error_exit("ERROR: Timed out waiting for Caddy ingress to become ready")
 
 
 def install_ingress_for_kind():
     api_client = client.ApiClient()
-    ingress_install = os.path.abspath(get_k8s_dir().joinpath("components", "ingress", "ingress-nginx-kind-deploy.yaml"))
+    ingress_install = os.path.abspath(
+        get_k8s_dir().joinpath(
+            "components", "ingress", "ingress-caddy-kind-deploy.yaml"
+        )
+    )
     if opts.o.debug:
-        print("Installing nginx ingress controller in kind cluster")
+        print("Installing Caddy ingress controller in kind cluster")
     utils.create_from_yaml(api_client, yaml_file=ingress_install)
 
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
     for image in image_set:
-        result = _run_command(f"kind load docker-image {image} --name {kind_cluster_name}")
+        result = _run_command(
+            f"kind load docker-image {image} --name {kind_cluster_name}"
+        )
         if result.returncode != 0:
-            raise DeployerException(f"kind create cluster failed: {result}")
+            raise DeployerException(f"kind load docker-image failed: {result}")
 
 
 def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
     pods = []
-    pod_response = core_api.list_namespaced_pod(namespace="default", label_selector=f"app={deployment_name}")
+    pod_response = core_api.list_namespaced_pod(
+        namespace="default", label_selector=f"app={deployment_name}"
+    )
     if opts.o.debug:
         print(f"pod_response: {pod_response}")
     for pod_info in pod_response.items:
@@ -90,14 +124,18 @@ def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
     return pods
 
 
-def containers_in_pod(core_api: client.CoreV1Api, pod_name: str):
-    containers = []
-    pod_response = core_api.read_namespaced_pod(pod_name, namespace="default")
+def containers_in_pod(core_api: client.CoreV1Api, pod_name: str) -> List[str]:
+    containers: List[str] = []
+    pod_response = cast(
+        client.V1Pod, core_api.read_namespaced_pod(pod_name, namespace="default")
+    )
     if opts.o.debug:
         print(f"pod_response: {pod_response}")
-    pod_containers = pod_response.spec.containers
-    for pod_container in pod_containers:
-        containers.append(pod_container.name)
+    if not pod_response.spec or not pod_response.spec.containers:
+        return containers
+    for pod_container in pod_response.spec.containers:
+        if pod_container.name:
+            containers.append(pod_container.name)
     return containers
 
 
@@ -137,13 +175,16 @@ def volume_mounts_for_service(parsed_pod_files, service):
                     if "volumes" in service_obj:
                         volumes = service_obj["volumes"]
                         for mount_string in volumes:
-                            # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                            # Looks like: test-data:/data
+                            # or test-data:/data:ro or test-data:/data:rw
                             if opts.o.debug:
                                 print(f"mount_string: {mount_string}")
                             mount_split = mount_string.split(":")
                             volume_name = mount_split[0]
                             mount_path = mount_split[1]
-                            mount_options = mount_split[2] if len(mount_split) == 3 else None
+                            mount_options = (
+                                mount_split[2] if len(mount_split) == 3 else None
+                            )
                             if opts.o.debug:
                                 print(f"volume_name: {volume_name}")
                                 print(f"mount path: {mount_path}")
@@ -151,7 +192,7 @@ def volume_mounts_for_service(parsed_pod_files, service):
                             volume_device = client.V1VolumeMount(
                                 mount_path=mount_path,
                                 name=volume_name,
-                                read_only="ro" == mount_options
+                                read_only="ro" == mount_options,
                             )
                             result.append(volume_device)
     return result
@@ -165,12 +206,19 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
             volumes = parsed_pod_file["volumes"]
             for volume_name in volumes.keys():
                 if volume_name in spec.get_configmaps():
-                    config_map = client.V1ConfigMapVolumeSource(name=f"{app_name}-{volume_name}")
+                    # Set defaultMode=0o755 to make scripts executable
+                    config_map = client.V1ConfigMapVolumeSource(
+                        name=f"{app_name}-{volume_name}", default_mode=0o755
+                    )
                     volume = client.V1Volume(name=volume_name, config_map=config_map)
                     result.append(volume)
                 else:
-                    claim = client.V1PersistentVolumeClaimVolumeSource(claim_name=f"{app_name}-{volume_name}")
-                    volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
+                    claim = client.V1PersistentVolumeClaimVolumeSource(
+                        claim_name=f"{app_name}-{volume_name}"
+                    )
+                    volume = client.V1Volume(
+                        name=volume_name, persistent_volume_claim=claim
+                    )
                     result.append(volume)
     return result
 
@@ -202,7 +250,8 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                 if "volumes" in service_obj:
                     volumes = service_obj["volumes"]
                     for mount_string in volumes:
-                        # Looks like: test-data:/data or test-data:/data:ro or test-data:/data:rw
+                        # Looks like: test-data:/data
+                        # or test-data:/data:ro or test-data:/data:rw
                         if opts.o.debug:
                             print(f"mount_string: {mount_string}")
                         mount_split = mount_string.split(":")
@@ -214,15 +263,21 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                             print(f"mount path: {mount_path}")
                         if volume_name not in deployment_context.spec.get_configmaps():
                             if volume_host_path_map[volume_name]:
+                                host_path = _make_absolute_host_path(
+                                    volume_host_path_map[volume_name],
+                                    deployment_dir,
+                                )
+                                container_path = get_kind_pv_bind_mount_path(
+                                    volume_name
+                                )
                                 volume_definitions.append(
-                                    f"  - hostPath: {_make_absolute_host_path(volume_host_path_map[volume_name], deployment_dir)}\n"
-                                    f"    containerPath: {get_kind_pv_bind_mount_path(volume_name)}\n"
+                                    f"  - hostPath: {host_path}\n"
+                                    f"    containerPath: {container_path}\n"
                                 )
     return (
-        "" if len(volume_definitions) == 0 else (
-            "  extraMounts:\n"
-            f"{''.join(volume_definitions)}"
-        )
+        ""
+        if len(volume_definitions) == 0
+        else ("  extraMounts:\n" f"{''.join(volume_definitions)}")
     )
 
 
@@ -240,25 +295,233 @@ def _generate_kind_port_mappings_from_services(parsed_pod_files):
                     for port_string in ports:
                         # TODO handle the complex cases
                         # Looks like: 80 or something more complicated
-                        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
+                        port_definitions.append(
+                            f"  - containerPort: {port_string}\n"
+                            f"    hostPort: {port_string}\n"
+                        )
     return (
-        "" if len(port_definitions) == 0 else (
-            "  extraPortMappings:\n"
-            f"{''.join(port_definitions)}"
-        )
+        ""
+        if len(port_definitions) == 0
+        else ("  extraPortMappings:\n" f"{''.join(port_definitions)}")
     )
 
 
 def _generate_kind_port_mappings(parsed_pod_files):
     port_definitions = []
-    # For now we just map port 80 for the nginx ingress controller we install in kind
-    port_string = "80"
-    port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
-    return (
-        "" if len(port_definitions) == 0 else (
-            "  extraPortMappings:\n"
-            f"{''.join(port_definitions)}"
+    # Map port 80 and 443 for the Caddy ingress controller (HTTPS support)
+    for port_string in ["80", "443"]:
+        port_definitions.append(
+            f"  - containerPort: {port_string}\n    hostPort: {port_string}\n"
         )
+    return (
+        ""
+        if len(port_definitions) == 0
+        else ("  extraPortMappings:\n" f"{''.join(port_definitions)}")
+    )
+
+
+def _generate_high_memlock_spec_mount(deployment_dir: Path):
+    """Generate the extraMount entry for high-memlock-spec.json.
+
+    The spec file must be mounted at the same path inside the kind node
+    as it appears on the host, because containerd's base_runtime_spec
+    references an absolute path.
+    """
+    spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
+    return f"  - hostPath: {spec_path}\n" f"    containerPath: {spec_path}\n"
+
+
+def generate_high_memlock_spec_json():
+    """Generate OCI spec JSON with unlimited RLIMIT_MEMLOCK.
+
+    This is needed for workloads like Solana validators that require large
+    amounts of locked memory for memory-mapped files during snapshot decompression.
+
+    The IPC_LOCK capability alone doesn't raise the RLIMIT_MEMLOCK limit - it only
+    allows mlock() calls. We need to set the rlimit in the OCI runtime spec.
+
+    IMPORTANT: This must be a complete OCI runtime spec, not just the rlimits
+    section. The spec is based on kind's default cri-base.json with rlimits added.
+    """
+    import json
+
+    # Use maximum 64-bit signed integer value for unlimited
+    max_rlimit = 9223372036854775807
+    # Based on kind's /etc/containerd/cri-base.json with rlimits added
+    spec = {
+        "ociVersion": "1.1.0-rc.1",
+        "process": {
+            "user": {"uid": 0, "gid": 0},
+            "cwd": "/",
+            "capabilities": {
+                "bounding": [
+                    "CAP_CHOWN",
+                    "CAP_DAC_OVERRIDE",
+                    "CAP_FSETID",
+                    "CAP_FOWNER",
+                    "CAP_MKNOD",
+                    "CAP_NET_RAW",
+                    "CAP_SETGID",
+                    "CAP_SETUID",
+                    "CAP_SETFCAP",
+                    "CAP_SETPCAP",
+                    "CAP_NET_BIND_SERVICE",
+                    "CAP_SYS_CHROOT",
+                    "CAP_KILL",
+                    "CAP_AUDIT_WRITE",
+                ],
+                "effective": [
+                    "CAP_CHOWN",
+                    "CAP_DAC_OVERRIDE",
+                    "CAP_FSETID",
+                    "CAP_FOWNER",
+                    "CAP_MKNOD",
+                    "CAP_NET_RAW",
+                    "CAP_SETGID",
+                    "CAP_SETUID",
+                    "CAP_SETFCAP",
+                    "CAP_SETPCAP",
+                    "CAP_NET_BIND_SERVICE",
+                    "CAP_SYS_CHROOT",
+                    "CAP_KILL",
+                    "CAP_AUDIT_WRITE",
+                ],
+                "permitted": [
+                    "CAP_CHOWN",
+                    "CAP_DAC_OVERRIDE",
+                    "CAP_FSETID",
+                    "CAP_FOWNER",
+                    "CAP_MKNOD",
+                    "CAP_NET_RAW",
+                    "CAP_SETGID",
+                    "CAP_SETUID",
+                    "CAP_SETFCAP",
+                    "CAP_SETPCAP",
+                    "CAP_NET_BIND_SERVICE",
+                    "CAP_SYS_CHROOT",
+                    "CAP_KILL",
+                    "CAP_AUDIT_WRITE",
+                ],
+            },
+            "rlimits": [
+                {"type": "RLIMIT_MEMLOCK", "hard": max_rlimit, "soft": max_rlimit},
+                {"type": "RLIMIT_NOFILE", "hard": 1048576, "soft": 1048576},
+            ],
+            "noNewPrivileges": True,
+        },
+        "root": {"path": "rootfs"},
+        "mounts": [
+            {
+                "destination": "/proc",
+                "type": "proc",
+                "source": "proc",
+                "options": ["nosuid", "noexec", "nodev"],
+            },
+            {
+                "destination": "/dev",
+                "type": "tmpfs",
+                "source": "tmpfs",
+                "options": ["nosuid", "strictatime", "mode=755", "size=65536k"],
+            },
+            {
+                "destination": "/dev/pts",
+                "type": "devpts",
+                "source": "devpts",
+                "options": [
+                    "nosuid",
+                    "noexec",
+                    "newinstance",
+                    "ptmxmode=0666",
+                    "mode=0620",
+                    "gid=5",
+                ],
+            },
+            {
+                "destination": "/dev/shm",
+                "type": "tmpfs",
+                "source": "shm",
+                "options": ["nosuid", "noexec", "nodev", "mode=1777", "size=65536k"],
+            },
+            {
+                "destination": "/dev/mqueue",
+                "type": "mqueue",
+                "source": "mqueue",
+                "options": ["nosuid", "noexec", "nodev"],
+            },
+            {
+                "destination": "/sys",
+                "type": "sysfs",
+                "source": "sysfs",
+                "options": ["nosuid", "noexec", "nodev", "ro"],
+            },
+            {
+                "destination": "/run",
+                "type": "tmpfs",
+                "source": "tmpfs",
+                "options": ["nosuid", "strictatime", "mode=755", "size=65536k"],
+            },
+        ],
+        "linux": {
+            "resources": {"devices": [{"allow": False, "access": "rwm"}]},
+            "cgroupsPath": "/default",
+            "namespaces": [
+                {"type": "pid"},
+                {"type": "ipc"},
+                {"type": "uts"},
+                {"type": "mount"},
+                {"type": "network"},
+            ],
+            "maskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/proc/sched_debug",
+                "/sys/firmware",
+                "/proc/scsi",
+            ],
+            "readonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger",
+            ],
+        },
+        "hooks": {"createContainer": [{"path": "/kind/bin/mount-product-files.sh"}]},
+    }
+    return json.dumps(spec, indent=2)
+
+
+# Keep old name as alias for backward compatibility
+def generate_cri_base_json():
+    """Deprecated: Use generate_high_memlock_spec_json() instead."""
+    return generate_high_memlock_spec_json()
+
+
+def _generate_containerd_config_patches(
+    deployment_dir: Path, has_high_memlock: bool
+) -> str:
+    """Generate containerdConfigPatches YAML for custom runtime handlers.
+
+    This configures containerd to have a runtime handler named 'high-memlock'
+    that uses a custom OCI base spec with unlimited RLIMIT_MEMLOCK.
+    """
+    if not has_high_memlock:
+        return ""
+
+    spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
+    runtime_name = constants.high_memlock_runtime
+    plugin_path = 'plugins."io.containerd.grpc.v1.cri".containerd.runtimes'
+    return (
+        "containerdConfigPatches:\n"
+        "  - |-\n"
+        f"    [{plugin_path}.{runtime_name}]\n"
+        '      runtime_type = "io.containerd.runc.v2"\n'
+        f'      base_runtime_spec = "{spec_path}"\n'
     )
 
 
@@ -268,28 +531,45 @@ def merge_envs(a: Mapping[str, str], b: Mapping[str, str]) -> Mapping[str, str]:
     return result
 
 
-def _expand_shell_vars(raw_val: str) -> str:
-    # could be: <string> or ${<env-var-name>} or ${<env-var-name>:-<default-value>}
-    # TODO: implement support for variable substitution and default values
-    # if raw_val is like ${<something>} print a warning and substitute an empty string
-    # otherwise return raw_val
-    match = re.search(r"^\$\{(.*)\}$", raw_val)
+def _expand_shell_vars(
+    raw_val: str, env_map: Optional[Mapping[str, str]] = None
+) -> str:
+    # Expand docker-compose style variable substitution:
+    # ${VAR} - use VAR value or empty string
+    # ${VAR:-default} - use VAR value or default if unset/empty
+    # ${VAR-default} - use VAR value or default if unset
+    if env_map is None:
+        env_map = {}
+    if raw_val is None:
+        return ""
+    match = re.search(r"^\$\{([^}]+)\}$", raw_val)
     if match:
-        print(f"WARNING: found unimplemented environment variable substitution: {raw_val}")
-    else:
-        return raw_val
+        inner = match.group(1)
+        # Check for default value syntax
+        if ":-" in inner:
+            var_name, default_val = inner.split(":-", 1)
+            return env_map.get(var_name, "") or default_val
+        elif "-" in inner:
+            var_name, default_val = inner.split("-", 1)
+            return env_map.get(var_name, default_val)
+        else:
+            return env_map.get(inner, "")
+    return raw_val
 
 
-# TODO: handle the case where the same env var is defined in multiple places
-def envs_from_compose_file(compose_file_envs: Mapping[str, str]) -> Mapping[str, str]:
+def envs_from_compose_file(
+    compose_file_envs: Mapping[str, str], env_map: Optional[Mapping[str, str]] = None
+) -> Mapping[str, str]:
     result = {}
     for env_var, env_val in compose_file_envs.items():
-        expanded_env_val = _expand_shell_vars(env_val)
+        expanded_env_val = _expand_shell_vars(env_val, env_map)
         result.update({env_var: expanded_env_val})
     return result
 
 
-def envs_from_environment_variables_map(map: Mapping[str, str]) -> List[client.V1EnvVar]:
+def envs_from_environment_variables_map(
+    map: Mapping[str, str]
+) -> List[client.V1EnvVar]:
     result = []
     for env_var, env_val in map.items():
         result.append(client.V1EnvVar(env_var, env_val))
@@ -320,10 +600,34 @@ def generate_kind_config(deployment_dir: Path, deployment_context):
     pod_files = [p for p in compose_file_dir.iterdir() if p.is_file()]
     parsed_pod_files_map = parsed_pod_files_map_from_file_names(pod_files)
     port_mappings_yml = _generate_kind_port_mappings(parsed_pod_files_map)
-    mounts_yml = _generate_kind_mounts(parsed_pod_files_map, deployment_dir, deployment_context)
-    return (
-        "kind: Cluster\n"
-        "apiVersion: kind.x-k8s.io/v1alpha4\n"
+    mounts_yml = _generate_kind_mounts(
+        parsed_pod_files_map, deployment_dir, deployment_context
+    )
+
+    # Check if unlimited_memlock is enabled
+    unlimited_memlock = deployment_context.spec.get_unlimited_memlock()
+
+    # Generate containerdConfigPatches for RuntimeClass support
+    containerd_patches_yml = _generate_containerd_config_patches(
+        deployment_dir, unlimited_memlock
+    )
+
+    # Add high-memlock spec file mount if needed
+    if unlimited_memlock:
+        spec_mount = _generate_high_memlock_spec_mount(deployment_dir)
+        if mounts_yml:
+            # Append to existing mounts
+            mounts_yml = mounts_yml.rstrip() + "\n" + spec_mount
+        else:
+            mounts_yml = f"  extraMounts:\n{spec_mount}"
+
+    # Build the config - containerdConfigPatches must be at cluster level (before nodes)
+    config = "kind: Cluster\n" "apiVersion: kind.x-k8s.io/v1alpha4\n"
+
+    if containerd_patches_yml:
+        config += containerd_patches_yml
+
+    config += (
         "nodes:\n"
         "- role: control-plane\n"
         "  kubeadmConfigPatches:\n"
@@ -331,7 +635,9 @@ def generate_kind_config(deployment_dir: Path, deployment_context):
         "      kind: InitConfiguration\n"
         "      nodeRegistration:\n"
         "        kubeletExtraArgs:\n"
-        "          node-labels: \"ingress-ready=true\"\n"
+        '          node-labels: "ingress-ready=true"\n'
         f"{port_mappings_yml}\n"
         f"{mounts_yml}\n"
     )
+
+    return config

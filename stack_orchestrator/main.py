@@ -21,37 +21,41 @@ from stack_orchestrator.repos import fetch_stack
 from stack_orchestrator.build import build_containers, fetch_containers
 from stack_orchestrator.build import build_npms
 from stack_orchestrator.build import build_webapp
-from stack_orchestrator.deploy.webapp import (run_webapp,
-                                              deploy_webapp,
-                                              deploy_webapp_from_registry,
-                                              undeploy_webapp_from_registry,
-                                              publish_webapp_deployer,
-                                              publish_deployment_auction,
-                                              handle_deployment_auction,
-                                              request_webapp_deployment,
-                                              request_webapp_undeployment)
+from stack_orchestrator.deploy.webapp import (
+    run_webapp,
+    deploy_webapp,
+    deploy_webapp_from_registry,
+    undeploy_webapp_from_registry,
+    publish_webapp_deployer,
+    publish_deployment_auction,
+    handle_deployment_auction,
+    request_webapp_deployment,
+    request_webapp_undeployment,
+)
 from stack_orchestrator.deploy import deploy
 from stack_orchestrator import version
 from stack_orchestrator.deploy import deployment
 from stack_orchestrator import opts
 from stack_orchestrator import update
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.option('--stack', help="specify a stack to build/deploy")
-@click.option('--quiet', is_flag=True, default=False)
-@click.option('--verbose', is_flag=True, default=False)
-@click.option('--dry-run', is_flag=True, default=False)
-@click.option('--local-stack', is_flag=True, default=False)
-@click.option('--debug', is_flag=True, default=False)
-@click.option('--continue-on-error', is_flag=True, default=False)
+@click.option("--stack", help="specify a stack to build/deploy")
+@click.option("--quiet", is_flag=True, default=False)
+@click.option("--verbose", is_flag=True, default=False)
+@click.option("--dry-run", is_flag=True, default=False)
+@click.option("--local-stack", is_flag=True, default=False)
+@click.option("--debug", is_flag=True, default=False)
+@click.option("--continue-on-error", is_flag=True, default=False)
 # See: https://click.palletsprojects.com/en/8.1.x/complex/#building-a-git-clone
 @click.pass_context
 def cli(ctx, stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error):
     """Laconic Stack Orchestrator"""
-    command_options = CommandOptions(stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error)
+    command_options = CommandOptions(
+        stack, quiet, verbose, dry_run, local_stack, debug, continue_on_error
+    )
     opts.opts.o = command_options
     ctx.obj = command_options
 

@@ -48,7 +48,7 @@ or see the full logs:
 $ laconic-so --stack fixturenet-pocket deploy logs pocket
 ```
 ## 5. Send a relay request to Pocket node
-The Pocket node serves relay requests at `http://localhost:8081/v1/client/sim`  
+The Pocket node serves relay requests at `http://localhost:8081/v1/client/sim`
 
 Example request:
 ```

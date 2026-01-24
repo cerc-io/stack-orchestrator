@@ -1,4 +1,3 @@
-
 # Copyright © 2022, 2023 Vulcanize
 
 # This program is free software: you can redistribute it and/or modify
@@ -71,17 +70,15 @@ class DeploymentContext:
             self.id = f"{constants.cluster_name_prefix}{hash}"
 
     def modify_yaml(self, file_path: Path, modifier_func):
-        """
-        Load a YAML from the deployment, apply a modification function, and write it back.
-        """
+        """Load a YAML, apply a modification function, and write it back."""
         if not file_path.absolute().is_relative_to(self.deployment_dir):
             raise ValueError(f"File is not inside deployment directory: {file_path}")
 
         yaml = get_yaml()
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             yaml_data = yaml.load(f)
 
         modifier_func(yaml_data)
 
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             yaml.dump(yaml_data, f)

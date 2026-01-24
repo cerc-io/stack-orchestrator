@@ -26,7 +26,7 @@ curl -SL https://github.com/docker/compose/releases/download/v2.11.2/docker-comp
 chmod +x ~/.docker/cli-plugins/docker-compose
 ```
 
-Next decide on a directory where you would like to put the stack-orchestrator program. Typically this would be 
+Next decide on a directory where you would like to put the stack-orchestrator program. Typically this would be
 a "user" binary directory such as `~/bin` or perhaps `/usr/local/laconic` or possibly just the current working directory.
 
 Now, having selected that directory, download the latest release from [this page](https://git.vdb.to/cerc-io/stack-orchestrator/tags) into it (we're using `~/bin` below for concreteness but edit to suit if you selected a different directory). Also be sure that the destination directory exists and is writable:
@@ -78,5 +78,3 @@ See the [CONTRIBUTING.md](/docs/CONTRIBUTING.md) for developer mode install.
 ## Platform Support
 
 Native aarm64 is _not_ currently supported. x64 emulation on ARM64 macos should work (not yet tested).
-
-

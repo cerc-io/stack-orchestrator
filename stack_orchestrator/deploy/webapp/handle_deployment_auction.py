@@ -44,19 +44,27 @@ def process_app_deployment_auction(
 
     # Check auction kind
     if auction.kind != AUCTION_KIND_PROVIDER:
-        raise Exception(f"Auction kind needs to be ${AUCTION_KIND_PROVIDER}, got {auction.kind}")
+        raise Exception(
+            f"Auction kind needs to be ${AUCTION_KIND_PROVIDER}, got {auction.kind}"
+        )
 
     if current_status == "PENDING":
         # Skip if pending auction not in commit state
         if auction.status != AuctionStatus.COMMIT:
-            logger.log(f"Skipping pending request, auction {auction_id} status: {auction.status}")
+            logger.log(
+                f"Skipping pending request, auction {auction_id} "
+                f"status: {auction.status}"
+            )
             return "SKIP", ""
 
         # Check max_price
         bid_amount_int = int(bid_amount)
         max_price_int = int(auction.maxPrice.quantity)
         if max_price_int < bid_amount_int:
-            logger.log(f"Skipping auction {auction_id} with max_price ({max_price_int}) less than bid_amount ({bid_amount_int})")
+            logger.log(
+                f"Skipping auction {auction_id} with max_price ({max_price_int}) "
+                f"less than bid_amount ({bid_amount_int})"
+            )
             return "SKIP", ""
 
         # Bid on the auction
@@ -121,7 +129,9 @@ def dump_known_auction_requests(filename, requests, status="SEEN"):
     required=True,
 )
 @click.option(
-    "--registry-lock-file", help="File path to use for registry mutex lock", default=None
+    "--registry-lock-file",
+    help="File path to use for registry mutex lock",
+    default=None,
 )
 @click.option(
     "--dry-run", help="Don't do anything, just report what would be done.", is_flag=True
@@ -142,7 +152,9 @@ def command(
     logger = TimedLogger(file=sys.stderr)
 
     try:
-        laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file)
+        laconic = LaconicRegistryClient(
+            laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file
+        )
         auctions_requests = laconic.app_deployment_auctions()
 
         previous_requests = {}
@@ -164,7 +176,8 @@ def command(
 
                 # Handle already seen requests
                 if r.id in previous_requests:
-                    # If it's not in commit or reveal status, skip the request as we've already seen it
+                    # If it's not in commit or reveal status, skip the request as we've
+                    # already seen it
                     current_status = previous_requests[r.id].get("status", "")
                     result_status = current_status
                     if current_status not in ["COMMIT", "REVEAL"]:
@@ -172,7 +185,10 @@ def command(
                         continue
 
                     reveal_file_path = previous_requests[r.id].get("revealFile", "")
-                    logger.log(f"Found existing auction request {r.id} for application {application}, status {current_status}.")
+                    logger.log(
+                        f"Found existing auction request {r.id} for application "
+                        f"{application}, status {current_status}."
+                    )
                 else:
                     # It's a fresh request, check application record
                     app = laconic.get_record(application)
@@ -181,7 +197,10 @@ def command(
                         result_status = "ERROR"
                         continue
 
-                    logger.log(f"Found pending auction request {r.id} for application {application}.")
+                    logger.log(
+                        f"Found pending auction request {r.id} for application "
+                        f"{application}."
+                    )
 
                 # Add requests to be processed
                 requests_to_execute.append((r, result_status, reveal_file_path))
@@ -190,9 +209,15 @@ def command(
                 result_status = "ERROR"
                 logger.log(f"ERROR: examining request {r.id}: " + str(e))
             finally:
-                logger.log(f"DONE: Examining request {r.id} with result {result_status}.")
+                logger.log(
+                    f"DONE: Examining request {r.id} with result {result_status}."
+                )
                 if result_status in ["ERROR"]:
-                    dump_known_auction_requests(state_file, [AttrDict({"id": r.id, "revealFile": reveal_file_path})], result_status)
+                    dump_known_auction_requests(
+                        state_file,
+                        [AttrDict({"id": r.id, "revealFile": reveal_file_path})],
+                        result_status,
+                    )
 
         logger.log(f"Found {len(requests_to_execute)} request(s) to process.")
 
@@ -214,7 +239,11 @@ def command(
                     logger.log(f"ERROR {r.id}:" + str(e))
                 finally:
                     logger.log(f"Processing {r.id}: END - {result_status}")
-                    dump_known_auction_requests(state_file, [AttrDict({"id": r.id, "revealFile": reveal_file_path})], result_status)
+                    dump_known_auction_requests(
+                        state_file,
+                        [AttrDict({"id": r.id, "revealFile": reveal_file_path})],
+                        result_status,
+                    )
     except Exception as e:
         logger.log("UNCAUGHT ERROR:" + str(e))
         raise e

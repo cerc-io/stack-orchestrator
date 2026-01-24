@@ -92,7 +92,7 @@ volumes:
   mainnet_eth_geth_1_data: ./data/mainnet_eth_geth_1_data
   mainnet_eth_lighthouse_1_data: ./data/mainnet_eth_lighthouse_1_data
 ```
-In addition, a stack-wide port mapping "recipe" can be applied at the time the 
+In addition, a stack-wide port mapping "recipe" can be applied at the time the
 `laconic-so deploy init` command is run, by supplying the  desired recipe with the `--map-ports-to-host` option. The following recipes are supported:
 | Recipe | Host Port Mapping |
 |--------|-------------------|

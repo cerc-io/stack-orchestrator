@@ -24,4 +24,3 @@ node-tolerations:
     value: typeb
 ```
 This example denotes that the stack's pods will tolerate a taint: `nodetype=typeb`
-

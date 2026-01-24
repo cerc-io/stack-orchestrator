@@ -26,4 +26,3 @@ $ ./scripts/tag_new_release.sh 1 0 17
 $ ./scripts/build_shiv_package.sh
 $ ./scripts/publish_shiv_package_github.sh 1 0 17
 ```
-

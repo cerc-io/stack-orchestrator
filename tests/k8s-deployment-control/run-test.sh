@@ -116,7 +116,7 @@ echo "deploy create output file test: passed"
 # Note we also turn up the log level on the scheduler in order to diagnose placement errors
 # See logs like: kubectl -n kube-system logs kube-scheduler-laconic-f185cd245d8dba98-control-plane
 kind_config_file=${test_deployment_dir}/kind-config.yml
-cat << EOF > ${kind_config_file} 
+cat << EOF > ${kind_config_file}
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 kubeadmConfigPatches:

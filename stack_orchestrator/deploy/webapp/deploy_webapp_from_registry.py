@@ -73,6 +73,7 @@ def process_app_deployment_request(
     app = laconic.get_record(
         app_deployment_request.attributes.application, require=True
     )
+    assert app is not None  # require=True ensures this
     logger.log(f"Retrieved app record {app_deployment_request.attributes.application}")
 
     # 2. determine dns
@@ -112,7 +113,8 @@ def process_app_deployment_request(
             )
     elif "preexisting" == fqdn_policy:
         raise Exception(
-            f"No pre-existing DnsRecord {dns_lrn} could be found for request {app_deployment_request.id}."
+            f"No pre-existing DnsRecord {dns_lrn} could be found for "
+            f"request {app_deployment_request.id}."
         )
 
     # 4. get build and runtime config from request
@@ -128,7 +130,8 @@ def process_app_deployment_request(
                 parsed = AttrDict(yaml.safe_load(decrypted.data))
                 if record_owner not in parsed.authorized:
                     raise Exception(
-                        f"{record_owner} not authorized to access config {app_deployment_request.attributes.config.ref}"
+                        f"{record_owner} not authorized to access config "
+                        f"{app_deployment_request.attributes.config.ref}"
                     )
                 if "env" in parsed.config:
                     env.update(parsed.config.env)
@@ -156,8 +159,10 @@ def process_app_deployment_request(
 
     deployment_record = laconic.get_record(app_deployment_lrn)
     deployment_dir = os.path.join(deployment_parent_dir, fqdn)
-    # At present we use this to generate a unique but stable ID for the app's host container
-    # TODO: implement support to derive this transparently from the already-unique deployment id
+    # At present we use this to generate a unique but stable ID for the
+    # app's host container
+    # TODO: implement support to derive this transparently from the
+    # already-unique deployment id
     unique_deployment_id = hashlib.md5(fqdn.encode()).hexdigest()[:16]
     deployment_config_file = os.path.join(deployment_dir, "config.env")
     deployment_container_tag = "laconic-webapp/%s:local" % unique_deployment_id
@@ -166,11 +171,12 @@ def process_app_deployment_request(
     if not os.path.exists(deployment_dir):
         if deployment_record:
             raise Exception(
-                "Deployment record %s exists, but not deployment dir %s. Please remove name."
-                % (app_deployment_lrn, deployment_dir)
+                "Deployment record %s exists, but not deployment dir %s. "
+                "Please remove name." % (app_deployment_lrn, deployment_dir)
             )
         logger.log(
-            f"Creating webapp deployment in: {deployment_dir} with container id: {deployment_container_tag}"
+            f"Creating webapp deployment in: {deployment_dir} "
+            f"with container id: {deployment_container_tag}"
         )
         deploy_webapp.create_deployment(
             ctx,
@@ -187,7 +193,8 @@ def process_app_deployment_request(
     needs_k8s_deploy = False
     if force_rebuild:
         logger.log(
-            "--force-rebuild is enabled so the container will always be built now, even if nothing has changed in the app"
+            "--force-rebuild is enabled so the container will always be "
+            "built now, even if nothing has changed in the app"
         )
     # 6. build container (if needed)
     # TODO: add a comment that explains what this code is doing (not clear to me)
@@ -199,11 +206,12 @@ def process_app_deployment_request(
         needs_k8s_deploy = True
         # check if the image already exists
         shared_tag_exists = remote_image_exists(image_registry, app_image_shared_tag)
-        # Note: in the code below, calls to add_tags_to_image() won't work at present.
-        # This is because SO deployment code in general re-names the container image
-        # to be unique to the deployment. This is done transparently
-        # and so when we call add_tags_to_image() here and try to add tags to the remote image,
-        # we get the image name wrong. Accordingly I've disabled the relevant code for now.
+        # Note: in the code below, calls to add_tags_to_image() won't
+        # work at present. This is because SO deployment code in general
+        # re-names the container image to be unique to the deployment.
+        # This is done transparently and so when we call add_tags_to_image()
+        # here and try to add tags to the remote image, we get the image
+        # name wrong. Accordingly I've disabled the relevant code for now.
         # This is safe because we are running with --force-rebuild at present
         if shared_tag_exists and not force_rebuild:
             # simply add our unique tag to the existing image and we are done
@@ -211,7 +219,9 @@ def process_app_deployment_request(
                 f"(SKIPPED) Existing image found for this app: {app_image_shared_tag} "
                 "tagging it with: {deployment_container_tag} to use in this deployment"
             )
-            # add_tags_to_image(image_registry, app_image_shared_tag, deployment_container_tag)
+            # add_tags_to_image(
+            #     image_registry, app_image_shared_tag, deployment_container_tag
+            # )
             logger.log("Tag complete")
         else:
             extra_build_args = []  # TODO: pull from request
@@ -223,11 +233,15 @@ def process_app_deployment_request(
             logger.log(f"Pushing container image: {deployment_container_tag}")
             push_container_image(deployment_dir, logger)
             logger.log("Push complete")
-            # The build/push commands above will use the unique deployment tag, so now we need to add the shared tag.
+            # The build/push commands above will use the unique deployment
+            # tag, so now we need to add the shared tag.
             logger.log(
-                f"(SKIPPED) Adding global app image tag: {app_image_shared_tag} to newly built image: {deployment_container_tag}"
+                f"(SKIPPED) Adding global app image tag: {app_image_shared_tag} "
+                f"to newly built image: {deployment_container_tag}"
             )
-            # add_tags_to_image(image_registry, deployment_container_tag, app_image_shared_tag)
+            # add_tags_to_image(
+            #     image_registry, deployment_container_tag, app_image_shared_tag
+            # )
             logger.log("Tag complete")
     else:
         logger.log("Requested app is already deployed, skipping build and image push")
@@ -306,7 +320,11 @@ def dump_known_requests(filename, requests, status="SEEN"):
     help="How to handle requests with an FQDN: prohibit, allow, preexisting",
     default="prohibit",
 )
-@click.option("--ip", help="IP address of the k8s deployment (to be set in DNS record)", default=None)
+@click.option(
+    "--ip",
+    help="IP address of the k8s deployment (to be set in DNS record)",
+    default=None,
+)
 @click.option("--record-namespace-dns", help="eg, lrn://laconic/dns", required=True)
 @click.option(
     "--record-namespace-deployments",
@@ -364,7 +382,9 @@ def dump_known_requests(filename, requests, status="SEEN"):
     "--private-key-file", help="The private key for decrypting config.", required=True
 )
 @click.option(
-    "--registry-lock-file", help="File path to use for registry mutex lock", default=None
+    "--registry-lock-file",
+    help="File path to use for registry mutex lock",
+    default=None,
 )
 @click.option(
     "--private-key-passphrase",
@@ -421,7 +441,8 @@ def command(  # noqa: C901
             or not dns_suffix
         ):
             print(
-                "--dns-suffix, --record-namespace-dns, and --record-namespace-deployments are all required",
+                "--dns-suffix, --record-namespace-dns, and "
+                "--record-namespace-deployments are all required",
                 file=sys.stderr,
             )
             sys.exit(2)
@@ -459,19 +480,25 @@ def command(  # noqa: C901
         include_tags = [tag.strip() for tag in include_tags.split(",") if tag]
         exclude_tags = [tag.strip() for tag in exclude_tags.split(",") if tag]
 
-        laconic = LaconicRegistryClient(laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file)
+        laconic = LaconicRegistryClient(
+            laconic_config, log_file=sys.stderr, mutex_lock_file=registry_lock_file
+        )
         webapp_deployer_record = laconic.get_record(lrn, require=True)
+        assert webapp_deployer_record is not None  # require=True ensures this
+        assert webapp_deployer_record.attributes is not None
         payment_address = webapp_deployer_record.attributes.paymentAddress
         main_logger.log(f"Payment address: {payment_address}")
 
         if min_required_payment and not payment_address:
             print(
-                f"Minimum payment required, but no payment address listed for deployer: {lrn}.",
+                f"Minimum payment required, but no payment address listed "
+                f"for deployer: {lrn}.",
                 file=sys.stderr,
             )
             sys.exit(2)
 
         # Find deployment requests.
+        requests = []
         # single request
         if request_id:
             main_logger.log(f"Retrieving request {request_id}...")
@@ -495,25 +522,35 @@ def command(  # noqa: C901
             previous_requests = load_known_requests(state_file)
 
         # Collapse related requests.
-        requests.sort(key=lambda r: r.createTime)
-        requests.reverse()
+        # Filter out None values and sort
+        valid_requests = [r for r in requests if r is not None]
+        valid_requests.sort(key=lambda r: r.createTime if r else "")
+        valid_requests.reverse()
         requests_by_name = {}
         skipped_by_name = {}
-        for r in requests:
-            main_logger.log(f"BEGIN: Examining request {r.id}")
+        for r in valid_requests:
+            if not r:
+                continue
+            r_id = r.id if r else "unknown"
+            main_logger.log(f"BEGIN: Examining request {r_id}")
             result = "PENDING"
             try:
                 if (
-                    r.id in previous_requests
-                    and previous_requests[r.id].get("status", "") != "RETRY"
+                    r_id in previous_requests
+                    and previous_requests[r_id].get("status", "") != "RETRY"
                 ):
-                    main_logger.log(f"Skipping request {r.id}, we've already seen it.")
+                    main_logger.log(f"Skipping request {r_id}, we've already seen it.")
                     result = "SKIP"
+                    continue
+
+                if not r.attributes:
+                    main_logger.log(f"Skipping request {r_id}, no attributes.")
+                    result = "ERROR"
                     continue
 
                 app = laconic.get_record(r.attributes.application)
                 if not app:
-                    main_logger.log(f"Skipping request {r.id}, cannot locate app.")
+                    main_logger.log(f"Skipping request {r_id}, cannot locate app.")
                     result = "ERROR"
                     continue
 
@@ -521,7 +558,7 @@ def command(  # noqa: C901
                 if not requested_name:
                     requested_name = generate_hostname_for_app(app)
                     main_logger.log(
-                        "Generating name %s for request %s." % (requested_name, r.id)
+                        "Generating name %s for request %s." % (requested_name, r_id)
                     )
 
                 if (
@@ -529,30 +566,33 @@ def command(  # noqa: C901
                     or requested_name in requests_by_name
                 ):
                     main_logger.log(
-                        "Ignoring request %s, it has been superseded." % r.id
+                        "Ignoring request %s, it has been superseded." % r_id
                     )
                     result = "SKIP"
                     continue
 
                 if skip_by_tag(r, include_tags, exclude_tags):
+                    r_tags = r.attributes.tags if r.attributes else None
                     main_logger.log(
-                        "Skipping request %s, filtered by tag (include %s, exclude %s, present %s)"
-                        % (r.id, include_tags, exclude_tags, r.attributes.tags)
+                        "Skipping request %s, filtered by tag "
+                        "(include %s, exclude %s, present %s)"
+                        % (r_id, include_tags, exclude_tags, r_tags)
                     )
                     skipped_by_name[requested_name] = r
                     result = "SKIP"
                     continue
 
+                r_app = r.attributes.application if r.attributes else "unknown"
                 main_logger.log(
                     "Found pending request %s to run application %s on %s."
-                    % (r.id, r.attributes.application, requested_name)
+                    % (r_id, r_app, requested_name)
                 )
                 requests_by_name[requested_name] = r
             except Exception as e:
                 result = "ERROR"
-                main_logger.log(f"ERROR examining request {r.id}: " + str(e))
+                main_logger.log(f"ERROR examining request {r_id}: " + str(e))
             finally:
-                main_logger.log(f"DONE Examining request {r.id} with result {result}.")
+                main_logger.log(f"DONE Examining request {r_id} with result {result}.")
                 if result in ["ERROR"]:
                     dump_known_requests(state_file, [r], status=result)
 
@@ -581,11 +621,13 @@ def command(  # noqa: C901
                 cancellation_requests[r.id], r
             ):
                 main_logger.log(
-                    f"Found deployment cancellation request for {r.id} at {cancellation_requests[r.id].id}"
+                    f"Found deployment cancellation request for {r.id} "
+                    f"at {cancellation_requests[r.id].id}"
                 )
             elif r.id in deployments_by_request:
                 main_logger.log(
-                    f"Found satisfied request for {r.id} at {deployments_by_request[r.id].id}"
+                    f"Found satisfied request for {r.id} "
+                    f"at {deployments_by_request[r.id].id}"
                 )
             else:
                 if (
@@ -593,7 +635,8 @@ def command(  # noqa: C901
                     and previous_requests[r.id].get("status", "") != "RETRY"
                 ):
                     main_logger.log(
-                        f"Skipping unsatisfied request {r.id} because we have seen it before."
+                        f"Skipping unsatisfied request {r.id} "
+                        "because we have seen it before."
                     )
                 else:
                     main_logger.log(f"Request {r.id} needs to processed.")
@@ -603,13 +646,7 @@ def command(  # noqa: C901
         for r in requests_to_check_for_payment:
             if r.attributes.auction:
                 if auction_requests:
-                    if confirm_auction(
-                        laconic,
-                        r,
-                        lrn,
-                        payment_address,
-                        main_logger
-                    ):
+                    if confirm_auction(laconic, r, lrn, payment_address, main_logger):
                         main_logger.log(f"{r.id}: Auction confirmed.")
                         requests_to_execute.append(r)
                     else:
@@ -652,8 +689,12 @@ def command(  # noqa: C901
                 status = "ERROR"
                 run_log_file = None
                 run_reg_client = laconic
+                build_logger = None
                 try:
-                    run_id = f"{r.id}-{str(time.time()).split('.')[0]}-{str(uuid.uuid4()).split('-')[0]}"
+                    run_id = (
+                        f"{r.id}-{str(time.time()).split('.')[0]}-"
+                        f"{str(uuid.uuid4()).split('-')[0]}"
+                    )
                     if log_dir:
                         run_log_dir = os.path.join(log_dir, r.id)
                         if not os.path.exists(run_log_dir):
@@ -664,7 +705,9 @@ def command(  # noqa: C901
                         )
                         run_log_file = open(run_log_file_path, "wt")
                         run_reg_client = LaconicRegistryClient(
-                            laconic_config, log_file=run_log_file, mutex_lock_file=registry_lock_file
+                            laconic_config,
+                            log_file=run_log_file,
+                            mutex_lock_file=registry_lock_file,
                         )
 
                     build_logger = TimedLogger(run_id, run_log_file)
@@ -692,7 +735,8 @@ def command(  # noqa: C901
                     status = "DEPLOYED"
                 except Exception as e:
                     main_logger.log(f"ERROR {r.id}:" + str(e))
-                    build_logger.log("ERROR: " + str(e))
+                    if build_logger:
+                        build_logger.log("ERROR: " + str(e))
                 finally:
                     main_logger.log(f"DEPLOYING {r.id}: END - {status}")
                     if build_logger:

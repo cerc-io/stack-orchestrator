@@ -40,7 +40,7 @@ sleep 3
 wget --tries 20 --retry-connrefused --waitretry=3 -O test.before -m http://localhost:3000
 
 docker logs $CONTAINER_ID
-docker remove -f $CONTAINER_ID
+docker rm -f $CONTAINER_ID
 
 echo "Running app container test"
 CONTAINER_ID=$(docker run -p 3000:80 -e CERC_WEBAPP_DEBUG=$CHECK -e CERC_SCRIPT_DEBUG=$CERC_SCRIPT_DEBUG -d ${app_image_name})
@@ -48,7 +48,7 @@ sleep 3
 wget --tries 20 --retry-connrefused --waitretry=3 -O test.after -m http://localhost:3000
 
 docker logs $CONTAINER_ID
-docker remove -f $CONTAINER_ID
+docker rm -f $CONTAINER_ID
 
 echo "###########################################################################"
 echo ""

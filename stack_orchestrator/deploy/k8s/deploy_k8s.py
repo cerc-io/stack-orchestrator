@@ -241,7 +241,7 @@ class K8sDeployer(Deployer):
         service = self.cluster_info.get_service()
         if opts.o.debug:
             print(f"Sending this service: {service}")
-        if not opts.o.dry_run:
+        if service and not opts.o.dry_run:
             service_resp = self.core_api.create_namespaced_service(
                 namespace=self.k8s_namespace, body=service
             )

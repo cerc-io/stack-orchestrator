@@ -556,9 +556,9 @@ def create_operation(
     deployment_command_context,
     spec_file,
     deployment_dir,
-    helm_chart,
-    network_dir,
-    initial_peers,
+    helm_chart=False,
+    network_dir=None,
+    initial_peers=None,
     extra_args=(),
 ):
     parsed_spec = Spec(

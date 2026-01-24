@@ -47,20 +47,6 @@ class DeploymentContext:
     def get_compose_file(self, name: str):
         return self.get_compose_dir() / f"docker-compose-{name}.yml"
 
-    def modify_yaml(self, file_path: Path, modifier_func):
-        """Load a YAML from the deployment, apply a modifier, and write back."""
-        if not file_path.absolute().is_relative_to(self.deployment_dir):
-            raise ValueError(f"File is not inside deployment directory: {file_path}")
-
-        yaml = get_yaml()
-        with open(file_path, "r") as f:
-            yaml_data = yaml.load(f)
-
-        modifier_func(yaml_data)
-
-        with open(file_path, "w") as f:
-            yaml.dump(yaml_data, f)
-
     def get_cluster_id(self):
         return self.id
 
@@ -82,3 +68,17 @@ class DeploymentContext:
             unique_cluster_descriptor = f"{path},{self.get_stack_file()},None,None"
             hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()[:16]
             self.id = f"{constants.cluster_name_prefix}{hash}"
+
+    def modify_yaml(self, file_path: Path, modifier_func):
+        """Load a YAML, apply a modification function, and write it back."""
+        if not file_path.absolute().is_relative_to(self.deployment_dir):
+            raise ValueError(f"File is not inside deployment directory: {file_path}")
+
+        yaml = get_yaml()
+        with open(file_path, "r") as f:
+            yaml_data = yaml.load(f)
+
+        modifier_func(yaml_data)
+
+        with open(file_path, "w") as f:
+            yaml.dump(yaml_data, f)

@@ -216,23 +216,32 @@ class ClusterInfo:
 
     # TODO: suppoprt multiple services
     def get_service(self):
-        port = None
-        for pod_name in self.parsed_pod_yaml_map:
-            pod = self.parsed_pod_yaml_map[pod_name]
-            services = pod["services"]
-            for service_name in services:
-                service_info = services[service_name]
-                if "ports" in service_info:
-                    port = int(service_info["ports"][0])
-                    if opts.o.debug:
-                        print(f"service port: {port}")
-        if port is None:
+        # Collect all ports from http-proxy routes
+        ports_set = set()
+        http_proxy_list = self.spec.get_http_proxy()
+        if http_proxy_list:
+            for http_proxy in http_proxy_list:
+                for route in http_proxy.get("routes", []):
+                    proxy_to = route.get("proxy-to", "")
+                    if ":" in proxy_to:
+                        port = int(proxy_to.split(":")[1])
+                        ports_set.add(port)
+                        if opts.o.debug:
+                            print(f"http-proxy route port: {port}")
+
+        if not ports_set:
             return None
+
+        service_ports = [
+            client.V1ServicePort(port=p, target_port=p, name=f"port-{p}")
+            for p in sorted(ports_set)
+        ]
+
         service = client.V1Service(
             metadata=client.V1ObjectMeta(name=f"{self.app_name}-service"),
             spec=client.V1ServiceSpec(
                 type="ClusterIP",
-                ports=[client.V1ServicePort(port=port, target_port=port)],
+                ports=service_ports,
                 selector={"app": self.app_name},
             ),
         )

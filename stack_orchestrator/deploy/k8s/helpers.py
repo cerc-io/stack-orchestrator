@@ -368,6 +368,21 @@ def install_ingress_for_kind(acme_email: str = ""):
     yaml_objects = list(yaml.safe_load_all(yaml_content))
     utils.create_from_yaml(api_client, yaml_objects=yaml_objects)
 
+    # Patch ConfigMap with ACME email if provided
+    if acme_email:
+        if opts.o.debug:
+            print(f"Configuring ACME email: {acme_email}")
+        core_api = client.CoreV1Api()
+        configmap = core_api.read_namespaced_config_map(
+            name="caddy-ingress-controller-configmap", namespace="caddy-system"
+        )
+        configmap.data["email"] = acme_email
+        core_api.patch_namespaced_config_map(
+            name="caddy-ingress-controller-configmap",
+            namespace="caddy-system",
+            body=configmap,
+        )
+
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
     for image in image_set:

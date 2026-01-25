@@ -132,7 +132,7 @@ def wait_for_ingress_in_kind():
     error_exit("ERROR: Timed out waiting for Caddy ingress to become ready")
 
 
-def install_ingress_for_kind():
+def install_ingress_for_kind(acme_email: str = ""):
     api_client = client.ApiClient()
     ingress_install = os.path.abspath(
         get_k8s_dir().joinpath(
@@ -142,6 +142,21 @@ def install_ingress_for_kind():
     if opts.o.debug:
         print("Installing Caddy ingress controller in kind cluster")
     utils.create_from_yaml(api_client, yaml_file=ingress_install)
+
+    # Patch ConfigMap with ACME email if provided
+    if acme_email:
+        if opts.o.debug:
+            print(f"Configuring ACME email: {acme_email}")
+        core_api = client.CoreV1Api()
+        configmap = core_api.read_namespaced_config_map(
+            name="caddy-ingress-controller-configmap", namespace="caddy-system"
+        )
+        configmap.data["email"] = acme_email
+        core_api.patch_namespaced_config_map(
+            name="caddy-ingress-controller-configmap",
+            namespace="caddy-system",
+            body=configmap,
+        )
 
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):

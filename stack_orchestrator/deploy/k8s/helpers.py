@@ -339,6 +339,25 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_host_path_map = _get_host_paths_for_volumes(deployment_context)
     seen_host_path_mounts = set()  # Track to avoid duplicate mounts
 
+    # Cluster state backup for offline data recovery (unique per deployment)
+    # etcd contains all k8s state; PKI certs needed to decrypt etcd offline
+    deployment_id = deployment_context.id
+    backup_subdir = f"cluster-backups/{deployment_id}"
+
+    etcd_host_path = _make_absolute_host_path(
+        Path(f"./data/{backup_subdir}/etcd"), deployment_dir
+    )
+    volume_definitions.append(
+        f"  - hostPath: {etcd_host_path}\n" f"    containerPath: /var/lib/etcd\n"
+    )
+
+    pki_host_path = _make_absolute_host_path(
+        Path(f"./data/{backup_subdir}/pki"), deployment_dir
+    )
+    volume_definitions.append(
+        f"  - hostPath: {pki_host_path}\n" f"    containerPath: /etc/kubernetes/pki\n"
+    )
+
     # Note these paths are relative to the location of the pod files (at present)
     # So we need to fix up to make them correct and absolute because kind assumes
     # relative to the cwd.

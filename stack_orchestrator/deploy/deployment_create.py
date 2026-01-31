@@ -468,7 +468,10 @@ def init_operation(
             else:
                 volume_descriptors[named_volume] = f"./data/{named_volume}"
         if volume_descriptors:
-            spec_file_content["volumes"] = volume_descriptors
+            # Merge with existing volumes from stack init()
+            # init() volumes take precedence over compose defaults
+            orig_volumes = spec_file_content.get("volumes", {})
+            spec_file_content["volumes"] = {**volume_descriptors, **orig_volumes}
         if configmap_descriptors:
             spec_file_content["configmaps"] = configmap_descriptors
 

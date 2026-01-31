@@ -125,6 +125,49 @@ fi
 echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/data/test-config/test_config
 
 echo "deploy create output file test: passed"
+
+# Test sync functionality: update deployment without destroying data
+# First, create a marker file in the data directory to verify it's preserved
+test_data_marker="$test_deployment_dir/data/test-data/sync-test-marker.txt"
+mkdir -p "$test_deployment_dir/data/test-data"
+echo "external-stack-data-$(date +%s)" > "$test_data_marker"
+original_marker_content=$(<$test_data_marker)
+# Verify deployment file exists and preserve its cluster ID
+original_cluster_id=$(grep "cluster-id:" "$test_deployment_dir/deployment.yml" 2>/dev/null || echo "")
+# Modify spec file to simulate an update
+sed -i.bak 's/CERC_TEST_PARAM_1=PASSED/CERC_TEST_PARAM_1=UPDATED/' $test_deployment_spec
+# Run sync to update deployment files without destroying data
+$TEST_TARGET_SO_STACK deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir --update
+# Verify the spec file was updated in deployment dir
+updated_deployed_spec=$(<$test_deployment_dir/spec.yml)
+if [[ "$updated_deployed_spec" == *"UPDATED"* ]]; then
+    echo "deploy sync test: spec file updated"
+else
+    echo "deploy sync test: spec file not updated - FAILED"
+    exit 1
+fi
+# Verify the data marker file still exists with original content
+if [ ! -f "$test_data_marker" ]; then
+    echo "deploy sync test: data file deleted - FAILED"
+    exit 1
+fi
+synced_marker_content=$(<$test_data_marker)
+if [ "$synced_marker_content" == "$original_marker_content" ]; then
+    echo "deploy sync test: data preserved - passed"
+else
+    echo "deploy sync test: data corrupted - FAILED"
+    exit 1
+fi
+# Verify cluster ID was preserved (not regenerated)
+new_cluster_id=$(grep "cluster-id:" "$test_deployment_dir/deployment.yml" 2>/dev/null || echo "")
+if [ -n "$original_cluster_id" ] && [ "$original_cluster_id" == "$new_cluster_id" ]; then
+    echo "deploy sync test: cluster ID preserved - passed"
+else
+    echo "deploy sync test: cluster ID not preserved - FAILED"
+    exit 1
+fi
+echo "deploy sync test: passed"
+
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 # Check logs command works

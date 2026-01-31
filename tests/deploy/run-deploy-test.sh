@@ -34,6 +34,7 @@ mkdir -p $CERC_REPO_BASE_DIR
 # with and without volume removal
 $TEST_TARGET_SO --stack test setup-repositories
 $TEST_TARGET_SO --stack test build-containers
+
 # Test deploy command execution
 $TEST_TARGET_SO --stack test deploy setup $CERC_REPO_BASE_DIR
 # Check that we now have the expected output directory
@@ -85,6 +86,7 @@ else
     exit 1
 fi
 $TEST_TARGET_SO --stack test deploy down --delete-volumes
+
 # Basic test of creating a deployment
 test_deployment_dir=$CERC_REPO_BASE_DIR/test-deployment-dir
 test_deployment_spec=$CERC_REPO_BASE_DIR/test-deployment-spec.yml
@@ -122,6 +124,101 @@ fi
 echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/data/test-config/test_config
 
 echo "deploy create output file test: passed"
+
+# Test sync functionality: update deployment without destroying data
+# First, create a marker file in the data directory to verify it's preserved
+test_data_marker="$test_deployment_dir/data/test-data-bind/sync-test-marker.txt"
+echo "original-data-$(date +%s)" > "$test_data_marker"
+original_marker_content=$(<$test_data_marker)
+
+# Modify a config file in the deployment to differ from source (to test backup)
+test_config_file="$test_deployment_dir/config/test/settings.env"
+test_config_file_original_content=$(<$test_config_file)
+test_config_file_changed_content="ANSWER=69"
+echo "$test_config_file_changed_content" > "$test_config_file"
+
+# Check a config file that matches the source (to test no backup for unchanged files)
+test_unchanged_config="$test_deployment_dir/config/test/script.sh"
+
+# Modify spec file to simulate an update
+sed -i.bak 's/CERC_TEST_PARAM_3:/CERC_TEST_PARAM_3: FASTER/' $test_deployment_spec
+
+# Create/modify config.env to test it isn't overwritten during sync
+config_env_file="$test_deployment_dir/config.env"
+config_env_persistent_content="PERSISTENT_VALUE=should-not-be-overwritten-$(date +%s)"
+echo "$config_env_persistent_content" >> "$config_env_file"
+original_config_env_content=$(<$config_env_file)
+
+# Run sync to update deployment files without destroying data
+$TEST_TARGET_SO --stack test deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir --update
+
+# Verify config.env was not overwritten
+synced_config_env_content=$(<$config_env_file)
+if [ "$synced_config_env_content" == "$original_config_env_content" ]; then
+    echo "deployment update test: config.env preserved - passed"
+else
+    echo "deployment update test: config.env was overwritten - FAILED"
+    echo "Expected: $original_config_env_content"
+    echo "Got: $synced_config_env_content"
+    exit 1
+fi
+
+# Verify the spec file was updated in deployment dir
+updated_deployed_spec=$(<$test_deployment_dir/spec.yml)
+if [[ "$updated_deployed_spec" == *"FASTER"* ]]; then
+    echo "deployment update test: spec file updated"
+else
+    echo "deployment update test: spec file not updated - FAILED"
+    exit 1
+fi
+
+# Verify changed config file was backed up
+test_config_backup="${test_config_file}.bak"
+if [ -f "$test_config_backup" ]; then
+    backup_content=$(<$test_config_backup)
+    if [ "$backup_content" == "$test_config_file_changed_content" ]; then
+        echo "deployment update test: changed config file backed up - passed"
+    else
+        echo "deployment update test: backup content incorrect - FAILED"
+        exit 1
+    fi
+else
+    echo "deployment update test: backup file not created for changed file - FAILED"
+    exit 1
+fi
+
+# Verify unchanged config file was NOT backed up
+test_unchanged_backup="$test_unchanged_config.bak"
+if [ -f "$test_unchanged_backup" ]; then
+    echo "deployment update test: backup created for unchanged file - FAILED"
+    exit 1
+else
+    echo "deployment update test: no backup for unchanged file - passed"
+fi
+
+# Verify the config file was updated from source
+updated_config_content=$(<$test_config_file)
+if [ "$updated_config_content" == "$test_config_file_original_content" ]; then
+    echo "deployment update test: config file updated from source - passed"
+else
+    echo "deployment update test: config file not updated correctly - FAILED"
+    exit 1
+fi
+
+# Verify the data marker file still exists with original content
+if [ ! -f "$test_data_marker" ]; then
+    echo "deployment update test: data file deleted - FAILED"
+    exit 1
+fi
+synced_marker_content=$(<$test_data_marker)
+if [ "$synced_marker_content" == "$original_marker_content" ]; then
+    echo "deployment update test: data preserved - passed"
+else
+    echo "deployment update test: data corrupted - FAILED"
+    exit 1
+fi
+echo "deployment update test: passed"
+
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
 # Check logs command works

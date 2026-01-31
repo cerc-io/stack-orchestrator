@@ -27,48 +27,6 @@ from stack_orchestrator.deploy.deployer import DeployerException
 from stack_orchestrator import constants
 
 
-def is_host_path_mount(volume_name: str) -> bool:
-    """Check if a volume name is a host path mount (starts with /, ., or ~)."""
-    return volume_name.startswith(("/", ".", "~"))
-
-
-def sanitize_host_path_to_volume_name(host_path: str) -> str:
-    """Convert a host path to a valid k8s volume name.
-
-    K8s volume names must be lowercase, alphanumeric, with - allowed.
-    E.g., '../config/test/script.sh' -> 'host-path-config-test-script-sh'
-    """
-    # Remove leading ./ or ../
-    clean_path = re.sub(r"^\.+/", "", host_path)
-    # Replace path separators and dots with hyphens
-    name = re.sub(r"[/.]", "-", clean_path)
-    # Remove any non-alphanumeric characters except hyphens
-    name = re.sub(r"[^a-zA-Z0-9-]", "", name)
-    # Convert to lowercase
-    name = name.lower()
-    # Remove leading/trailing hyphens and collapse multiple hyphens
-    name = re.sub(r"-+", "-", name).strip("-")
-    # Prefix with 'host-path-' to distinguish from named volumes
-    return f"host-path-{name}"
-
-
-def resolve_host_path_for_kind(host_path: str, deployment_dir: Path) -> Path:
-    """Resolve a host path mount (relative to compose file) to absolute path.
-
-    Compose files are in deployment_dir/compose/, so '../config/foo'
-    resolves to deployment_dir/config/foo.
-    """
-    # The path is relative to the compose directory
-    compose_dir = deployment_dir.joinpath("compose")
-    resolved = compose_dir.joinpath(host_path).resolve()
-    return resolved
-
-
-def get_kind_host_path_mount_path(sanitized_name: str) -> str:
-    """Get the path inside the kind node where a host path mount will be available."""
-    return f"/mnt/{sanitized_name}"
-
-
 def get_kind_cluster():
     """Get an existing kind cluster, if any.
 
@@ -132,7 +90,7 @@ def wait_for_ingress_in_kind():
     error_exit("ERROR: Timed out waiting for Caddy ingress to become ready")
 
 
-def install_ingress_for_kind(acme_email: str = ""):
+def install_ingress_for_kind():
     api_client = client.ApiClient()
     ingress_install = os.path.abspath(
         get_k8s_dir().joinpath(
@@ -142,21 +100,6 @@ def install_ingress_for_kind(acme_email: str = ""):
     if opts.o.debug:
         print("Installing Caddy ingress controller in kind cluster")
     utils.create_from_yaml(api_client, yaml_file=ingress_install)
-
-    # Patch ConfigMap with ACME email if provided
-    if acme_email:
-        if opts.o.debug:
-            print(f"Configuring ACME email: {acme_email}")
-        core_api = client.CoreV1Api()
-        configmap = core_api.read_namespaced_config_map(
-            name="caddy-ingress-controller-configmap", namespace="caddy-system"
-        )
-        configmap.data["email"] = acme_email
-        core_api.patch_namespaced_config_map(
-            name="caddy-ingress-controller-configmap",
-            namespace="caddy-system",
-            body=configmap,
-        )
 
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
@@ -234,7 +177,6 @@ def volume_mounts_for_service(parsed_pod_files, service):
                         for mount_string in volumes:
                             # Looks like: test-data:/data
                             # or test-data:/data:ro or test-data:/data:rw
-                            # or ../config/file.sh:/opt/file.sh (host path mount)
                             if opts.o.debug:
                                 print(f"mount_string: {mount_string}")
                             mount_split = mount_string.split(":")
@@ -243,21 +185,13 @@ def volume_mounts_for_service(parsed_pod_files, service):
                             mount_options = (
                                 mount_split[2] if len(mount_split) == 3 else None
                             )
-                            # For host path mounts, use sanitized name
-                            if is_host_path_mount(volume_name):
-                                k8s_volume_name = sanitize_host_path_to_volume_name(
-                                    volume_name
-                                )
-                            else:
-                                k8s_volume_name = volume_name
                             if opts.o.debug:
                                 print(f"volume_name: {volume_name}")
-                                print(f"k8s_volume_name: {k8s_volume_name}")
                                 print(f"mount path: {mount_path}")
                                 print(f"mount options: {mount_options}")
                             volume_device = client.V1VolumeMount(
                                 mount_path=mount_path,
-                                name=k8s_volume_name,
+                                name=volume_name,
                                 read_only="ro" == mount_options,
                             )
                             result.append(volume_device)
@@ -266,12 +200,8 @@ def volume_mounts_for_service(parsed_pod_files, service):
 
 def volumes_for_pod_files(parsed_pod_files, spec, app_name):
     result = []
-    seen_host_path_volumes = set()  # Track host path volumes to avoid duplicates
-
     for pod in parsed_pod_files:
         parsed_pod_file = parsed_pod_files[pod]
-
-        # Handle named volumes from top-level volumes section
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
             for volume_name in volumes.keys():
@@ -290,35 +220,6 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
                         name=volume_name, persistent_volume_claim=claim
                     )
                     result.append(volume)
-
-        # Handle host path mounts from service volumes
-        if "services" in parsed_pod_file:
-            services = parsed_pod_file["services"]
-            for service_name in services:
-                service_obj = services[service_name]
-                if "volumes" in service_obj:
-                    for mount_string in service_obj["volumes"]:
-                        mount_split = mount_string.split(":")
-                        volume_source = mount_split[0]
-                        if is_host_path_mount(volume_source):
-                            sanitized_name = sanitize_host_path_to_volume_name(
-                                volume_source
-                            )
-                            if sanitized_name not in seen_host_path_volumes:
-                                seen_host_path_volumes.add(sanitized_name)
-                                # Create hostPath volume for mount inside kind node
-                                kind_mount_path = get_kind_host_path_mount_path(
-                                    sanitized_name
-                                )
-                                host_path_source = client.V1HostPathVolumeSource(
-                                    path=kind_mount_path, type="FileOrCreate"
-                                )
-                                volume = client.V1Volume(
-                                    name=sanitized_name, host_path=host_path_source
-                                )
-                                result.append(volume)
-                                if opts.o.debug:
-                                    print(f"Created hostPath volume: {sanitized_name}")
     return result
 
 
@@ -337,27 +238,6 @@ def _make_absolute_host_path(data_mount_path: Path, deployment_dir: Path) -> Pat
 def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_definitions = []
     volume_host_path_map = _get_host_paths_for_volumes(deployment_context)
-    seen_host_path_mounts = set()  # Track to avoid duplicate mounts
-
-    # Cluster state backup for offline data recovery (unique per deployment)
-    # etcd contains all k8s state; PKI certs needed to decrypt etcd offline
-    deployment_id = deployment_context.id
-    backup_subdir = f"cluster-backups/{deployment_id}"
-
-    etcd_host_path = _make_absolute_host_path(
-        Path(f"./data/{backup_subdir}/etcd"), deployment_dir
-    )
-    volume_definitions.append(
-        f"  - hostPath: {etcd_host_path}\n" f"    containerPath: /var/lib/etcd\n"
-    )
-
-    pki_host_path = _make_absolute_host_path(
-        Path(f"./data/{backup_subdir}/pki"), deployment_dir
-    )
-    volume_definitions.append(
-        f"  - hostPath: {pki_host_path}\n" f"    containerPath: /etc/kubernetes/pki\n"
-    )
-
     # Note these paths are relative to the location of the pod files (at present)
     # So we need to fix up to make them correct and absolute because kind assumes
     # relative to the cwd.
@@ -372,58 +252,28 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                     for mount_string in volumes:
                         # Looks like: test-data:/data
                         # or test-data:/data:ro or test-data:/data:rw
-                        # or ../config/file.sh:/opt/file.sh (host path mount)
                         if opts.o.debug:
                             print(f"mount_string: {mount_string}")
                         mount_split = mount_string.split(":")
                         volume_name = mount_split[0]
                         mount_path = mount_split[1]
-
-                        if is_host_path_mount(volume_name):
-                            # Host path mount - add extraMount for kind
-                            sanitized_name = sanitize_host_path_to_volume_name(
-                                volume_name
-                            )
-                            if sanitized_name not in seen_host_path_mounts:
-                                seen_host_path_mounts.add(sanitized_name)
-                                # Resolve path relative to compose directory
-                                host_path = resolve_host_path_for_kind(
-                                    volume_name, deployment_dir
+                        if opts.o.debug:
+                            print(f"volume_name: {volume_name}")
+                            print(f"map: {volume_host_path_map}")
+                            print(f"mount path: {mount_path}")
+                        if volume_name not in deployment_context.spec.get_configmaps():
+                            if volume_host_path_map[volume_name]:
+                                host_path = _make_absolute_host_path(
+                                    volume_host_path_map[volume_name],
+                                    deployment_dir,
                                 )
-                                container_path = get_kind_host_path_mount_path(
-                                    sanitized_name
+                                container_path = get_kind_pv_bind_mount_path(
+                                    volume_name
                                 )
                                 volume_definitions.append(
                                     f"  - hostPath: {host_path}\n"
                                     f"    containerPath: {container_path}\n"
                                 )
-                                if opts.o.debug:
-                                    print(f"Added host path mount: {host_path}")
-                        else:
-                            # Named volume
-                            if opts.o.debug:
-                                print(f"volume_name: {volume_name}")
-                                print(f"map: {volume_host_path_map}")
-                                print(f"mount path: {mount_path}")
-                            if (
-                                volume_name
-                                not in deployment_context.spec.get_configmaps()
-                            ):
-                                if (
-                                    volume_name in volume_host_path_map
-                                    and volume_host_path_map[volume_name]
-                                ):
-                                    host_path = _make_absolute_host_path(
-                                        volume_host_path_map[volume_name],
-                                        deployment_dir,
-                                    )
-                                    container_path = get_kind_pv_bind_mount_path(
-                                        volume_name
-                                    )
-                                    volume_definitions.append(
-                                        f"  - hostPath: {host_path}\n"
-                                        f"    containerPath: {container_path}\n"
-                                    )
     return (
         ""
         if len(volume_definitions) == 0

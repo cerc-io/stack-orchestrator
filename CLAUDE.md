@@ -43,6 +43,45 @@ This project follows principles inspired by literate programming, where developm
 
 This approach treats the human-AI collaboration as a form of **conversational literate programming** where understanding emerges through dialogue before code implementation.
 
+## External Stacks Preferred
+
+When creating new stacks for any reason, **use the external stack pattern** rather than adding stacks directly to this repository.
+
+External stacks follow this structure:
+
+```
+my-stack/
+└── stack-orchestrator/
+    ├── stacks/
+    │   └── my-stack/
+    │       ├── stack.yml
+    │       └── README.md
+    ├── compose/
+    │   └── docker-compose-my-stack.yml
+    └── config/
+        └── my-stack/
+            └── (config files)
+```
+
+### Usage
+
+```bash
+# Fetch external stack
+laconic-so fetch-stack github.com/org/my-stack
+
+# Use external stack
+STACK_PATH=~/cerc/my-stack/stack-orchestrator/stacks/my-stack
+laconic-so --stack $STACK_PATH deploy init --output spec.yml
+laconic-so --stack $STACK_PATH deploy create --spec-file spec.yml --deployment-dir deployment
+laconic-so deployment --dir deployment start
+```
+
+### Examples
+
+- `zenith-karma-stack` - Karma watcher deployment
+- `urbit-stack` - Fake Urbit ship for testing
+- `zenith-desk-stack` - Desk deployment stack
+
 ## Insights and Observations
 
 ### Design Principles

@@ -15,7 +15,10 @@
 
 import click
 from pathlib import Path
+import subprocess
 import sys
+import tempfile
+import time
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.images import push_images_operation
 from stack_orchestrator.deploy.deploy import (
@@ -228,3 +231,173 @@ def run_job(ctx, job_name, helm_release):
 
     ctx.obj = make_deploy_context(ctx)
     run_job_operation(ctx, job_name, helm_release)
+
+
+@command.command()
+@click.option("--stack-path", help="Path to stack git repo (overrides stored path)")
+@click.option("--config-file", help="Config file to pass to deploy init")
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Skip DNS verification",
+)
+@click.option(
+    "--expected-ip",
+    help="Expected IP for DNS verification (if different from egress)",
+)
+@click.pass_context
+def restart(ctx, stack_path, config_file, force, expected_ip):
+    """Pull latest stack, regenerate spec, and restart deployment.
+
+    This command:
+    1. Pulls latest code from the stack git repository
+    2. Regenerates spec.yml from the stack's commands.py
+    3. If hostname changed, verifies DNS routes to this server
+    4. Syncs the deployment directory (preserves cluster ID and data)
+    5. Stops and restarts the deployment
+
+    Data volumes are always preserved. The cluster is never destroyed.
+
+    Stack source resolution (in order):
+    1. --stack-path argument (if provided)
+    2. stack-source field in deployment.yml (if stored)
+    3. Error if neither available
+
+    Note: After restart, Caddy will automatically provision TLS certificates
+    for any new hostnames.
+    """
+    from stack_orchestrator.util import get_yaml, get_parsed_deployment_spec
+    from stack_orchestrator.deploy.deployment_create import (
+        init_operation,
+        create_operation,
+    )
+    from stack_orchestrator.deploy.dns_probe import verify_dns_via_probe
+
+    deployment_context: DeploymentContext = ctx.obj
+
+    # Get current spec info
+    current_spec = deployment_context.spec
+    current_http_proxy = current_spec.get_http_proxy()
+    current_hostname = (
+        current_http_proxy[0]["host-name"] if current_http_proxy else None
+    )
+
+    # Resolve stack source path
+    if stack_path:
+        stack_source = Path(stack_path).resolve()
+    else:
+        # Try to get from deployment.yml
+        deployment_file = (
+            deployment_context.deployment_dir / constants.deployment_file_name
+        )
+        deployment_data = get_yaml().load(open(deployment_file))
+        stack_source_str = deployment_data.get("stack-source")
+        if not stack_source_str:
+            print(
+                "Error: No stack-source in deployment.yml and --stack-path not provided"
+            )
+            print("Use --stack-path to specify the stack git repository location")
+            sys.exit(1)
+        stack_source = Path(stack_source_str)
+
+    if not stack_source.exists():
+        print(f"Error: Stack source path does not exist: {stack_source}")
+        sys.exit(1)
+
+    print("=== Deployment Restart ===")
+    print(f"Deployment dir: {deployment_context.deployment_dir}")
+    print(f"Stack source: {stack_source}")
+    print(f"Current hostname: {current_hostname}")
+
+    # Step 1: Git pull
+    print("\n[1/6] Pulling latest code from stack repository...")
+    git_result = subprocess.run(
+        ["git", "pull"], cwd=stack_source, capture_output=True, text=True
+    )
+    if git_result.returncode != 0:
+        print(f"Git pull failed: {git_result.stderr}")
+        sys.exit(1)
+    print(f"Git pull: {git_result.stdout.strip()}")
+
+    # Step 2: Regenerate spec
+    print("\n[2/6] Regenerating spec from commands.py...")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as tmp:
+        new_spec_path = tmp.name
+
+    # Build deploy context for init
+    deploy_ctx = make_deploy_context(ctx)
+
+    init_operation(
+        deploy_command_context=deploy_ctx,
+        stack=str(stack_source),
+        deployer_type=current_spec.obj[constants.deploy_to_key],
+        config=None,
+        config_file=config_file,
+        kube_config=None,
+        image_registry=None,
+        output=new_spec_path,
+        map_ports_to_host=None,
+    )
+
+    # Parse new spec to get new hostname
+    new_spec_obj = get_parsed_deployment_spec(new_spec_path)
+    new_http_proxy = new_spec_obj.get("network", {}).get("http-proxy", [])
+    new_hostname = new_http_proxy[0]["host-name"] if new_http_proxy else None
+
+    print(f"New hostname: {new_hostname}")
+
+    # Step 3: DNS verification (only if hostname changed)
+    if new_hostname and new_hostname != current_hostname:
+        print(f"\n[3/6] Hostname changed: {current_hostname} -> {new_hostname}")
+        if force:
+            print("DNS verification skipped (--force)")
+        else:
+            print("Verifying DNS via probe...")
+            if not verify_dns_via_probe(new_hostname):
+                print(f"\nDNS verification failed for {new_hostname}")
+                print("Ensure DNS is configured before restarting.")
+                print("Use --force to skip this check.")
+                sys.exit(1)
+    else:
+        print("\n[3/6] Hostname unchanged, skipping DNS verification")
+
+    # Step 4: Sync deployment directory
+    print("\n[4/6] Syncing deployment directory...")
+    create_operation(
+        deployment_command_context=deploy_ctx,
+        spec_file=new_spec_path,
+        deployment_dir=str(deployment_context.deployment_dir),
+        update=True,
+        network_dir=None,
+        initial_peers=None,
+    )
+
+    # Reload deployment context with new spec
+    deployment_context.init(deployment_context.deployment_dir)
+    ctx.obj = deployment_context
+
+    # Step 5: Stop deployment
+    print("\n[5/6] Stopping deployment...")
+    ctx.obj = make_deploy_context(ctx)
+    down_operation(
+        ctx, delete_volumes=False, extra_args_list=[], skip_cluster_management=True
+    )
+
+    # Brief pause to ensure clean shutdown
+    time.sleep(5)
+
+    # Step 6: Start deployment
+    print("\n[6/6] Starting deployment...")
+    up_operation(
+        ctx, services_list=None, stay_attached=False, skip_cluster_management=True
+    )
+
+    print("\n=== Restart Complete ===")
+    print("Deployment restarted with updated configuration.")
+    if new_hostname and new_hostname != current_hostname:
+        print(f"\nNew hostname: {new_hostname}")
+        print("Caddy will automatically provision TLS certificate.")
+
+    # Cleanup temp file
+    Path(new_spec_path).unlink(missing_ok=True)

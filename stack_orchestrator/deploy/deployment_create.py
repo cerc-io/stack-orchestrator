@@ -17,7 +17,7 @@ import click
 from importlib import util
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 import random
 from shutil import copy, copyfile, copytree, rmtree
 from secrets import token_hex
@@ -507,11 +507,14 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
         copy(path, os.path.join(directory, os.path.basename(path)))
 
 
-def _create_deployment_file(deployment_dir: Path):
+def _create_deployment_file(deployment_dir: Path, stack_source: Optional[Path] = None):
     deployment_file_path = deployment_dir.joinpath(constants.deployment_file_name)
     cluster = f"{constants.cluster_name_prefix}{token_hex(8)}"
+    deployment_content = {constants.cluster_id_key: cluster}
+    if stack_source:
+        deployment_content["stack-source"] = str(stack_source)
     with open(deployment_file_path, "w") as output_file:
-        output_file.write(f"{constants.cluster_id_key}: {cluster}\n")
+        get_yaml().dump(deployment_content, output_file)
 
 
 def _check_volume_definitions(spec):
@@ -616,11 +619,15 @@ def create_operation(
         generate_helm_chart(stack_name, spec_file, deployment_dir_path)
         return  # Exit early for helm chart generation
 
+    # Resolve stack source path for restart capability
+    stack_source = get_stack_path(stack_name)
+
     if update:
         # Sync mode: write to temp dir, then copy to deployment dir with backups
         temp_dir = Path(tempfile.mkdtemp(prefix="deployment-sync-"))
         try:
-            # Write deployment files to temp dir (skip deployment.yml to preserve cluster ID)
+            # Write deployment files to temp dir
+            # (skip deployment.yml to preserve cluster ID)
             _write_deployment_files(
                 temp_dir,
                 Path(spec_file),
@@ -628,12 +635,14 @@ def create_operation(
                 stack_name,
                 deployment_type,
                 include_deployment_file=False,
+                stack_source=stack_source,
             )
 
-            # Copy from temp to deployment dir, excluding data volumes and backing up changed files
-            # Exclude data/* to avoid touching user data volumes
-            # Exclude config file to preserve deployment settings (XXX breaks passing config vars
-            # from spec. could warn about this or not exclude...)
+            # Copy from temp to deployment dir, excluding data volumes
+            # and backing up changed files.
+            # Exclude data/* to avoid touching user data volumes.
+            # Exclude config file to preserve deployment settings
+            # (XXX breaks passing config vars from spec)
             exclude_patterns = ["data", "data/*", constants.config_file_name]
             _safe_copy_tree(
                 temp_dir, deployment_dir_path, exclude_patterns=exclude_patterns
@@ -650,6 +659,7 @@ def create_operation(
             stack_name,
             deployment_type,
             include_deployment_file=True,
+            stack_source=stack_source,
         )
 
     # Delegate to the stack's Python code
@@ -670,7 +680,7 @@ def create_operation(
     )
 
 
-def _safe_copy_tree(src: Path, dst: Path, exclude_patterns: List[str] = None):
+def _safe_copy_tree(src: Path, dst: Path, exclude_patterns: Optional[List[str]] = None):
     """
     Recursively copy a directory tree, backing up changed files with .bak suffix.
 
@@ -721,6 +731,7 @@ def _write_deployment_files(
     stack_name: str,
     deployment_type: str,
     include_deployment_file: bool = True,
+    stack_source: Optional[Path] = None,
 ):
     """
     Write deployment files to target directory.
@@ -730,7 +741,8 @@ def _write_deployment_files(
     :param parsed_spec: Parsed spec object
     :param stack_name: Name of stack
     :param deployment_type: Type of deployment
-    :param include_deployment_file: Whether to create deployment.yml file (skip for update)
+    :param include_deployment_file: Whether to create deployment.yml (skip for update)
+    :param stack_source: Path to stack source (git repo) for restart capability
     """
     stack_file = get_stack_path(stack_name).joinpath(constants.stack_file_name)
     parsed_stack = get_parsed_stack_config(stack_name)
@@ -741,7 +753,7 @@ def _write_deployment_files(
 
     # Create deployment file if requested
     if include_deployment_file:
-        _create_deployment_file(target_dir)
+        _create_deployment_file(target_dir, stack_source=stack_source)
 
     # Copy any config variables from the spec file into an env file suitable for compose
     _write_config_file(spec_file, target_dir.joinpath(constants.config_file_name))
@@ -805,8 +817,9 @@ def _write_deployment_files(
                     )
         else:
             # TODO:
-            # this is odd - looks up config dir that matches a volume name, then copies as a mount dir?
-            # AFAICT this is not used by or relevant to any existing stack - roy
+            # This is odd - looks up config dir that matches a volume name,
+            # then copies as a mount dir?
+            # AFAICT not used by or relevant to any existing stack - roy
 
             # TODO: We should probably only do this if the volume is marked :ro.
             for volume_name, volume_path in parsed_spec.get_volumes().items():

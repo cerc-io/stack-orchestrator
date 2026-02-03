@@ -96,7 +96,135 @@ def _run_command(command: str):
     return result
 
 
+def _get_etcd_host_path_from_kind_config(config_file: str) -> Optional[str]:
+    """Extract etcd host path from kind config extraMounts."""
+    import yaml
+
+    try:
+        with open(config_file, "r") as f:
+            config = yaml.safe_load(f)
+    except Exception:
+        return None
+
+    nodes = config.get("nodes", [])
+    for node in nodes:
+        extra_mounts = node.get("extraMounts", [])
+        for mount in extra_mounts:
+            if mount.get("containerPath") == "/var/lib/etcd":
+                return mount.get("hostPath")
+    return None
+
+
+def _clear_stale_cni_from_etcd(etcd_path: str) -> bool:
+    """Clear stale CNI resources from persisted etcd to allow cluster recreation.
+
+    When etcd is persisted and a cluster is recreated, kind tries to install
+    CNI (kindnet) fresh but the persisted etcd already has those resources,
+    causing 'AlreadyExists' errors. This function clears those stale resources.
+
+    Returns True if resources were cleared, False if no action needed.
+    """
+    db_path = Path(etcd_path) / "member" / "snap" / "db"
+    if not db_path.exists():
+        if opts.o.debug:
+            print(f"No etcd snapshot at {db_path}, skipping CNI cleanup")
+        return False
+
+    if opts.o.debug:
+        print(f"Clearing stale CNI resources from persisted etcd at {etcd_path}")
+
+    # Stale resources that conflict with fresh kind cluster creation
+    stale_prefixes = [
+        "/registry/clusterrolebindings/kindnet",
+        "/registry/clusterroles/kindnet",
+        "/registry/controllerrevisions/kube-system/kindnet",
+        "/registry/daemonsets/kube-system/kindnet",
+        "/registry/pods/kube-system/kindnet",
+        "/registry/serviceaccounts/kube-system/kindnet",
+        # Also clear coredns as it can conflict
+        "/registry/clusterrolebindings/system:coredns",
+        "/registry/clusterroles/system:coredns",
+        "/registry/configmaps/kube-system/coredns",
+        "/registry/deployments/kube-system/coredns",
+        "/registry/serviceaccounts/kube-system/coredns",
+        "/registry/services/specs/kube-system/kube-dns",
+    ]
+
+    # Build etcdctl delete commands
+    delete_cmds = " && ".join(
+        [f"etcdctl del --prefix '{prefix}'" for prefix in stale_prefixes]
+    )
+
+    # Use docker to run etcdutl and etcdctl
+    etcd_image = "gcr.io/etcd-development/etcd:v3.5.9"
+    temp_dir = "/tmp/laconic-etcd-cleanup"
+
+    cleanup_script = f"""
+        set -e
+        rm -rf {temp_dir}
+        mkdir -p {temp_dir}
+
+        # Restore snapshot to temp dir
+        docker run --rm \
+            -v {db_path}:/data/db:ro \
+            -v {temp_dir}:/restore \
+            {etcd_image} \
+            etcdutl snapshot restore /data/db \
+                --data-dir=/restore/etcd-data \
+                --skip-hash-check 2>/dev/null
+
+        # Start temp etcd, delete stale resources, stop
+        docker rm -f laconic-etcd-cleanup 2>/dev/null || true
+        docker run -d --name laconic-etcd-cleanup \
+            -v {temp_dir}/etcd-data:/etcd-data \
+            {etcd_image} etcd \
+                --data-dir=/etcd-data \
+                --listen-client-urls=http://0.0.0.0:2379 \
+                --advertise-client-urls=http://localhost:2379
+
+        sleep 3
+
+        # Delete stale resources
+        docker exec laconic-etcd-cleanup /bin/sh -c "{delete_cmds}" 2>/dev/null || true
+
+        # Create new snapshot from cleaned etcd
+        docker exec laconic-etcd-cleanup \
+            etcdctl snapshot save /etcd-data/cleaned-snapshot.db
+
+        # Stop temp etcd
+        docker stop laconic-etcd-cleanup
+        docker rm laconic-etcd-cleanup
+
+        # Replace original etcd data with cleaned version
+        rm -rf {etcd_path}/member
+        docker run --rm \
+            -v {temp_dir}/etcd-data/cleaned-snapshot.db:/data/db:ro \
+            -v {etcd_path}:/restore \
+            {etcd_image} \
+            etcdutl snapshot restore /data/db \
+                --data-dir=/restore \
+                --skip-hash-check 2>/dev/null
+
+        rm -rf {temp_dir}
+    """
+
+    result = subprocess.run(cleanup_script, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        if opts.o.debug:
+            print(f"Warning: etcd cleanup failed: {result.stderr}")
+        return False
+
+    if opts.o.debug:
+        print("Cleared stale CNI resources from persisted etcd")
+    return True
+
+
 def create_cluster(name: str, config_file: str):
+    # Clear stale CNI resources from persisted etcd if present
+    etcd_path = _get_etcd_host_path_from_kind_config(config_file)
+    if etcd_path:
+        _clear_stale_cni_from_etcd(etcd_path)
+
     result = _run_command(f"kind create cluster --name {name} --config {config_file}")
     if result.returncode != 0:
         raise DeployerException(f"kind create cluster failed: {result}")

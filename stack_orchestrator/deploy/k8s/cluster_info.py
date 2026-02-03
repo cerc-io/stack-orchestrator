@@ -352,11 +352,15 @@ class ClusterInfo:
                 continue
 
             if not os.path.isabs(volume_path):
-                print(
-                    f"WARNING: {volume_name}:{volume_path} is not absolute, "
-                    "cannot bind volume."
-                )
-                continue
+                # For k8s-kind, allow relative paths:
+                # - PV uses /mnt/{volume_name} (path inside kind node)
+                # - extraMounts resolve the relative path to Docker Host
+                if not self.spec.is_kind_deployment():
+                    print(
+                        f"WARNING: {volume_name}:{volume_path} is not absolute, "
+                        "cannot bind volume."
+                    )
+                    continue
 
             if self.spec.is_kind_deployment():
                 host_path = client.V1HostPathVolumeSource(

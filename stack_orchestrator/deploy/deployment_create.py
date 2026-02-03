@@ -690,10 +690,14 @@ def _check_volume_definitions(spec):
         for volume_name, volume_path in spec.get_volumes().items():
             if volume_path:
                 if not os.path.isabs(volume_path):
-                    raise Exception(
-                        f"Relative path {volume_path} for volume {volume_name} not "
-                        f"supported for deployment type {spec.get_deployment_type()}"
-                    )
+                    # For k8s-kind: allow relative paths, they'll be resolved
+                    # by _make_absolute_host_path() during kind config generation
+                    if not spec.is_kind_deployment():
+                        deploy_type = spec.get_deployment_type()
+                        raise Exception(
+                            f"Relative path {volume_path} for volume "
+                            f"{volume_name} not supported for {deploy_type}"
+                        )
 
 
 @click.command()

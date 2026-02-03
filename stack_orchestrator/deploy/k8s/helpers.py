@@ -262,18 +262,17 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
 
 
 def create_cluster(name: str, config_file: str):
-    """Create a kind cluster, or reuse an existing one.
+    """Create or reuse the single kind cluster for this host.
 
-    Checks if any kind cluster already exists. If so, uses that cluster
-    instead of creating a new one. This allows multiple deployments to
-    share the same kind cluster.
+    There is only one kind cluster per host by design. Multiple deployments
+    share this cluster. If a cluster already exists, it is reused.
 
     Args:
-        name: The desired cluster name (used only if creating new)
-        config_file: Path to kind config file (used only if creating new)
+        name: Cluster name (used only when creating the first cluster)
+        config_file: Path to kind config file (used only when creating)
 
     Returns:
-        The name of the cluster being used (either existing or newly created)
+        The name of the cluster being used
     """
     existing = get_kind_cluster()
     if existing:

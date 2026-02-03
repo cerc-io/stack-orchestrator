@@ -128,9 +128,6 @@ class Spec:
     def get_http_proxy(self):
         return self.obj.get(constants.network_key, {}).get(constants.http_proxy_key, [])
 
-    def get_acme_email(self):
-        return self.obj.get(constants.network_key, {}).get("acme-email", "")
-
     def get_annotations(self):
         return self.obj.get(constants.annotations_key, {})
 

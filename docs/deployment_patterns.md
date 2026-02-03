@@ -75,3 +75,40 @@ This overwrites your customizations with defaults from the stack's `commands.py`
 git pull  # Get latest spec.yml from your operator repo
 laconic-so deployment --dir my-deployment restart
 ```
+
+## Volume Persistence in k8s-kind
+
+k8s-kind has 3 storage layers:
+
+- **Docker Host**: The physical server running Docker
+- **Kind Node**: A Docker container simulating a k8s node
+- **Pod Container**: Your workload
+
+For k8s-kind, volumes with paths are mounted from Docker Host → Kind Node → Pod via extraMounts.
+
+| spec.yml volume | Storage Location | Survives Pod Restart | Survives Cluster Restart |
+|-----------------|------------------|---------------------|-------------------------|
+| `vol:` (empty)  | Kind Node PVC    | ✅ | ❌ |
+| `vol: ./data/x` | Docker Host      | ✅ | ✅ |
+| `vol: /abs/path`| Docker Host      | ✅ | ✅ |
+
+**Recommendation**: Always use paths for data you want to keep. Relative paths
+(e.g., `./data/rpc-config`) resolve to `$DEPLOYMENT_DIR/data/rpc-config` on the
+Docker Host.
+
+### Example
+
+```yaml
+# In spec.yml
+volumes:
+  rpc-config: ./data/rpc-config  # Persists to $DEPLOYMENT_DIR/data/rpc-config
+  chain-data: ./data/chain       # Persists to $DEPLOYMENT_DIR/data/chain
+  temp-cache:                    # Empty = Kind Node PVC (lost on cluster delete)
+```
+
+### The Antipattern
+
+Empty-path volumes appear persistent because they survive pod restarts (data lives
+in Kind Node container). However, this data is lost when the kind cluster is
+recreated. This "false persistence" has caused data loss when operators assumed
+their data was safe.

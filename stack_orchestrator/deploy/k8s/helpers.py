@@ -215,13 +215,16 @@ except: pass
             etcdutl snapshot restore /data/db --data-dir=/restore/new-etcd \
             --skip-hash-check 2>/dev/null
 
-        # Only after successful restore, swap directories
-        docker run --rm -v {etcd_path}:/etcd -v {temp_dir}:/tmp-work $ALPINE_IMAGE \
-            sh -c "mv /etcd/member /etcd/member.bak && \
-                   mv /tmp-work/new-etcd/member /etcd/member && \
-                   rm -rf /etcd/member.bak"
+        # Create timestamped backup of original (kept forever)
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        docker run --rm -v {etcd_path}:/etcd $ALPINE_IMAGE \
+            cp -a /etcd/member /etcd/member.backup-$TIMESTAMP
 
-        # Cleanup
+        # Replace original with cleaned version
+        docker run --rm -v {etcd_path}:/etcd -v {temp_dir}:/tmp-work $ALPINE_IMAGE \
+            sh -c "rm -rf /etcd/member && mv /tmp-work/new-etcd/member /etcd/member"
+
+        # Cleanup temp (but NOT the backup)
         docker run --rm -v /tmp:/tmp $ALPINE_IMAGE rm -rf {temp_dir}
     """
 

@@ -942,6 +942,41 @@ def envs_from_compose_file(
     return result
 
 
+def translate_sidecar_service_names(
+    envs: Mapping[str, str], sibling_service_names: List[str]
+) -> Mapping[str, str]:
+    """Translate docker-compose service names to localhost for sidecar containers.
+
+    In docker-compose, services can reference each other by name (e.g., 'db:5432').
+    In Kubernetes, when multiple containers are in the same pod (sidecars), they
+    share the same network namespace and must use 'localhost' instead.
+
+    This function replaces service name references with 'localhost' in env values.
+    """
+    import re
+
+    if not sibling_service_names:
+        return envs
+
+    result = {}
+    for env_var, env_val in envs.items():
+        if env_val is None:
+            result[env_var] = env_val
+            continue
+
+        new_val = str(env_val)
+        for service_name in sibling_service_names:
+            # Match service name followed by optional port (e.g., 'db:5432', 'db')
+            # Handle URLs like: postgres://user:pass@db:5432/dbname
+            # and simple refs like: db:5432 or just db
+            pattern = rf"\b{re.escape(service_name)}(:\d+)?\b"
+            new_val = re.sub(pattern, lambda m: f'localhost{m.group(1) or ""}', new_val)
+
+        result[env_var] = new_val
+
+    return result
+
+
 def envs_from_environment_variables_map(
     map: Mapping[str, str]
 ) -> List[client.V1EnvVar]:

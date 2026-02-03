@@ -15,6 +15,7 @@
 
 import click
 from importlib import util
+import json
 import os
 import re
 import base64
@@ -552,6 +553,87 @@ def _generate_and_store_secrets(config_vars: dict, deployment_name: str):
             raise
 
     return secrets
+
+
+def create_registry_secret(spec: Spec, deployment_name: str) -> Optional[str]:
+    """Create K8s docker-registry secret from spec + environment.
+
+    Reads registry configuration from spec.yml and creates a Kubernetes
+    secret of type kubernetes.io/dockerconfigjson for image pulls.
+
+    Args:
+        spec: The deployment spec containing image-registry config
+        deployment_name: Name of the deployment (used for secret naming)
+
+    Returns:
+        The secret name if created, None if no registry config
+    """
+    from kubernetes import client, config as k8s_config
+
+    registry_config = spec.get_image_registry_config()
+    if not registry_config:
+        return None
+
+    server = registry_config.get("server")
+    username = registry_config.get("username")
+    token_env = registry_config.get("token-env")
+
+    if not all([server, username, token_env]):
+        return None
+
+    # Type narrowing for pyright - we've validated these aren't None above
+    assert token_env is not None
+    token = os.environ.get(token_env)
+    if not token:
+        print(
+            f"Warning: Registry token env var '{token_env}' not set, "
+            "skipping registry secret"
+        )
+        return None
+
+    # Create dockerconfigjson format (Docker API uses "password" field for tokens)
+    auth = base64.b64encode(f"{username}:{token}".encode()).decode()
+    docker_config = {
+        "auths": {server: {"username": username, "password": token, "auth": auth}}
+    }
+
+    # Secret name derived from deployment name
+    secret_name = f"{deployment_name}-registry"
+
+    # Load kube config
+    try:
+        k8s_config.load_kube_config()
+    except Exception:
+        try:
+            k8s_config.load_incluster_config()
+        except Exception:
+            print("Warning: Could not load kube config, registry secret not created")
+            return None
+
+    v1 = client.CoreV1Api()
+    namespace = "default"
+
+    k8s_secret = client.V1Secret(
+        metadata=client.V1ObjectMeta(name=secret_name),
+        data={
+            ".dockerconfigjson": base64.b64encode(
+                json.dumps(docker_config).encode()
+            ).decode()
+        },
+        type="kubernetes.io/dockerconfigjson",
+    )
+
+    try:
+        v1.create_namespaced_secret(namespace, k8s_secret)
+        print(f"Created registry secret '{secret_name}' for {server}")
+    except client.exceptions.ApiException as e:
+        if e.status == 409:  # Already exists
+            v1.replace_namespaced_secret(secret_name, namespace, k8s_secret)
+            print(f"Updated registry secret '{secret_name}' for {server}")
+        else:
+            raise
+
+    return secret_name
 
 
 def _write_config_file(

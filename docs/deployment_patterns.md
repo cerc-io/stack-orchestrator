@@ -75,3 +75,52 @@ This overwrites your customizations with defaults from the stack's `commands.py`
 git pull  # Get latest spec.yml from your operator repo
 laconic-so deployment --dir my-deployment restart
 ```
+
+## Private Registry Authentication
+
+For deployments using images from private container registries (e.g., GitHub Container Registry), configure authentication in your spec.yml:
+
+### Configuration
+
+Add an `image-registry` section to your spec.yml:
+
+```yaml
+image-registry:
+  server: ghcr.io
+  username: your-org-or-username
+  token-env: REGISTRY_TOKEN
+```
+
+**Fields:**
+- `server`: The registry hostname (e.g., `ghcr.io`, `docker.io`, `gcr.io`)
+- `username`: Registry username (for GHCR, use your GitHub username or org name)
+- `token-env`: Name of the environment variable containing your API token/PAT
+
+### Token Environment Variable
+
+The `token-env` pattern keeps credentials out of version control. Set the environment variable when running `deployment start`:
+
+```bash
+export REGISTRY_TOKEN="your-personal-access-token"
+laconic-so deployment --dir my-deployment start
+```
+
+For GHCR, create a Personal Access Token (PAT) with `read:packages` scope.
+
+### Ansible Integration
+
+When using Ansible for deployments, pass the token from a credentials file:
+
+```yaml
+- name: Start deployment
+  ansible.builtin.command:
+    cmd: laconic-so deployment --dir {{ deployment_dir }} start
+  environment:
+    REGISTRY_TOKEN: "{{ lookup('file', '~/.credentials/ghcr_token') }}"
+```
+
+### How It Works
+
+1. laconic-so reads the `image-registry` config from spec.yml
+2. Creates a Kubernetes `docker-registry` secret named `{deployment}-registry`
+3. The deployment's pods reference this secret for image pulls

@@ -98,6 +98,14 @@ class Spec:
     def get_image_registry(self):
         return self.obj.get(constants.image_registry_key)
 
+    def get_image_registry_config(self) -> typing.Optional[typing.Dict]:
+        """Returns registry auth config: {server, username, token-env}.
+
+        Used for private container registries like GHCR. The token-env field
+        specifies an environment variable containing the API token/PAT.
+        """
+        return self.obj.get("image-registry")
+
     def get_volumes(self):
         return self.obj.get(constants.volumes_key, {})
 

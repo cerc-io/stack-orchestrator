@@ -487,7 +487,12 @@ class ClusterInfo:
         volumes = volumes_for_pod_files(
             self.parsed_pod_yaml_map, self.spec, self.app_name
         )
-        image_pull_secrets = [client.V1LocalObjectReference(name="laconic-registry")]
+        registry_config = self.spec.get_image_registry_config()
+        if registry_config:
+            secret_name = f"{self.app_name}-registry"
+            image_pull_secrets = [client.V1LocalObjectReference(name=secret_name)]
+        else:
+            image_pull_secrets = []
 
         annotations = None
         labels = {"app": self.app_name}

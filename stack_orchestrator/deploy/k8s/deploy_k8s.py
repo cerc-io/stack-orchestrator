@@ -332,6 +332,11 @@ class K8sDeployer(Deployer):
         else:
             print("Dry run mode enabled, skipping k8s API connect")
 
+        # Create registry secret if configured
+        from stack_orchestrator.deploy.deployment_create import create_registry_secret
+
+        create_registry_secret(self.cluster_info.spec, self.cluster_info.app_name)
+
         self._create_volume_data()
         self._create_deployment()
 

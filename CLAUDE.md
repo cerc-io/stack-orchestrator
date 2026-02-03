@@ -8,6 +8,7 @@ NEVER assume your hypotheses are true without evidence
 
 ALWAYS clearly state when something is a hypothesis
 ALWAYS use evidence from the systems your interacting with to support your claims and hypotheses
+ALWAYS run `pre-commit run --all-files` before committing changes
 
 ## Key Principles
 

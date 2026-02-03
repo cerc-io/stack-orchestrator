@@ -124,3 +124,42 @@ When using Ansible for deployments, pass the token from a credentials file:
 1. laconic-so reads the `registry-credentials` config from spec.yml
 2. Creates a Kubernetes `docker-registry` secret named `{deployment}-registry`
 3. The deployment's pods reference this secret for image pulls
+
+## Cluster and Volume Management
+
+### Stopping Deployments
+
+The `deployment stop` command has two important flags:
+
+```bash
+# Default: stops deployment, deletes cluster, PRESERVES volumes
+laconic-so deployment --dir my-deployment stop
+
+# Explicitly delete volumes (USE WITH CAUTION)
+laconic-so deployment --dir my-deployment stop --delete-volumes
+```
+
+### Volume Persistence
+
+Volumes persist across cluster deletion by design. This is important because:
+- **Data survives cluster recreation**: Ledger data, databases, and other state are preserved
+- **Faster recovery**: No need to re-sync or rebuild data after cluster issues
+- **Safe cluster upgrades**: Delete and recreate cluster without data loss
+
+**Only use `--delete-volumes` when:**
+- You explicitly want to start fresh with no data
+- The user specifically requests volume deletion
+- You're cleaning up a test/dev environment completely
+
+### Shared Cluster Architecture
+
+In kind deployments, multiple stacks share a single cluster:
+- First `deployment start` creates the cluster
+- Subsequent deployments reuse the existing cluster
+- `deployment stop` on ANY deployment deletes the shared cluster
+- Other deployments will fail until cluster is recreated
+
+To stop a single deployment without affecting the cluster:
+```bash
+laconic-so deployment --dir my-deployment stop --skip-cluster-management
+```

@@ -103,7 +103,11 @@ One Kind cluster per host by design. Never request or expect separate clusters.
 - `cluster_info.py` adds `envFrom` with `secretRef` to containers
 - Non-secret config written to `config.env`
 
+### Repository Cloning
+`setup-repositories --git-ssh` clones repos defined in stack.yml's `repos:` field. Requires SSH agent.
+
 ### Key Files (for codebase navigation)
+- `repos/setup_repositories.py`: `setup-repositories` command (git clone)
 - `deployment_create.py`: `deploy create` command, secret generation
 - `deployment.py`: `deployment start/stop/restart` commands
 - `deploy_k8s.py`: K8s deployer, cluster management calls

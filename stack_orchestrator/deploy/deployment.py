@@ -234,6 +234,9 @@ def run_job(ctx, job_name, helm_release):
 
 @command.command()
 @click.option("--stack-path", help="Path to stack git repo (overrides stored path)")
+@click.option(
+    "--spec-file", help="Path to GitOps spec.yml in repo (e.g., deployment/spec.yml)"
+)
 @click.option("--config-file", help="Config file to pass to deploy init")
 @click.option(
     "--force",
@@ -246,7 +249,7 @@ def run_job(ctx, job_name, helm_release):
     help="Expected IP for DNS verification (if different from egress)",
 )
 @click.pass_context
-def restart(ctx, stack_path, config_file, force, expected_ip):
+def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
     """Pull latest code and restart deployment using git-tracked spec.
 
     GitOps workflow:
@@ -317,12 +320,29 @@ def restart(ctx, stack_path, config_file, force, expected_ip):
         sys.exit(1)
     print(f"Git pull: {git_result.stdout.strip()}")
 
-    # Use the spec.yml from the deployment directory (updated by git pull if tracked)
-    spec_file_path = deployment_context.deployment_dir / "spec.yml"
+    # Determine spec file location
+    # Priority: --spec-file argument > repo's deployment/spec.yml > deployment dir
+    if spec_file:
+        # Spec file relative to repo root
+        repo_root = stack_source.parent.parent.parent  # Go up from stack path
+        spec_file_path = repo_root / spec_file
+    else:
+        # Try standard GitOps location in repo
+        repo_root = stack_source.parent.parent.parent
+        gitops_spec = repo_root / "deployment" / "spec.yml"
+        if gitops_spec.exists():
+            spec_file_path = gitops_spec
+        else:
+            # Fall back to deployment directory
+            spec_file_path = deployment_context.deployment_dir / "spec.yml"
+
     if not spec_file_path.exists():
         print(f"Error: spec.yml not found at {spec_file_path}")
-        print("Ensure spec.yml exists in the deployment directory.")
+        print("For GitOps, add spec.yml to your repo at deployment/spec.yml")
+        print("Or specify --spec-file with path relative to repo root")
         sys.exit(1)
+
+    print(f"Using spec: {spec_file_path}")
 
     # Parse spec to check for hostname changes
     new_spec_obj = get_parsed_deployment_spec(str(spec_file_path))

@@ -301,7 +301,7 @@ class K8sDeployer(Deployer):
             self.connect_api()
             if self.is_kind() and not self.skip_cluster_management:
                 # Configure ingress controller (not installed by default in kind)
-                install_ingress_for_kind()
+                install_ingress_for_kind(self.cluster_info.spec.get_acme_email())
                 # Wait for ingress to start
                 # (deployment provisioning will fail unless this is done)
                 wait_for_ingress_in_kind()

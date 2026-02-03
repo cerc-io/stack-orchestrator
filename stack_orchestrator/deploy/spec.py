@@ -179,6 +179,9 @@ class Spec:
     def get_deployment_type(self):
         return self.obj.get(constants.deploy_to_key)
 
+    def get_acme_email(self):
+        return self.obj.get(constants.acme_email_key, "")
+
     def is_kubernetes_deployment(self):
         return self.get_deployment_type() in [
             constants.k8s_kind_deploy_type,

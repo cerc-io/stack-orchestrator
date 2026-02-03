@@ -125,7 +125,9 @@ def _clear_stale_cni_from_etcd(etcd_path: str) -> bool:
     Returns True if resources were cleared, False if no action needed.
     """
     db_path = Path(etcd_path) / "member" / "snap" / "db"
-    if not db_path.exists():
+    # Check existence with sudo since etcd dir is often root-owned
+    check_result = subprocess.run(f"test -f {db_path}", shell=True, capture_output=True)
+    if check_result.returncode != 0:
         if opts.o.debug:
             print(f"No etcd snapshot at {db_path}, skipping CNI cleanup")
         return False
@@ -159,18 +161,29 @@ def _clear_stale_cni_from_etcd(etcd_path: str) -> bool:
     etcd_image = "gcr.io/etcd-development/etcd:v3.5.9"
     temp_dir = "/tmp/laconic-etcd-cleanup"
 
+    # All operations done inside docker containers to handle root-owned etcd files
     cleanup_script = f"""
         set -e
-        rm -rf {temp_dir}
-        mkdir -p {temp_dir}
+
+        # Use alpine for file operations (has shell, rm, cp, etc.)
+        ALPINE_IMAGE="alpine:3.19"
+
+        # Create temp dir using docker (handles permissions)
+        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE \
+            sh -c "rm -rf {temp_dir} && mkdir -p {temp_dir}"
+
+        # Copy db to temp location using docker
+        docker run --rm \
+            -v {etcd_path}:/etcd:ro \
+            -v {temp_dir}:/tmp-work \
+            $ALPINE_IMAGE cp /etcd/member/snap/db /tmp-work/etcd-snapshot.db
 
         # Restore snapshot to temp dir
         docker run --rm \
-            -v {db_path}:/data/db:ro \
-            -v {temp_dir}:/restore \
+            -v {temp_dir}:/work \
             {etcd_image} \
-            etcdutl snapshot restore /data/db \
-                --data-dir=/restore/etcd-data \
+            etcdutl snapshot restore /work/etcd-snapshot.db \
+                --data-dir=/work/etcd-data \
                 --skip-hash-check 2>/dev/null
 
         # Start temp etcd, delete stale resources, stop
@@ -195,8 +208,10 @@ def _clear_stale_cni_from_etcd(etcd_path: str) -> bool:
         docker stop laconic-etcd-cleanup
         docker rm laconic-etcd-cleanup
 
-        # Replace original etcd data with cleaned version
-        rm -rf {etcd_path}/member
+        # Clear original etcd member dir using docker
+        docker run --rm -v {etcd_path}:/etcd $ALPINE_IMAGE rm -rf /etcd/member
+
+        # Restore cleaned snapshot to original location
         docker run --rm \
             -v {temp_dir}/etcd-data/cleaned-snapshot.db:/data/db:ro \
             -v {etcd_path}:/restore \
@@ -205,7 +220,8 @@ def _clear_stale_cni_from_etcd(etcd_path: str) -> bool:
                 --data-dir=/restore \
                 --skip-hash-check 2>/dev/null
 
-        rm -rf {temp_dir}
+        # Cleanup temp dir
+        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE rm -rf {temp_dir}
     """
 
     result = subprocess.run(cleanup_script, shell=True, capture_output=True, text=True)

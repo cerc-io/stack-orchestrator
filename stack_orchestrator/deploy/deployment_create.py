@@ -843,7 +843,8 @@ def _write_deployment_files(
 
     # Copy any config variables from the spec file into an env file suitable for compose
     # Use stack_name as deployment_name for K8s secret naming
-    deployment_name = stack_name.replace("_", "-")
+    # Extract just the name part if stack_name is a path ("path/to/stack" -> "stack")
+    deployment_name = Path(stack_name).name.replace("_", "-")
     _write_config_file(
         spec_file, target_dir.joinpath(constants.config_file_name), deployment_name
     )

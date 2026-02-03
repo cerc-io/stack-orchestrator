@@ -384,104 +384,120 @@ class K8sDeployer(Deployer):
     def down(self, timeout, volumes, skip_cluster_management):  # noqa: C901
         self.skip_cluster_management = skip_cluster_management
         self.connect_api()
-        # Delete the k8s objects
+
+        # Query K8s for resources by label selector instead of generating names
+        # from config. This ensures we clean up orphaned resources when deployment
+        # IDs change (e.g., after force_redeploy).
+        label_selector = f"app={self.cluster_info.app_name}"
 
         if volumes:
-            # Create the host-path-mounted PVs for this deployment
-            pvs = self.cluster_info.get_pvs()
-            for pv in pvs:
-                if opts.o.debug:
-                    print(f"Deleting this pv: {pv}")
-                try:
-                    pv_resp = self.core_api.delete_persistent_volume(
-                        name=pv.metadata.name
-                    )
+            # Delete PVs for this deployment (PVs use volume-label pattern)
+            try:
+                pvs = self.core_api.list_persistent_volume(
+                    label_selector=f"app={self.cluster_info.app_name}"
+                )
+                for pv in pvs.items:
                     if opts.o.debug:
-                        print("PV deleted:")
-                        print(f"{pv_resp}")
+                        print(f"Deleting PV: {pv.metadata.name}")
+                    try:
+                        self.core_api.delete_persistent_volume(name=pv.metadata.name)
+                    except ApiException as e:
+                        _check_delete_exception(e)
+            except ApiException as e:
+                if opts.o.debug:
+                    print(f"Error listing PVs: {e}")
+
+            # Delete PVCs for this deployment
+            try:
+                pvcs = self.core_api.list_namespaced_persistent_volume_claim(
+                    namespace=self.k8s_namespace, label_selector=label_selector
+                )
+                for pvc in pvcs.items:
+                    if opts.o.debug:
+                        print(f"Deleting PVC: {pvc.metadata.name}")
+                    try:
+                        self.core_api.delete_namespaced_persistent_volume_claim(
+                            name=pvc.metadata.name, namespace=self.k8s_namespace
+                        )
+                    except ApiException as e:
+                        _check_delete_exception(e)
+            except ApiException as e:
+                if opts.o.debug:
+                    print(f"Error listing PVCs: {e}")
+
+        # Delete ConfigMaps for this deployment
+        try:
+            cfg_maps = self.core_api.list_namespaced_config_map(
+                namespace=self.k8s_namespace, label_selector=label_selector
+            )
+            for cfg_map in cfg_maps.items:
+                if opts.o.debug:
+                    print(f"Deleting ConfigMap: {cfg_map.metadata.name}")
+                try:
+                    self.core_api.delete_namespaced_config_map(
+                        name=cfg_map.metadata.name, namespace=self.k8s_namespace
+                    )
                 except ApiException as e:
                     _check_delete_exception(e)
+        except ApiException as e:
+            if opts.o.debug:
+                print(f"Error listing ConfigMaps: {e}")
 
-            # Figure out the PVCs for this deployment
-            pvcs = self.cluster_info.get_pvcs()
-            for pvc in pvcs:
+        # Delete Deployments for this deployment
+        try:
+            deployments = self.apps_api.list_namespaced_deployment(
+                namespace=self.k8s_namespace, label_selector=label_selector
+            )
+            for deployment in deployments.items:
                 if opts.o.debug:
-                    print(f"Deleting this pvc: {pvc}")
+                    print(f"Deleting Deployment: {deployment.metadata.name}")
                 try:
-                    pvc_resp = self.core_api.delete_namespaced_persistent_volume_claim(
-                        name=pvc.metadata.name, namespace=self.k8s_namespace
+                    self.apps_api.delete_namespaced_deployment(
+                        name=deployment.metadata.name, namespace=self.k8s_namespace
                     )
-                    if opts.o.debug:
-                        print("PVCs deleted:")
-                        print(f"{pvc_resp}")
                 except ApiException as e:
                     _check_delete_exception(e)
-
-        # Figure out the ConfigMaps for this deployment
-        cfg_maps = self.cluster_info.get_configmaps()
-        for cfg_map in cfg_maps:
+        except ApiException as e:
             if opts.o.debug:
-                print(f"Deleting this ConfigMap: {cfg_map}")
-            try:
-                cfg_map_resp = self.core_api.delete_namespaced_config_map(
-                    name=cfg_map.metadata.name, namespace=self.k8s_namespace
-                )
+                print(f"Error listing Deployments: {e}")
+
+        # Delete Services for this deployment (includes both ClusterIP and NodePort)
+        try:
+            services = self.core_api.list_namespaced_service(
+                namespace=self.k8s_namespace, label_selector=label_selector
+            )
+            for service in services.items:
                 if opts.o.debug:
-                    print("ConfigMap deleted:")
-                    print(f"{cfg_map_resp}")
-            except ApiException as e:
-                _check_delete_exception(e)
-
-        deployment = self.cluster_info.get_deployment()
-        if opts.o.debug:
-            print(f"Deleting this deployment: {deployment}")
-        if deployment and deployment.metadata and deployment.metadata.name:
-            try:
-                self.apps_api.delete_namespaced_deployment(
-                    name=deployment.metadata.name, namespace=self.k8s_namespace
-                )
-            except ApiException as e:
-                _check_delete_exception(e)
-
-        service = self.cluster_info.get_service()
-        if opts.o.debug:
-            print(f"Deleting service: {service}")
-        if service and service.metadata and service.metadata.name:
-            try:
-                self.core_api.delete_namespaced_service(
-                    namespace=self.k8s_namespace, name=service.metadata.name
-                )
-            except ApiException as e:
-                _check_delete_exception(e)
-
-        ingress = self.cluster_info.get_ingress(use_tls=not self.is_kind())
-        if ingress and ingress.metadata and ingress.metadata.name:
-            if opts.o.debug:
-                print(f"Deleting this ingress: {ingress}")
-            try:
-                self.networking_api.delete_namespaced_ingress(
-                    name=ingress.metadata.name, namespace=self.k8s_namespace
-                )
-            except ApiException as e:
-                _check_delete_exception(e)
-        else:
-            if opts.o.debug:
-                print("No ingress to delete")
-
-        nodeports: List[client.V1Service] = self.cluster_info.get_nodeports()
-        for nodeport in nodeports:
-            if opts.o.debug:
-                print(f"Deleting this nodeport: {nodeport}")
-            if nodeport.metadata and nodeport.metadata.name:
+                    print(f"Deleting Service: {service.metadata.name}")
                 try:
                     self.core_api.delete_namespaced_service(
-                        namespace=self.k8s_namespace, name=nodeport.metadata.name
+                        namespace=self.k8s_namespace, name=service.metadata.name
                     )
                 except ApiException as e:
                     _check_delete_exception(e)
-        else:
+        except ApiException as e:
             if opts.o.debug:
-                print("No nodeport to delete")
+                print(f"Error listing Services: {e}")
+
+        # Delete Ingresses for this deployment
+        try:
+            ingresses = self.networking_api.list_namespaced_ingress(
+                namespace=self.k8s_namespace, label_selector=label_selector
+            )
+            for ingress in ingresses.items:
+                if opts.o.debug:
+                    print(f"Deleting Ingress: {ingress.metadata.name}")
+                try:
+                    self.networking_api.delete_namespaced_ingress(
+                        name=ingress.metadata.name, namespace=self.k8s_namespace
+                    )
+                except ApiException as e:
+                    _check_delete_exception(e)
+            if not ingresses.items and opts.o.debug:
+                print("No ingress to delete")
+        except ApiException as e:
+            if opts.o.debug:
+                print(f"Error listing Ingresses: {e}")
 
         if self.is_kind() and not self.skip_cluster_management:
             # Destroy the kind cluster

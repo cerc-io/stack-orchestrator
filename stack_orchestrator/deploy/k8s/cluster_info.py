@@ -31,6 +31,7 @@ from stack_orchestrator.deploy.k8s.helpers import (
     envs_from_environment_variables_map,
     envs_from_compose_file,
     merge_envs,
+    translate_sidecar_service_names,
 )
 from stack_orchestrator.deploy.deploy_util import (
     parsed_pod_files_map_from_file_names,
@@ -438,6 +439,12 @@ class ClusterInfo:
                     )
                     if "environment" in service_info
                     else self.environment_variables.map
+                )
+                # Translate docker-compose service names to localhost for sidecars
+                # All services in the same pod share the network namespace
+                sibling_services = [s for s in services.keys() if s != service_name]
+                merged_envs = translate_sidecar_service_names(
+                    merged_envs, sibling_services
                 )
                 envs = envs_from_environment_variables_map(merged_envs)
                 if opts.o.debug:

@@ -126,8 +126,12 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
     Returns True if cleanup succeeded, False if no action needed or failed.
     """
     db_path = Path(etcd_path) / "member" / "snap" / "db"
-    # Check existence - etcd dir is often root-owned so use shell test
-    check_result = subprocess.run(f"test -f {db_path}", shell=True, capture_output=True)
+    # Check existence using docker since etcd dir is root-owned
+    check_cmd = (
+        f"docker run --rm -v {etcd_path}:/etcd:ro alpine:3.19 "
+        "test -f /etcd/member/snap/db"
+    )
+    check_result = subprocess.run(check_cmd, shell=True, capture_output=True)
     if check_result.returncode != 0:
         if opts.o.debug:
             print(f"No etcd snapshot at {db_path}, skipping cleanup")

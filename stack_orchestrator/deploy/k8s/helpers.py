@@ -123,6 +123,9 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
     specific stale resources (blacklist), we keep only the valuable data
     (caddy TLS certs) and delete everything else (whitelist approach).
 
+    The etcd image is distroless (no shell), so we extract the statically-linked
+    etcdctl binary and run it from alpine which has shell support.
+
     Returns True if cleanup succeeded, False if no action needed or failed.
     """
     db_path = Path(etcd_path) / "member" / "snap" / "db"
@@ -146,14 +149,26 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
     # Whitelist: prefixes to KEEP - everything else gets deleted
     keep_prefixes = "/registry/secrets/caddy-system"
 
-    # All operations in docker to handle root-owned etcd files
+    # The etcd image is distroless (no shell). We extract the statically-linked
+    # etcdctl binary and run it from alpine which has shell + jq support.
     cleanup_script = f"""
         set -e
         ALPINE_IMAGE="alpine:3.19"
 
+        # Cleanup previous runs
+        docker rm -f laconic-etcd-cleanup 2>/dev/null || true
+        docker rm -f etcd-extract 2>/dev/null || true
+        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE rm -rf {temp_dir}
+
         # Create temp dir
-        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE \
-            sh -c "rm -rf {temp_dir} && mkdir -p {temp_dir}"
+        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE mkdir -p {temp_dir}
+
+        # Extract etcdctl binary (it's statically linked)
+        docker create --name etcd-extract {etcd_image}
+        docker cp etcd-extract:/usr/local/bin/etcdctl /tmp/etcdctl-bin
+        docker rm etcd-extract
+        docker run --rm -v /tmp/etcdctl-bin:/src:ro -v {temp_dir}:/dst $ALPINE_IMAGE \
+            sh -c "cp /src /dst/etcdctl && chmod +x /dst/etcdctl"
 
         # Copy db to temp location
         docker run --rm \
@@ -166,8 +181,7 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
             etcdutl snapshot restore /work/etcd-snapshot.db \
                 --data-dir=/work/etcd-data --skip-hash-check 2>/dev/null
 
-        # Start temp etcd
-        docker rm -f laconic-etcd-cleanup 2>/dev/null || true
+        # Start temp etcd (runs the etcd binary, no shell needed)
         docker run -d --name laconic-etcd-cleanup \
             -v {temp_dir}/etcd-data:/etcd-data \
             -v {temp_dir}:/backup \
@@ -178,31 +192,34 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
 
         sleep 3
 
-        # Export caddy secrets to backup file (the only thing we keep)
-        docker exec laconic-etcd-cleanup \
-            etcdctl get --prefix "{keep_prefixes}" -w json > {temp_dir}/kept.json \
-            2>/dev/null || echo '{{}}' > {temp_dir}/kept.json
+        # Use alpine with extracted etcdctl to run commands (alpine has shell + jq)
+        # Export caddy secrets
+        docker run --rm \
+            -v {temp_dir}:/backup \
+            --network container:laconic-etcd-cleanup \
+            $ALPINE_IMAGE sh -c \
+            '/backup/etcdctl get --prefix "{keep_prefixes}" -w json \
+                > /backup/kept.json 2>/dev/null || echo "{{}}" > /backup/kept.json'
 
         # Delete ALL registry keys
-        docker exec laconic-etcd-cleanup etcdctl del --prefix /registry
+        docker run --rm \
+            -v {temp_dir}:/backup \
+            --network container:laconic-etcd-cleanup \
+            $ALPINE_IMAGE /backup/etcdctl del --prefix /registry
 
-        # Restore kept keys using etcdctl txn
-        docker exec laconic-etcd-cleanup sh -c '
-            cat /backup/kept.json 2>/dev/null | \
-            (python3 -c "
-import sys, json, base64
-try:
-    data = json.load(sys.stdin)
-    for kv in data.get(\"kvs\", []):
-        k = base64.b64decode(kv[\"key\"]).decode()
-        v = base64.b64decode(kv[\"value\"]).decode(\"latin-1\")
-        print(k)
-        print(v)
-except: pass
-" 2>/dev/null || true) | while IFS= read -r key && IFS= read -r value; do
-                printf \"%s\" \"$value\" | etcdctl put \"$key\"
-            done
-        ' 2>/dev/null || true
+        # Restore kept keys using jq
+        docker run --rm \
+            -v {temp_dir}:/backup \
+            --network container:laconic-etcd-cleanup \
+            $ALPINE_IMAGE sh -c '
+                apk add --no-cache jq >/dev/null 2>&1
+                jq -r ".kvs[] | @base64" /backup/kept.json 2>/dev/null | \
+                while read encoded; do
+                    key=$(echo $encoded | base64 -d | jq -r ".key" | base64 -d)
+                    val=$(echo $encoded | base64 -d | jq -r ".value" | base64 -d)
+                    echo "$val" | /backup/etcdctl put "$key"
+                done
+            ' || true
 
         # Save cleaned snapshot
         docker exec laconic-etcd-cleanup \
@@ -228,8 +245,9 @@ except: pass
         docker run --rm -v {etcd_path}:/etcd -v {temp_dir}:/tmp-work $ALPINE_IMAGE \
             sh -c "rm -rf /etcd/member && mv /tmp-work/new-etcd/member /etcd/member"
 
-        # Cleanup temp (but NOT the backup)
+        # Cleanup temp files (but NOT the timestamped backup in etcd_path)
         docker run --rm -v /tmp:/tmp $ALPINE_IMAGE rm -rf {temp_dir}
+        rm -f /tmp/etcdctl-bin
     """
 
     result = subprocess.run(cleanup_script, shell=True, capture_output=True, text=True)

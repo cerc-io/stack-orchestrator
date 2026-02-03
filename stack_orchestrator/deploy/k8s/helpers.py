@@ -20,6 +20,7 @@ from pathlib import Path
 import subprocess
 import re
 from typing import Set, Mapping, List, Optional, cast
+import yaml
 
 from stack_orchestrator.util import get_k8s_dir, error_exit
 from stack_orchestrator.opts import opts
@@ -353,22 +354,19 @@ def install_ingress_for_kind(acme_email: str = ""):
     )
     if opts.o.debug:
         print("Installing Caddy ingress controller in kind cluster")
-    utils.create_from_yaml(api_client, yaml_file=ingress_install)
 
-    # Patch ConfigMap with acme email if provided
+    # Template the YAML with email before applying
+    with open(ingress_install) as f:
+        yaml_content = f.read()
+
     if acme_email:
-        core_v1 = client.CoreV1Api()
-        configmap = core_v1.read_namespaced_config_map(
-            name="caddy-ingress-controller-configmap", namespace="caddy-system"
-        )
-        configmap.data["email"] = acme_email
-        core_v1.patch_namespaced_config_map(
-            name="caddy-ingress-controller-configmap",
-            namespace="caddy-system",
-            body=configmap,
-        )
+        yaml_content = yaml_content.replace('email: ""', f'email: "{acme_email}"')
         if opts.o.debug:
-            print(f"Patched Caddy ConfigMap with email: {acme_email}")
+            print(f"Configured Caddy with ACME email: {acme_email}")
+
+    # Apply templated YAML
+    yaml_objects = list(yaml.safe_load_all(yaml_content))
+    utils.create_from_yaml(api_client, yaml_objects=yaml_objects)
 
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):

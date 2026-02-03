@@ -15,9 +15,12 @@
 
 import click
 from importlib import util
+import json
 import os
+import re
+import base64
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 import random
 from shutil import copy, copyfile, copytree, rmtree
 from secrets import token_hex
@@ -484,15 +487,180 @@ def init_operation(
         get_yaml().dump(spec_file_content, output_file)
 
 
-def _write_config_file(spec_file: Path, config_env_file: Path):
+# Token pattern: $generate:hex:32$ or $generate:base64:16$
+GENERATE_TOKEN_PATTERN = re.compile(r"\$generate:(\w+):(\d+)\$")
+
+
+def _generate_and_store_secrets(config_vars: dict, deployment_name: str):
+    """Generate secrets for $generate:...$ tokens and store in K8s Secret.
+
+    Called by `deploy create` - generates fresh secrets and stores them.
+    Returns the generated secrets dict for reference.
+    """
+    from kubernetes import client, config as k8s_config
+
+    secrets = {}
+    for name, value in config_vars.items():
+        if not isinstance(value, str):
+            continue
+        match = GENERATE_TOKEN_PATTERN.search(value)
+        if not match:
+            continue
+
+        secret_type, length = match.group(1), int(match.group(2))
+        if secret_type == "hex":
+            secrets[name] = token_hex(length)
+        elif secret_type == "base64":
+            secrets[name] = base64.b64encode(os.urandom(length)).decode()
+        else:
+            secrets[name] = token_hex(length)
+
+    if not secrets:
+        return secrets
+
+    # Store in K8s Secret
+    try:
+        k8s_config.load_kube_config()
+    except Exception:
+        # Fall back to in-cluster config if available
+        try:
+            k8s_config.load_incluster_config()
+        except Exception:
+            print(
+                "Warning: Could not load kube config, secrets will not be stored in K8s"
+            )
+            return secrets
+
+    v1 = client.CoreV1Api()
+    secret_name = f"{deployment_name}-generated-secrets"
+    namespace = "default"
+
+    secret_data = {k: base64.b64encode(v.encode()).decode() for k, v in secrets.items()}
+    k8s_secret = client.V1Secret(
+        metadata=client.V1ObjectMeta(name=secret_name), data=secret_data, type="Opaque"
+    )
+
+    try:
+        v1.create_namespaced_secret(namespace, k8s_secret)
+        num_secrets = len(secrets)
+        print(f"Created K8s Secret '{secret_name}' with {num_secrets} secret(s)")
+    except client.exceptions.ApiException as e:
+        if e.status == 409:  # Already exists
+            v1.replace_namespaced_secret(secret_name, namespace, k8s_secret)
+            num_secrets = len(secrets)
+            print(f"Updated K8s Secret '{secret_name}' with {num_secrets} secret(s)")
+        else:
+            raise
+
+    return secrets
+
+
+def create_registry_secret(spec: Spec, deployment_name: str) -> Optional[str]:
+    """Create K8s docker-registry secret from spec + environment.
+
+    Reads registry configuration from spec.yml and creates a Kubernetes
+    secret of type kubernetes.io/dockerconfigjson for image pulls.
+
+    Args:
+        spec: The deployment spec containing image-registry config
+        deployment_name: Name of the deployment (used for secret naming)
+
+    Returns:
+        The secret name if created, None if no registry config
+    """
+    from kubernetes import client, config as k8s_config
+
+    registry_config = spec.get_image_registry_config()
+    if not registry_config:
+        return None
+
+    server = registry_config.get("server")
+    username = registry_config.get("username")
+    token_env = registry_config.get("token-env")
+
+    if not all([server, username, token_env]):
+        return None
+
+    # Type narrowing for pyright - we've validated these aren't None above
+    assert token_env is not None
+    token = os.environ.get(token_env)
+    if not token:
+        print(
+            f"Warning: Registry token env var '{token_env}' not set, "
+            "skipping registry secret"
+        )
+        return None
+
+    # Create dockerconfigjson format (Docker API uses "password" field for tokens)
+    auth = base64.b64encode(f"{username}:{token}".encode()).decode()
+    docker_config = {
+        "auths": {server: {"username": username, "password": token, "auth": auth}}
+    }
+
+    # Secret name derived from deployment name
+    secret_name = f"{deployment_name}-registry"
+
+    # Load kube config
+    try:
+        k8s_config.load_kube_config()
+    except Exception:
+        try:
+            k8s_config.load_incluster_config()
+        except Exception:
+            print("Warning: Could not load kube config, registry secret not created")
+            return None
+
+    v1 = client.CoreV1Api()
+    namespace = "default"
+
+    k8s_secret = client.V1Secret(
+        metadata=client.V1ObjectMeta(name=secret_name),
+        data={
+            ".dockerconfigjson": base64.b64encode(
+                json.dumps(docker_config).encode()
+            ).decode()
+        },
+        type="kubernetes.io/dockerconfigjson",
+    )
+
+    try:
+        v1.create_namespaced_secret(namespace, k8s_secret)
+        print(f"Created registry secret '{secret_name}' for {server}")
+    except client.exceptions.ApiException as e:
+        if e.status == 409:  # Already exists
+            v1.replace_namespaced_secret(secret_name, namespace, k8s_secret)
+            print(f"Updated registry secret '{secret_name}' for {server}")
+        else:
+            raise
+
+    return secret_name
+
+
+def _write_config_file(
+    spec_file: Path, config_env_file: Path, deployment_name: Optional[str] = None
+):
     spec_content = get_parsed_deployment_spec(spec_file)
-    # Note: we want to write an empty file even if we have no config variables
+    config_vars = spec_content.get("config", {}) or {}
+
+    # Generate and store secrets in K8s if deployment_name provided and tokens exist
+    if deployment_name and config_vars:
+        has_generate_tokens = any(
+            isinstance(v, str) and GENERATE_TOKEN_PATTERN.search(v)
+            for v in config_vars.values()
+        )
+        if has_generate_tokens:
+            _generate_and_store_secrets(config_vars, deployment_name)
+
+    # Write non-secret config to config.env (exclude $generate:...$ tokens)
     with open(config_env_file, "w") as output_file:
-        if "config" in spec_content and spec_content["config"]:
-            config_vars = spec_content["config"]
-            if config_vars:
-                for variable_name, variable_value in config_vars.items():
-                    output_file.write(f"{variable_name}={variable_value}\n")
+        if config_vars:
+            for variable_name, variable_value in config_vars.items():
+                # Skip variables with generate tokens - they go to K8s Secret
+                if isinstance(variable_value, str) and GENERATE_TOKEN_PATTERN.search(
+                    variable_value
+                ):
+                    continue
+                output_file.write(f"{variable_name}={variable_value}\n")
 
 
 def _write_kube_config_file(external_path: Path, internal_path: Path):
@@ -507,11 +675,14 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
         copy(path, os.path.join(directory, os.path.basename(path)))
 
 
-def _create_deployment_file(deployment_dir: Path):
+def _create_deployment_file(deployment_dir: Path, stack_source: Optional[Path] = None):
     deployment_file_path = deployment_dir.joinpath(constants.deployment_file_name)
     cluster = f"{constants.cluster_name_prefix}{token_hex(8)}"
+    deployment_content = {constants.cluster_id_key: cluster}
+    if stack_source:
+        deployment_content["stack-source"] = str(stack_source)
     with open(deployment_file_path, "w") as output_file:
-        output_file.write(f"{constants.cluster_id_key}: {cluster}\n")
+        get_yaml().dump(deployment_content, output_file)
 
 
 def _check_volume_definitions(spec):
@@ -519,10 +690,14 @@ def _check_volume_definitions(spec):
         for volume_name, volume_path in spec.get_volumes().items():
             if volume_path:
                 if not os.path.isabs(volume_path):
-                    raise Exception(
-                        f"Relative path {volume_path} for volume {volume_name} not "
-                        f"supported for deployment type {spec.get_deployment_type()}"
-                    )
+                    # For k8s-kind: allow relative paths, they'll be resolved
+                    # by _make_absolute_host_path() during kind config generation
+                    if not spec.is_kind_deployment():
+                        deploy_type = spec.get_deployment_type()
+                        raise Exception(
+                            f"Relative path {volume_path} for volume "
+                            f"{volume_name} not supported for {deploy_type}"
+                        )
 
 
 @click.command()
@@ -616,11 +791,15 @@ def create_operation(
         generate_helm_chart(stack_name, spec_file, deployment_dir_path)
         return  # Exit early for helm chart generation
 
+    # Resolve stack source path for restart capability
+    stack_source = get_stack_path(stack_name)
+
     if update:
         # Sync mode: write to temp dir, then copy to deployment dir with backups
         temp_dir = Path(tempfile.mkdtemp(prefix="deployment-sync-"))
         try:
-            # Write deployment files to temp dir (skip deployment.yml to preserve cluster ID)
+            # Write deployment files to temp dir
+            # (skip deployment.yml to preserve cluster ID)
             _write_deployment_files(
                 temp_dir,
                 Path(spec_file),
@@ -628,12 +807,14 @@ def create_operation(
                 stack_name,
                 deployment_type,
                 include_deployment_file=False,
+                stack_source=stack_source,
             )
 
-            # Copy from temp to deployment dir, excluding data volumes and backing up changed files
-            # Exclude data/* to avoid touching user data volumes
-            # Exclude config file to preserve deployment settings (XXX breaks passing config vars
-            # from spec. could warn about this or not exclude...)
+            # Copy from temp to deployment dir, excluding data volumes
+            # and backing up changed files.
+            # Exclude data/* to avoid touching user data volumes.
+            # Exclude config file to preserve deployment settings
+            # (XXX breaks passing config vars from spec)
             exclude_patterns = ["data", "data/*", constants.config_file_name]
             _safe_copy_tree(
                 temp_dir, deployment_dir_path, exclude_patterns=exclude_patterns
@@ -650,6 +831,7 @@ def create_operation(
             stack_name,
             deployment_type,
             include_deployment_file=True,
+            stack_source=stack_source,
         )
 
     # Delegate to the stack's Python code
@@ -670,7 +852,7 @@ def create_operation(
     )
 
 
-def _safe_copy_tree(src: Path, dst: Path, exclude_patterns: List[str] = None):
+def _safe_copy_tree(src: Path, dst: Path, exclude_patterns: Optional[List[str]] = None):
     """
     Recursively copy a directory tree, backing up changed files with .bak suffix.
 
@@ -721,6 +903,7 @@ def _write_deployment_files(
     stack_name: str,
     deployment_type: str,
     include_deployment_file: bool = True,
+    stack_source: Optional[Path] = None,
 ):
     """
     Write deployment files to target directory.
@@ -730,7 +913,8 @@ def _write_deployment_files(
     :param parsed_spec: Parsed spec object
     :param stack_name: Name of stack
     :param deployment_type: Type of deployment
-    :param include_deployment_file: Whether to create deployment.yml file (skip for update)
+    :param include_deployment_file: Whether to create deployment.yml (skip for update)
+    :param stack_source: Path to stack source (git repo) for restart capability
     """
     stack_file = get_stack_path(stack_name).joinpath(constants.stack_file_name)
     parsed_stack = get_parsed_stack_config(stack_name)
@@ -741,10 +925,15 @@ def _write_deployment_files(
 
     # Create deployment file if requested
     if include_deployment_file:
-        _create_deployment_file(target_dir)
+        _create_deployment_file(target_dir, stack_source=stack_source)
 
     # Copy any config variables from the spec file into an env file suitable for compose
-    _write_config_file(spec_file, target_dir.joinpath(constants.config_file_name))
+    # Use stack_name as deployment_name for K8s secret naming
+    # Extract just the name part if stack_name is a path ("path/to/stack" -> "stack")
+    deployment_name = Path(stack_name).name.replace("_", "-")
+    _write_config_file(
+        spec_file, target_dir.joinpath(constants.config_file_name), deployment_name
+    )
 
     # Copy any k8s config file into the target dir
     if deployment_type == "k8s":
@@ -805,8 +994,9 @@ def _write_deployment_files(
                     )
         else:
             # TODO:
-            # this is odd - looks up config dir that matches a volume name, then copies as a mount dir?
-            # AFAICT this is not used by or relevant to any existing stack - roy
+            # This is odd - looks up config dir that matches a volume name,
+            # then copies as a mount dir?
+            # AFAICT not used by or relevant to any existing stack - roy
 
             # TODO: We should probably only do this if the volume is marked :ro.
             for volume_name, volume_path in parsed_spec.get_volumes().items():

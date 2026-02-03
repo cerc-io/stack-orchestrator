@@ -352,11 +352,15 @@ class ClusterInfo:
                 continue
 
             if not os.path.isabs(volume_path):
-                print(
-                    f"WARNING: {volume_name}:{volume_path} is not absolute, "
-                    "cannot bind volume."
-                )
-                continue
+                # For k8s-kind, allow relative paths:
+                # - PV uses /mnt/{volume_name} (path inside kind node)
+                # - extraMounts resolve the relative path to Docker Host
+                if not self.spec.is_kind_deployment():
+                    print(
+                        f"WARNING: {volume_name}:{volume_path} is not absolute, "
+                        "cannot bind volume."
+                    )
+                    continue
 
             if self.spec.is_kind_deployment():
                 host_path = client.V1HostPathVolumeSource(
@@ -453,6 +457,16 @@ class ClusterInfo:
                 if "command" in service_info:
                     cmd = service_info["command"]
                     container_args = cmd if isinstance(cmd, list) else cmd.split()
+                # Add env_from to pull secrets from K8s Secret
+                secret_name = f"{self.app_name}-generated-secrets"
+                env_from = [
+                    client.V1EnvFromSource(
+                        secret_ref=client.V1SecretEnvSource(
+                            name=secret_name,
+                            optional=True,  # Don't fail if no secrets
+                        )
+                    )
+                ]
                 container = client.V1Container(
                     name=container_name,
                     image=image_to_use,
@@ -460,6 +474,7 @@ class ClusterInfo:
                     command=container_command,
                     args=container_args,
                     env=envs,
+                    env_from=env_from,
                     ports=container_ports if container_ports else None,
                     volume_mounts=volume_mounts,
                     security_context=client.V1SecurityContext(
@@ -476,7 +491,12 @@ class ClusterInfo:
         volumes = volumes_for_pod_files(
             self.parsed_pod_yaml_map, self.spec, self.app_name
         )
-        image_pull_secrets = [client.V1LocalObjectReference(name="laconic-registry")]
+        registry_config = self.spec.get_image_registry_config()
+        if registry_config:
+            secret_name = f"{self.app_name}-registry"
+            image_pull_secrets = [client.V1LocalObjectReference(name=secret_name)]
+        else:
+            image_pull_secrets = []
 
         annotations = None
         labels = {"app": self.app_name}

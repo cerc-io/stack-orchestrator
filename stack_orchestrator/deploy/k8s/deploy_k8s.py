@@ -29,6 +29,7 @@ from stack_orchestrator.deploy.k8s.helpers import (
 from stack_orchestrator.deploy.k8s.helpers import (
     install_ingress_for_kind,
     wait_for_ingress_in_kind,
+    is_ingress_running,
 )
 from stack_orchestrator.deploy.k8s.helpers import (
     pods_in_deployment,
@@ -289,22 +290,38 @@ class K8sDeployer(Deployer):
         self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:
             if self.is_kind() and not self.skip_cluster_management:
-                # Create the kind cluster
-                create_cluster(
-                    self.kind_cluster_name,
-                    str(self.deployment_dir.joinpath(constants.kind_config_filename)),
+                # Create the kind cluster (or reuse existing one)
+                kind_config = str(
+                    self.deployment_dir.joinpath(constants.kind_config_filename)
                 )
-                # Ensure the referenced containers are copied into kind
-                load_images_into_kind(
-                    self.kind_cluster_name, self.cluster_info.image_set
+                actual_cluster = create_cluster(self.kind_cluster_name, kind_config)
+                if actual_cluster != self.kind_cluster_name:
+                    # An existing cluster was found, use it instead
+                    self.kind_cluster_name = actual_cluster
+                # Only load locally-built images into kind
+                # Registry images (docker.io, ghcr.io, etc.) will be pulled by k8s
+                local_containers = self.deployment_context.stack.obj.get(
+                    "containers", []
                 )
+                if local_containers:
+                    # Filter image_set to only images matching local containers
+                    local_images = {
+                        img
+                        for img in self.cluster_info.image_set
+                        if any(c in img for c in local_containers)
+                    }
+                    if local_images:
+                        load_images_into_kind(self.kind_cluster_name, local_images)
+                # Note: if no local containers defined, all images come from registries
             self.connect_api()
             if self.is_kind() and not self.skip_cluster_management:
                 # Configure ingress controller (not installed by default in kind)
-                install_ingress_for_kind()
-                # Wait for ingress to start
-                # (deployment provisioning will fail unless this is done)
-                wait_for_ingress_in_kind()
+                # Skip if already running (idempotent for shared cluster)
+                if not is_ingress_running():
+                    install_ingress_for_kind(self.cluster_info.spec.get_acme_email())
+                    # Wait for ingress to start
+                    # (deployment provisioning will fail unless this is done)
+                    wait_for_ingress_in_kind()
                 # Create RuntimeClass if unlimited_memlock is enabled
                 if self.cluster_info.spec.get_unlimited_memlock():
                     _create_runtime_class(
@@ -314,6 +331,11 @@ class K8sDeployer(Deployer):
 
         else:
             print("Dry run mode enabled, skipping k8s API connect")
+
+        # Create registry secret if configured
+        from stack_orchestrator.deploy.deployment_create import create_registry_secret
+
+        create_registry_secret(self.cluster_info.spec, self.cluster_info.app_name)
 
         self._create_volume_data()
         self._create_deployment()

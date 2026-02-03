@@ -71,6 +71,59 @@ The various [stacks](/stack_orchestrator/data/stacks) each contain instructions 
 - [laconicd with console and CLI](stack_orchestrator/data/stacks/fixturenet-laconic-loaded)
 - [kubo (IPFS)](stack_orchestrator/data/stacks/kubo)
 
+## Deployment Types
+
+- **compose**: Docker Compose on local machine
+- **k8s**: External Kubernetes cluster (requires kubeconfig)
+- **k8s-kind**: Local Kubernetes via Kind - one cluster per host, shared by all deployments
+
+## External Stacks
+
+Stacks can live in external git repositories. Required structure:
+
+```
+<repo>/
+  stack_orchestrator/data/
+    stacks/<stack-name>/stack.yml
+    compose/docker-compose-<pod-name>.yml
+  deployment/spec.yml
+```
+
+## Deployment Commands
+
+```bash
+# Create deployment from spec
+laconic-so --stack <path> deploy create --spec-file <spec.yml> --deployment-dir <dir>
+
+# Start (creates cluster on first run)
+laconic-so deployment --dir <dir> start
+
+# GitOps restart (git pull + redeploy, preserves data)
+laconic-so deployment --dir <dir> restart
+
+# Stop
+laconic-so deployment --dir <dir> stop
+```
+
+## spec.yml Reference
+
+```yaml
+stack: stack-name-or-path
+deploy-to: k8s-kind
+network:
+  http-proxy:
+    - host-name: app.example.com
+      routes:
+        - path: /
+          proxy-to: service-name:port
+  acme-email: admin@example.com
+config:
+  ENV_VAR: value
+  SECRET_VAR: $generate:hex:32$   # Auto-generated, stored in K8s Secret
+volumes:
+  volume-name:
+```
+
 ## Contributing
 
 See the [CONTRIBUTING.md](/docs/CONTRIBUTING.md) for developer mode install.

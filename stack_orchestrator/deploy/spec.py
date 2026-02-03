@@ -98,6 +98,17 @@ class Spec:
     def get_image_registry(self):
         return self.obj.get(constants.image_registry_key)
 
+    def get_image_registry_config(self) -> typing.Optional[typing.Dict]:
+        """Returns registry auth config: {server, username, token-env}.
+
+        Used for private container registries like GHCR. The token-env field
+        specifies an environment variable containing the API token/PAT.
+
+        Note: Uses 'registry-credentials' key to avoid collision with
+        'image-registry' key which is for pushing images.
+        """
+        return self.obj.get("registry-credentials")
+
     def get_volumes(self):
         return self.obj.get(constants.volumes_key, {})
 
@@ -116,6 +127,9 @@ class Spec:
 
     def get_http_proxy(self):
         return self.obj.get(constants.network_key, {}).get(constants.http_proxy_key, [])
+
+    def get_acme_email(self):
+        return self.obj.get(constants.network_key, {}).get("acme-email", "")
 
     def get_annotations(self):
         return self.obj.get(constants.annotations_key, {})
@@ -178,6 +192,9 @@ class Spec:
 
     def get_deployment_type(self):
         return self.obj.get(constants.deploy_to_key)
+
+    def get_acme_email(self):
+        return self.obj.get(constants.network_key, {}).get(constants.acme_email_key, "")
 
     def is_kubernetes_deployment(self):
         return self.get_deployment_type() in [

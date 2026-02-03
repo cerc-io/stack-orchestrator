@@ -14,11 +14,13 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from kubernetes import client, utils, watch
+from kubernetes.client.exceptions import ApiException
 import os
 from pathlib import Path
 import subprocess
 import re
 from typing import Set, Mapping, List, Optional, cast
+import yaml
 
 from stack_orchestrator.util import get_k8s_dir, error_exit
 from stack_orchestrator.opts import opts
@@ -96,14 +98,225 @@ def _run_command(command: str):
     return result
 
 
+def _get_etcd_host_path_from_kind_config(config_file: str) -> Optional[str]:
+    """Extract etcd host path from kind config extraMounts."""
+    import yaml
+
+    try:
+        with open(config_file, "r") as f:
+            config = yaml.safe_load(f)
+    except Exception:
+        return None
+
+    nodes = config.get("nodes", [])
+    for node in nodes:
+        extra_mounts = node.get("extraMounts", [])
+        for mount in extra_mounts:
+            if mount.get("containerPath") == "/var/lib/etcd":
+                return mount.get("hostPath")
+    return None
+
+
+def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
+    """Clean persisted etcd, keeping only TLS certificates.
+
+    When etcd is persisted and a cluster is recreated, kind tries to install
+    resources fresh but they already exist. Instead of trying to delete
+    specific stale resources (blacklist), we keep only the valuable data
+    (caddy TLS certs) and delete everything else (whitelist approach).
+
+    The etcd image is distroless (no shell), so we extract the statically-linked
+    etcdctl binary and run it from alpine which has shell support.
+
+    Returns True if cleanup succeeded, False if no action needed or failed.
+    """
+    db_path = Path(etcd_path) / "member" / "snap" / "db"
+    # Check existence using docker since etcd dir is root-owned
+    check_cmd = (
+        f"docker run --rm -v {etcd_path}:/etcd:ro alpine:3.19 "
+        "test -f /etcd/member/snap/db"
+    )
+    check_result = subprocess.run(check_cmd, shell=True, capture_output=True)
+    if check_result.returncode != 0:
+        if opts.o.debug:
+            print(f"No etcd snapshot at {db_path}, skipping cleanup")
+        return False
+
+    if opts.o.debug:
+        print(f"Cleaning persisted etcd at {etcd_path}, keeping only TLS certs")
+
+    etcd_image = "gcr.io/etcd-development/etcd:v3.5.9"
+    temp_dir = "/tmp/laconic-etcd-cleanup"
+
+    # Whitelist: prefixes to KEEP - everything else gets deleted
+    keep_prefixes = "/registry/secrets/caddy-system"
+
+    # The etcd image is distroless (no shell). We extract the statically-linked
+    # etcdctl binary and run it from alpine which has shell + jq support.
+    cleanup_script = f"""
+        set -e
+        ALPINE_IMAGE="alpine:3.19"
+
+        # Cleanup previous runs
+        docker rm -f laconic-etcd-cleanup 2>/dev/null || true
+        docker rm -f etcd-extract 2>/dev/null || true
+        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE rm -rf {temp_dir}
+
+        # Create temp dir
+        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE mkdir -p {temp_dir}
+
+        # Extract etcdctl binary (it's statically linked)
+        docker create --name etcd-extract {etcd_image}
+        docker cp etcd-extract:/usr/local/bin/etcdctl /tmp/etcdctl-bin
+        docker rm etcd-extract
+        docker run --rm -v /tmp/etcdctl-bin:/src:ro -v {temp_dir}:/dst $ALPINE_IMAGE \
+            sh -c "cp /src /dst/etcdctl && chmod +x /dst/etcdctl"
+
+        # Copy db to temp location
+        docker run --rm \
+            -v {etcd_path}:/etcd:ro \
+            -v {temp_dir}:/tmp-work \
+            $ALPINE_IMAGE cp /etcd/member/snap/db /tmp-work/etcd-snapshot.db
+
+        # Restore snapshot
+        docker run --rm -v {temp_dir}:/work {etcd_image} \
+            etcdutl snapshot restore /work/etcd-snapshot.db \
+                --data-dir=/work/etcd-data --skip-hash-check 2>/dev/null
+
+        # Start temp etcd (runs the etcd binary, no shell needed)
+        docker run -d --name laconic-etcd-cleanup \
+            -v {temp_dir}/etcd-data:/etcd-data \
+            -v {temp_dir}:/backup \
+            {etcd_image} etcd \
+                --data-dir=/etcd-data \
+                --listen-client-urls=http://0.0.0.0:2379 \
+                --advertise-client-urls=http://localhost:2379
+
+        sleep 3
+
+        # Use alpine with extracted etcdctl to run commands (alpine has shell + jq)
+        # Export caddy secrets
+        docker run --rm \
+            -v {temp_dir}:/backup \
+            --network container:laconic-etcd-cleanup \
+            $ALPINE_IMAGE sh -c \
+            '/backup/etcdctl get --prefix "{keep_prefixes}" -w json \
+                > /backup/kept.json 2>/dev/null || echo "{{}}" > /backup/kept.json'
+
+        # Delete ALL registry keys
+        docker run --rm \
+            -v {temp_dir}:/backup \
+            --network container:laconic-etcd-cleanup \
+            $ALPINE_IMAGE /backup/etcdctl del --prefix /registry
+
+        # Restore kept keys using jq
+        docker run --rm \
+            -v {temp_dir}:/backup \
+            --network container:laconic-etcd-cleanup \
+            $ALPINE_IMAGE sh -c '
+                apk add --no-cache jq >/dev/null 2>&1
+                jq -r ".kvs[] | @base64" /backup/kept.json 2>/dev/null | \
+                while read encoded; do
+                    key=$(echo $encoded | base64 -d | jq -r ".key" | base64 -d)
+                    val=$(echo $encoded | base64 -d | jq -r ".value" | base64 -d)
+                    echo "$val" | /backup/etcdctl put "$key"
+                done
+            ' || true
+
+        # Save cleaned snapshot
+        docker exec laconic-etcd-cleanup \
+            etcdctl snapshot save /etcd-data/cleaned-snapshot.db
+
+        docker stop laconic-etcd-cleanup
+        docker rm laconic-etcd-cleanup
+
+        # Restore to temp location first to verify it works
+        docker run --rm \
+            -v {temp_dir}/etcd-data/cleaned-snapshot.db:/data/db:ro \
+            -v {temp_dir}:/restore \
+            {etcd_image} \
+            etcdutl snapshot restore /data/db --data-dir=/restore/new-etcd \
+            --skip-hash-check 2>/dev/null
+
+        # Create timestamped backup of original (kept forever)
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        docker run --rm -v {etcd_path}:/etcd $ALPINE_IMAGE \
+            cp -a /etcd/member /etcd/member.backup-$TIMESTAMP
+
+        # Replace original with cleaned version
+        docker run --rm -v {etcd_path}:/etcd -v {temp_dir}:/tmp-work $ALPINE_IMAGE \
+            sh -c "rm -rf /etcd/member && mv /tmp-work/new-etcd/member /etcd/member"
+
+        # Cleanup temp files (but NOT the timestamped backup in etcd_path)
+        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE rm -rf {temp_dir}
+        rm -f /tmp/etcdctl-bin
+    """
+
+    result = subprocess.run(cleanup_script, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        if opts.o.debug:
+            print(f"Warning: etcd cleanup failed: {result.stderr}")
+        return False
+
+    if opts.o.debug:
+        print("Cleaned etcd, kept only TLS certificates")
+    return True
+
+
 def create_cluster(name: str, config_file: str):
+    """Create or reuse the single kind cluster for this host.
+
+    There is only one kind cluster per host by design. Multiple deployments
+    share this cluster. If a cluster already exists, it is reused.
+
+    Args:
+        name: Cluster name (used only when creating the first cluster)
+        config_file: Path to kind config file (used only when creating)
+
+    Returns:
+        The name of the cluster being used
+    """
+    existing = get_kind_cluster()
+    if existing:
+        print(f"Using existing cluster: {existing}")
+        return existing
+
+    # Clean persisted etcd, keeping only TLS certificates
+    etcd_path = _get_etcd_host_path_from_kind_config(config_file)
+    if etcd_path:
+        _clean_etcd_keeping_certs(etcd_path)
+
+    print(f"Creating new cluster: {name}")
     result = _run_command(f"kind create cluster --name {name} --config {config_file}")
     if result.returncode != 0:
         raise DeployerException(f"kind create cluster failed: {result}")
+    return name
 
 
 def destroy_cluster(name: str):
     _run_command(f"kind delete cluster --name {name}")
+
+
+def is_ingress_running() -> bool:
+    """Check if the Caddy ingress controller is already running in the cluster."""
+    try:
+        core_v1 = client.CoreV1Api()
+        pods = core_v1.list_namespaced_pod(
+            namespace="caddy-system",
+            label_selector=(
+                "app.kubernetes.io/name=caddy-ingress-controller,"
+                "app.kubernetes.io/component=controller"
+            ),
+        )
+        for pod in pods.items:
+            if pod.status and pod.status.container_statuses:
+                if pod.status.container_statuses[0].ready is True:
+                    if opts.o.debug:
+                        print("Caddy ingress controller already running")
+                    return True
+        return False
+    except ApiException:
+        return False
 
 
 def wait_for_ingress_in_kind():
@@ -132,7 +345,7 @@ def wait_for_ingress_in_kind():
     error_exit("ERROR: Timed out waiting for Caddy ingress to become ready")
 
 
-def install_ingress_for_kind():
+def install_ingress_for_kind(acme_email: str = ""):
     api_client = client.ApiClient()
     ingress_install = os.path.abspath(
         get_k8s_dir().joinpath(
@@ -141,7 +354,34 @@ def install_ingress_for_kind():
     )
     if opts.o.debug:
         print("Installing Caddy ingress controller in kind cluster")
-    utils.create_from_yaml(api_client, yaml_file=ingress_install)
+
+    # Template the YAML with email before applying
+    with open(ingress_install) as f:
+        yaml_content = f.read()
+
+    if acme_email:
+        yaml_content = yaml_content.replace('email: ""', f'email: "{acme_email}"')
+        if opts.o.debug:
+            print(f"Configured Caddy with ACME email: {acme_email}")
+
+    # Apply templated YAML
+    yaml_objects = list(yaml.safe_load_all(yaml_content))
+    utils.create_from_yaml(api_client, yaml_objects=yaml_objects)
+
+    # Patch ConfigMap with ACME email if provided
+    if acme_email:
+        if opts.o.debug:
+            print(f"Configuring ACME email: {acme_email}")
+        core_api = client.CoreV1Api()
+        configmap = core_api.read_namespaced_config_map(
+            name="caddy-ingress-controller-configmap", namespace="caddy-system"
+        )
+        configmap.data["email"] = acme_email
+        core_api.patch_namespaced_config_map(
+            name="caddy-ingress-controller-configmap",
+            namespace="caddy-system",
+            body=configmap,
+        )
 
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
@@ -323,6 +563,25 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_definitions = []
     volume_host_path_map = _get_host_paths_for_volumes(deployment_context)
     seen_host_path_mounts = set()  # Track to avoid duplicate mounts
+
+    # Cluster state backup for offline data recovery (unique per deployment)
+    # etcd contains all k8s state; PKI certs needed to decrypt etcd offline
+    deployment_id = deployment_context.id
+    backup_subdir = f"cluster-backups/{deployment_id}"
+
+    etcd_host_path = _make_absolute_host_path(
+        Path(f"./data/{backup_subdir}/etcd"), deployment_dir
+    )
+    volume_definitions.append(
+        f"  - hostPath: {etcd_host_path}\n" f"    containerPath: /var/lib/etcd\n"
+    )
+
+    pki_host_path = _make_absolute_host_path(
+        Path(f"./data/{backup_subdir}/pki"), deployment_dir
+    )
+    volume_definitions.append(
+        f"  - hostPath: {pki_host_path}\n" f"    containerPath: /etc/kubernetes/pki\n"
+    )
 
     # Note these paths are relative to the location of the pod files (at present)
     # So we need to fix up to make them correct and absolute because kind assumes

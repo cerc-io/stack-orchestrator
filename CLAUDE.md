@@ -8,6 +8,7 @@ NEVER assume your hypotheses are true without evidence
 
 ALWAYS clearly state when something is a hypothesis
 ALWAYS use evidence from the systems your interacting with to support your claims and hypotheses
+ALWAYS run `pre-commit run --all-files` before committing changes
 
 ## Key Principles
 
@@ -42,6 +43,76 @@ This project follows principles inspired by literate programming, where developm
 - Workshop complex ideas before coding
 
 This approach treats the human-AI collaboration as a form of **conversational literate programming** where understanding emerges through dialogue before code implementation.
+
+## External Stacks Preferred
+
+When creating new stacks for any reason, **use the external stack pattern** rather than adding stacks directly to this repository.
+
+External stacks follow this structure:
+
+```
+my-stack/
+└── stack-orchestrator/
+    ├── stacks/
+    │   └── my-stack/
+    │       ├── stack.yml
+    │       └── README.md
+    ├── compose/
+    │   └── docker-compose-my-stack.yml
+    └── config/
+        └── my-stack/
+            └── (config files)
+```
+
+### Usage
+
+```bash
+# Fetch external stack
+laconic-so fetch-stack github.com/org/my-stack
+
+# Use external stack
+STACK_PATH=~/cerc/my-stack/stack-orchestrator/stacks/my-stack
+laconic-so --stack $STACK_PATH deploy init --output spec.yml
+laconic-so --stack $STACK_PATH deploy create --spec-file spec.yml --deployment-dir deployment
+laconic-so deployment --dir deployment start
+```
+
+### Examples
+
+- `zenith-karma-stack` - Karma watcher deployment
+- `urbit-stack` - Fake Urbit ship for testing
+- `zenith-desk-stack` - Desk deployment stack
+
+## Architecture: k8s-kind Deployments
+
+### One Cluster Per Host
+One Kind cluster per host by design. Never request or expect separate clusters.
+
+- `create_cluster()` in `helpers.py` reuses any existing cluster
+- `cluster-id` in deployment.yml is an identifier, not a cluster request
+- All deployments share: ingress controller, etcd, certificates
+
+### Stack Resolution
+- External stacks detected via `Path(stack).exists()` in `util.py`
+- Config/compose resolution: external path first, then internal fallback
+- External path structure: `stack_orchestrator/data/stacks/<name>/stack.yml`
+
+### Secret Generation Implementation
+- `GENERATE_TOKEN_PATTERN` in `deployment_create.py` matches `$generate:type:length$`
+- `_generate_and_store_secrets()` creates K8s Secret
+- `cluster_info.py` adds `envFrom` with `secretRef` to containers
+- Non-secret config written to `config.env`
+
+### Repository Cloning
+`setup-repositories --git-ssh` clones repos defined in stack.yml's `repos:` field. Requires SSH agent.
+
+### Key Files (for codebase navigation)
+- `repos/setup_repositories.py`: `setup-repositories` command (git clone)
+- `deployment_create.py`: `deploy create` command, secret generation
+- `deployment.py`: `deployment start/stop/restart` commands
+- `deploy_k8s.py`: K8s deployer, cluster management calls
+- `helpers.py`: `create_cluster()`, etcd cleanup, kind operations
+- `cluster_info.py`: K8s resource generation (Deployment, Service, Ingress)
 
 ## Insights and Observations
 

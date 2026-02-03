@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from kubernetes import client, utils, watch
+from kubernetes.client.exceptions import ApiException
 import os
 from pathlib import Path
 import subprocess
@@ -293,6 +294,28 @@ def create_cluster(name: str, config_file: str):
 
 def destroy_cluster(name: str):
     _run_command(f"kind delete cluster --name {name}")
+
+
+def is_ingress_running() -> bool:
+    """Check if the Caddy ingress controller is already running in the cluster."""
+    try:
+        core_v1 = client.CoreV1Api()
+        pods = core_v1.list_namespaced_pod(
+            namespace="caddy-system",
+            label_selector=(
+                "app.kubernetes.io/name=caddy-ingress-controller,"
+                "app.kubernetes.io/component=controller"
+            ),
+        )
+        for pod in pods.items:
+            if pod.status and pod.status.container_statuses:
+                if pod.status.container_statuses[0].ready is True:
+                    if opts.o.debug:
+                        print("Caddy ingress controller already running")
+                    return True
+        return False
+    except ApiException:
+        return False
 
 
 def wait_for_ingress_in_kind():

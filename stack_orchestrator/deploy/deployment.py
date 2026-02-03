@@ -322,13 +322,14 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
 
     # Determine spec file location
     # Priority: --spec-file argument > repo's deployment/spec.yml > deployment dir
+    # Stack path is like: repo/stack_orchestrator/data/stacks/stack-name
+    # So repo root is 4 parents up
+    repo_root = stack_source.parent.parent.parent.parent
     if spec_file:
         # Spec file relative to repo root
-        repo_root = stack_source.parent.parent.parent  # Go up from stack path
         spec_file_path = repo_root / spec_file
     else:
         # Try standard GitOps location in repo
-        repo_root = stack_source.parent.parent.parent
         gitops_spec = repo_root / "deployment" / "spec.yml"
         if gitops_spec.exists():
             spec_file_path = gitops_spec

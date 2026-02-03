@@ -115,81 +115,58 @@ def _get_etcd_host_path_from_kind_config(config_file: str) -> Optional[str]:
     return None
 
 
-def _clear_stale_cni_from_etcd(etcd_path: str) -> bool:
-    """Clear stale CNI resources from persisted etcd to allow cluster recreation.
+def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
+    """Clean persisted etcd, keeping only TLS certificates.
 
     When etcd is persisted and a cluster is recreated, kind tries to install
-    CNI (kindnet) fresh but the persisted etcd already has those resources,
-    causing 'AlreadyExists' errors. This function clears those stale resources.
+    resources fresh but they already exist. Instead of trying to delete
+    specific stale resources (blacklist), we keep only the valuable data
+    (caddy TLS certs) and delete everything else (whitelist approach).
 
-    Returns True if resources were cleared, False if no action needed.
+    Returns True if cleanup succeeded, False if no action needed or failed.
     """
     db_path = Path(etcd_path) / "member" / "snap" / "db"
-    # Check existence with sudo since etcd dir is often root-owned
+    # Check existence - etcd dir is often root-owned so use shell test
     check_result = subprocess.run(f"test -f {db_path}", shell=True, capture_output=True)
     if check_result.returncode != 0:
         if opts.o.debug:
-            print(f"No etcd snapshot at {db_path}, skipping CNI cleanup")
+            print(f"No etcd snapshot at {db_path}, skipping cleanup")
         return False
 
     if opts.o.debug:
-        print(f"Clearing stale CNI resources from persisted etcd at {etcd_path}")
+        print(f"Cleaning persisted etcd at {etcd_path}, keeping only TLS certs")
 
-    # Stale resources that conflict with fresh kind cluster creation
-    stale_prefixes = [
-        "/registry/clusterrolebindings/kindnet",
-        "/registry/clusterroles/kindnet",
-        "/registry/controllerrevisions/kube-system/kindnet",
-        "/registry/daemonsets/kube-system/kindnet",
-        "/registry/pods/kube-system/kindnet",
-        "/registry/serviceaccounts/kube-system/kindnet",
-        # Also clear coredns as it can conflict
-        "/registry/clusterrolebindings/system:coredns",
-        "/registry/clusterroles/system:coredns",
-        "/registry/configmaps/kube-system/coredns",
-        "/registry/deployments/kube-system/coredns",
-        "/registry/serviceaccounts/kube-system/coredns",
-        "/registry/services/specs/kube-system/kube-dns",
-    ]
-
-    # Build etcdctl delete commands
-    delete_cmds = " && ".join(
-        [f"etcdctl del --prefix '{prefix}'" for prefix in stale_prefixes]
-    )
-
-    # Use docker to run etcdutl and etcdctl
     etcd_image = "gcr.io/etcd-development/etcd:v3.5.9"
     temp_dir = "/tmp/laconic-etcd-cleanup"
 
-    # All operations done inside docker containers to handle root-owned etcd files
+    # Whitelist: prefixes to KEEP - everything else gets deleted
+    keep_prefixes = "/registry/secrets/caddy-system"
+
+    # All operations in docker to handle root-owned etcd files
     cleanup_script = f"""
         set -e
-
-        # Use alpine for file operations (has shell, rm, cp, etc.)
         ALPINE_IMAGE="alpine:3.19"
 
-        # Create temp dir using docker (handles permissions)
+        # Create temp dir
         docker run --rm -v /tmp:/tmp $ALPINE_IMAGE \
             sh -c "rm -rf {temp_dir} && mkdir -p {temp_dir}"
 
-        # Copy db to temp location using docker
+        # Copy db to temp location
         docker run --rm \
             -v {etcd_path}:/etcd:ro \
             -v {temp_dir}:/tmp-work \
             $ALPINE_IMAGE cp /etcd/member/snap/db /tmp-work/etcd-snapshot.db
 
-        # Restore snapshot to temp dir
-        docker run --rm \
-            -v {temp_dir}:/work \
-            {etcd_image} \
+        # Restore snapshot
+        docker run --rm -v {temp_dir}:/work {etcd_image} \
             etcdutl snapshot restore /work/etcd-snapshot.db \
-                --data-dir=/work/etcd-data \
-                --skip-hash-check 2>/dev/null
+                --data-dir=/work/etcd-data --skip-hash-check 2>/dev/null
 
-        # Start temp etcd, delete stale resources, stop
+        # Start temp etcd
         docker rm -f laconic-etcd-cleanup 2>/dev/null || true
         docker run -d --name laconic-etcd-cleanup \
             -v {temp_dir}/etcd-data:/etcd-data \
+            -v {temp_dir}:/backup \
             {etcd_image} etcd \
                 --data-dir=/etcd-data \
                 --listen-client-urls=http://0.0.0.0:2379 \
@@ -197,30 +174,49 @@ def _clear_stale_cni_from_etcd(etcd_path: str) -> bool:
 
         sleep 3
 
-        # Delete stale resources
-        docker exec laconic-etcd-cleanup /bin/sh -c "{delete_cmds}" 2>/dev/null || true
+        # Export caddy secrets to backup file (the only thing we keep)
+        docker exec laconic-etcd-cleanup \
+            etcdctl get --prefix "{keep_prefixes}" -w json > {temp_dir}/kept.json \
+            2>/dev/null || echo '{{}}' > {temp_dir}/kept.json
 
-        # Create new snapshot from cleaned etcd
+        # Delete ALL registry keys
+        docker exec laconic-etcd-cleanup etcdctl del --prefix /registry
+
+        # Restore kept keys using etcdctl txn
+        docker exec laconic-etcd-cleanup sh -c '
+            cat /backup/kept.json 2>/dev/null | \
+            (python3 -c "
+import sys, json, base64
+try:
+    data = json.load(sys.stdin)
+    for kv in data.get(\"kvs\", []):
+        k = base64.b64decode(kv[\"key\"]).decode()
+        v = base64.b64decode(kv[\"value\"]).decode(\"latin-1\")
+        print(k)
+        print(v)
+except: pass
+" 2>/dev/null || true) | while IFS= read -r key && IFS= read -r value; do
+                printf \"%s\" \"$value\" | etcdctl put \"$key\"
+            done
+        ' 2>/dev/null || true
+
+        # Save cleaned snapshot
         docker exec laconic-etcd-cleanup \
             etcdctl snapshot save /etcd-data/cleaned-snapshot.db
 
-        # Stop temp etcd
         docker stop laconic-etcd-cleanup
         docker rm laconic-etcd-cleanup
 
-        # Clear original etcd member dir using docker
+        # Replace original etcd
         docker run --rm -v {etcd_path}:/etcd $ALPINE_IMAGE rm -rf /etcd/member
-
-        # Restore cleaned snapshot to original location
         docker run --rm \
             -v {temp_dir}/etcd-data/cleaned-snapshot.db:/data/db:ro \
             -v {etcd_path}:/restore \
             {etcd_image} \
-            etcdutl snapshot restore /data/db \
-                --data-dir=/restore \
-                --skip-hash-check 2>/dev/null
+            etcdutl snapshot restore /data/db --data-dir=/restore --skip-hash-check \
+            2>/dev/null
 
-        # Cleanup temp dir
+        # Cleanup
         docker run --rm -v /tmp:/tmp $ALPINE_IMAGE rm -rf {temp_dir}
     """
 
@@ -231,15 +227,15 @@ def _clear_stale_cni_from_etcd(etcd_path: str) -> bool:
         return False
 
     if opts.o.debug:
-        print("Cleared stale CNI resources from persisted etcd")
+        print("Cleaned etcd, kept only TLS certificates")
     return True
 
 
 def create_cluster(name: str, config_file: str):
-    # Clear stale CNI resources from persisted etcd if present
+    # Clean persisted etcd, keeping only TLS certificates
     etcd_path = _get_etcd_host_path_from_kind_config(config_file)
     if etcd_path:
-        _clear_stale_cni_from_etcd(etcd_path)
+        _clean_etcd_keeping_certs(etcd_path)
 
     result = _run_command(f"kind create cluster --name {name} --config {config_file}")
     if result.returncode != 0:

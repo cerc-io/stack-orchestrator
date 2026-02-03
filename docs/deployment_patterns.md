@@ -82,10 +82,10 @@ For deployments using images from private container registries (e.g., GitHub Con
 
 ### Configuration
 
-Add an `image-registry` section to your spec.yml:
+Add a `registry-credentials` section to your spec.yml:
 
 ```yaml
-image-registry:
+registry-credentials:
   server: ghcr.io
   username: your-org-or-username
   token-env: REGISTRY_TOKEN
@@ -121,6 +121,6 @@ When using Ansible for deployments, pass the token from a credentials file:
 
 ### How It Works
 
-1. laconic-so reads the `image-registry` config from spec.yml
+1. laconic-so reads the `registry-credentials` config from spec.yml
 2. Creates a Kubernetes `docker-registry` secret named `{deployment}-registry`
 3. The deployment's pods reference this secret for image pulls

@@ -103,8 +103,11 @@ class Spec:
 
         Used for private container registries like GHCR. The token-env field
         specifies an environment variable containing the API token/PAT.
+
+        Note: Uses 'registry-credentials' key to avoid collision with
+        'image-registry' key which is for pushing images.
         """
-        return self.obj.get("image-registry")
+        return self.obj.get("registry-credentials")
 
     def get_volumes(self):
         return self.obj.get(constants.volumes_key, {})

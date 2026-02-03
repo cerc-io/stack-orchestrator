@@ -125,7 +125,8 @@ class ClusterInfo:
                                 name=(
                                     f"{self.app_name}-nodeport-"
                                     f"{pod_port}-{protocol.lower()}"
-                                )
+                                ),
+                                labels={"app": self.app_name},
                             ),
                             spec=client.V1ServiceSpec(
                                 type="NodePort",
@@ -208,7 +209,9 @@ class ClusterInfo:
 
             ingress = client.V1Ingress(
                 metadata=client.V1ObjectMeta(
-                    name=f"{self.app_name}-ingress", annotations=ingress_annotations
+                    name=f"{self.app_name}-ingress",
+                    labels={"app": self.app_name},
+                    annotations=ingress_annotations,
                 ),
                 spec=spec,
             )
@@ -238,7 +241,10 @@ class ClusterInfo:
         ]
 
         service = client.V1Service(
-            metadata=client.V1ObjectMeta(name=f"{self.app_name}-service"),
+            metadata=client.V1ObjectMeta(
+                name=f"{self.app_name}-service",
+                labels={"app": self.app_name},
+            ),
             spec=client.V1ServiceSpec(
                 type="ClusterIP",
                 ports=service_ports,
@@ -320,7 +326,7 @@ class ClusterInfo:
             spec = client.V1ConfigMap(
                 metadata=client.V1ObjectMeta(
                     name=f"{self.app_name}-{cfg_map_name}",
-                    labels={"configmap-label": cfg_map_name},
+                    labels={"app": self.app_name, "configmap-label": cfg_map_name},
                 ),
                 binary_data=data,
             )
@@ -377,7 +383,10 @@ class ClusterInfo:
             pv = client.V1PersistentVolume(
                 metadata=client.V1ObjectMeta(
                     name=f"{self.app_name}-{volume_name}",
-                    labels={"volume-label": f"{self.app_name}-{volume_name}"},
+                    labels={
+                        "app": self.app_name,
+                        "volume-label": f"{self.app_name}-{volume_name}",
+                    },
                 ),
                 spec=spec,
             )

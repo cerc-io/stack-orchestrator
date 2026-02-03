@@ -96,7 +96,7 @@ class K8sDeployer(Deployer):
     core_api: client.CoreV1Api
     apps_api: client.AppsV1Api
     networking_api: client.NetworkingV1Api
-    k8s_namespace: str = "default"
+    k8s_namespace: str
     kind_cluster_name: str
     skip_cluster_management: bool
     cluster_info: ClusterInfo
@@ -113,6 +113,7 @@ class K8sDeployer(Deployer):
     ) -> None:
         self.type = type
         self.skip_cluster_management = False
+        self.k8s_namespace = "default"  # Will be overridden below if context exists
         # TODO: workaround pending refactoring above to cope with being
         # created with a null deployment_context
         if deployment_context is None:
@@ -120,6 +121,8 @@ class K8sDeployer(Deployer):
         self.deployment_dir = deployment_context.deployment_dir
         self.deployment_context = deployment_context
         self.kind_cluster_name = compose_project_name
+        # Use deployment-specific namespace for resource isolation and easy cleanup
+        self.k8s_namespace = f"laconic-{compose_project_name}"
         self.cluster_info = ClusterInfo()
         self.cluster_info.int(
             compose_files,
@@ -148,6 +151,46 @@ class K8sDeployer(Deployer):
         self.networking_api = client.NetworkingV1Api()
         self.apps_api = client.AppsV1Api()
         self.custom_obj_api = client.CustomObjectsApi()
+
+    def _ensure_namespace(self):
+        """Create the deployment namespace if it doesn't exist."""
+        if opts.o.dry_run:
+            print(f"Dry run: would create namespace {self.k8s_namespace}")
+            return
+        try:
+            self.core_api.read_namespace(name=self.k8s_namespace)
+            if opts.o.debug:
+                print(f"Namespace {self.k8s_namespace} already exists")
+        except ApiException as e:
+            if e.status == 404:
+                # Create the namespace
+                ns = client.V1Namespace(
+                    metadata=client.V1ObjectMeta(
+                        name=self.k8s_namespace,
+                        labels={"app": self.cluster_info.app_name},
+                    )
+                )
+                self.core_api.create_namespace(body=ns)
+                if opts.o.debug:
+                    print(f"Created namespace {self.k8s_namespace}")
+            else:
+                raise
+
+    def _delete_namespace(self):
+        """Delete the deployment namespace and all resources within it."""
+        if opts.o.dry_run:
+            print(f"Dry run: would delete namespace {self.k8s_namespace}")
+            return
+        try:
+            self.core_api.delete_namespace(name=self.k8s_namespace)
+            if opts.o.debug:
+                print(f"Deleted namespace {self.k8s_namespace}")
+        except ApiException as e:
+            if e.status == 404:
+                if opts.o.debug:
+                    print(f"Namespace {self.k8s_namespace} not found")
+            else:
+                raise
 
     def _create_volume_data(self):
         # Create the host-path-mounted PVs for this deployment
@@ -314,6 +357,8 @@ class K8sDeployer(Deployer):
                         load_images_into_kind(self.kind_cluster_name, local_images)
                 # Note: if no local containers defined, all images come from registries
             self.connect_api()
+            # Create deployment-specific namespace for resource isolation
+            self._ensure_namespace()
             if self.is_kind() and not self.skip_cluster_management:
                 # Configure ingress controller (not installed by default in kind)
                 # Skip if already running (idempotent for shared cluster)
@@ -381,17 +426,12 @@ class K8sDeployer(Deployer):
                     print("NodePort created:")
                     print(f"{nodeport_resp}")
 
-    def down(self, timeout, volumes, skip_cluster_management):  # noqa: C901
+    def down(self, timeout, volumes, skip_cluster_management):
         self.skip_cluster_management = skip_cluster_management
         self.connect_api()
 
-        # Query K8s for resources by label selector instead of generating names
-        # from config. This ensures we clean up orphaned resources when deployment
-        # IDs change (e.g., after force_redeploy).
-        label_selector = f"app={self.cluster_info.app_name}"
-
+        # PersistentVolumes are cluster-scoped (not namespaced), so delete by label
         if volumes:
-            # Delete PVs for this deployment (PVs use volume-label pattern)
             try:
                 pvs = self.core_api.list_persistent_volume(
                     label_selector=f"app={self.cluster_info.app_name}"
@@ -407,97 +447,9 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print(f"Error listing PVs: {e}")
 
-            # Delete PVCs for this deployment
-            try:
-                pvcs = self.core_api.list_namespaced_persistent_volume_claim(
-                    namespace=self.k8s_namespace, label_selector=label_selector
-                )
-                for pvc in pvcs.items:
-                    if opts.o.debug:
-                        print(f"Deleting PVC: {pvc.metadata.name}")
-                    try:
-                        self.core_api.delete_namespaced_persistent_volume_claim(
-                            name=pvc.metadata.name, namespace=self.k8s_namespace
-                        )
-                    except ApiException as e:
-                        _check_delete_exception(e)
-            except ApiException as e:
-                if opts.o.debug:
-                    print(f"Error listing PVCs: {e}")
-
-        # Delete ConfigMaps for this deployment
-        try:
-            cfg_maps = self.core_api.list_namespaced_config_map(
-                namespace=self.k8s_namespace, label_selector=label_selector
-            )
-            for cfg_map in cfg_maps.items:
-                if opts.o.debug:
-                    print(f"Deleting ConfigMap: {cfg_map.metadata.name}")
-                try:
-                    self.core_api.delete_namespaced_config_map(
-                        name=cfg_map.metadata.name, namespace=self.k8s_namespace
-                    )
-                except ApiException as e:
-                    _check_delete_exception(e)
-        except ApiException as e:
-            if opts.o.debug:
-                print(f"Error listing ConfigMaps: {e}")
-
-        # Delete Deployments for this deployment
-        try:
-            deployments = self.apps_api.list_namespaced_deployment(
-                namespace=self.k8s_namespace, label_selector=label_selector
-            )
-            for deployment in deployments.items:
-                if opts.o.debug:
-                    print(f"Deleting Deployment: {deployment.metadata.name}")
-                try:
-                    self.apps_api.delete_namespaced_deployment(
-                        name=deployment.metadata.name, namespace=self.k8s_namespace
-                    )
-                except ApiException as e:
-                    _check_delete_exception(e)
-        except ApiException as e:
-            if opts.o.debug:
-                print(f"Error listing Deployments: {e}")
-
-        # Delete Services for this deployment (includes both ClusterIP and NodePort)
-        try:
-            services = self.core_api.list_namespaced_service(
-                namespace=self.k8s_namespace, label_selector=label_selector
-            )
-            for service in services.items:
-                if opts.o.debug:
-                    print(f"Deleting Service: {service.metadata.name}")
-                try:
-                    self.core_api.delete_namespaced_service(
-                        namespace=self.k8s_namespace, name=service.metadata.name
-                    )
-                except ApiException as e:
-                    _check_delete_exception(e)
-        except ApiException as e:
-            if opts.o.debug:
-                print(f"Error listing Services: {e}")
-
-        # Delete Ingresses for this deployment
-        try:
-            ingresses = self.networking_api.list_namespaced_ingress(
-                namespace=self.k8s_namespace, label_selector=label_selector
-            )
-            for ingress in ingresses.items:
-                if opts.o.debug:
-                    print(f"Deleting Ingress: {ingress.metadata.name}")
-                try:
-                    self.networking_api.delete_namespaced_ingress(
-                        name=ingress.metadata.name, namespace=self.k8s_namespace
-                    )
-                except ApiException as e:
-                    _check_delete_exception(e)
-            if not ingresses.items and opts.o.debug:
-                print("No ingress to delete")
-        except ApiException as e:
-            if opts.o.debug:
-                print(f"Error listing Ingresses: {e}")
+        # Delete the deployment namespace - this cascades to all namespaced resources
+        # (PVCs, ConfigMaps, Deployments, Services, Ingresses, etc.)
+        self._delete_namespace()
 
         if self.is_kind() and not self.skip_cluster_management:
             # Destroy the kind cluster
@@ -635,7 +587,7 @@ class K8sDeployer(Deployer):
                 log_data = ""
                 for container in containers:
                     container_log = self.core_api.read_namespaced_pod_log(
-                        k8s_pod_name, namespace="default", container=container
+                        k8s_pod_name, namespace=self.k8s_namespace, container=container
                     )
                     container_log_lines = container_log.splitlines()
                     for line in container_log_lines:

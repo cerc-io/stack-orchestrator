@@ -289,11 +289,14 @@ class K8sDeployer(Deployer):
         self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:
             if self.is_kind() and not self.skip_cluster_management:
-                # Create the kind cluster
-                create_cluster(
-                    self.kind_cluster_name,
-                    str(self.deployment_dir.joinpath(constants.kind_config_filename)),
+                # Create the kind cluster (or reuse existing one)
+                kind_config = str(
+                    self.deployment_dir.joinpath(constants.kind_config_filename)
                 )
+                actual_cluster = create_cluster(self.kind_cluster_name, kind_config)
+                if actual_cluster != self.kind_cluster_name:
+                    # An existing cluster was found, use it instead
+                    self.kind_cluster_name = actual_cluster
                 # Ensure the referenced containers are copied into kind
                 load_images_into_kind(
                     self.kind_cluster_name, self.cluster_info.image_set

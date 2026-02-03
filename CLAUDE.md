@@ -83,6 +83,47 @@ laconic-so deployment --dir deployment start
 - `urbit-stack` - Fake Urbit ship for testing
 - `zenith-desk-stack` - Desk deployment stack
 
+## Architecture: k8s-kind Deployments
+
+### One Cluster Per Host
+There is **one Kind cluster per host by design**. Multiple deployments (stacks) share this cluster. Never request or expect separate clusters for different deployments on the same host.
+
+- `create_cluster()` in `helpers.py` reuses any existing cluster
+- Cluster name in deployment.yml is an identifier, not a cluster request
+- All deployments share ingress controller, etcd, certificates
+
+### External Stacks
+External stacks are detected by filesystem path existence (`Path(stack).exists()`). Required structure:
+
+```
+<repo>/
+  stack_orchestrator/data/
+    stacks/<name>/stack.yml
+    compose/docker-compose-<pod>.yml
+  deployment/spec.yml
+```
+
+Config/compose resolution: external path first, then internal fallback.
+
+### Deployment Lifecycle
+- `deploy create`: Initializes deployment dir, generates cluster-id, processes spec.yml
+- `deployment start`: Creates/reuses cluster, deploys K8s resources
+- `deployment restart`: Git pulls stack repo, syncs spec, redeploys (preserves data)
+- `deployment stop`: Removes K8s resources (cluster persists)
+
+### Secret Generation
+`$generate:type:length$` tokens in spec.yml config section:
+- Processed during `deploy create`
+- Stored in K8s Secret `<deployment>-generated-secrets`
+- Injected via `envFrom` with `secretRef`
+- Non-secret config goes to `config.env`
+
+### Key Files
+- `spec.yml`: Deployment specification (in stack repo)
+- `deployment.yml`: Cluster-id, stack-source path (generated)
+- `config.env`: Non-secret environment variables (generated)
+- `kind-config.yml`: Kind cluster configuration (generated)
+
 ## Insights and Observations
 
 ### Design Principles

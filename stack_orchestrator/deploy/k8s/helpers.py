@@ -118,12 +118,17 @@ def _get_etcd_host_path_from_kind_config(config_file: str) -> Optional[str]:
 
 
 def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
-    """Clean persisted etcd, keeping only TLS certificates.
+    """Clean persisted etcd, keeping only TLS certificate secrets.
 
     When etcd is persisted and a cluster is recreated, kind tries to install
     resources fresh but they already exist. Instead of trying to delete
     specific stale resources (blacklist), we keep only the valuable data
-    (caddy TLS certs) and delete everything else (whitelist approach).
+    (caddy TLS certificate secrets) and delete everything else.
+
+    ACME account secrets are intentionally NOT preserved — they may contain
+    stale registrations (e.g. with wrong/empty email) that cause "unable to
+    parse email address" errors. Caddy re-registers accounts automatically
+    on startup using the email from the ConfigMap.
 
     The etcd image is distroless (no shell), so we extract the statically-linked
     etcdctl binary and run it from alpine which has shell support.
@@ -218,6 +223,11 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
                 jq -r ".kvs[] | @base64" /backup/kept.json 2>/dev/null | \
                 while read encoded; do
                     key=$(echo $encoded | base64 -d | jq -r ".key" | base64 -d)
+                    # Keep only certificate secrets, drop ACME accounts/locks/OCSP
+                    case "$key" in
+                        *certificates*) ;;
+                        *) continue ;;
+                    esac
                     val=$(echo $encoded | base64 -d | jq -r ".value" | base64 -d)
                     echo "$val" | /backup/etcdctl put "$key"
                 done
@@ -259,7 +269,7 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
         return False
 
     if opts.o.debug:
-        print("Cleaned etcd, kept only TLS certificates")
+        print("Cleaned etcd, kept only TLS certificate secrets (dropped ACME accounts)")
     return True
 
 

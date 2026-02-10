@@ -321,17 +321,19 @@ class K8sDeployer(Deployer):
         http_proxy_info = self.cluster_info.spec.get_http_proxy()
         # Note: we don't support tls for kind (enabling tls causes errors)
         use_tls = http_proxy_info and not self.is_kind()
-        certificate = (
-            self._find_certificate_for_host_name(http_proxy_info[0]["host-name"])
-            if use_tls
-            else None
-        )
-        if opts.o.debug:
-            if certificate:
-                print(f"Using existing certificate: {certificate}")
+        certificates = None
+        if use_tls:
+            certificates = {}
+            for proxy in http_proxy_info:
+                host_name = proxy["host-name"]
+                cert = self._find_certificate_for_host_name(host_name)
+                if cert:
+                    certificates[host_name] = cert
+                    if opts.o.debug:
+                        print(f"Using existing certificate for {host_name}: {cert}")
 
         ingress = self.cluster_info.get_ingress(
-            use_tls=use_tls, certificate=certificate
+            use_tls=use_tls, certificates=certificates
         )
         if ingress:
             if opts.o.debug:

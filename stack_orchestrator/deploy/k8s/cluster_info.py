@@ -144,66 +144,70 @@ class ClusterInfo:
         return nodeports
 
     def get_ingress(
-        self, use_tls=False, certificate=None, cluster_issuer="letsencrypt-prod"
+        self, use_tls=False, certificates=None, cluster_issuer="letsencrypt-prod"
     ):
         # No ingress for a deployment that has no http-proxy defined, for now
         http_proxy_info_list = self.spec.get_http_proxy()
         ingress = None
         if http_proxy_info_list:
-            # TODO: handle multiple definitions
-            http_proxy_info = http_proxy_info_list[0]
-            if opts.o.debug:
-                print(f"http-proxy: {http_proxy_info}")
-            # TODO: good enough parsing for webapp deployment for now
-            host_name = http_proxy_info["host-name"]
             rules = []
-            tls = (
-                [
-                    client.V1IngressTLS(
-                        hosts=certificate["spec"]["dnsNames"]
-                        if certificate
-                        else [host_name],
-                        secret_name=certificate["spec"]["secretName"]
-                        if certificate
-                        else f"{self.app_name}-tls",
-                    )
-                ]
-                if use_tls
-                else None
-            )
-            paths = []
-            for route in http_proxy_info["routes"]:
-                path = route["path"]
-                proxy_to = route["proxy-to"]
+            tls = [] if use_tls else None
+
+            for http_proxy_info in http_proxy_info_list:
                 if opts.o.debug:
-                    print(f"proxy config: {path} -> {proxy_to}")
-                # proxy_to has the form <service>:<port>
-                proxy_to_port = int(proxy_to.split(":")[1])
-                paths.append(
-                    client.V1HTTPIngressPath(
-                        path_type="Prefix",
-                        path=path,
-                        backend=client.V1IngressBackend(
-                            service=client.V1IngressServiceBackend(
-                                # TODO: this looks wrong
-                                name=f"{self.app_name}-service",
-                                # TODO: pull port number from the service
-                                port=client.V1ServiceBackendPort(number=proxy_to_port),
-                            )
-                        ),
+                    print(f"http-proxy: {http_proxy_info}")
+                host_name = http_proxy_info["host-name"]
+                certificate = (certificates or {}).get(host_name)
+
+                if use_tls:
+                    tls.append(
+                        client.V1IngressTLS(
+                            hosts=certificate["spec"]["dnsNames"]
+                            if certificate
+                            else [host_name],
+                            secret_name=certificate["spec"]["secretName"]
+                            if certificate
+                            else f"{self.app_name}-{host_name}-tls",
+                        )
+                    )
+
+                paths = []
+                for route in http_proxy_info["routes"]:
+                    path = route["path"]
+                    proxy_to = route["proxy-to"]
+                    if opts.o.debug:
+                        print(f"proxy config: {path} -> {proxy_to}")
+                    # proxy_to has the form <service>:<port>
+                    proxy_to_port = int(proxy_to.split(":")[1])
+                    paths.append(
+                        client.V1HTTPIngressPath(
+                            path_type="Prefix",
+                            path=path,
+                            backend=client.V1IngressBackend(
+                                service=client.V1IngressServiceBackend(
+                                    # TODO: this looks wrong
+                                    name=f"{self.app_name}-service",
+                                    # TODO: pull port number from the service
+                                    port=client.V1ServiceBackendPort(
+                                        number=proxy_to_port
+                                    ),
+                                )
+                            ),
+                        )
+                    )
+                rules.append(
+                    client.V1IngressRule(
+                        host=host_name,
+                        http=client.V1HTTPIngressRuleValue(paths=paths),
                     )
                 )
-            rules.append(
-                client.V1IngressRule(
-                    host=host_name, http=client.V1HTTPIngressRuleValue(paths=paths)
-                )
-            )
+
             spec = client.V1IngressSpec(tls=tls, rules=rules)
 
             ingress_annotations = {
                 "kubernetes.io/ingress.class": "caddy",
             }
-            if not certificate:
+            if not certificates:
                 ingress_annotations["cert-manager.io/cluster-issuer"] = cluster_issuer
 
             ingress = client.V1Ingress(

@@ -483,6 +483,16 @@ class ClusterInfo:
                         )
                     )
                 ]
+                # Mount user-declared secrets from spec.yml
+                for user_secret_name in self.spec.get_secrets():
+                    env_from.append(
+                        client.V1EnvFromSource(
+                            secret_ref=client.V1SecretEnvSource(
+                                name=user_secret_name,
+                                optional=True,
+                            )
+                        )
+                    )
                 container = client.V1Container(
                     name=container_name,
                     image=image_to_use,

@@ -477,6 +477,9 @@ def init_operation(
             spec_file_content["volumes"] = {**volume_descriptors, **orig_volumes}
         if configmap_descriptors:
             spec_file_content["configmaps"] = configmap_descriptors
+        if "k8s" in deployer_type:
+            if "secrets" not in spec_file_content:
+                spec_file_content["secrets"] = {}
 
     if opts.o.debug:
         print(

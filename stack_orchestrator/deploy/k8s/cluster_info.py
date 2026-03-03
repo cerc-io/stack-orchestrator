@@ -394,6 +394,14 @@ class ClusterInfo:
             result.append(pv)
         return result
 
+    def _any_service_has_host_network(self):
+        for pod_name in self.parsed_pod_yaml_map:
+            pod = self.parsed_pod_yaml_map[pod_name]
+            for svc in pod.get("services", {}).values():
+                if svc.get("network_mode") == "host":
+                    return True
+        return False
+
     # TODO: put things like image pull policy into an object-scope struct
     def get_deployment(self, image_pull_policy: Optional[str] = None):
         containers = []
@@ -568,6 +576,7 @@ class ClusterInfo:
                     )
                 )
 
+        use_host_network = self._any_service_has_host_network()
         template = client.V1PodTemplateSpec(
             metadata=client.V1ObjectMeta(annotations=annotations, labels=labels),
             spec=client.V1PodSpec(
@@ -577,6 +586,10 @@ class ClusterInfo:
                 affinity=affinity,
                 tolerations=tolerations,
                 runtime_class_name=self.spec.get_runtime_class(),
+                host_network=use_host_network or None,
+                dns_policy=(
+                    "ClusterFirstWithHostNet" if use_host_network else None
+                ),
             ),
         )
         spec = client.V1DeploymentSpec(

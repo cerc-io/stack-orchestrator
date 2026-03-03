@@ -683,11 +683,35 @@ def _generate_kind_port_mappings_from_services(parsed_pod_files):
 
 def _generate_kind_port_mappings(parsed_pod_files):
     port_definitions = []
+    seen = set()
     # Map port 80 and 443 for the Caddy ingress controller (HTTPS support)
     for port_string in ["80", "443"]:
         port_definitions.append(
             f"  - containerPort: {port_string}\n    hostPort: {port_string}\n"
         )
+        seen.add((port_string, "TCP"))
+    # Map ports declared in compose services
+    for pod in parsed_pod_files:
+        parsed_pod_file = parsed_pod_files[pod]
+        if "services" in parsed_pod_file:
+            for service_name in parsed_pod_file["services"]:
+                service_obj = parsed_pod_file["services"][service_name]
+                for port_entry in service_obj.get("ports", []):
+                    port_str = str(port_entry)
+                    protocol = "TCP"
+                    if "/" in port_str:
+                        port_str, proto = port_str.split("/", 1)
+                        protocol = proto.upper()
+                    if ":" in port_str:
+                        port_str = port_str.split(":")[-1]
+                    port_num = port_str.strip("'\"")
+                    if (port_num, protocol) not in seen:
+                        seen.add((port_num, protocol))
+                        port_definitions.append(
+                            f"  - containerPort: {port_num}\n"
+                            f"    hostPort: {port_num}\n"
+                            f"    protocol: {protocol}\n"
+                        )
     return (
         ""
         if len(port_definitions) == 0

@@ -574,14 +574,14 @@ class K8sDeployer(Deployer):
 
     def logs(self, services, tail, follow, stream):
         self.connect_api()
-        pods = pods_in_deployment(self.core_api, self.cluster_info.app_name)
+        pods = pods_in_deployment(self.core_api, self.cluster_info.app_name, namespace=self.k8s_namespace)
         if len(pods) > 1:
             print("Warning: more than one pod in the deployment")
         if len(pods) == 0:
             log_data = "******* Pods not running ********\n"
         else:
             k8s_pod_name = pods[0]
-            containers = containers_in_pod(self.core_api, k8s_pod_name)
+            containers = containers_in_pod(self.core_api, k8s_pod_name, namespace=self.k8s_namespace)
             # If pod not started, logs request below will throw an exception
             try:
                 log_data = ""

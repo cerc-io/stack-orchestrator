@@ -223,5 +223,8 @@ class Spec:
     def is_kind_deployment(self):
         return self.get_deployment_type() in [constants.k8s_kind_deploy_type]
 
+    def get_kind_mount_root(self):
+        return self.obj.get(constants.kind_mount_root_key)
+
     def is_docker_deployment(self):
         return self.get_deployment_type() in [constants.compose_deploy_type]

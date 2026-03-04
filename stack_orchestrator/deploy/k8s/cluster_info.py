@@ -371,7 +371,11 @@ class ClusterInfo:
 
             if self.spec.is_kind_deployment():
                 host_path = client.V1HostPathVolumeSource(
-                    path=get_kind_pv_bind_mount_path(volume_name)
+                    path=get_kind_pv_bind_mount_path(
+                        volume_name,
+                        kind_mount_root=self.spec.get_kind_mount_root(),
+                        host_path=volume_path,
+                    )
                 )
             else:
                 host_path = client.V1HostPathVolumeSource(path=volume_path)

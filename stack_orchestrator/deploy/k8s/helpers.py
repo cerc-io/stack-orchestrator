@@ -440,7 +440,11 @@ def named_volumes_from_pod_files(parsed_pod_files):
     return named_volumes
 
 
-def get_kind_pv_bind_mount_path(volume_name: str):
+def get_kind_pv_bind_mount_path(volume_name: str, kind_mount_root: Optional[str] = None,
+                                host_path: Optional[str] = None):
+    if kind_mount_root and host_path and host_path.startswith(kind_mount_root):
+        rel = os.path.relpath(host_path, kind_mount_root)
+        return f"/mnt/{rel}"
     return f"/mnt/{volume_name}"
 
 
@@ -563,6 +567,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_definitions = []
     volume_host_path_map = _get_host_paths_for_volumes(deployment_context)
     seen_host_path_mounts = set()  # Track to avoid duplicate mounts
+    kind_mount_root = deployment_context.spec.get_kind_mount_root()
 
     # Cluster state backup for offline data recovery (unique per deployment)
     # etcd contains all k8s state; PKI certs needed to decrypt etcd offline
@@ -582,6 +587,17 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_definitions.append(
         f"  - hostPath: {pki_host_path}\n" f"    containerPath: /etc/kubernetes/pki\n"
     )
+
+    # When kind-mount-root is set, emit a single extraMount for the root.
+    # Individual volumes whose host path starts with the root are covered
+    # by this single mount and don't need their own extraMount entries.
+    mount_root_emitted = False
+    if kind_mount_root:
+        volume_definitions.append(
+            f"  - hostPath: {kind_mount_root}\n"
+            f"    containerPath: /mnt\n"
+        )
+        mount_root_emitted = True
 
     # Note these paths are relative to the location of the pod files (at present)
     # So we need to fix up to make them correct and absolute because kind assumes
@@ -642,6 +658,9 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                                         volume_host_path_map[volume_name],
                                         deployment_dir,
                                     )
+                                    # Skip individual extraMount if covered by mount root
+                                    if mount_root_emitted and str(host_path).startswith(kind_mount_root):
+                                        continue
                                     container_path = get_kind_pv_bind_mount_path(
                                         volume_name
                                     )

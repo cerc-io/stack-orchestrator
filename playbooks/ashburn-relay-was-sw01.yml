@@ -1,0 +1,197 @@
+---
+# Configure laconic-was-sw01 for full validator traffic relay
+#
+# Replaces the old SHRED-RELAY (TVU-only, port 20000) with VALIDATOR-RELAY
+# covering all validator ports (8001, 9000-9025). Adds Loopback101 for
+# 137.239.194.65.
+#
+# Uses EOS config session with 5-minute auto-revert for safety.
+# After verification, run with -e commit=true to finalize.
+#
+# Usage:
+#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-was-sw01.yml
+#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-was-sw01.yml -e commit=true
+#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-was-sw01.yml -e rollback=true
+
+- name: Configure was-sw01 inbound validator relay
+  hosts: was-sw01
+  gather_facts: false
+
+  vars:
+    ashburn_ip: 137.239.194.65
+    commit: false
+    rollback: false
+    session_name: validator-relay
+    checkpoint_name: pre-validator-relay
+
+  tasks:
+    # ------------------------------------------------------------------
+    # Rollback path
+    # ------------------------------------------------------------------
+    - name: Rollback to checkpoint
+      when: rollback | bool
+      block:
+        - name: Execute rollback
+          arista.eos.eos_command:
+            commands:
+              - "rollback running-config checkpoint {{ checkpoint_name }}"
+              - write memory
+          register: rollback_result
+
+        - name: Show rollback result
+          ansible.builtin.debug:
+            var: rollback_result.stdout_lines
+
+        - name: End play after rollback
+          ansible.builtin.meta: end_play
+
+    # ------------------------------------------------------------------
+    # Commit finalization
+    # ------------------------------------------------------------------
+    - name: Finalize pending session
+      when: commit | bool
+      block:
+        - name: Commit session and write memory
+          arista.eos.eos_command:
+            commands:
+              - "configure session {{ session_name }} commit"
+              - write memory
+          register: commit_result
+
+        - name: Show commit result
+          ansible.builtin.debug:
+            var: commit_result.stdout_lines
+
+        - name: End play after commit
+          ansible.builtin.meta: end_play
+
+    # ------------------------------------------------------------------
+    # Pre-checks
+    # ------------------------------------------------------------------
+    - name: Show current traffic-policy on Et1/1
+      arista.eos.eos_command:
+        commands:
+          - show running-config interfaces Ethernet1/1
+      register: et1_config
+
+    - name: Show current config
+      ansible.builtin.debug:
+        var: et1_config.stdout_lines
+
+    - name: Show existing PBR policy on Et1/1
+      arista.eos.eos_command:
+        commands:
+          - "show running-config | include service-policy"
+      register: existing_pbr
+
+    - name: Show existing PBR config
+      ansible.builtin.debug:
+        var: existing_pbr.stdout_lines
+
+    # ------------------------------------------------------------------
+    # Save checkpoint
+    # ------------------------------------------------------------------
+    - name: Save checkpoint for rollback
+      arista.eos.eos_command:
+        commands:
+          - "configure checkpoint save {{ checkpoint_name }}"
+      register: checkpoint_result
+
+    - name: Show checkpoint result
+      ansible.builtin.debug:
+        var: checkpoint_result.stdout_lines
+
+    # ------------------------------------------------------------------
+    # Apply via config session with 5-minute auto-revert
+    #
+    # eos_config writes directly to running-config, bypassing sessions.
+    # Use eos_command with raw CLI to get the safety net.
+    # ------------------------------------------------------------------
+    - name: Apply config session with auto-revert
+      arista.eos.eos_command:
+        commands:
+          # Enter named config session
+          - command: "configure session {{ session_name }}"
+          # Loopback101 for Ashburn IP
+          - command: interface Loopback101
+          - command: "ip address {{ ashburn_ip }}/32"
+          - command: exit
+          # ACL covering all validator ports
+          - command: ip access-list VALIDATOR-RELAY-ACL
+          - command: 10 permit udp any any eq 8001
+          - command: 20 permit udp any any range 9000 9025
+          - command: 30 permit tcp any any eq 8001
+          - command: exit
+          # PBR class-map referencing the ACL
+          - command: class-map type pbr match-any VALIDATOR-RELAY-CLASS
+          - command: match ip access-group VALIDATOR-RELAY-ACL
+          - command: exit
+          # PBR policy-map with nexthop redirect
+          - command: policy-map type pbr VALIDATOR-RELAY
+          - command: class VALIDATOR-RELAY-CLASS
+          - command: "set nexthop {{ backbone_peer }}"
+          - command: exit
+          - command: exit
+          # Apply PBR policy on Et1/1
+          - command: interface Ethernet1/1
+          - command: service-policy type pbr input VALIDATOR-RELAY
+          - command: exit
+      tags: [config]
+
+    - name: Show session diff
+      arista.eos.eos_command:
+        commands:
+          - "configure session {{ session_name }}"
+          - show session-config diffs
+          - exit
+      register: session_diff
+
+    - name: Display session diff
+      ansible.builtin.debug:
+        var: session_diff.stdout_lines
+
+    - name: Commit with 5-minute auto-revert
+      arista.eos.eos_command:
+        commands:
+          - "configure session {{ session_name }} commit timer 00:05:00"
+      tags: [config]
+
+    # ------------------------------------------------------------------
+    # Verify
+    # ------------------------------------------------------------------
+    - name: Show PBR policy on Et1/1
+      arista.eos.eos_command:
+        commands:
+          - show running-config interfaces Ethernet1/1
+          - show running-config section policy-map
+          - show ip interface Loopback101
+      register: pbr_interface
+
+    - name: Display verification
+      ansible.builtin.debug:
+        var: pbr_interface.stdout_lines
+
+    - name: Show Loopback101
+      arista.eos.eos_command:
+        commands:
+          - show ip interface Loopback101
+      register: lo101
+
+    - name: Display Loopback101
+      ansible.builtin.debug:
+        var: lo101.stdout_lines
+
+    - name: Reminder
+      ansible.builtin.debug:
+        msg: |
+          === Config applied with 5-minute auto-revert ===
+          Session: {{ session_name }}
+          Checkpoint: {{ checkpoint_name }}
+
+          The config will auto-revert in 5 minutes unless committed.
+          Verify PBR policy is applied, then commit from the switch CLI:
+            configure session {{ session_name }} commit
+            write memory
+
+          To revert immediately:
+            ansible-playbook ... -e rollback=true

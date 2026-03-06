@@ -1,0 +1,215 @@
+---
+# Configure laconic-mia-sw01 for outbound validator traffic redirect
+#
+# Redirects outbound traffic from biscayne (src 137.239.194.65) arriving
+# via the doublezero0 GRE tunnel to was-sw01 via the backbone, preventing
+# BCP38 drops at mia-sw01's ISP uplink.
+#
+# Approach: The existing per-tunnel ACL (SEC-USER-500-IN) controls what
+# traffic enters vrf1 from Tunnel500. We add 137.239.194.65 to the ACL
+# and add a default route in vrf1 via egress-vrf default pointing to
+# was-sw01's backbone IP. No PBR needed — the ACL is the filter.
+#
+# The other vrf1 tunnels (502, 504, 505) have their own ACLs that only
+# permit their specific source IPs, so the default route won't affect them.
+#
+# Usage:
+#   # Pre-flight checks only (safe, read-only)
+#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml
+#
+#   # Apply config (after reviewing pre-flight output)
+#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml \
+#     -e apply=true
+#
+#   # Commit persisted config
+#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml -e commit=true
+#
+#   # Rollback
+#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml -e rollback=true
+
+- name: Configure mia-sw01 outbound validator redirect
+  hosts: mia-sw01
+  gather_facts: false
+
+  vars:
+    ashburn_ip: 137.239.194.65
+    apply: false
+    commit: false
+    rollback: false
+    tunnel_interface: Tunnel500
+    tunnel_vrf: vrf1
+    tunnel_acl: SEC-USER-500-IN
+    backbone_interface: Ethernet4/1
+    session_name: validator-outbound
+    checkpoint_name: pre-validator-outbound
+
+  tasks:
+    # ------------------------------------------------------------------
+    # Rollback path
+    # ------------------------------------------------------------------
+    - name: Rollback to checkpoint
+      when: rollback | bool
+      block:
+        - name: Execute rollback
+          arista.eos.eos_command:
+            commands:
+              - "rollback running-config checkpoint {{ checkpoint_name }}"
+              - write memory
+          register: rollback_result
+
+        - name: Show rollback result
+          ansible.builtin.debug:
+            var: rollback_result.stdout_lines
+
+        - name: End play after rollback
+          ansible.builtin.meta: end_play
+
+    # ------------------------------------------------------------------
+    # Commit finalization
+    # ------------------------------------------------------------------
+    - name: Finalize pending session
+      when: commit | bool
+      block:
+        - name: Commit session and write memory
+          arista.eos.eos_command:
+            commands:
+              - "configure session {{ session_name }} commit"
+              - write memory
+          register: commit_result
+
+        - name: Show commit result
+          ansible.builtin.debug:
+            var: commit_result.stdout_lines
+
+        - name: End play after commit
+          ansible.builtin.meta: end_play
+
+    # ------------------------------------------------------------------
+    # Pre-flight checks (always run unless commit/rollback)
+    # ------------------------------------------------------------------
+    - name: Show tunnel interface config
+      arista.eos.eos_command:
+        commands:
+          - "show running-config interfaces {{ tunnel_interface }}"
+      register: tunnel_config
+      tags: [preflight]
+
+    - name: Display tunnel config
+      ansible.builtin.debug:
+        var: tunnel_config.stdout_lines
+      tags: [preflight]
+
+    - name: Show tunnel ACL
+      arista.eos.eos_command:
+        commands:
+          - "show running-config | section ip access-list {{ tunnel_acl }}"
+      register: acl_config
+      tags: [preflight]
+
+    - name: Display tunnel ACL
+      ansible.builtin.debug:
+        var: acl_config.stdout_lines
+      tags: [preflight]
+
+    - name: Check VRF routing
+      arista.eos.eos_command:
+        commands:
+          - "show ip route vrf {{ tunnel_vrf }} 0.0.0.0/0"
+          - "show ip route vrf {{ tunnel_vrf }} {{ backbone_peer }}"
+          - "show ip route {{ backbone_peer }}"
+      register: vrf_routing
+      tags: [preflight]
+
+    - name: Display VRF routing check
+      ansible.builtin.debug:
+        var: vrf_routing.stdout_lines
+      tags: [preflight]
+
+    - name: Pre-flight summary
+      when: not (apply | bool)
+      ansible.builtin.debug:
+        msg: |
+          === Pre-flight complete ===
+          Review the output above:
+          1. {{ tunnel_interface }} ACL ({{ tunnel_acl }}): does it permit src {{ ashburn_ip }}?
+          2. {{ tunnel_vrf }} default route: does one exist?
+          3. Backbone nexthop {{ backbone_peer }}: reachable in default VRF?
+
+          To apply config:
+            ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml \
+              -e apply=true
+      tags: [preflight]
+
+    - name: End play if not applying
+      when: not (apply | bool)
+      ansible.builtin.meta: end_play
+
+    # ------------------------------------------------------------------
+    # Apply config via session with 5-minute auto-revert
+    # ------------------------------------------------------------------
+    - name: Save checkpoint
+      arista.eos.eos_command:
+        commands:
+          - "configure checkpoint save {{ checkpoint_name }}"
+
+    - name: Apply config session
+      arista.eos.eos_command:
+        commands:
+          - command: "configure session {{ session_name }}"
+          # Permit Ashburn IP through the tunnel ACL (insert before deny)
+          - command: "ip access-list {{ tunnel_acl }}"
+          - command: "45 permit ip host {{ ashburn_ip }} any"
+          - command: exit
+          # Default route in vrf1 via backbone to was-sw01 (egress-vrf default)
+          # Safe because per-tunnel ACLs already restrict what enters vrf1
+          - command: "ip route vrf {{ tunnel_vrf }} 0.0.0.0/0 egress-vrf default {{ backbone_interface }} {{ backbone_peer }}"
+
+    - name: Show session diff
+      arista.eos.eos_command:
+        commands:
+          - "configure session {{ session_name }}"
+          - show session-config diffs
+          - exit
+      register: session_diff
+
+    - name: Display session diff
+      ansible.builtin.debug:
+        var: session_diff.stdout_lines
+
+    - name: Commit with 5-minute auto-revert
+      arista.eos.eos_command:
+        commands:
+          - "configure session {{ session_name }} commit timer 00:05:00"
+
+    # ------------------------------------------------------------------
+    # Verify
+    # ------------------------------------------------------------------
+    - name: Verify config
+      arista.eos.eos_command:
+        commands:
+          - "show running-config | section ip access-list {{ tunnel_acl }}"
+          - "show ip route vrf {{ tunnel_vrf }} 0.0.0.0/0"
+      register: verify
+
+    - name: Display verification
+      ansible.builtin.debug:
+        var: verify.stdout_lines
+
+    - name: Reminder
+      ansible.builtin.debug:
+        msg: |
+          === Config applied with 5-minute auto-revert ===
+          Session: {{ session_name }}
+          Checkpoint: {{ checkpoint_name }}
+
+          Changes applied:
+          1. ACL {{ tunnel_acl }}: added "45 permit ip host {{ ashburn_ip }} any"
+          2. Default route in {{ tunnel_vrf }}: 0.0.0.0/0 egress-vrf default {{ backbone_interface }} {{ backbone_peer }}
+
+          The config will auto-revert in 5 minutes unless committed.
+          Verify on the switch, then commit:
+            configure session {{ session_name }} commit
+            write memory
+
+          To revert immediately:
+            ansible-playbook ... -e rollback=true

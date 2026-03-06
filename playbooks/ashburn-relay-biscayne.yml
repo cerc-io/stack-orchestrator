@@ -1,0 +1,356 @@
+---
+# Configure biscayne for Ashburn validator relay
+#
+# Sets up inbound DNAT (137.239.194.65 → kind node) and outbound SNAT +
+# policy routing (validator traffic → doublezero0 → mia-sw01 → was-sw01).
+#
+# Usage:
+#   # Full setup (inbound + outbound)
+#   ansible-playbook playbooks/ashburn-relay-biscayne.yml
+#
+#   # Inbound only (DNAT rules)
+#   ansible-playbook playbooks/ashburn-relay-biscayne.yml -t inbound
+#
+#   # Outbound only (SNAT + policy routing)
+#   ansible-playbook playbooks/ashburn-relay-biscayne.yml -t outbound
+#
+#   # Pre-flight checks only
+#   ansible-playbook playbooks/ashburn-relay-biscayne.yml -t preflight
+#
+#   # Rollback
+#   ansible-playbook playbooks/ashburn-relay-biscayne.yml -e rollback=true
+
+- name: Configure biscayne Ashburn validator relay
+  hosts: biscayne
+  gather_facts: false
+
+  vars:
+    ashburn_ip: 137.239.194.65
+    kind_node_ip: 172.20.0.2
+    kind_network: 172.20.0.0/16
+    tunnel_gateway: 169.254.7.6
+    tunnel_device: doublezero0
+    fwmark: 100
+    rt_table_name: ashburn
+    rt_table_id: 100
+    gossip_port: 8001
+    dynamic_port_range_start: 9000
+    dynamic_port_range_end: 9025
+    rollback: false
+
+  tasks:
+    # ------------------------------------------------------------------
+    # Rollback
+    # ------------------------------------------------------------------
+    - name: Rollback all Ashburn relay rules
+      when: rollback | bool
+      block:
+        - name: Remove Ashburn IP from loopback
+          ansible.builtin.command:
+            cmd: ip addr del {{ ashburn_ip }}/32 dev lo
+          failed_when: false
+
+        - name: Remove inbound DNAT rules
+          ansible.builtin.shell:
+            cmd: |
+              set -o pipefail
+              iptables -t nat -D PREROUTING -p udp -d {{ ashburn_ip }} --dport {{ gossip_port }} -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} 2>/dev/null || true
+              iptables -t nat -D PREROUTING -p tcp -d {{ ashburn_ip }} --dport {{ gossip_port }} -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} 2>/dev/null || true
+              iptables -t nat -D PREROUTING -p udp -d {{ ashburn_ip }} --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j DNAT --to-destination {{ kind_node_ip }} 2>/dev/null || true
+            executable: /bin/bash
+
+        - name: Remove outbound mangle rules
+          ansible.builtin.shell:
+            cmd: |
+              set -o pipefail
+              iptables -t mangle -D PREROUTING -s {{ kind_network }} -p udp --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+              iptables -t mangle -D PREROUTING -s {{ kind_network }} -p udp --sport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+              iptables -t mangle -D PREROUTING -s {{ kind_network }} -p tcp --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+            executable: /bin/bash
+
+        - name: Remove outbound SNAT rule
+          ansible.builtin.shell:
+            cmd: iptables -t nat -D POSTROUTING -m mark --mark {{ fwmark }} -j SNAT --to-source {{ ashburn_ip }} 2>/dev/null || true
+            executable: /bin/bash
+
+        - name: Remove policy routing
+          ansible.builtin.shell:
+            cmd: |
+              ip rule del fwmark {{ fwmark }} table {{ rt_table_name }} 2>/dev/null || true
+              ip route del default table {{ rt_table_name }} 2>/dev/null || true
+            executable: /bin/bash
+
+        - name: Persist cleaned iptables
+          ansible.builtin.command:
+            cmd: netfilter-persistent save
+
+        - name: Remove if-up.d script
+          ansible.builtin.file:
+            path: /etc/network/if-up.d/ashburn-routing
+            state: absent
+
+        - name: Rollback complete
+          ansible.builtin.debug:
+            msg: "Ashburn relay rules removed. Old SHRED-RELAY DNAT (64.92.84.81:20000) is still in place."
+
+        - name: End play after rollback
+          ansible.builtin.meta: end_play
+
+    # ------------------------------------------------------------------
+    # Pre-flight checks
+    # ------------------------------------------------------------------
+    - name: Check doublezero0 tunnel is up
+      ansible.builtin.command:
+        cmd: ip link show {{ tunnel_device }}
+      register: tunnel_status
+      changed_when: false
+      failed_when: "'UP' not in tunnel_status.stdout"
+      tags: [preflight, inbound, outbound]
+
+    - name: Check kind node is reachable
+      ansible.builtin.command:
+        cmd: ping -c 1 -W 2 {{ kind_node_ip }}
+      register: kind_ping
+      changed_when: false
+      failed_when: kind_ping.rc != 0
+      tags: [preflight, inbound]
+
+    - name: Verify Docker preserves source ports (5 sec sample)
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          # Check if any validator traffic is flowing with original sport
+          timeout 5 tcpdump -i br-cf46a62ab5b2 -nn -c 5 'udp src port 8001 or udp src portrange 9000-9025' 2>&1 | tail -5 || echo "No validator traffic captured in 5s (validator may not be running)"
+        executable: /bin/bash
+      register: sport_check
+      changed_when: false
+      failed_when: false
+      tags: [preflight]
+
+    - name: Show sport preservation check
+      ansible.builtin.debug:
+        var: sport_check.stdout_lines
+      tags: [preflight]
+
+    - name: Show existing iptables nat rules
+      ansible.builtin.shell:
+        cmd: iptables -t nat -L -v -n --line-numbers | head -60
+        executable: /bin/bash
+      register: existing_nat
+      changed_when: false
+      tags: [preflight]
+
+    - name: Display existing NAT rules
+      ansible.builtin.debug:
+        var: existing_nat.stdout_lines
+      tags: [preflight]
+
+    # ------------------------------------------------------------------
+    # Inbound: DNAT for 137.239.194.65 → kind node
+    # ------------------------------------------------------------------
+    - name: Add Ashburn IP to loopback
+      ansible.builtin.command:
+        cmd: ip addr add {{ ashburn_ip }}/32 dev lo
+      register: add_ip
+      changed_when: add_ip.rc == 0
+      failed_when: "add_ip.rc != 0 and 'RTNETLINK answers: File exists' not in add_ip.stderr"
+      tags: [inbound]
+
+    - name: Add DNAT for gossip UDP
+      ansible.builtin.iptables:
+        table: nat
+        chain: PREROUTING
+        protocol: udp
+        destination: "{{ ashburn_ip }}"
+        destination_port: "{{ gossip_port }}"
+        jump: DNAT
+        to_destination: "{{ kind_node_ip }}:{{ gossip_port }}"
+      tags: [inbound]
+
+    - name: Add DNAT for gossip TCP
+      ansible.builtin.iptables:
+        table: nat
+        chain: PREROUTING
+        protocol: tcp
+        destination: "{{ ashburn_ip }}"
+        destination_port: "{{ gossip_port }}"
+        jump: DNAT
+        to_destination: "{{ kind_node_ip }}:{{ gossip_port }}"
+      tags: [inbound]
+
+    - name: Add DNAT for dynamic ports (UDP 9000-9025)
+      ansible.builtin.iptables:
+        table: nat
+        chain: PREROUTING
+        protocol: udp
+        destination: "{{ ashburn_ip }}"
+        destination_port: "{{ dynamic_port_range_start }}:{{ dynamic_port_range_end }}"
+        jump: DNAT
+        to_destination: "{{ kind_node_ip }}"
+      tags: [inbound]
+
+    # ------------------------------------------------------------------
+    # Outbound: fwmark + SNAT + policy routing
+    # ------------------------------------------------------------------
+    - name: Mark outbound validator UDP gossip traffic
+      ansible.builtin.iptables:
+        table: mangle
+        chain: PREROUTING
+        protocol: udp
+        source: "{{ kind_network }}"
+        source_port: "{{ gossip_port }}"
+        jump: MARK
+        set_mark: "{{ fwmark }}"
+      tags: [outbound]
+
+    - name: Mark outbound validator UDP dynamic port traffic
+      ansible.builtin.iptables:
+        table: mangle
+        chain: PREROUTING
+        protocol: udp
+        source: "{{ kind_network }}"
+        source_port: "{{ dynamic_port_range_start }}:{{ dynamic_port_range_end }}"
+        jump: MARK
+        set_mark: "{{ fwmark }}"
+      tags: [outbound]
+
+    - name: Mark outbound validator TCP gossip traffic
+      ansible.builtin.iptables:
+        table: mangle
+        chain: PREROUTING
+        protocol: tcp
+        source: "{{ kind_network }}"
+        source_port: "{{ gossip_port }}"
+        jump: MARK
+        set_mark: "{{ fwmark }}"
+      tags: [outbound]
+
+    - name: SNAT marked traffic to Ashburn IP (before Docker MASQUERADE)
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          # Check if rule already exists
+          if iptables -t nat -C POSTROUTING -m mark --mark {{ fwmark }} -j SNAT --to-source {{ ashburn_ip }} 2>/dev/null; then
+            echo "SNAT rule already exists"
+          else
+            iptables -t nat -I POSTROUTING 1 -m mark --mark {{ fwmark }} -j SNAT --to-source {{ ashburn_ip }}
+            echo "SNAT rule inserted at position 1"
+          fi
+        executable: /bin/bash
+      register: snat_result
+      changed_when: "'inserted' in snat_result.stdout"
+      tags: [outbound]
+
+    - name: Show SNAT result
+      ansible.builtin.debug:
+        var: snat_result.stdout
+      tags: [outbound]
+
+    - name: Ensure rt_tables entry exists
+      ansible.builtin.lineinfile:
+        path: /etc/iproute2/rt_tables
+        line: "{{ rt_table_id }} {{ rt_table_name }}"
+        regexp: "^{{ rt_table_id }}\\s"
+      tags: [outbound]
+
+    - name: Add policy routing rule for fwmark
+      ansible.builtin.shell:
+        cmd: |
+          if ip rule show | grep -q 'fwmark 0x64 lookup ashburn'; then
+            echo "rule already exists"
+          else
+            ip rule add fwmark {{ fwmark }} table {{ rt_table_name }}
+            echo "rule added"
+          fi
+        executable: /bin/bash
+      register: rule_result
+      changed_when: "'added' in rule_result.stdout"
+      tags: [outbound]
+
+    - name: Add default route via doublezero0 in ashburn table
+      ansible.builtin.shell:
+        cmd: ip route replace default via {{ tunnel_gateway }} dev {{ tunnel_device }} table {{ rt_table_name }}
+        executable: /bin/bash
+      changed_when: true
+      tags: [outbound]
+
+    # ------------------------------------------------------------------
+    # Persistence
+    # ------------------------------------------------------------------
+    - name: Save iptables rules
+      ansible.builtin.command:
+        cmd: netfilter-persistent save
+      tags: [inbound, outbound]
+
+    - name: Install if-up.d persistence script
+      ansible.builtin.copy:
+        src: files/ashburn-routing-ifup.sh
+        dest: /etc/network/if-up.d/ashburn-routing
+        mode: '0755'
+        owner: root
+        group: root
+      tags: [outbound]
+
+    # ------------------------------------------------------------------
+    # Verification
+    # ------------------------------------------------------------------
+    - name: Show NAT rules
+      ansible.builtin.shell:
+        cmd: iptables -t nat -L -v -n --line-numbers 2>&1 | head -40
+        executable: /bin/bash
+      register: nat_rules
+      changed_when: false
+      tags: [inbound, outbound]
+
+    - name: Show mangle rules
+      ansible.builtin.shell:
+        cmd: iptables -t mangle -L -v -n 2>&1
+        executable: /bin/bash
+      register: mangle_rules
+      changed_when: false
+      tags: [outbound]
+
+    - name: Show policy routing
+      ansible.builtin.shell:
+        cmd: |
+          echo "=== ip rule ==="
+          ip rule show
+          echo ""
+          echo "=== ashburn routing table ==="
+          ip route show table {{ rt_table_name }} 2>/dev/null || echo "table empty"
+        executable: /bin/bash
+      register: routing_info
+      changed_when: false
+      tags: [outbound]
+
+    - name: Show loopback addresses
+      ansible.builtin.shell:
+        cmd: ip addr show lo | grep inet
+        executable: /bin/bash
+      register: lo_addrs
+      changed_when: false
+      tags: [inbound]
+
+    - name: Display verification
+      ansible.builtin.debug:
+        msg:
+          nat_rules: "{{ nat_rules.stdout_lines }}"
+          mangle_rules: "{{ mangle_rules.stdout_lines | default([]) }}"
+          routing: "{{ routing_info.stdout_lines | default([]) }}"
+          loopback: "{{ lo_addrs.stdout_lines }}"
+      tags: [inbound, outbound]
+
+    - name: Summary
+      ansible.builtin.debug:
+        msg: |
+          === Ashburn Relay Setup Complete ===
+          Ashburn IP: {{ ashburn_ip }} (on lo)
+          Inbound DNAT: {{ ashburn_ip }}:8001,9000-9025 → {{ kind_node_ip }}
+          Outbound SNAT: {{ kind_network }} sport 8001,9000-9025 → {{ ashburn_ip }}
+          Policy route: fwmark {{ fwmark }} → table {{ rt_table_name }} → via {{ tunnel_gateway }} dev {{ tunnel_device }}
+          Persisted: iptables-persistent + /etc/network/if-up.d/ashburn-routing
+
+          Next steps:
+          1. Verify inbound: ping {{ ashburn_ip }} from external host
+          2. Verify outbound: tcpdump on was-sw01 for src {{ ashburn_ip }}
+          3. Check validator gossip ContactInfo shows {{ ashburn_ip }} for all addresses

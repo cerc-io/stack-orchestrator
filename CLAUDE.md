@@ -114,6 +114,33 @@ One Kind cluster per host by design. Never request or expect separate clusters.
 - `helpers.py`: `create_cluster()`, etcd cleanup, kind operations
 - `cluster_info.py`: K8s resource generation (Deployment, Service, Ingress)
 
+## spec.yml: Config Layering
+
+**The compose file is the single source of truth for application defaults.**
+
+The configuration chain is: compose defaults → spec.yml overrides → container env.
+
+| Layer | Owns | Example |
+|-------|------|---------|
+| **compose file** | All env vars and their defaults | `RPC_PORT: ${RPC_PORT:-8899}` |
+| **spec.yml config:** | Deployment-specific overrides only | `GOSSIP_HOST: 10.0.0.1` |
+| **start script** | Reads env vars, no defaults of its own | `${RPC_PORT}` |
+
+**What goes in spec.yml config:**
+- Values unique to this deployment (hostnames, IPs, endpoints)
+- Secrets (`$generate:hex:32$`)
+- Overrides that differ from the compose default for this specific deployment
+
+**What does NOT go in spec.yml config:**
+- Application defaults (ports, log levels, intervals, feature flags)
+- Values that would be the same across all deployments of this stack
+- Every env var the service accepts — that's the compose file's job
+
+**Anti-pattern:** Dumping all env vars from the compose file into spec.yml.
+This creates three sources of truth (compose, spec, start script) that
+inevitably diverge. If someone changes the default in the compose file,
+spec.yml still has the old value and silently overrides it.
+
 ## Insights and Observations
 
 ### Design Principles

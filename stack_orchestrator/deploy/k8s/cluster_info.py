@@ -394,13 +394,43 @@ class ClusterInfo:
             result.append(pv)
         return result
 
+    def _any_service_has_host_network(self):
+        for pod_name in self.parsed_pod_yaml_map:
+            pod = self.parsed_pod_yaml_map[pod_name]
+            for svc in pod.get("services", {}).values():
+                if svc.get("network_mode") == "host":
+                    return True
+        return False
+
+    def _resolve_container_resources(
+        self, container_name: str, service_info: dict, global_resources: Resources
+    ) -> Resources:
+        """Resolve resources for a container using layered priority.
+
+        Priority: spec per-container > compose deploy.resources
+        > spec global > DEFAULT
+        """
+        # 1. Check spec.yml for per-container override
+        per_container = self.spec.get_container_resources_for(container_name)
+        if per_container:
+            return per_container
+
+        # 2. Check compose service_info for deploy.resources
+        deploy_block = service_info.get("deploy", {})
+        compose_resources = deploy_block.get("resources", {}) if deploy_block else {}
+        if compose_resources:
+            return Resources(compose_resources)
+
+        # 3. Fall back to spec.yml global (already resolved with DEFAULT fallback)
+        return global_resources
+
     # TODO: put things like image pull policy into an object-scope struct
     def get_deployment(self, image_pull_policy: Optional[str] = None):
         containers = []
         services = {}
-        resources = self.spec.get_container_resources()
-        if not resources:
-            resources = DEFAULT_CONTAINER_RESOURCES
+        global_resources = self.spec.get_container_resources()
+        if not global_resources:
+            global_resources = DEFAULT_CONTAINER_RESOURCES
         for pod_name in self.parsed_pod_yaml_map:
             pod = self.parsed_pod_yaml_map[pod_name]
             services = pod["services"]
@@ -483,6 +513,9 @@ class ClusterInfo:
                         )
                     )
                 ]
+                container_resources = self._resolve_container_resources(
+                    container_name, service_info, global_resources
+                )
                 container = client.V1Container(
                     name=container_name,
                     image=image_to_use,
@@ -501,7 +534,7 @@ class ClusterInfo:
                         if self.spec.get_capabilities()
                         else None,
                     ),
-                    resources=to_k8s_resource_requirements(resources),
+                    resources=to_k8s_resource_requirements(container_resources),
                 )
                 containers.append(container)
         volumes = volumes_for_pod_files(
@@ -568,6 +601,7 @@ class ClusterInfo:
                     )
                 )
 
+        use_host_network = self._any_service_has_host_network()
         template = client.V1PodTemplateSpec(
             metadata=client.V1ObjectMeta(annotations=annotations, labels=labels),
             spec=client.V1PodSpec(
@@ -577,6 +611,8 @@ class ClusterInfo:
                 affinity=affinity,
                 tolerations=tolerations,
                 runtime_class_name=self.spec.get_runtime_class(),
+                host_network=use_host_network or None,
+                dns_policy=("ClusterFirstWithHostNet" if use_host_network else None),
             ),
         )
         spec = client.V1DeploymentSpec(

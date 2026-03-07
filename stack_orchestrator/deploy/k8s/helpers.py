@@ -148,8 +148,16 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
     etcd_image = "gcr.io/etcd-development/etcd:v3.5.9"
     temp_dir = "/tmp/laconic-etcd-cleanup"
 
-    # Whitelist: prefixes to KEEP - everything else gets deleted
-    keep_prefixes = "/registry/secrets/caddy-system"
+    # Whitelist: prefixes to KEEP - everything else gets deleted.
+    # Must include core cluster resources (kubernetes service, kube-system
+    # secrets) or kindnet panics on restart — KUBERNETES_SERVICE_HOST is
+    # injected from the kubernetes ClusterIP service in default namespace.
+    keep_prefixes = [
+        "/registry/secrets/caddy-system",
+        "/registry/services/specs/default/kubernetes",
+        "/registry/services/endpoints/default/kubernetes",
+    ]
+    keep_prefixes_str = " ".join(keep_prefixes)
 
     # The etcd image is distroless (no shell). We extract the statically-linked
     # etcdctl binary and run it from alpine which has shell + jq support.
@@ -195,13 +203,21 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
         sleep 3
 
         # Use alpine with extracted etcdctl to run commands (alpine has shell + jq)
-        # Export caddy secrets
+        # Export whitelisted keys (caddy TLS certs + core cluster services)
         docker run --rm \
             -v {temp_dir}:/backup \
             --network container:laconic-etcd-cleanup \
-            $ALPINE_IMAGE sh -c \
-            '/backup/etcdctl get --prefix "{keep_prefixes}" -w json \
-                > /backup/kept.json 2>/dev/null || echo "{{}}" > /backup/kept.json'
+            $ALPINE_IMAGE sh -c '
+                apk add --no-cache jq >/dev/null 2>&1
+                echo "[]" > /backup/all-kvs.json
+                for prefix in {keep_prefixes_str}; do
+                    /backup/etcdctl get --prefix "$prefix" -w json 2>/dev/null \
+                        | jq ".kvs // []" >> /backup/all-kvs.json || true
+                done
+                jq -s "add" /backup/all-kvs.json \
+                    | jq "{{kvs: .}}" > /backup/kept.json 2>/dev/null \
+                    || echo "{{}}" > /backup/kept.json
+            '
 
         # Delete ALL registry keys
         docker run --rm \

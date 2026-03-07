@@ -22,7 +22,7 @@
 #   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml \
 #     -e apply=true
 #
-#   # Commit persisted config
+#   # Persist to startup-config (write memory)
 #   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml -e commit=true
 #
 #   # Rollback
@@ -73,23 +73,22 @@
           ansible.builtin.meta: end_play
 
     # ------------------------------------------------------------------
-    # Commit finalization
+    # Write memory (persist to startup-config)
     # ------------------------------------------------------------------
-    - name: Finalize pending session
+    - name: Write memory to persist config
       when: commit | bool
       block:
-        - name: Commit session and write memory
+        - name: Write memory
           arista.eos.eos_command:
             commands:
-              - "configure session {{ session_name }} commit"
               - write memory
-          register: commit_result
+          register: write_result
 
-        - name: Show commit result
+        - name: Show write result
           ansible.builtin.debug:
-            var: commit_result.stdout_lines
+            var: write_result.stdout_lines
 
-        - name: End play after commit
+        - name: End play after write
           ansible.builtin.meta: end_play
 
     # ------------------------------------------------------------------
@@ -222,10 +221,10 @@
       ansible.builtin.debug:
         var: session_diff.stdout_lines
 
-    - name: Commit with 5-minute auto-revert
+    - name: Commit session (checkpoint saved for rollback)
       arista.eos.eos_command:
         commands:
-          - "configure session {{ session_name }} commit timer 00:05:00"
+          - "configure session {{ session_name }} commit"
 
     # ------------------------------------------------------------------
     # Verify
@@ -247,8 +246,7 @@
     - name: Reminder
       ansible.builtin.debug:
         msg: |
-          === Config applied with 5-minute auto-revert ===
-          Session: {{ session_name }}
+          === Config applied (running-config only) ===
           Checkpoint: {{ checkpoint_name }}
 
           Changes applied:
@@ -257,9 +255,11 @@
              link {{ tunnel_local }}/31, ACL {{ tunnel_acl }}
           3. Route: {{ ashburn_ip }}/32 via {{ tunnel_remote }}
 
-          The config will auto-revert in 5 minutes unless committed.
-          Verify on the switch, then commit:
+          Config is in running-config but NOT saved to startup-config.
+          A reboot will revert to the previous state.
+
+          To persist (write memory):
             ansible-playbook ... -e commit=true
 
-          To revert immediately:
+          To rollback immediately:
             ansible-playbook ... -e rollback=true

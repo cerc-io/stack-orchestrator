@@ -22,7 +22,7 @@
 
   tasks:
     - name: Install ramdisk format service
-      copy:
+      ansible.builtin.copy:
         dest: /etc/systemd/system/format-ramdisk.service
         mode: "0644"
         content: |
@@ -43,7 +43,7 @@
       register: unit_file
 
     - name: Install ramdisk post-mount service
-      copy:
+      ansible.builtin.copy:
         dest: /etc/systemd/system/ramdisk-accounts.service
         mode: "0644"
         content: |
@@ -62,19 +62,19 @@
       register: accounts_unit
 
     - name: Ensure fstab entry uses nofail
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/fstab
         regexp: '^{{ ramdisk_device }}\s+{{ ramdisk_mount }}'
         line: '{{ ramdisk_device }} {{ ramdisk_mount }} xfs noatime,nodiratime,nofail,x-systemd.requires=format-ramdisk.service 0 0'
       register: fstab_entry
 
     - name: Reload systemd
-      systemd:
+      ansible.builtin.systemd:
         daemon_reload: true
       when: unit_file.changed or accounts_unit.changed or fstab_entry.changed
 
     - name: Enable ramdisk services
-      systemd:
+      ansible.builtin.systemd:
         name: "{{ item }}"
         enabled: true
       loop:
@@ -83,25 +83,26 @@
 
     # ---- apply now if ramdisk not mounted ------------------------------------
     - name: Check if ramdisk is mounted
-      command: mountpoint -q {{ ramdisk_mount }}
+      ansible.builtin.command: mountpoint -q {{ ramdisk_mount }}
       register: ramdisk_mounted
       failed_when: false
       changed_when: false
 
     - name: Format and mount ramdisk now
-      shell: |
+      ansible.builtin.shell: |
         mkfs.xfs -f {{ ramdisk_device }}
         mount {{ ramdisk_mount }}
         mkdir -p {{ accounts_dir }}
         chown solana:solana {{ ramdisk_mount }} {{ accounts_dir }}
+      changed_when: ramdisk_mounted.rc != 0
       when: ramdisk_mounted.rc != 0
 
     # ---- verify --------------------------------------------------------------
     - name: Verify ramdisk
-      command: df -hT {{ ramdisk_mount }}
+      ansible.builtin.command: df -hT {{ ramdisk_mount }}
       register: ramdisk_df
       changed_when: false
 
     - name: Show ramdisk status
-      debug:
+      ansible.builtin.debug:
         msg: "{{ ramdisk_df.stdout_lines }}"

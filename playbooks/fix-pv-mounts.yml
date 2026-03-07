@@ -39,7 +39,7 @@
 
   tasks:
     - name: Read current PV hostPaths
-      command: >
+      ansible.builtin.command: >
         kubectl get pv {{ kind_cluster }}-{{ item.name }}
         -o jsonpath='{.spec.hostPath.path}'
       register: current_paths
@@ -48,7 +48,7 @@
       changed_when: false
 
     - name: Build path comparison
-      set_fact:
+      ansible.builtin.set_fact:
         path_mismatches: "{{ current_paths.results | selectattr('stdout', 'ne', '') | rejectattr('stdout', 'equalto', item.host_path) | list }}"
         path_missing: "{{ current_paths.results | selectattr('stdout', 'equalto', '') | list }}"
       loop: "{{ volumes }}"
@@ -56,7 +56,7 @@
         label: "{{ item.name }}"
 
     - name: Show current vs expected paths
-      debug:
+      ansible.builtin.debug:
         msg: >-
           {{ item.item.name }}:
           current={{ item.stdout if item.stdout else 'NOT FOUND' }}
@@ -67,7 +67,7 @@
         label: "{{ item.item.name }}"
 
     - name: Check for mismatched PVs
-      fail:
+      ansible.builtin.fail:
         msg: >-
           PV {{ item.item.name }} has wrong hostPath:
           {{ item.stdout if item.stdout else 'NOT FOUND' }}
@@ -80,7 +80,7 @@
 
     # ---- Fix mode ---------------------------------------------------------
     - name: Delete stale PVCs
-      command: >
+      ansible.builtin.command: >
         kubectl delete pvc {{ kind_cluster }}-{{ item.item.name }}
         -n {{ k8s_namespace }} --timeout=60s
       when: fix | bool and item.stdout != item.item.host_path
@@ -88,9 +88,10 @@
       loop_control:
         label: "{{ item.item.name }}"
       failed_when: false
+      changed_when: true
 
     - name: Delete stale PVs
-      command: >
+      ansible.builtin.command: >
         kubectl delete pv {{ kind_cluster }}-{{ item.item.name }}
         --timeout=60s
       when: fix | bool and item.stdout != item.item.host_path
@@ -98,9 +99,10 @@
       loop_control:
         label: "{{ item.item.name }}"
       failed_when: false
+      changed_when: true
 
     - name: Create PVs with correct hostPaths
-      command: >
+      ansible.builtin.command: >
         kubectl apply -f -
       args:
         stdin: |
@@ -121,9 +123,10 @@
       loop: "{{ current_paths.results }}"
       loop_control:
         label: "{{ item.item.name }}"
+      changed_when: true
 
     - name: Create PVCs
-      command: >
+      ansible.builtin.command: >
         kubectl apply -f -
       args:
         stdin: |
@@ -144,10 +147,11 @@
       loop: "{{ current_paths.results }}"
       loop_control:
         label: "{{ item.item.name }}"
+      changed_when: true
 
     # ---- Final verify -----------------------------------------------------
     - name: Verify PV paths
-      command: >
+      ansible.builtin.command: >
         kubectl get pv {{ kind_cluster }}-{{ item.name }}
         -o jsonpath='{.spec.hostPath.path}'
       register: final_paths
@@ -156,7 +160,7 @@
       when: fix | bool
 
     - name: Assert all PV paths correct
-      assert:
+      ansible.builtin.assert:
         that: item.stdout == item.item.host_path
         fail_msg: "{{ item.item.name }}: {{ item.stdout }} != {{ item.item.host_path }}"
         success_msg: "{{ item.item.name }}: {{ item.stdout }} OK"

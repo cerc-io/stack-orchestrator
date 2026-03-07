@@ -34,7 +34,7 @@
 
   tasks:
     - name: Get current replica count
-      command: >
+      ansible.builtin.command: >
         kubectl get deployment {{ deployment_name }}
         -n {{ k8s_namespace }}
         -o jsonpath='{.spec.replicas}'
@@ -43,24 +43,26 @@
       changed_when: false
 
     - name: Scale deployment to 0
-      command: >
+      ansible.builtin.command: >
         kubectl scale deployment {{ deployment_name }}
         -n {{ k8s_namespace }} --replicas=0
+      changed_when: true
       when: current_replicas.stdout | default('0') | int > 0
 
     - name: Wait for pods to terminate
-      command: >
+      ansible.builtin.command: >
         kubectl get pods -n {{ k8s_namespace }}
         -l app={{ deployment_name }}
         -o jsonpath='{.items}'
       register: pods_gone
+      changed_when: false
       retries: 60
       delay: 5
       until: pods_gone.stdout == "[]" or pods_gone.stdout == ""
       when: current_replicas.stdout | default('0') | int > 0
 
     - name: Verify no agave processes in kind node
-      command: >
+      ansible.builtin.command: >
         docker exec {{ kind_cluster }}-control-plane
         pgrep -c agave-validator
       register: agave_procs
@@ -68,7 +70,7 @@
       changed_when: false
 
     - name: Fail if agave still running
-      fail:
+      ansible.builtin.fail:
         msg: >-
           agave-validator process still running inside kind node after
           pod termination. Do NOT restart the kind node — investigate
@@ -76,7 +78,7 @@
       when: agave_procs.rc == 0
 
     - name: Report stopped
-      debug:
+      ansible.builtin.debug:
         msg: >-
           Validator stopped. Replicas: {{ current_replicas.stdout | default('0') }} -> 0.
           No agave processes detected in kind node.
@@ -84,22 +86,24 @@
 
     # ---- optional: restart kind node -----------------------------------------
     - name: Restart kind node
-      command: docker restart {{ kind_cluster }}-control-plane
+      ansible.builtin.command: docker restart {{ kind_cluster }}-control-plane
+      changed_when: true
       when: restart_kind | bool
       timeout: 120
 
     - name: Wait for kind node ready
-      command: >
+      ansible.builtin.command: >
         kubectl get node {{ kind_cluster }}-control-plane
         -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
       register: node_ready
+      changed_when: false
       retries: 30
       delay: 10
       until: node_ready.stdout == "True"
       when: restart_kind | bool
 
     - name: Report restarted
-      debug:
+      ansible.builtin.debug:
         msg: >-
           Kind node restarted and ready.
           Deployment at 0 replicas — scale up when ready.

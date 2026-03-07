@@ -13,6 +13,8 @@
 - name: Biscayne agave-stack health check
   hosts: biscayne
   gather_facts: false
+  environment:
+    KUBECONFIG: /home/rix/.kube/config
 
   tasks:
     # ------------------------------------------------------------------

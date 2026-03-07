@@ -48,7 +48,7 @@
   tasks:
     # ---- step 1: scale to 0 ---------------------------------------------------
     - name: Get current replica count
-      command: >
+      ansible.builtin.command: >
         kubectl get deployment {{ deployment_name }}
         -n {{ k8s_namespace }}
         -o jsonpath='{.spec.replicas}'
@@ -57,7 +57,7 @@
       changed_when: false
 
     - name: Scale deployment to 0
-      command: >
+      ansible.builtin.command: >
         kubectl scale deployment {{ deployment_name }}
         -n {{ k8s_namespace }} --replicas=0
       when: current_replicas.stdout | default('0') | int > 0
@@ -65,7 +65,7 @@
 
     # ---- step 2: wait for pods to terminate ------------------------------------
     - name: Wait for pods to terminate
-      command: >
+      ansible.builtin.command: >
         kubectl get pods -n {{ k8s_namespace }}
         -l app={{ deployment_name }}
         -o jsonpath='{.items}'
@@ -77,7 +77,7 @@
       when: current_replicas.stdout | default('0') | int > 0
 
     - name: Verify no agave processes in kind node (io_uring safety check)
-      command: >
+      ansible.builtin.command: >
         docker exec {{ kind_cluster }}-control-plane
         pgrep -c agave-validator
       register: agave_procs
@@ -110,7 +110,7 @@
 
     # ---- step 5: download fresh snapshot ---------------------------------------
     - name: Verify aria2c installed
-      command: which aria2c
+      ansible.builtin.command: which aria2c
       changed_when: false
 
     - name: Copy snapshot script to remote
@@ -135,7 +135,9 @@
 
     # ---- step 6: verify snapshot accessible via PV -----------------------------
     - name: Get snapshot filename
-      ansible.builtin.shell: ls -1 {{ snapshot_dir }}/snapshot-*.tar.* | head -1 | xargs basename
+      ansible.builtin.shell: set -o pipefail && ls -1 {{ snapshot_dir }}/snapshot-*.tar.* | head -1 | xargs basename
+      args:
+        executable: /bin/bash
       register: snapshot_filename
       changed_when: false
 
@@ -176,7 +178,7 @@
 
     # ---- step 8: wait for pod running ------------------------------------------
     - name: Wait for pod to be running
-      command: >
+      ansible.builtin.command: >
         kubectl get pods -n {{ k8s_namespace }}
         -l app={{ deployment_name }}
         -o jsonpath='{.items[0].status.phase}'
@@ -188,7 +190,7 @@
 
     # ---- step 9: verify validator log ------------------------------------------
     - name: Wait for validator log file
-      command: >
+      ansible.builtin.command: >
         kubectl exec -n {{ k8s_namespace }}
         deployment/{{ deployment_name }}
         -c agave-validator -- test -f /data/log/validator.log

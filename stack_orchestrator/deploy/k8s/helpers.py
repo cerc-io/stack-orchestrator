@@ -440,8 +440,11 @@ def named_volumes_from_pod_files(parsed_pod_files):
     return named_volumes
 
 
-def get_kind_pv_bind_mount_path(volume_name: str, kind_mount_root: Optional[str] = None,
-                                host_path: Optional[str] = None):
+def get_kind_pv_bind_mount_path(
+    volume_name: str,
+    kind_mount_root: Optional[str] = None,
+    host_path: Optional[str] = None,
+):
     if kind_mount_root and host_path and host_path.startswith(kind_mount_root):
         rel = os.path.relpath(host_path, kind_mount_root)
         return f"/mnt/{rel}"
@@ -596,6 +599,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
         volume_definitions.append(
             f"  - hostPath: {kind_mount_root}\n"
             f"    containerPath: /mnt\n"
+            f"    propagation: HostToContainer\n"
         )
         mount_root_emitted = True
 
@@ -658,8 +662,10 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                                         volume_host_path_map[volume_name],
                                         deployment_dir,
                                     )
-                                    # Skip individual extraMount if covered by mount root
-                                    if mount_root_emitted and str(host_path).startswith(kind_mount_root):
+                                    # Skip if covered by mount root
+                                    if mount_root_emitted and str(host_path).startswith(
+                                        kind_mount_root
+                                    ):
                                         continue
                                     container_path = get_kind_pv_bind_mount_path(
                                         volume_name

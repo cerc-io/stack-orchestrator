@@ -100,6 +100,9 @@
               iptables -t mangle -D PREROUTING -s {{ kind_network }} \
                 -p tcp --sport {{ gossip_port }} \
                 -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+              iptables -t mangle -D PREROUTING -s {{ kind_network }} \
+                -p tcp --dport {{ gossip_port }} \
+                -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
             executable: /bin/bash
           changed_when: false
 
@@ -218,7 +221,7 @@
         cmd: ip addr add {{ ashburn_ip }}/32 dev lo
       register: add_ip
       changed_when: add_ip.rc == 0
-      failed_when: "add_ip.rc != 0 and 'RTNETLINK answers: File exists' not in add_ip.stderr"
+      failed_when: "add_ip.rc != 0 and 'already assigned' not in add_ip.stderr and 'File exists' not in add_ip.stderr"
       tags: [inbound]
 
     - name: Add DNAT rules (inserted before DOCKER chain)
@@ -261,6 +264,7 @@
             "-p udp -s {{ kind_network }} --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }}" \
             "-p udp -s {{ kind_network }} --sport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j MARK --set-mark {{ fwmark }}" \
             "-p tcp -s {{ kind_network }} --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }}" \
+            "-p tcp -s {{ kind_network }} --dport {{ gossip_port }} -j MARK --set-mark {{ fwmark }}" \
           ; do
             if ! iptables -t mangle -C PREROUTING $rule 2>/dev/null; then
               iptables -t mangle -A PREROUTING $rule

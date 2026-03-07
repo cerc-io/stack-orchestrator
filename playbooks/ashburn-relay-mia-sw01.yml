@@ -11,22 +11,33 @@
 # This tunnel carries traffic over the ISP uplink, completely independent
 # of the DoubleZero overlay.
 #
-# Inbound:  was-sw01 → backbone Et4/1 → mia-sw01 → Tunnel100 → biscayne
-# Outbound: biscayne → Tunnel100 → mia-sw01 → backbone Et4/1 → was-sw01
+# Outbound routing uses VRF isolation instead of PBR. Tunnel100 lives in
+# VRF "relay" whose only default route points to was-sw01 via the backbone.
+# Traffic decapsulated from Tunnel100 (src 137.239.194.65) routes via VRF
+# relay's table, which sends it to was-sw01 where the source IP is
+# legitimate. No PBR or traffic-policy needed — the TCAM profile
+# (tunnel-interface-acl) doesn't support either on tunnel interfaces.
+#
+# Inbound:  was-sw01 → backbone Et4/1 → mia-sw01 → egress-vrf relay →
+#           Tunnel100 → biscayne
+# Outbound: biscayne → Tunnel100 (VRF relay) → egress-vrf default →
+#           backbone Et4/1 → was-sw01
 #
 # Usage:
 #   # Pre-flight checks only (safe, read-only)
-#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml
+#   ansible-playbook -i inventory-switches/switches.yml playbooks/ashburn-relay-mia-sw01.yml
 #
 #   # Apply config (after reviewing pre-flight output)
-#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml \
+#   ansible-playbook -i inventory-switches/switches.yml playbooks/ashburn-relay-mia-sw01.yml \
 #     -e apply=true
 #
 #   # Persist to startup-config (write memory)
-#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml -e commit=true
+#   ansible-playbook -i inventory-switches/switches.yml playbooks/ashburn-relay-mia-sw01.yml \
+#     -e commit=true
 #
 #   # Rollback
-#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml -e rollback=true
+#   ansible-playbook -i inventory-switches/switches.yml playbooks/ashburn-relay-mia-sw01.yml \
+#     -e rollback=true
 
 - name: Configure mia-sw01 validator relay tunnel
   hosts: all
@@ -46,6 +57,8 @@
     tunnel_acl: SEC-VALIDATOR-100-IN
     # Loopback for tunnel source (so it's always up)
     tunnel_source_lo: Loopback101
+    # VRF for outbound routing — isolates tunnel traffic from default table
+    tunnel_vrf: relay
     backbone_interface: Ethernet4/1
     backbone_peer: 172.16.1.188         # was-sw01 backbone IP
     session_name: validator-tunnel
@@ -130,6 +143,19 @@
         var: lo_config.stdout_lines
       tags: [preflight]
 
+    - name: Check VRF state
+      arista.eos.eos_command:
+        commands:
+          - "show vrf {{ tunnel_vrf }}"
+      register: vrf_check
+      tags: [preflight]
+      ignore_errors: true
+
+    - name: Display VRF state
+      ansible.builtin.debug:
+        var: vrf_check.stdout_lines
+      tags: [preflight]
+
     - name: Check route for ashburn IP
       arista.eos.eos_command:
         commands:
@@ -150,19 +176,21 @@
           Review the output above:
           1. Does {{ tunnel_interface }} already exist?
           2. Does {{ tunnel_source_lo }} already exist?
-          3. Current route for {{ ashburn_ip }}
+          3. Does VRF {{ tunnel_vrf }} already exist?
+          4. Current route for {{ ashburn_ip }}
 
           Planned config:
+          - VRF {{ tunnel_vrf }}: isolates tunnel outbound traffic
           - {{ tunnel_source_lo }}: {{ tunnel_source_ip }}/32
           - {{ tunnel_interface }}: GRE src {{ tunnel_source_ip }} dst {{ biscayne_ip }}
-            link address {{ tunnel_local }}/31
+            VRF {{ tunnel_vrf }}, link address {{ tunnel_local }}/31
             ACL {{ tunnel_acl }}: permit src {{ ashburn_ip }}, permit src {{ tunnel_remote }}
-          - Route: {{ ashburn_ip }}/32 via {{ tunnel_remote }}
-          - Outbound default for tunnel traffic: 0.0.0.0/0 via {{ backbone_interface }} {{ backbone_peer }}
+          - Inbound:  {{ ashburn_ip }}/32 egress-vrf {{ tunnel_vrf }} via {{ tunnel_remote }}
+          - Outbound: 0.0.0.0/0 in VRF {{ tunnel_vrf }} egress-vrf default via {{ backbone_peer }}
 
           To apply config:
-            ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml \
-              -e apply=true
+            ansible-playbook -i inventory-switches/switches.yml \
+              playbooks/ashburn-relay-mia-sw01.yml -e apply=true
       tags: [preflight]
 
     - name: End play if not applying
@@ -170,7 +198,7 @@
       ansible.builtin.meta: end_play
 
     # ------------------------------------------------------------------
-    # Apply config via session with 5-minute auto-revert
+    # Apply config via session (checkpoint saved for rollback)
     # ------------------------------------------------------------------
     - name: Save checkpoint
       arista.eos.eos_command:
@@ -185,6 +213,10 @@
           - command: "interface {{ tunnel_source_lo }}"
           - command: "ip address {{ tunnel_source_ip }}/32"
           - command: exit
+          # VRF for tunnel outbound isolation
+          - command: "vrf instance {{ tunnel_vrf }}"
+          - command: exit
+          - command: "ip routing vrf {{ tunnel_vrf }}"
           # ACL for the new tunnel — we control this, DZ agent won't touch it
           - command: "ip access-list {{ tunnel_acl }}"
           - command: "counters per-entry"
@@ -193,21 +225,20 @@
           - command: "30 permit ip host {{ tunnel_remote }} any"
           - command: "100 deny ip any any"
           - command: exit
-          # New GRE tunnel
+          # GRE tunnel in VRF relay
           - command: "interface {{ tunnel_interface }}"
           - command: "mtu 9216"
+          - command: "vrf {{ tunnel_vrf }}"
           - command: "ip address {{ tunnel_local }}/31"
           - command: "ip access-group {{ tunnel_acl }} in"
           - command: "tunnel mode gre"
           - command: "tunnel source {{ tunnel_source_ip }}"
           - command: "tunnel destination {{ biscayne_ip }}"
           - command: exit
-          # Inbound: route ashburn IP to biscayne via the new tunnel
-          - command: "ip route {{ ashburn_ip }}/32 {{ tunnel_remote }}"
-          # Outbound: biscayne's traffic exits via backbone to was-sw01.
-          # Use a specific route for the backbone peer so tunnel traffic
-          # can reach was-sw01 without a blanket default route.
-          # (The switch's actual default route is via Et1/1 ISP uplink.)
+          # Outbound: default route in VRF relay → backbone → was-sw01
+          - command: "ip route vrf {{ tunnel_vrf }} 0.0.0.0/0 egress-vrf default {{ backbone_peer }}"
+          # Inbound: route ashburn IP from default VRF into tunnel via VRF relay
+          - command: "ip route {{ ashburn_ip }}/32 egress-vrf {{ tunnel_vrf }} {{ tunnel_remote }}"
 
     - name: Show session diff
       arista.eos.eos_command:
@@ -235,8 +266,9 @@
           - "show running-config interfaces {{ tunnel_source_lo }}"
           - "show running-config interfaces {{ tunnel_interface }}"
           - "show ip access-lists {{ tunnel_acl }}"
+          - "show vrf {{ tunnel_vrf }}"
           - "show ip route {{ ashburn_ip }}"
-          - "show interfaces {{ tunnel_interface }} status"
+          - "show ip route vrf {{ tunnel_vrf }} 0.0.0.0/0"
       register: verify
 
     - name: Display verification
@@ -251,9 +283,11 @@
 
           Changes applied:
           1. {{ tunnel_source_lo }}: {{ tunnel_source_ip }}/32
-          2. {{ tunnel_interface }}: GRE tunnel to {{ biscayne_ip }}
+          2. VRF {{ tunnel_vrf }}: outbound isolation for tunnel traffic
+          3. {{ tunnel_interface }}: GRE tunnel to {{ biscayne_ip }} in VRF {{ tunnel_vrf }}
              link {{ tunnel_local }}/31, ACL {{ tunnel_acl }}
-          3. Route: {{ ashburn_ip }}/32 via {{ tunnel_remote }}
+          4. Inbound:  {{ ashburn_ip }}/32 egress-vrf {{ tunnel_vrf }} via {{ tunnel_remote }}
+          5. Outbound: 0.0.0.0/0 in VRF {{ tunnel_vrf }} egress-vrf default via {{ backbone_peer }}
 
           Config is in running-config but NOT saved to startup-config.
           A reboot will revert to the previous state.

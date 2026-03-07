@@ -36,6 +36,10 @@ for rule in \
 done
 
 # Outbound mangle (fwmark for policy routing)
+# sport rules: gossip/repair/TVU traffic FROM validator well-known ports
+# dport rule: ip_echo TCP TO entrypoint port 8001 (ephemeral sport,
+#   so sport-based rules miss it; without this the entrypoint sees
+#   biscayne's real IP and probes that instead of the Ashburn relay IP)
 for rule in \
   "-p udp -s {{ kind_network }} --sport {{ gossip_port }} \
     -j MARK --set-mark {{ fwmark }}" \
@@ -43,6 +47,8 @@ for rule in \
     --sport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} \
     -j MARK --set-mark {{ fwmark }}" \
   "-p tcp -s {{ kind_network }} --sport {{ gossip_port }} \
+    -j MARK --set-mark {{ fwmark }}" \
+  "-p tcp -s {{ kind_network }} --dport {{ gossip_port }} \
     -j MARK --set-mark {{ fwmark }}" \
 ; do
   if ! iptables -t mangle -C PREROUTING $rule 2>/dev/null; then

@@ -1,22 +1,18 @@
 ---
-# Configure laconic-mia-sw01 for validator traffic relay (inbound + outbound)
+# Configure laconic-mia-sw01 for validator traffic relay via dedicated GRE tunnel
 #
-# Outbound: Redirects outbound traffic from biscayne (src 137.239.194.65)
-# arriving via the doublezero0 GRE tunnel to was-sw01 via the backbone,
-# preventing BCP38 drops at mia-sw01's ISP uplink.
+# Creates a NEW GRE tunnel (Tunnel100) separate from the DoubleZero-managed
+# Tunnel500. The DZ agent controls Tunnel500's ACL (SEC-USER-500-IN) and
+# overwrites any custom entries, so we cannot use it for validator traffic
+# with src 137.239.194.65.
 #
-# Inbound: Routes traffic destined to 137.239.194.65 from the default VRF
-# to biscayne via Tunnel500 in vrf1. Without this, mia-sw01 sends
-# 137.239.194.65 out the ISP uplink back to was-sw01 (routing loop).
+# Tunnel100 uses mia-sw01's free LAN IP (209.42.167.137) as the tunnel
+# source, and biscayne's public IP (186.233.184.235) as the destination.
+# This tunnel carries traffic over the ISP uplink, completely independent
+# of the DoubleZero overlay.
 #
-# Approach: The existing per-tunnel ACL (SEC-USER-500-IN) controls what
-# traffic enters vrf1 from Tunnel500. We add 137.239.194.65 to the ACL
-# and add a default route in vrf1 via egress-vrf default pointing to
-# was-sw01's backbone IP. For inbound, an inter-VRF static route in the
-# default VRF forwards 137.239.194.65/32 to biscayne via Tunnel500.
-#
-# The other vrf1 tunnels (502, 504, 505) have their own ACLs that only
-# permit their specific source IPs, so the default route won't affect them.
+# Inbound:  was-sw01 → backbone Et4/1 → mia-sw01 → Tunnel100 → biscayne
+# Outbound: biscayne → Tunnel100 → mia-sw01 → backbone Et4/1 → was-sw01
 #
 # Usage:
 #   # Pre-flight checks only (safe, read-only)
@@ -32,22 +28,28 @@
 #   # Rollback
 #   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml -e rollback=true
 
-- name: Configure mia-sw01 outbound validator redirect
+- name: Configure mia-sw01 validator relay tunnel
   hosts: mia-sw01
   gather_facts: false
 
   vars:
     ashburn_ip: 137.239.194.65
+    biscayne_ip: 186.233.184.235
     apply: false
     commit: false
     rollback: false
-    tunnel_interface: Tunnel500
-    tunnel_vrf: vrf1
-    tunnel_acl: SEC-USER-500-IN
-    tunnel_nexthop: 169.254.7.7  # biscayne's end of the Tunnel500 /31
+    # New tunnel — not managed by DZ agent
+    tunnel_interface: Tunnel100
+    tunnel_source_ip: 209.42.167.137    # mia-sw01 free LAN IP
+    tunnel_local: 169.254.100.0         # /31 link, mia-sw01 side
+    tunnel_remote: 169.254.100.1        # /31 link, biscayne side
+    tunnel_acl: SEC-VALIDATOR-100-IN
+    # Loopback for tunnel source (so it's always up)
+    tunnel_source_lo: Loopback101
     backbone_interface: Ethernet4/1
-    session_name: validator-outbound
-    checkpoint_name: pre-validator-outbound
+    backbone_peer: 172.16.1.188         # was-sw01 backbone IP
+    session_name: validator-tunnel
+    checkpoint_name: pre-validator-tunnel
 
   tasks:
     # ------------------------------------------------------------------
@@ -93,43 +95,52 @@
     # ------------------------------------------------------------------
     # Pre-flight checks (always run unless commit/rollback)
     # ------------------------------------------------------------------
-    - name: Show tunnel interface config
+    - name: Check existing tunnel interfaces
+      arista.eos.eos_command:
+        commands:
+          - show ip interface brief | include Tunnel
+      register: existing_tunnels
+      tags: [preflight]
+
+    - name: Display existing tunnels
+      ansible.builtin.debug:
+        var: existing_tunnels.stdout_lines
+      tags: [preflight]
+
+    - name: Check if Tunnel100 already exists
       arista.eos.eos_command:
         commands:
           - "show running-config interfaces {{ tunnel_interface }}"
       register: tunnel_config
       tags: [preflight]
 
-    - name: Display tunnel config
+    - name: Display Tunnel100 config
       ansible.builtin.debug:
         var: tunnel_config.stdout_lines
       tags: [preflight]
 
-    - name: Show tunnel ACL
+    - name: Check if Loopback101 already exists
       arista.eos.eos_command:
         commands:
-          - "show running-config | section ip access-list {{ tunnel_acl }}"
-      register: acl_config
+          - "show running-config interfaces {{ tunnel_source_lo }}"
+      register: lo_config
       tags: [preflight]
 
-    - name: Display tunnel ACL
+    - name: Display Loopback101 config
       ansible.builtin.debug:
-        var: acl_config.stdout_lines
+        var: lo_config.stdout_lines
       tags: [preflight]
 
-    - name: Check VRF routing
+    - name: Check route for ashburn IP
       arista.eos.eos_command:
         commands:
-          - "show ip route vrf {{ tunnel_vrf }} 0.0.0.0/0"
-          - "show ip route vrf {{ tunnel_vrf }} {{ backbone_peer }}"
-          - "show ip route {{ backbone_peer }}"
           - "show ip route {{ ashburn_ip }}"
-      register: vrf_routing
+      register: route_check
       tags: [preflight]
 
-    - name: Display VRF routing check
+    - name: Display route check
       ansible.builtin.debug:
-        var: vrf_routing.stdout_lines
+        var: route_check.stdout_lines
       tags: [preflight]
 
     - name: Pre-flight summary
@@ -138,9 +149,17 @@
         msg: |
           === Pre-flight complete ===
           Review the output above:
-          1. {{ tunnel_interface }} ACL ({{ tunnel_acl }}): does it permit src {{ ashburn_ip }}?
-          2. {{ tunnel_vrf }} default route: does one exist?
-          3. Backbone nexthop {{ backbone_peer }}: reachable in default VRF?
+          1. Does {{ tunnel_interface }} already exist?
+          2. Does {{ tunnel_source_lo }} already exist?
+          3. Current route for {{ ashburn_ip }}
+
+          Planned config:
+          - {{ tunnel_source_lo }}: {{ tunnel_source_ip }}/32
+          - {{ tunnel_interface }}: GRE src {{ tunnel_source_ip }} dst {{ biscayne_ip }}
+            link address {{ tunnel_local }}/31
+            ACL {{ tunnel_acl }}: permit src {{ ashburn_ip }}, permit src {{ tunnel_remote }}
+          - Route: {{ ashburn_ip }}/32 via {{ tunnel_remote }}
+          - Outbound default for tunnel traffic: 0.0.0.0/0 via {{ backbone_interface }} {{ backbone_peer }}
 
           To apply config:
             ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml \
@@ -163,18 +182,33 @@
       arista.eos.eos_command:
         commands:
           - command: "configure session {{ session_name }}"
-          # Permit Ashburn IP through the tunnel ACL (insert before deny)
-          - command: "ip access-list {{ tunnel_acl }}"
-          - command: "45 permit ip host {{ ashburn_ip }} any"
+          # Loopback for tunnel source (always-up interface)
+          - command: "interface {{ tunnel_source_lo }}"
+          - command: "ip address {{ tunnel_source_ip }}/32"
           - command: exit
-          # Default route in vrf1 via backbone to was-sw01 (egress-vrf default)
-          # Safe because per-tunnel ACLs already restrict what enters vrf1
-          - command: "ip route vrf {{ tunnel_vrf }} 0.0.0.0/0 egress-vrf default {{ backbone_interface }} {{ backbone_peer }}"
-          # Inbound: route traffic for ashburn IP from default VRF to biscayne via tunnel.
-          # Without this, mia-sw01 sends 137.239.194.65 out the ISP uplink → routing loop.
-          # NOTE: nexthop only, no interface — EOS silently drops cross-VRF routes that
-          # specify a tunnel interface (accepts in config but never installs in RIB).
-          - command: "ip route {{ ashburn_ip }}/32 egress-vrf {{ tunnel_vrf }} {{ tunnel_nexthop }}"
+          # ACL for the new tunnel — we control this, DZ agent won't touch it
+          - command: "ip access-list {{ tunnel_acl }}"
+          - command: "counters per-entry"
+          - command: "10 permit icmp host {{ tunnel_remote }} any"
+          - command: "20 permit ip host {{ ashburn_ip }} any"
+          - command: "30 permit ip host {{ tunnel_remote }} any"
+          - command: "100 deny ip any any"
+          - command: exit
+          # New GRE tunnel
+          - command: "interface {{ tunnel_interface }}"
+          - command: "mtu 9216"
+          - command: "ip address {{ tunnel_local }}/31"
+          - command: "ip access-group {{ tunnel_acl }} in"
+          - command: "tunnel mode gre"
+          - command: "tunnel source {{ tunnel_source_ip }}"
+          - command: "tunnel destination {{ biscayne_ip }}"
+          - command: exit
+          # Inbound: route ashburn IP to biscayne via the new tunnel
+          - command: "ip route {{ ashburn_ip }}/32 {{ tunnel_remote }}"
+          # Outbound: biscayne's traffic exits via backbone to was-sw01.
+          # Use a specific route for the backbone peer so tunnel traffic
+          # can reach was-sw01 without a blanket default route.
+          # (The switch's actual default route is via Et1/1 ISP uplink.)
 
     - name: Show session diff
       arista.eos.eos_command:
@@ -199,9 +233,11 @@
     - name: Verify config
       arista.eos.eos_command:
         commands:
-          - "show running-config | section ip access-list {{ tunnel_acl }}"
-          - "show ip route vrf {{ tunnel_vrf }} 0.0.0.0/0"
+          - "show running-config interfaces {{ tunnel_source_lo }}"
+          - "show running-config interfaces {{ tunnel_interface }}"
+          - "show ip access-lists {{ tunnel_acl }}"
           - "show ip route {{ ashburn_ip }}"
+          - "show interfaces {{ tunnel_interface }} status"
       register: verify
 
     - name: Display verification
@@ -216,14 +252,14 @@
           Checkpoint: {{ checkpoint_name }}
 
           Changes applied:
-          1. ACL {{ tunnel_acl }}: added "45 permit ip host {{ ashburn_ip }} any"
-          2. Default route in {{ tunnel_vrf }}: 0.0.0.0/0 egress-vrf default {{ backbone_interface }} {{ backbone_peer }}
-          3. Inbound route: {{ ashburn_ip }}/32 egress-vrf {{ tunnel_vrf }} {{ tunnel_nexthop }}
+          1. {{ tunnel_source_lo }}: {{ tunnel_source_ip }}/32
+          2. {{ tunnel_interface }}: GRE tunnel to {{ biscayne_ip }}
+             link {{ tunnel_local }}/31, ACL {{ tunnel_acl }}
+          3. Route: {{ ashburn_ip }}/32 via {{ tunnel_remote }}
 
           The config will auto-revert in 5 minutes unless committed.
           Verify on the switch, then commit:
-            configure session {{ session_name }} commit
-            write memory
+            ansible-playbook ... -e commit=true
 
           To revert immediately:
             ansible-playbook ... -e rollback=true

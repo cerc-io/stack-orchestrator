@@ -2,7 +2,12 @@
 # Configure biscayne for Ashburn validator relay
 #
 # Sets up inbound DNAT (137.239.194.65 → kind node) and outbound SNAT +
-# policy routing (validator traffic → doublezero0 → mia-sw01 → was-sw01).
+# policy routing (validator traffic → GRE tunnel → mia-sw01 → was-sw01).
+#
+# Uses a dedicated GRE tunnel to mia-sw01 (NOT the DoubleZero-managed
+# doublezero0/Tunnel500). The tunnel source is biscayne's public IP
+# (186.233.184.235) and the destination is mia-sw01's free LAN IP
+# (209.42.167.137).
 #
 # Usage:
 #   # Full setup (inbound + outbound)
@@ -28,8 +33,12 @@
     ashburn_ip: 137.239.194.65
     kind_node_ip: 172.20.0.2
     kind_network: 172.20.0.0/16
-    tunnel_gateway: 169.254.7.6
-    tunnel_device: doublezero0
+    # New dedicated GRE tunnel (not DZ-managed doublezero0)
+    tunnel_device: gre-ashburn
+    tunnel_local_ip: 169.254.100.1      # biscayne end of /31
+    tunnel_remote_ip: 169.254.100.0     # mia-sw01 end of /31
+    tunnel_src: 186.233.184.235         # biscayne public IP
+    tunnel_dst: 209.42.167.137          # mia-sw01 free LAN IP
     fwmark: 100
     rt_table_name: ashburn
     rt_table_id: 100
@@ -49,6 +58,15 @@
           ansible.builtin.command:
             cmd: ip addr del {{ ashburn_ip }}/32 dev lo
           failed_when: false
+          changed_when: false
+
+        - name: Remove GRE tunnel
+          ansible.builtin.shell:
+            cmd: |
+              ip link set {{ tunnel_device }} down 2>/dev/null || true
+              ip tunnel del {{ tunnel_device }} 2>/dev/null || true
+            executable: /bin/bash
+          changed_when: false
 
         - name: Remove inbound DNAT rules
           ansible.builtin.shell:
@@ -58,6 +76,7 @@
               iptables -t nat -D PREROUTING -p tcp -d {{ ashburn_ip }} --dport {{ gossip_port }} -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} 2>/dev/null || true
               iptables -t nat -D PREROUTING -p udp -d {{ ashburn_ip }} --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j DNAT --to-destination {{ kind_node_ip }} 2>/dev/null || true
             executable: /bin/bash
+          changed_when: false
 
         - name: Remove outbound mangle rules
           ansible.builtin.shell:
@@ -67,11 +86,13 @@
               iptables -t mangle -D PREROUTING -s {{ kind_network }} -p udp --sport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
               iptables -t mangle -D PREROUTING -s {{ kind_network }} -p tcp --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
             executable: /bin/bash
+          changed_when: false
 
         - name: Remove outbound SNAT rule
           ansible.builtin.shell:
             cmd: iptables -t nat -D POSTROUTING -m mark --mark {{ fwmark }} -j SNAT --to-source {{ ashburn_ip }} 2>/dev/null || true
             executable: /bin/bash
+          changed_when: false
 
         - name: Remove policy routing
           ansible.builtin.shell:
@@ -79,10 +100,12 @@
               ip rule del fwmark {{ fwmark }} table {{ rt_table_name }} 2>/dev/null || true
               ip route del default table {{ rt_table_name }} 2>/dev/null || true
             executable: /bin/bash
+          changed_when: false
 
         - name: Persist cleaned iptables
           ansible.builtin.command:
             cmd: netfilter-persistent save
+          changed_when: true
 
         - name: Remove if-up.d script
           ansible.builtin.file:
@@ -91,7 +114,7 @@
 
         - name: Rollback complete
           ansible.builtin.debug:
-            msg: "Ashburn relay rules removed. Old SHRED-RELAY DNAT (64.92.84.81:20000) is still in place."
+            msg: "Ashburn relay rules removed."
 
         - name: End play after rollback
           ansible.builtin.meta: end_play
@@ -99,13 +122,13 @@
     # ------------------------------------------------------------------
     # Pre-flight checks
     # ------------------------------------------------------------------
-    - name: Check doublezero0 tunnel is up
+    - name: Check tunnel destination is reachable
       ansible.builtin.command:
-        cmd: ip link show {{ tunnel_device }}
-      register: tunnel_status
+        cmd: ping -c 1 -W 2 {{ tunnel_dst }}
+      register: tunnel_dst_ping
       changed_when: false
-      failed_when: "'UP' not in tunnel_status.stdout"
-      tags: [preflight, inbound, outbound]
+      failed_when: tunnel_dst_ping.rc != 0
+      tags: [preflight, outbound]
 
     - name: Check kind node is reachable
       ansible.builtin.command:
@@ -114,23 +137,6 @@
       changed_when: false
       failed_when: kind_ping.rc != 0
       tags: [preflight, inbound]
-
-    - name: Verify Docker preserves source ports (5 sec sample)
-      ansible.builtin.shell:
-        cmd: |
-          set -o pipefail
-          # Check if any validator traffic is flowing with original sport
-          timeout 5 tcpdump -i br-cf46a62ab5b2 -nn -c 5 'udp src port 8001 or udp src portrange 9000-9025' 2>&1 | tail -5 || echo "No validator traffic captured in 5s (validator may not be running)"
-        executable: /bin/bash
-      register: sport_check
-      changed_when: false
-      failed_when: false
-      tags: [preflight]
-
-    - name: Show sport preservation check
-      ansible.builtin.debug:
-        var: sport_check.stdout_lines
-      tags: [preflight]
 
     - name: Show existing iptables nat rules
       ansible.builtin.shell:
@@ -144,6 +150,44 @@
       ansible.builtin.debug:
         var: existing_nat.stdout_lines
       tags: [preflight]
+
+    - name: Check for existing GRE tunnel
+      ansible.builtin.shell:
+        cmd: ip tunnel show {{ tunnel_device }} 2>&1 || echo "tunnel does not exist"
+        executable: /bin/bash
+      register: existing_tunnel
+      changed_when: false
+      tags: [preflight]
+
+    - name: Display existing tunnel
+      ansible.builtin.debug:
+        var: existing_tunnel.stdout_lines
+      tags: [preflight]
+
+    # ------------------------------------------------------------------
+    # GRE tunnel setup
+    # ------------------------------------------------------------------
+    - name: Create GRE tunnel
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          if ip tunnel show {{ tunnel_device }} 2>/dev/null; then
+            echo "tunnel already exists"
+          else
+            ip tunnel add {{ tunnel_device }} mode gre local {{ tunnel_src }} remote {{ tunnel_dst }} ttl 64
+            ip addr add {{ tunnel_local_ip }}/31 dev {{ tunnel_device }}
+            ip link set {{ tunnel_device }} up mtu 8972
+            echo "tunnel created"
+          fi
+        executable: /bin/bash
+      register: tunnel_result
+      changed_when: "'created' in tunnel_result.stdout"
+      tags: [outbound]
+
+    - name: Show tunnel result
+      ansible.builtin.debug:
+        var: tunnel_result.stdout_lines
+      tags: [outbound]
 
     # ------------------------------------------------------------------
     # Inbound: DNAT for 137.239.194.65 → kind node
@@ -186,7 +230,7 @@
       tags: [inbound]
 
     # ------------------------------------------------------------------
-    # Outbound: fwmark + SNAT + policy routing
+    # Outbound: fwmark + SNAT + policy routing via new tunnel
     # ------------------------------------------------------------------
     - name: Mark outbound validator traffic (mangle PREROUTING)
       ansible.builtin.shell:
@@ -218,7 +262,6 @@
       ansible.builtin.shell:
         cmd: |
           set -o pipefail
-          # Check if rule already exists
           if iptables -t nat -C POSTROUTING -m mark --mark {{ fwmark }} -j SNAT --to-source {{ ashburn_ip }} 2>/dev/null; then
             echo "SNAT rule already exists"
           else
@@ -256,9 +299,9 @@
       changed_when: "'added' in rule_result.stdout"
       tags: [outbound]
 
-    - name: Add default route via doublezero0 in ashburn table
+    - name: Add default route via GRE tunnel in ashburn table
       ansible.builtin.shell:
-        cmd: ip route replace default via {{ tunnel_gateway }} dev {{ tunnel_device }} table {{ rt_table_name }}
+        cmd: ip route replace default via {{ tunnel_remote_ip }} dev {{ tunnel_device }} table {{ rt_table_name }}
         executable: /bin/bash
       changed_when: true
       tags: [outbound]
@@ -269,11 +312,12 @@
     - name: Save iptables rules
       ansible.builtin.command:
         cmd: netfilter-persistent save
+      changed_when: true
       tags: [inbound, outbound]
 
     - name: Install if-up.d persistence script
-      ansible.builtin.copy:
-        src: files/ashburn-routing-ifup.sh
+      ansible.builtin.template:
+        src: files/ashburn-routing-ifup.sh.j2
         dest: /etc/network/if-up.d/ashburn-routing
         mode: '0755'
         owner: root
@@ -283,6 +327,22 @@
     # ------------------------------------------------------------------
     # Verification
     # ------------------------------------------------------------------
+    - name: Show tunnel status
+      ansible.builtin.shell:
+        cmd: |
+          echo "=== tunnel ==="
+          ip tunnel show {{ tunnel_device }}
+          echo ""
+          echo "=== tunnel addr ==="
+          ip addr show {{ tunnel_device }}
+          echo ""
+          echo "=== ping tunnel peer ==="
+          ping -c 1 -W 2 {{ tunnel_remote_ip }} 2>&1 || echo "tunnel peer unreachable"
+        executable: /bin/bash
+      register: tunnel_status
+      changed_when: false
+      tags: [outbound]
+
     - name: Show NAT rules
       ansible.builtin.shell:
         cmd: iptables -t nat -L -v -n --line-numbers 2>&1 | head -40
@@ -323,6 +383,7 @@
     - name: Display verification
       ansible.builtin.debug:
         msg:
+          tunnel: "{{ tunnel_status.stdout_lines | default([]) }}"
           nat_rules: "{{ nat_rules.stdout_lines }}"
           mangle_rules: "{{ mangle_rules.stdout_lines | default([]) }}"
           routing: "{{ routing_info.stdout_lines | default([]) }}"
@@ -334,12 +395,14 @@
         msg: |
           === Ashburn Relay Setup Complete ===
           Ashburn IP: {{ ashburn_ip }} (on lo)
+          GRE tunnel: {{ tunnel_device }} ({{ tunnel_src }} → {{ tunnel_dst }})
+            link: {{ tunnel_local_ip }}/31 ↔ {{ tunnel_remote_ip }}/31
           Inbound DNAT: {{ ashburn_ip }}:8001,9000-9025 → {{ kind_node_ip }}
           Outbound SNAT: {{ kind_network }} sport 8001,9000-9025 → {{ ashburn_ip }}
-          Policy route: fwmark {{ fwmark }} → table {{ rt_table_name }} → via {{ tunnel_gateway }} dev {{ tunnel_device }}
-          Persisted: iptables-persistent + /etc/network/if-up.d/ashburn-routing
+          Policy route: fwmark {{ fwmark }} → table {{ rt_table_name }} → via {{ tunnel_remote_ip }} dev {{ tunnel_device }}
 
           Next steps:
-          1. Verify inbound: ping {{ ashburn_ip }} from external host
-          2. Verify outbound: tcpdump on was-sw01 for src {{ ashburn_ip }}
-          3. Check validator gossip ContactInfo shows {{ ashburn_ip }} for all addresses
+          1. Apply mia-sw01 config (Tunnel100 must be up on both sides)
+          2. Verify tunnel: ping {{ tunnel_remote_ip }}
+          3. Test from kelce: echo test | nc -u -w 1 137.239.194.65 9000
+          4. Check validator gossip ContactInfo shows {{ ashburn_ip }} for all addresses

@@ -1,0 +1,28 @@
+#!/bin/bash
+# /etc/network/if-up.d/ashburn-routing
+# Restore GRE tunnel and policy routing for Ashburn validator relay
+# after reboot or interface up. Acts on eno1 (public interface) since
+# the GRE tunnel depends on it.
+
+[ "$IFACE" = "eno1" ] || exit 0
+
+# Create GRE tunnel if it doesn't exist
+if ! ip tunnel show {{ tunnel_device }} 2>/dev/null; then
+    ip tunnel add {{ tunnel_device }} mode gre local {{ tunnel_src }} remote {{ tunnel_dst }} ttl 64
+    ip addr add {{ tunnel_local_ip }}/31 dev {{ tunnel_device }}
+    ip link set {{ tunnel_device }} up mtu 8972
+fi
+
+# Ensure rt_tables entry exists
+grep -q '^{{ rt_table_id }} {{ rt_table_name }}$' /etc/iproute2/rt_tables || \
+    echo "{{ rt_table_id }} {{ rt_table_name }}" >> /etc/iproute2/rt_tables
+
+# Add policy rule
+ip rule show | grep -q 'fwmark 0x64 lookup {{ rt_table_name }}' || \
+    ip rule add fwmark {{ fwmark }} table {{ rt_table_name }}
+
+# Add default route via mia-sw01 through GRE tunnel
+ip route replace default via {{ tunnel_remote_ip }} dev {{ tunnel_device }} table {{ rt_table_name }}
+
+# Add Ashburn IP to loopback
+ip addr show lo | grep -q '{{ ashburn_ip }}' || ip addr add {{ ashburn_ip }}/32 dev lo

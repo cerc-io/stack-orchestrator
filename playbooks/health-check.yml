@@ -26,10 +26,12 @@
       register: kind_clusters
       changed_when: false
       failed_when: kind_clusters.rc != 0 or kind_clusters.stdout_lines | length == 0
+      tags: [always]
 
     - name: Set cluster name fact
       ansible.builtin.set_fact:
         kind_cluster: "{{ kind_clusters.stdout_lines[0] }}"
+      tags: [always]
 
     - name: Discover agave namespace
       ansible.builtin.shell:
@@ -41,10 +43,12 @@
       register: ns_result
       changed_when: false
       failed_when: ns_result.stdout_lines | length == 0
+      tags: [always]
 
     - name: Set namespace fact
       ansible.builtin.set_fact:
         agave_ns: "{{ ns_result.stdout_lines[0] }}"
+      tags: [always]
 
     - name: Get pod name
       ansible.builtin.shell:
@@ -55,15 +59,18 @@
         executable: /bin/bash
       register: pod_result
       changed_when: false
-      failed_when: pod_result.stdout | trim == ''
+      failed_when: false
+      tags: [always]
 
     - name: Set pod fact
       ansible.builtin.set_fact:
-        agave_pod: "{{ pod_result.stdout | trim }}"
+        agave_pod: "{{ pod_result.stdout | default('') | trim }}"
+      tags: [always]
 
     - name: Show discovered resources
       ansible.builtin.debug:
-        msg: "cluster={{ kind_cluster }}  ns={{ agave_ns }}  pod={{ agave_pod }}"
+        msg: "cluster={{ kind_cluster }}  ns={{ agave_ns }}  pod={{ agave_pod | default('none') }}"
+      tags: [always]
 
     # ------------------------------------------------------------------
     # Pod status
@@ -226,13 +233,59 @@
       failed_when: false
       tags: [storage]
 
+    - name: Check host mount chain
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          findmnt -n -o TARGET,SOURCE,FSTYPE,PROPAGATION
+          /srv/solana /srv/solana/ramdisk /srv/kind/solana 2>&1
+        executable: /bin/bash
+      register: host_mounts
+      changed_when: false
+      failed_when: false
+      tags: [storage, mounts]
+
+    - name: Check kind node mount visibility
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          echo "=== /mnt/solana contents ==="
+          docker exec {{ kind_cluster }}-control-plane ls /mnt/solana/
+          echo "=== /mnt/solana filesystem ==="
+          docker exec {{ kind_cluster }}-control-plane df -T /mnt/solana
+          echo "=== /mnt/solana/ramdisk filesystem ==="
+          docker exec {{ kind_cluster }}-control-plane df -T /mnt/solana/ramdisk 2>/dev/null || echo "ramdisk not visible"
+          echo "=== /mnt/solana/snapshots ==="
+          docker exec {{ kind_cluster }}-control-plane ls /mnt/solana/snapshots/ 2>/dev/null || echo "snapshots not visible"
+          echo "=== /mnt/solana/ledger ==="
+          docker exec {{ kind_cluster }}-control-plane ls /mnt/solana/ledger/ 2>/dev/null | head -5 || echo "ledger not visible"
+        executable: /bin/bash
+      register: kind_mounts
+      changed_when: false
+      failed_when: false
+      tags: [storage, mounts]
+
+    - name: Check mount propagation
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          findmnt -n -o PROPAGATION /srv/kind
+        executable: /bin/bash
+      register: mount_propagation
+      changed_when: false
+      failed_when: false
+      tags: [storage, mounts]
+
     - name: Show storage status
       ansible.builtin.debug:
         msg:
           ramdisk: "{{ ramdisk_df.stdout_lines | default(['not mounted']) }}"
           zfs: "{{ zfs_list.stdout_lines | default([]) }}"
           zvol_io: "{{ zvol_io.stdout_lines | default([]) }}"
-      tags: [storage]
+          host_mounts: "{{ host_mounts.stdout_lines | default([]) }}"
+          kind_mounts: "{{ kind_mounts.stdout_lines | default([]) }}"
+          mount_propagation: "{{ mount_propagation.stdout | default('unknown') }}"
+      tags: [storage, mounts]
 
     # ------------------------------------------------------------------
     # System resources

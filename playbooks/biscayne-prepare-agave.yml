@@ -1,0 +1,243 @@
+---
+# Prepare biscayne host for agave validator
+#
+# Deployment layers:
+#   1. Base system    — Docker, ZFS (out of scope)
+#   2. Prepare kind   — /srv/kind directory exists (ZFS dataset, out of scope)
+#   3. laconic-so     — Installs kind, mounts /srv/kind → /mnt in kind node
+#   4. Prepare agave  — THIS PLAYBOOK
+#   5. Deploy agave   — laconic-so deploys agave-stack into kind
+#
+# Agave requires three things from the host that kind doesn't provide:
+#
+#   Invariant 1: /srv/solana is XFS on a zvol (not ZFS)
+#     Why: agave uses io_uring for async I/O. io_uring workers deadlock on
+#     ZFS datasets (D-state in dsl_dir_tempreserve_space). XFS on a zvol
+#     (block device) works fine. This is why the data lives on a zvol, not
+#     a ZFS dataset.
+#     Persisted as: fstab entry mounting /dev/zvol/.../solana at /srv/solana
+#
+#   Invariant 2: /srv/solana/ramdisk is XFS on /dev/ram0 (600G ramdisk)
+#     Why: agave accounts must be on ramdisk for performance. /dev/ram0
+#     loses its filesystem on reboot, so it must be reformatted before
+#     mounting each boot.
+#     Persisted as: format-ramdisk.service (mkfs before mount) + fstab entry
+#
+#   Invariant 3: /srv/kind/solana is an rbind of /srv/solana
+#     Why: kind mounts /srv/kind → /mnt inside the kind node. PVs reference
+#     /mnt/solana/*. Without the rbind, /srv/kind/solana resolves to the ZFS
+#     dataset (biscayne/DATA/srv/kind), not the zvol — violating invariant 1.
+#     Persisted as: fstab entry with x-systemd.requires=zfs-mount.service
+#       (must mount AFTER ZFS, or ZFS overlay at /srv/kind hides it)
+#
+# This playbook checks each invariant and only acts if it's not met.
+# Idempotent — safe to run multiple times.
+#
+# Usage:
+#   ansible-playbook playbooks/biscayne-prepare-agave.yml
+#
+- name: Configure OS-level services for agave
+  hosts: all
+  gather_facts: false
+  become: true
+  vars:
+    ramdisk_device: /dev/ram0
+    zvol_device: /dev/zvol/biscayne/DATA/volumes/solana
+    solana_dir: /srv/solana
+    ramdisk_mount: /srv/solana/ramdisk
+    kind_solana_dir: /srv/kind/solana
+    accounts_dir: /srv/solana/ramdisk/accounts
+    deployment_dir: /srv/deployments/agave
+
+  tasks:
+    # ---- systemd units ----------------------------------------------------------
+    - name: Install ramdisk format service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/format-ramdisk.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Format /dev/ram0 as XFS for Solana accounts
+          DefaultDependencies=no
+          Before=local-fs.target
+          After=systemd-modules-load.service
+          ConditionPathExists={{ ramdisk_device }}
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStart=/sbin/mkfs.xfs -f {{ ramdisk_device }}
+
+          [Install]
+          WantedBy=local-fs.target
+      register: unit_file
+
+    - name: Install ramdisk post-mount service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/ramdisk-accounts.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Create Solana accounts directory on ramdisk
+          After=srv-solana-ramdisk.mount
+          Requires=srv-solana-ramdisk.mount
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStart=/bin/bash -c 'mkdir -p {{ accounts_dir }} && chown solana:solana {{ ramdisk_mount }} {{ accounts_dir }}'
+
+          [Install]
+          WantedBy=multi-user.target
+      register: accounts_unit
+
+    # ---- fstab entries ----------------------------------------------------------
+    - name: Ensure zvol fstab entry
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^\S+\s+{{ solana_dir }}\s'
+        line: '{{ zvol_device }} {{ solana_dir }} xfs defaults 0 2'
+      register: fstab_zvol
+
+    - name: Ensure ramdisk fstab entry
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^{{ ramdisk_device }}\s+{{ ramdisk_mount }}\s'
+        line: '{{ ramdisk_device }} {{ ramdisk_mount }} xfs noatime,nodiratime,nofail,x-systemd.requires=format-ramdisk.service 0 0'
+      register: fstab_ramdisk
+
+    # rbind /srv/solana to /srv/kind/solana AFTER zfs-mount.service and ramdisk.
+    # Without this ordering, ZFS overlay at /srv/kind hides the bind mount.
+    - name: Ensure kind bind mount fstab entry
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^\S+\s+{{ kind_solana_dir }}\s'
+        line: '{{ solana_dir }} {{ kind_solana_dir }} none rbind,nofail,x-systemd.requires=zfs-mount.service,x-systemd.requires=srv-solana-ramdisk.mount 0 0'
+      register: fstab_kind
+
+    # Remove stale fstab entries from previous attempts (direct zvol mount,
+    # separate ramdisk mount at /srv/kind/solana/ramdisk)
+    - name: Remove stale kind zvol fstab entry
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^{{ zvol_device }}\s+{{ kind_solana_dir }}\s'
+        state: absent
+      register: fstab_stale_zvol
+
+    - name: Remove stale kind ramdisk fstab entry
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^\S+\s+{{ kind_solana_dir }}/ramdisk\s'
+        state: absent
+      register: fstab_stale_ramdisk
+
+    # ---- reload and enable ------------------------------------------------------
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: >-
+        unit_file.changed or accounts_unit.changed or
+        fstab_zvol.changed or fstab_ramdisk.changed or fstab_kind.changed or
+        fstab_stale_zvol.changed or fstab_stale_ramdisk.changed
+
+    - name: Enable ramdisk services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+      loop:
+        - format-ramdisk.service
+        - ramdisk-accounts.service
+
+    # ---- apply now if ramdisk not mounted --------------------------------------
+    - name: Check if ramdisk is mounted
+      ansible.builtin.command: mountpoint -q {{ ramdisk_mount }}
+      register: ramdisk_mounted
+      failed_when: false
+      changed_when: false
+
+    - name: Format and mount ramdisk now
+      ansible.builtin.shell: |
+        mkfs.xfs -f {{ ramdisk_device }}
+        mount {{ ramdisk_mount }}
+        mkdir -p {{ accounts_dir }}
+        chown solana:solana {{ ramdisk_mount }} {{ accounts_dir }}
+      changed_when: ramdisk_mounted.rc != 0
+      when: ramdisk_mounted.rc != 0
+
+    # ---- apply kind bind mount now if not correct ------------------------------
+    - name: Check kind bind mount
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          findmnt -n -o SOURCE {{ kind_solana_dir }} | grep -q '{{ solana_dir }}'
+        executable: /bin/bash
+      register: kind_mount_check
+      failed_when: false
+      changed_when: false
+
+    - name: Unmount stale kind mounts
+      ansible.builtin.shell:
+        cmd: |
+          umount {{ kind_solana_dir }}/ramdisk 2>/dev/null || true
+          umount {{ kind_solana_dir }} 2>/dev/null || true
+        executable: /bin/bash
+      changed_when: kind_mount_check.rc != 0
+      when: kind_mount_check.rc != 0
+
+    - name: Apply kind bind mount now
+      ansible.posix.mount:
+        path: "{{ kind_solana_dir }}"
+        src: "{{ solana_dir }}"
+        fstype: none
+        opts: rbind
+        state: mounted
+      when: kind_mount_check.rc != 0
+
+    # ---- verify -----------------------------------------------------------------
+    - name: Verify ramdisk is XFS
+      ansible.builtin.shell:
+        cmd: set -o pipefail && df -T {{ ramdisk_mount }} | grep -q xfs
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Verify zvol is XFS
+      ansible.builtin.shell:
+        cmd: set -o pipefail && df -T {{ solana_dir }} | grep -q xfs
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Verify kind bind mount contents
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          ls {{ kind_solana_dir }}/ledger {{ kind_solana_dir }}/snapshots
+          {{ kind_solana_dir }}/ramdisk/accounts 2>&1 | head -5
+        executable: /bin/bash
+      register: kind_mount_verify
+      changed_when: false
+
+    # Assert the kind node sees XFS (zvol), not ZFS. If this fails, kind
+    # needs a restart or laconic-so needs the HostToContainer propagation fix.
+    - name: Read cluster-id from deployment
+      ansible.builtin.shell:
+        cmd: set -o pipefail && grep '^cluster-id:' {{ deployment_dir }}/deployment.yml | awk '{print $2}'
+        executable: /bin/bash
+      register: cluster_id_result
+      changed_when: false
+
+    - name: Verify kind node sees XFS at /mnt/solana
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          docker exec {{ cluster_id_result.stdout }}-control-plane
+          stat -f -c '%T' /mnt/solana | grep -q xfs
+        executable: /bin/bash
+      register: kind_fstype
+      changed_when: false
+      failed_when: false
+
+    - name: Show status
+      ansible.builtin.debug:
+        msg:
+          kind_mount: "{{ kind_mount_verify.stdout_lines }}"
+          kind_fstype: "{{ 'xfs (correct)' if kind_fstype.rc == 0 else 'NOT XFS — kind restart required' }}"

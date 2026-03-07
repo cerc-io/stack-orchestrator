@@ -172,17 +172,21 @@
       tags: [deploy, preflight]
 
     - name: Verify ramdisk is xfs (not the underlying ZFS)
-      ansible.builtin.shell: set -o pipefail && df -T {{ ramdisk_mount }} | grep -q xfs
+      ansible.builtin.shell:
+        cmd: set -o pipefail && df -T {{ ramdisk_mount }} | grep -q xfs
+        executable: /bin/bash
       register: ramdisk_type
       failed_when: ramdisk_type.rc != 0
       changed_when: false
       tags: [deploy, preflight]
 
     - name: Verify ramdisk visible inside kind node
-      ansible.builtin.shell: >
-        set -o pipefail &&
-        docker exec {{ kind_cluster }}-control-plane
-        df -T /mnt/solana/ramdisk 2>/dev/null | grep -q xfs
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          docker exec {{ kind_cluster }}-control-plane
+          df -T /mnt/solana/ramdisk 2>/dev/null | grep -q xfs
+        executable: /bin/bash
       register: kind_ramdisk_check
       failed_when: kind_ramdisk_check.rc != 0
       changed_when: false

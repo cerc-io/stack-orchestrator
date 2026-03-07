@@ -1,5 +1,30 @@
 # Biscayne Agave Runbook
 
+## Deployment Layers
+
+Operations on biscayne follow a strict layering. Each layer assumes the layers
+below it are correct. Playbooks belong to exactly one layer.
+
+| Layer | What | Playbooks |
+|-------|------|-----------|
+| 1. Base system | Docker, ZFS, packages | Out of scope (manual/PXE) |
+| 2. Prepare kind | `/srv/kind` exists (ZFS dataset) | None needed (ZFS handles it) |
+| 3. Install kind | `laconic-so deployment start` creates kind cluster, mounts `/srv/kind` → `/mnt` in kind node | `biscayne-redeploy.yml` (deploy tags) |
+| 4. Prepare agave | Host storage for agave: zvol, ramdisk, rbind into `/srv/kind/solana` | `biscayne-prepare-agave.yml` |
+| 5. Deploy agave | Deploy agave-stack into kind, snapshot download, scale up | `biscayne-redeploy.yml` (snapshot/verify tags), `biscayne-recover.yml` |
+
+**Layer 4 invariants** (asserted by `biscayne-prepare-agave.yml`):
+- `/srv/solana` is XFS on a zvol — agave uses io_uring which deadlocks on ZFS
+- `/srv/solana/ramdisk` is XFS on `/dev/ram0` — accounts must be on ramdisk
+- `/srv/kind/solana` is an rbind of `/srv/solana` — makes the zvol visible to kind at `/mnt/solana`
+
+These invariants are checked at runtime and persisted to fstab/systemd so they
+survive reboot. They are agave's requirements reaching into the boot sequence,
+not base system concerns.
+
+**Cross-cutting**: `health-check.yml` (read-only diagnostics), `biscayne-stop.yml`
+(layer 5 — graceful shutdown), `fix-pv-mounts.yml` (layer 5 — PV repair).
+
 ## Cluster Operations
 
 ### Shutdown Order
@@ -36,7 +61,7 @@ Correct shutdown sequence:
 The accounts directory must be on a ramdisk for performance. `/dev/ram0` loses its
 filesystem on reboot and must be reformatted before mounting.
 
-**Boot ordering is handled by systemd units** (installed by `biscayne-boot.yml`):
+**Boot ordering is handled by systemd units** (installed by `biscayne-prepare-agave.yml`):
 - `format-ramdisk.service`: runs `mkfs.xfs -f /dev/ram0` before `local-fs.target`
 - fstab entry: mounts `/dev/ram0` at `/srv/solana/ramdisk` with
   `x-systemd.requires=format-ramdisk.service`
@@ -46,11 +71,12 @@ filesystem on reboot and must be reformatted before mounting.
 These units run before docker, so the kind node's bind mounts always see the
 ramdisk. **No manual intervention is needed after reboot.**
 
-**Mount propagation**: The kind node bind-mounts `/srv/kind` → `/mnt`. Because
-the ramdisk is mounted at `/srv/solana/ramdisk` and symlinked/overlaid through
-`/srv/kind/solana/ramdisk`, mount propagation makes it visible inside the kind
-node at `/mnt/solana/ramdisk` without restarting the kind node. **Do NOT restart
-the kind node just to pick up a ramdisk mount.**
+**Mount propagation**: The kind node bind-mounts `/srv/kind` → `/mnt` at container
+start. New mounts under `/srv/kind` on the host (like the rbind at
+`/srv/kind/solana`) do NOT propagate into the kind node because kind's default
+mount propagation is `None`. A kind node restart is required to pick up new host
+mounts. **TODO**: Fix laconic-so to set `propagation: HostToContainer` on the
+kind-mount-root extraMount, which would make host mounts propagate automatically.
 
 ### KUBECONFIG
 

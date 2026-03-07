@@ -4,6 +4,7 @@ all:
       ansible_host: biscayne.vaasl.io
       ansible_user: rix
       ansible_become: true
+      ansible_python_interpreter: /usr/bin/python3.12
 
       # DoubleZero identities
       dz_identity: 3Bw6v7EruQvTwoY79h2QjQCs2KBQFzSneBdYUbcXK1Tr

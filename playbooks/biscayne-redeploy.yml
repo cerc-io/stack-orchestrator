@@ -1,0 +1,321 @@
+---
+# Redeploy agave-stack on biscayne with aria2c snapshot pre-download
+#
+# The validator's built-in downloader fetches snapshots at ~18 MB/s (single
+# connection). snapshot-download.py uses aria2c with 16 parallel connections to
+# saturate available bandwidth, cutting 90+ min downloads to ~10 min.
+#
+# Flow:
+#   1. [teardown]  Delete k8s namespace (preserve kind cluster)
+#   2. [wipe]      Conditionally clear ledger / accounts / old snapshots
+#   3. [deploy]    laconic-so deployment start, then immediately scale to 0
+#   4. [snapshot]  Download snapshot via aria2c to host bind mount
+#   5. [snapshot]  Verify snapshot visible inside kind node
+#   6. [deploy]    Scale validator back to 1
+#   7. [verify]    Wait for pod Running, check logs + RPC health
+#
+# The validator cannot run during snapshot download — it would lock/use the
+# snapshot files. laconic-so creates the cluster AND deploys the pod in one
+# shot, so we scale to 0 immediately after deploy, download, then scale to 1.
+#
+# Usage:
+#   # Standard redeploy (download snapshot, preserve accounts + ledger)
+#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml
+#
+#   # Full wipe (accounts + ledger) — slow rebuild
+#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml \
+#     -e wipe_accounts=true -e wipe_ledger=true
+#
+#   # Skip snapshot download (use existing)
+#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml \
+#     -e skip_snapshot=true
+#
+#   # Pass extra args to snapshot-download.py
+#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml \
+#     -e 'snapshot_args=--version 2.2 --min-download-speed 50'
+#
+#   # Snapshot only (no teardown/deploy)
+#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml \
+#     --tags snapshot
+#
+- name: Redeploy agave validator on biscayne
+  hosts: all
+  gather_facts: false
+  environment:
+    KUBECONFIG: /home/rix/.kube/config
+  vars:
+    deployment_dir: /srv/deployments/agave
+    laconic_so: /home/rix/.local/bin/laconic-so
+    kind_cluster: laconic-70ce4c4b47e23b85
+    k8s_namespace: "laconic-{{ kind_cluster }}"
+    deployment_name: "{{ kind_cluster }}-deployment"
+    snapshot_dir: /srv/solana/snapshots
+    ledger_dir: /srv/solana/ledger
+    accounts_dir: /srv/solana/ramdisk/accounts
+    ramdisk_mount: /srv/solana/ramdisk
+    ramdisk_device: /dev/ram0
+    snapshot_script_local: "{{ playbook_dir }}/../scripts/snapshot-download.py"
+    snapshot_script: /tmp/snapshot-download.py
+    # Flags — non-destructive by default
+    wipe_accounts: false
+    wipe_ledger: false
+    skip_snapshot: false
+    snapshot_args: ""
+
+  tasks:
+    # ---- teardown: graceful stop, then delete namespace ----------------------
+    #
+    # IMPORTANT: Scale to 0 first, wait for agave to exit cleanly.
+    # Deleting the namespace while agave is running causes io_uring/ZFS
+    # deadlock (unkillable D-state threads). See CLAUDE.md.
+    - name: Scale deployment to 0 (graceful stop)
+      command: >
+        kubectl scale deployment {{ deployment_name }}
+        -n {{ k8s_namespace }} --replicas=0
+      register: pre_teardown_scale
+      failed_when: false
+      tags: [teardown]
+
+    - name: Wait for agave to exit
+      command: >
+        kubectl get pods -n {{ k8s_namespace }}
+        -l app={{ deployment_name }}
+        -o jsonpath='{.items}'
+      register: pre_teardown_pods
+      retries: 60
+      delay: 5
+      until: pre_teardown_pods.stdout == "[]" or pre_teardown_pods.stdout == "" or pre_teardown_pods.rc != 0
+      failed_when: false
+      when: pre_teardown_scale.rc == 0
+      tags: [teardown]
+
+    - name: Delete deployment namespace
+      command: >
+        kubectl delete namespace {{ k8s_namespace }} --timeout=120s
+      register: ns_delete
+      failed_when: false
+      tags: [teardown]
+
+    - name: Wait for namespace to terminate
+      command: >
+        kubectl get namespace {{ k8s_namespace }}
+        -o jsonpath='{.status.phase}'
+      register: ns_status
+      retries: 30
+      delay: 5
+      until: ns_status.rc != 0
+      failed_when: false
+      when: ns_delete.rc == 0
+      tags: [teardown]
+
+    # ---- wipe: opt-in data cleanup ------------------------------------------
+    - name: Wipe ledger data
+      shell: rm -rf {{ ledger_dir }}/*
+      become: true
+      when: wipe_ledger | bool
+      tags: [wipe]
+
+    - name: Wipe accounts ramdisk (umount + mkfs.xfs + mount)
+      shell: |
+        mountpoint -q {{ ramdisk_mount }} && umount {{ ramdisk_mount }} || true
+        mkfs.xfs -f {{ ramdisk_device }}
+        mount {{ ramdisk_mount }}
+        mkdir -p {{ accounts_dir }}
+        chown solana:solana {{ ramdisk_mount }} {{ accounts_dir }}
+      become: true
+      when: wipe_accounts | bool
+      tags: [wipe]
+
+    - name: Clean old snapshots (keep newest full + incremental)
+      shell: |
+        cd {{ snapshot_dir }} || exit 0
+        newest=$(ls -t snapshot-*.tar.* 2>/dev/null | head -1)
+        if [ -n "$newest" ]; then
+          newest_inc=$(ls -t incremental-snapshot-*.tar.* 2>/dev/null | head -1)
+          find . -maxdepth 1 -name '*.tar.*' \
+            ! -name "$newest" \
+            ! -name "${newest_inc:-__none__}" \
+            -delete
+        fi
+      become: true
+      when: not skip_snapshot | bool
+      tags: [wipe]
+
+    # ---- preflight: verify ramdisk and mounts before deploy ------------------
+    - name: Verify ramdisk is mounted
+      command: mountpoint -q {{ ramdisk_mount }}
+      register: ramdisk_check
+      failed_when: ramdisk_check.rc != 0
+      changed_when: false
+      tags: [deploy, preflight]
+
+    - name: Verify ramdisk is xfs (not the underlying ZFS)
+      shell: df -T {{ ramdisk_mount }} | grep -q xfs
+      register: ramdisk_type
+      failed_when: ramdisk_type.rc != 0
+      changed_when: false
+      tags: [deploy, preflight]
+
+    - name: Verify ramdisk visible inside kind node
+      shell: >
+        docker exec {{ kind_cluster }}-control-plane
+        df -T /mnt/solana/ramdisk 2>/dev/null | grep -q xfs
+      register: kind_ramdisk_check
+      failed_when: kind_ramdisk_check.rc != 0
+      changed_when: false
+      tags: [deploy, preflight]
+
+    # ---- deploy: bring up cluster, scale to 0 immediately -------------------
+    - name: Verify kind-config.yml has unified mount root
+      command: "grep -c 'containerPath: /mnt$' {{ deployment_dir }}/kind-config.yml"
+      register: mount_root_check
+      failed_when: mount_root_check.stdout | int < 1
+      tags: [deploy]
+
+    - name: Start deployment (creates kind cluster + deploys pod)
+      command: "{{ laconic_so }} deployment --dir {{ deployment_dir }} start"
+      timeout: 1200
+      tags: [deploy]
+
+    - name: Wait for deployment to exist
+      command: >
+        kubectl get deployment {{ deployment_name }}
+        -n {{ k8s_namespace }}
+        -o jsonpath='{.metadata.name}'
+      register: deploy_exists
+      retries: 30
+      delay: 10
+      until: deploy_exists.rc == 0
+      tags: [deploy]
+
+    - name: Scale validator to 0 (stop before snapshot download)
+      command: >
+        kubectl scale deployment {{ deployment_name }}
+        -n {{ k8s_namespace }} --replicas=0
+      tags: [deploy]
+
+    - name: Wait for pods to terminate
+      command: >
+        kubectl get pods -n {{ k8s_namespace }}
+        -l app={{ deployment_name }}
+        -o jsonpath='{.items}'
+      register: pods_gone
+      retries: 30
+      delay: 5
+      until: pods_gone.stdout == "[]" or pods_gone.stdout == ""
+      failed_when: false
+      tags: [deploy]
+
+    # ---- snapshot: download via aria2c, verify in kind node ------------------
+    - name: Verify aria2c installed
+      command: which aria2c
+      changed_when: false
+      when: not skip_snapshot | bool
+      tags: [snapshot]
+
+    - name: Copy snapshot script to remote
+      copy:
+        src: "{{ snapshot_script_local }}"
+        dest: "{{ snapshot_script }}"
+        mode: "0755"
+      when: not skip_snapshot | bool
+      tags: [snapshot]
+
+    - name: Verify kind node mounts
+      command: >
+        docker exec {{ kind_cluster }}-control-plane
+        ls /mnt/solana/snapshots/
+      register: kind_mount_check
+      tags: [snapshot]
+
+    - name: Download snapshot via aria2c
+      shell: >
+        python3 {{ snapshot_script }}
+        -o {{ snapshot_dir }}
+        {{ snapshot_args }}
+      become: true
+      register: snapshot_result
+      when: not skip_snapshot | bool
+      timeout: 3600
+      tags: [snapshot]
+
+    - name: Show snapshot download result
+      debug:
+        msg: "{{ snapshot_result.stdout_lines | default(['skipped']) }}"
+      tags: [snapshot]
+
+    - name: Verify snapshot visible inside kind node
+      shell: >
+        docker exec {{ kind_cluster }}-control-plane
+        ls -lhS /mnt/solana/snapshots/*.tar.* 2>/dev/null | head -5
+      register: kind_snapshot_check
+      failed_when: kind_snapshot_check.stdout == ""
+      when: not skip_snapshot | bool
+      tags: [snapshot]
+
+    - name: Show snapshot files in kind node
+      debug:
+        msg: "{{ kind_snapshot_check.stdout_lines | default(['skipped']) }}"
+      when: not skip_snapshot | bool
+      tags: [snapshot]
+
+    # ---- deploy (cont): scale validator back up with snapshot ----------------
+    - name: Scale validator to 1 (start with downloaded snapshot)
+      command: >
+        kubectl scale deployment {{ deployment_name }}
+        -n {{ k8s_namespace }} --replicas=1
+      tags: [deploy]
+
+    # ---- verify: confirm validator is running --------------------------------
+    - name: Wait for pod to be running
+      command: >
+        kubectl get pods -n {{ k8s_namespace }}
+        -o jsonpath='{.items[0].status.phase}'
+      register: pod_status
+      retries: 60
+      delay: 10
+      until: pod_status.stdout == "Running"
+      tags: [verify]
+
+    - name: Verify unified mount inside kind node
+      command: "docker exec {{ kind_cluster }}-control-plane ls /mnt/solana/"
+      register: mount_check
+      tags: [verify]
+
+    - name: Show mount contents
+      debug:
+        msg: "{{ mount_check.stdout_lines }}"
+      tags: [verify]
+
+    - name: Check validator log file is being written
+      command: >
+        kubectl exec -n {{ k8s_namespace }}
+        deployment/{{ deployment_name }}
+        -c agave-validator -- test -f /data/log/validator.log
+      retries: 12
+      delay: 10
+      until: log_file_check.rc == 0
+      register: log_file_check
+      failed_when: false
+      tags: [verify]
+
+    - name: Check RPC health
+      uri:
+        url: http://127.0.0.1:8899/health
+        return_content: true
+      register: rpc_health
+      retries: 6
+      delay: 10
+      until: rpc_health.status == 200
+      failed_when: false
+      delegate_to: "{{ inventory_hostname }}"
+      tags: [verify]
+
+    - name: Report status
+      debug:
+        msg: >-
+          Deployment complete.
+          Log: {{ 'writing' if log_file_check.rc == 0 else 'not yet created' }}.
+          RPC: {{ rpc_health.content | default('not responding') }}.
+          Wiped: ledger={{ wipe_ledger }}, accounts={{ wipe_accounts }}.
+      tags: [verify]

@@ -1,0 +1,106 @@
+---
+# Graceful shutdown of agave validator on biscayne
+#
+# Scales the deployment to 0 and waits for the pod to terminate.
+# This MUST be done before any kind node restart, host reboot,
+# or docker operations.
+#
+# The agave validator uses io_uring for async I/O. On ZFS, killing
+# the process ungracefully (SIGKILL, docker kill, etc.) can produce
+# unkillable kernel threads stuck in io_wq_put_and_exit, deadlocking
+# the container's PID namespace. A graceful SIGTERM via k8s scale-down
+# allows agave to flush and close its io_uring contexts cleanly.
+#
+# Usage:
+#   # Stop the validator
+#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-stop.yml
+#
+#   # Stop and restart kind node (LAST RESORT — e.g., broken namespace)
+#   # Normally unnecessary: mount propagation means ramdisk/ZFS changes
+#   # are visible in the kind node without restarting it.
+#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-stop.yml \
+#     -e restart_kind=true
+#
+- name: Graceful validator shutdown
+  hosts: all
+  gather_facts: false
+  environment:
+    KUBECONFIG: /home/rix/.kube/config
+  vars:
+    kind_cluster: laconic-70ce4c4b47e23b85
+    k8s_namespace: "laconic-{{ kind_cluster }}"
+    deployment_name: "{{ kind_cluster }}-deployment"
+    restart_kind: false
+
+  tasks:
+    - name: Get current replica count
+      command: >
+        kubectl get deployment {{ deployment_name }}
+        -n {{ k8s_namespace }}
+        -o jsonpath='{.spec.replicas}'
+      register: current_replicas
+      failed_when: false
+      changed_when: false
+
+    - name: Scale deployment to 0
+      command: >
+        kubectl scale deployment {{ deployment_name }}
+        -n {{ k8s_namespace }} --replicas=0
+      when: current_replicas.stdout | default('0') | int > 0
+
+    - name: Wait for pods to terminate
+      command: >
+        kubectl get pods -n {{ k8s_namespace }}
+        -l app={{ deployment_name }}
+        -o jsonpath='{.items}'
+      register: pods_gone
+      retries: 60
+      delay: 5
+      until: pods_gone.stdout == "[]" or pods_gone.stdout == ""
+      when: current_replicas.stdout | default('0') | int > 0
+
+    - name: Verify no agave processes in kind node
+      command: >
+        docker exec {{ kind_cluster }}-control-plane
+        pgrep -c agave-validator
+      register: agave_procs
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if agave still running
+      fail:
+        msg: >-
+          agave-validator process still running inside kind node after
+          pod termination. Do NOT restart the kind node — investigate
+          first to avoid io_uring/ZFS deadlock.
+      when: agave_procs.rc == 0
+
+    - name: Report stopped
+      debug:
+        msg: >-
+          Validator stopped. Replicas: {{ current_replicas.stdout | default('0') }} -> 0.
+          No agave processes detected in kind node.
+      when: not restart_kind | bool
+
+    # ---- optional: restart kind node -----------------------------------------
+    - name: Restart kind node
+      command: docker restart {{ kind_cluster }}-control-plane
+      when: restart_kind | bool
+      timeout: 120
+
+    - name: Wait for kind node ready
+      command: >
+        kubectl get node {{ kind_cluster }}-control-plane
+        -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      register: node_ready
+      retries: 30
+      delay: 10
+      until: node_ready.stdout == "True"
+      when: restart_kind | bool
+
+    - name: Report restarted
+      debug:
+        msg: >-
+          Kind node restarted and ready.
+          Deployment at 0 replicas — scale up when ready.
+      when: restart_kind | bool

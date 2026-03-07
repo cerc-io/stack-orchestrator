@@ -156,73 +156,62 @@
       failed_when: "add_ip.rc != 0 and 'RTNETLINK answers: File exists' not in add_ip.stderr"
       tags: [inbound]
 
-    - name: Add DNAT for gossip UDP
-      ansible.builtin.iptables:
-        table: nat
-        chain: PREROUTING
-        protocol: udp
-        destination: "{{ ashburn_ip }}"
-        destination_port: "{{ gossip_port }}"
-        jump: DNAT
-        to_destination: "{{ kind_node_ip }}:{{ gossip_port }}"
+    - name: Add DNAT rules (inserted before DOCKER chain)
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          # DNAT rules must be before Docker's ADDRTYPE LOCAL rule, otherwise
+          # Docker's PREROUTING chain swallows traffic to 137.239.194.65 (which
+          # is on loopback and therefore type LOCAL).
+          for rule in \
+            "-p udp -d {{ ashburn_ip }} --dport {{ gossip_port }} -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }}" \
+            "-p tcp -d {{ ashburn_ip }} --dport {{ gossip_port }} -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }}" \
+            "-p udp -d {{ ashburn_ip }} --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j DNAT --to-destination {{ kind_node_ip }}" \
+          ; do
+            if ! iptables -t nat -C PREROUTING $rule 2>/dev/null; then
+              iptables -t nat -I PREROUTING 1 $rule
+              echo "added: $rule"
+            else
+              echo "exists: $rule"
+            fi
+          done
+        executable: /bin/bash
+      register: dnat_result
+      changed_when: "'added' in dnat_result.stdout"
       tags: [inbound]
 
-    - name: Add DNAT for gossip TCP
-      ansible.builtin.iptables:
-        table: nat
-        chain: PREROUTING
-        protocol: tcp
-        destination: "{{ ashburn_ip }}"
-        destination_port: "{{ gossip_port }}"
-        jump: DNAT
-        to_destination: "{{ kind_node_ip }}:{{ gossip_port }}"
-      tags: [inbound]
-
-    - name: Add DNAT for dynamic ports (UDP 9000-9025)
-      ansible.builtin.iptables:
-        table: nat
-        chain: PREROUTING
-        protocol: udp
-        destination: "{{ ashburn_ip }}"
-        destination_port: "{{ dynamic_port_range_start }}:{{ dynamic_port_range_end }}"
-        jump: DNAT
-        to_destination: "{{ kind_node_ip }}"
+    - name: Show DNAT result
+      ansible.builtin.debug:
+        var: dnat_result.stdout_lines
       tags: [inbound]
 
     # ------------------------------------------------------------------
     # Outbound: fwmark + SNAT + policy routing
     # ------------------------------------------------------------------
-    - name: Mark outbound validator UDP gossip traffic
-      ansible.builtin.iptables:
-        table: mangle
-        chain: PREROUTING
-        protocol: udp
-        source: "{{ kind_network }}"
-        source_port: "{{ gossip_port }}"
-        jump: MARK
-        set_mark: "{{ fwmark }}"
+    - name: Mark outbound validator traffic (mangle PREROUTING)
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          for rule in \
+            "-p udp -s {{ kind_network }} --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }}" \
+            "-p udp -s {{ kind_network }} --sport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j MARK --set-mark {{ fwmark }}" \
+            "-p tcp -s {{ kind_network }} --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }}" \
+          ; do
+            if ! iptables -t mangle -C PREROUTING $rule 2>/dev/null; then
+              iptables -t mangle -A PREROUTING $rule
+              echo "added: $rule"
+            else
+              echo "exists: $rule"
+            fi
+          done
+        executable: /bin/bash
+      register: mangle_result
+      changed_when: "'added' in mangle_result.stdout"
       tags: [outbound]
 
-    - name: Mark outbound validator UDP dynamic port traffic
-      ansible.builtin.iptables:
-        table: mangle
-        chain: PREROUTING
-        protocol: udp
-        source: "{{ kind_network }}"
-        source_port: "{{ dynamic_port_range_start }}:{{ dynamic_port_range_end }}"
-        jump: MARK
-        set_mark: "{{ fwmark }}"
-      tags: [outbound]
-
-    - name: Mark outbound validator TCP gossip traffic
-      ansible.builtin.iptables:
-        table: mangle
-        chain: PREROUTING
-        protocol: tcp
-        source: "{{ kind_network }}"
-        source_port: "{{ gossip_port }}"
-        jump: MARK
-        set_mark: "{{ fwmark }}"
+    - name: Show mangle result
+      ansible.builtin.debug:
+        var: mangle_result.stdout_lines
       tags: [outbound]
 
     - name: SNAT marked traffic to Ashburn IP (before Docker MASQUERADE)
@@ -337,7 +326,7 @@
           nat_rules: "{{ nat_rules.stdout_lines }}"
           mangle_rules: "{{ mangle_rules.stdout_lines | default([]) }}"
           routing: "{{ routing_info.stdout_lines | default([]) }}"
-          loopback: "{{ lo_addrs.stdout_lines }}"
+          loopback: "{{ lo_addrs.stdout_lines | default([]) }}"
       tags: [inbound, outbound]
 
     - name: Summary

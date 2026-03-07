@@ -1,0 +1,14 @@
+all:
+  hosts:
+    biscayne:
+      ansible_host: biscayne.vaasl.io
+      ansible_user: rix
+      ansible_become: true
+
+      # DoubleZero identities
+      dz_identity: 3Bw6v7EruQvTwoY79h2QjQCs2KBQFzSneBdYUbcXK1Tr
+      validator_identity: 4WeLUxfQghbhsLEuwaAzjZiHg2VBw87vqHc4iZrGvKPr
+      client_ip: 186.233.184.235
+      dz_device: laconic-mia-sw01
+      dz_tenant: laconic
+      dz_environment: mainnet-beta

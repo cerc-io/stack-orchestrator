@@ -1,0 +1,220 @@
+---
+# Recover agave validator from any state to healthy
+#
+# This playbook is idempotent — it assesses current state and picks up
+# from wherever the system is. Each step checks its precondition and
+# skips if already satisfied.
+#
+# Steps:
+#   1. Scale deployment to 0
+#   2. Wait for pods to terminate
+#   3. Wipe accounts ramdisk
+#   4. Clean old snapshots
+#   5. Download fresh snapshot via aria2c
+#   6. Verify snapshot accessible via PV (kubectl)
+#   7. Scale deployment to 1
+#   8. Wait for pod Running
+#   9. Verify validator log shows snapshot unpacking
+#  10. Check RPC health
+#
+# Usage:
+#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-recover.yml
+#
+#   # Pass extra args to snapshot-download.py
+#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-recover.yml \
+#     -e 'snapshot_args=--version 2.2'
+#
+- name: Recover agave validator
+  hosts: all
+  gather_facts: false
+  environment:
+    KUBECONFIG: /home/rix/.kube/config
+  vars:
+    kind_cluster: laconic-70ce4c4b47e23b85
+    k8s_namespace: "laconic-{{ kind_cluster }}"
+    deployment_name: "{{ kind_cluster }}-deployment"
+    snapshot_dir: /srv/solana/snapshots
+    accounts_dir: /srv/solana/ramdisk/accounts
+    ramdisk_mount: /srv/solana/ramdisk
+    ramdisk_device: /dev/ram0
+    snapshot_script_local: "{{ playbook_dir }}/../scripts/snapshot-download.py"
+    snapshot_script: /tmp/snapshot-download.py
+    snapshot_args: ""
+    # Mainnet RPC for slot comparison
+    mainnet_rpc: https://api.mainnet-beta.solana.com
+    # Maximum slots behind before snapshot is considered stale
+    max_slot_lag: 20000
+
+  tasks:
+    # ---- step 1: scale to 0 ---------------------------------------------------
+    - name: Get current replica count
+      command: >
+        kubectl get deployment {{ deployment_name }}
+        -n {{ k8s_namespace }}
+        -o jsonpath='{.spec.replicas}'
+      register: current_replicas
+      failed_when: false
+      changed_when: false
+
+    - name: Scale deployment to 0
+      command: >
+        kubectl scale deployment {{ deployment_name }}
+        -n {{ k8s_namespace }} --replicas=0
+      when: current_replicas.stdout | default('0') | int > 0
+      changed_when: true
+
+    # ---- step 2: wait for pods to terminate ------------------------------------
+    - name: Wait for pods to terminate
+      command: >
+        kubectl get pods -n {{ k8s_namespace }}
+        -l app={{ deployment_name }}
+        -o jsonpath='{.items}'
+      register: pods_remaining
+      retries: 60
+      delay: 5
+      until: pods_remaining.stdout == "[]" or pods_remaining.stdout == ""
+      changed_when: false
+      when: current_replicas.stdout | default('0') | int > 0
+
+    - name: Verify no agave processes in kind node (io_uring safety check)
+      command: >
+        docker exec {{ kind_cluster }}-control-plane
+        pgrep -c agave-validator
+      register: agave_procs
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if agave zombie detected
+      ansible.builtin.fail:
+        msg: >-
+          agave-validator process still running inside kind node after pod
+          termination. This is the io_uring/ZFS deadlock. Do NOT proceed —
+          host reboot required. See CLAUDE.md.
+      when: agave_procs.rc == 0
+
+    # ---- step 3: wipe accounts ramdisk -----------------------------------------
+    # Cannot umount+mkfs because the kind node's bind mount holds it open.
+    # Instead, delete contents. This is sufficient — agave starts clean.
+    - name: Wipe accounts data
+      ansible.builtin.shell: |
+        rm -rf {{ accounts_dir }}/*
+        chown solana:solana {{ ramdisk_mount }} {{ accounts_dir }}
+      become: true
+      changed_when: true
+
+    # ---- step 4: clean old snapshots -------------------------------------------
+    - name: Remove all old snapshots
+      ansible.builtin.shell: rm -f {{ snapshot_dir }}/*.tar.* {{ snapshot_dir }}/*.tar
+      become: true
+      changed_when: true
+
+    # ---- step 5: download fresh snapshot ---------------------------------------
+    - name: Verify aria2c installed
+      command: which aria2c
+      changed_when: false
+
+    - name: Copy snapshot script to remote
+      ansible.builtin.copy:
+        src: "{{ snapshot_script_local }}"
+        dest: "{{ snapshot_script }}"
+        mode: "0755"
+
+    - name: Download snapshot and scale to 1
+      ansible.builtin.shell: |
+        python3 {{ snapshot_script }} \
+          -o {{ snapshot_dir }} \
+          --max-snapshot-age {{ max_slot_lag }} \
+          --max-latency 500 \
+          {{ snapshot_args }} \
+        && KUBECONFIG=/home/rix/.kube/config kubectl scale deployment \
+          {{ deployment_name }} -n {{ k8s_namespace }} --replicas=1
+      become: true
+      register: snapshot_result
+      timeout: 3600
+      changed_when: true
+
+    # ---- step 6: verify snapshot accessible via PV -----------------------------
+    - name: Get snapshot filename
+      ansible.builtin.shell: ls -1 {{ snapshot_dir }}/snapshot-*.tar.* | head -1 | xargs basename
+      register: snapshot_filename
+      changed_when: false
+
+    - name: Extract snapshot slot from filename
+      ansible.builtin.set_fact:
+        snapshot_slot: "{{ snapshot_filename.stdout | regex_search('snapshot-([0-9]+)-', '\\1') | first }}"
+
+    - name: Get current mainnet slot
+      ansible.builtin.uri:
+        url: "{{ mainnet_rpc }}"
+        method: POST
+        body_format: json
+        body:
+          jsonrpc: "2.0"
+          id: 1
+          method: getSlot
+          params:
+            - commitment: finalized
+        return_content: true
+      register: mainnet_slot_response
+
+    - name: Check snapshot freshness
+      ansible.builtin.fail:
+        msg: >-
+          Snapshot too old: slot {{ snapshot_slot }}, mainnet at
+          {{ mainnet_slot_response.json.result }},
+          {{ mainnet_slot_response.json.result | int - snapshot_slot | int }} slots behind
+          (max {{ max_slot_lag }}).
+      when: (mainnet_slot_response.json.result | int - snapshot_slot | int) > max_slot_lag
+
+    - name: Report snapshot freshness
+      ansible.builtin.debug:
+        msg: >-
+          Snapshot slot {{ snapshot_slot }}, mainnet {{ mainnet_slot_response.json.result }},
+          {{ mainnet_slot_response.json.result | int - snapshot_slot | int }} slots behind.
+
+    # ---- step 7: scale already done in download step above ----------------------
+
+    # ---- step 8: wait for pod running ------------------------------------------
+    - name: Wait for pod to be running
+      command: >
+        kubectl get pods -n {{ k8s_namespace }}
+        -l app={{ deployment_name }}
+        -o jsonpath='{.items[0].status.phase}'
+      register: pod_status
+      retries: 60
+      delay: 10
+      until: pod_status.stdout == "Running"
+      changed_when: false
+
+    # ---- step 9: verify validator log ------------------------------------------
+    - name: Wait for validator log file
+      command: >
+        kubectl exec -n {{ k8s_namespace }}
+        deployment/{{ deployment_name }}
+        -c agave-validator -- test -f /data/log/validator.log
+      register: log_file_check
+      retries: 12
+      delay: 10
+      until: log_file_check.rc == 0
+      changed_when: false
+
+    # ---- step 10: check RPC health ---------------------------------------------
+    - name: Check RPC health (non-blocking)
+      ansible.builtin.uri:
+        url: http://{{ inventory_hostname }}:8899/health
+        return_content: true
+      register: rpc_health
+      retries: 6
+      delay: 30
+      until: rpc_health.status == 200
+      failed_when: false
+
+    - name: Report final status
+      ansible.builtin.debug:
+        msg: >-
+          Recovery complete.
+          Snapshot: slot {{ snapshot_slot }}
+          ({{ mainnet_slot_response.json.result | int - snapshot_slot | int }} slots behind).
+          Pod: {{ pod_status.stdout }}.
+          Log: {{ 'writing' if log_file_check.rc == 0 else 'not yet' }}.
+          RPC: {{ rpc_health.content | default('not yet responding — still catching up') }}.

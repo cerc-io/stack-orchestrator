@@ -1,0 +1,23 @@
+all:
+  children:
+    switches:
+      vars:
+        ansible_connection: ansible.netcommon.network_cli
+        ansible_network_os: arista.eos.eos
+        ansible_user: install
+        ansible_become: true
+        ansible_become_method: enable
+      hosts:
+        was-sw01:
+          ansible_host: 137.239.200.198
+          # Et1/1: 64.92.84.81 (Ashburn uplink)
+          # Et4/1: 172.16.1.188 (backbone to mia-sw01)
+          # Loopback100: 137.239.194.64/32
+          backbone_ip: 172.16.1.188
+          backbone_peer: 172.16.1.189
+          uplink_gateway: 64.92.84.80
+        mia-sw01:
+          ansible_host: 209.42.167.133
+          # Et4/1: 172.16.1.189 (backbone to was-sw01)
+          backbone_ip: 172.16.1.189
+          backbone_peer: 172.16.1.188

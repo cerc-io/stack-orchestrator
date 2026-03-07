@@ -1,0 +1,134 @@
+---
+# Connect biscayne to DoubleZero multicast via laconic-mia-sw01
+#
+# Establishes a GRE tunnel to the nearest DZ hybrid device and subscribes
+# to jito-shredstream and bebop multicast groups.
+#
+# Usage:
+#   ansible-playbook playbooks/connect-doublezero-multicast.yml
+#   ansible-playbook playbooks/connect-doublezero-multicast.yml --check  # dry-run
+
+- name: Connect biscayne to DoubleZero multicast
+  hosts: biscayne
+  gather_facts: false
+
+  vars:
+    dz_multicast_groups:
+      - jito-shredstream
+      - bebop
+
+  tasks:
+    # ------------------------------------------------------------------
+    # Pre-checks
+    # ------------------------------------------------------------------
+    - name: Verify doublezerod service is running
+      ansible.builtin.systemd:
+        name: doublezerod
+        state: started
+      check_mode: true
+      register: dz_service
+      failed_when: dz_service.status.ActiveState != "active"
+
+    - name: Get doublezero identity address
+      ansible.builtin.command:
+        cmd: doublezero address
+      register: dz_address
+      changed_when: false
+
+    - name: Verify doublezero identity matches expected pubkey
+      ansible.builtin.assert:
+        that:
+          - dz_address.stdout | trim == dz_identity
+        fail_msg: >-
+          DZ identity mismatch: got '{{ dz_address.stdout | trim }}',
+          expected '{{ dz_identity }}'
+
+    - name: Check current DZ connection status
+      ansible.builtin.command:
+        cmd: "doublezero -e {{ dz_environment }} status"
+      register: dz_status
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if already connected (tunnel is up)
+      ansible.builtin.fail:
+        msg: >-
+          DoubleZero tunnel is already connected. To reconnect, first
+          disconnect manually with: doublezero -e {{ dz_environment }} disconnect
+      when: "'connected' in dz_status.stdout | lower"
+
+    # ------------------------------------------------------------------
+    # Create access pass
+    # ------------------------------------------------------------------
+    - name: Create DZ access pass for multicast subscriber
+      ansible.builtin.command:
+        cmd: >-
+          doublezero -e {{ dz_environment }} access-pass set
+          --accesspass-type solana-multicast-subscriber
+          --client-ip {{ client_ip }}
+          --user-payer {{ dz_identity }}
+          --solana-validator {{ validator_identity }}
+          --tenant {{ dz_tenant }}
+      register: dz_access_pass
+      changed_when: "'created' in dz_access_pass.stdout | lower or 'updated' in dz_access_pass.stdout | lower"
+
+    - name: Show access pass result
+      ansible.builtin.debug:
+        var: dz_access_pass.stdout_lines
+
+    # ------------------------------------------------------------------
+    # Connect to DZ multicast
+    # ------------------------------------------------------------------
+    - name: Connect to DoubleZero multicast via {{ dz_device }}
+      ansible.builtin.command:
+        cmd: >-
+          doublezero -e {{ dz_environment }} connect multicast
+          {% for group in dz_multicast_groups %}
+          --subscribe {{ group }}
+          {% endfor %}
+          --device {{ dz_device }}
+          --client-ip {{ client_ip }}
+      register: dz_connect
+      changed_when: true
+
+    - name: Show connect result
+      ansible.builtin.debug:
+        var: dz_connect.stdout_lines
+
+    # ------------------------------------------------------------------
+    # Post-checks
+    # ------------------------------------------------------------------
+    - name: Verify tunnel status is connected
+      ansible.builtin.command:
+        cmd: "doublezero -e {{ dz_environment }} status"
+      register: dz_post_status
+      changed_when: false
+      failed_when: "'connected' not in dz_post_status.stdout | lower"
+
+    - name: Show tunnel status
+      ansible.builtin.debug:
+        var: dz_post_status.stdout_lines
+
+    - name: Verify routes are installed
+      ansible.builtin.command:
+        cmd: "doublezero -e {{ dz_environment }} routes"
+      register: dz_routes
+      changed_when: false
+
+    - name: Show installed routes
+      ansible.builtin.debug:
+        var: dz_routes.stdout_lines
+
+    - name: Check multicast group membership
+      ansible.builtin.command:
+        cmd: "doublezero -e {{ dz_environment }} status"
+      register: dz_multicast_status
+      changed_when: false
+
+    - name: Connection summary
+      ansible.builtin.debug:
+        msg: >-
+          DoubleZero multicast connected via {{ dz_device }}.
+          Subscribed groups: {{ dz_multicast_groups | join(', ') }}.
+          Next step: request allowlist access from group owners
+          (see docs/doublezero-multicast-access.md).

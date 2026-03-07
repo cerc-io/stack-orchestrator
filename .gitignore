@@ -1,0 +1,3 @@
+.venv/
+sessions.duckdb
+sessions.duckdb.wal

@@ -1,15 +1,20 @@
 ---
-# Configure laconic-was-sw01 for full validator traffic relay
+# Configure laconic-was-sw01 for inbound validator traffic relay
 #
-# Replaces the old SHRED-RELAY (TVU-only, port 20000) with VALIDATOR-RELAY
-# covering all validator ports (8001, 9000-9025). Adds Loopback101 for
-# 137.239.194.65.
+# Routes all traffic destined to 137.239.194.65 to mia-sw01 via backbone.
+# A single static route replaces the previous Loopback101 + PBR approach.
 #
-# Uses EOS config session with 5-minute auto-revert for safety.
-# After verification, run with -e commit=true to finalize.
+# 137.239.194.65 is already routed to was-sw01 by its covering prefix
+# (advertised via IS-IS on Loopback100). No loopback needed — the static
+# route forwards traffic before the switch tries to deliver it locally.
+#
+# This playbook also removes the old PBR config if present (Loopback101,
+# VALIDATOR-RELAY-ACL, VALIDATOR-RELAY-CLASS, VALIDATOR-RELAY policy-map,
+# service-policy on Et1/1).
 #
 # Usage:
 #   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-was-sw01.yml
+#   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-was-sw01.yml -e apply=true
 #   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-was-sw01.yml -e commit=true
 #   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-was-sw01.yml -e rollback=true
 
@@ -19,10 +24,11 @@
 
   vars:
     ashburn_ip: 137.239.194.65
+    apply: false
     commit: false
     rollback: false
-    session_name: validator-relay
-    checkpoint_name: pre-validator-relay
+    session_name: validator-relay-v2
+    checkpoint_name: pre-validator-relay-v2
 
   tasks:
     # ------------------------------------------------------------------
@@ -66,77 +72,78 @@
           ansible.builtin.meta: end_play
 
     # ------------------------------------------------------------------
-    # Pre-checks
+    # Pre-flight checks
     # ------------------------------------------------------------------
-    - name: Show current traffic-policy on Et1/1
+    - name: Show current Et1/1 config
       arista.eos.eos_command:
         commands:
           - show running-config interfaces Ethernet1/1
       register: et1_config
+      tags: [preflight]
 
-    - name: Show current config
+    - name: Display Et1/1 config
       ansible.builtin.debug:
         var: et1_config.stdout_lines
+      tags: [preflight]
 
-    - name: Show existing PBR policy on Et1/1
+    - name: Check for existing Loopback101 and PBR
       arista.eos.eos_command:
         commands:
+          - "show running-config interfaces Loopback101"
           - "show running-config | include service-policy"
-      register: existing_pbr
+          - "show running-config section policy-map type pbr"
+          - "show ip route {{ ashburn_ip }}"
+      register: existing_config
+      tags: [preflight]
 
-    - name: Show existing PBR config
+    - name: Display existing config
       ansible.builtin.debug:
-        var: existing_pbr.stdout_lines
+        var: existing_config.stdout_lines
+      tags: [preflight]
+
+    - name: Pre-flight summary
+      when: not (apply | bool)
+      ansible.builtin.debug:
+        msg: |
+          === Pre-flight complete ===
+          Review the output above:
+          1. Does Loopback101 exist with {{ ashburn_ip }}? (will be removed)
+          2. Is service-policy VALIDATOR-RELAY on Et1/1? (will be removed)
+          3. Current route for {{ ashburn_ip }}
+
+          To apply config:
+            ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-was-sw01.yml \
+              -e apply=true
+      tags: [preflight]
+
+    - name: End play if not applying
+      when: not (apply | bool)
+      ansible.builtin.meta: end_play
 
     # ------------------------------------------------------------------
-    # Save checkpoint
+    # Apply config via session with 5-minute auto-revert
     # ------------------------------------------------------------------
-    - name: Save checkpoint for rollback
+    - name: Save checkpoint
       arista.eos.eos_command:
         commands:
           - "configure checkpoint save {{ checkpoint_name }}"
-      register: checkpoint_result
 
-    - name: Show checkpoint result
-      ansible.builtin.debug:
-        var: checkpoint_result.stdout_lines
-
-    # ------------------------------------------------------------------
-    # Apply via config session with 5-minute auto-revert
-    #
-    # eos_config writes directly to running-config, bypassing sessions.
-    # Use eos_command with raw CLI to get the safety net.
-    # ------------------------------------------------------------------
-    - name: Apply config session with auto-revert
+    - name: Apply config session
       arista.eos.eos_command:
         commands:
-          # Enter named config session
           - command: "configure session {{ session_name }}"
-          # Loopback101 for Ashburn IP
-          - command: interface Loopback101
-          - command: "ip address {{ ashburn_ip }}/32"
-          - command: exit
-          # ACL covering all validator ports
-          - command: ip access-list VALIDATOR-RELAY-ACL
-          - command: 10 permit udp any any eq 8001
-          - command: 20 permit udp any any range 9000 9025
-          - command: 30 permit tcp any any eq 8001
-          - command: exit
-          # PBR class-map referencing the ACL
-          - command: class-map type pbr match-any VALIDATOR-RELAY-CLASS
-          - command: match ip access-group VALIDATOR-RELAY-ACL
-          - command: exit
-          # PBR policy-map with nexthop redirect
-          - command: policy-map type pbr VALIDATOR-RELAY
-          - command: class VALIDATOR-RELAY-CLASS
-          - command: "set nexthop {{ backbone_peer }}"
-          - command: exit
-          - command: exit
-          # Apply PBR policy on Et1/1
+          # Remove old PBR service-policy from Et1/1
           - command: interface Ethernet1/1
-          - command: service-policy type pbr input VALIDATOR-RELAY
+          - command: no service-policy type pbr input VALIDATOR-RELAY
           - command: exit
-      tags: [config]
+          # Remove old PBR policy-map, class-map, ACL
+          - command: no policy-map type pbr VALIDATOR-RELAY
+          - command: no class-map type pbr match-any VALIDATOR-RELAY-CLASS
+          - command: no ip access-list VALIDATOR-RELAY-ACL
+          # Remove Loopback101
+          - command: no interface Loopback101
+          # Add static route to forward all traffic for ashburn IP to mia-sw01
+          - command: "ip route {{ ashburn_ip }}/32 {{ backbone_peer }}"
 
     - name: Show session diff
       arista.eos.eos_command:
@@ -154,32 +161,20 @@
       arista.eos.eos_command:
         commands:
           - "configure session {{ session_name }} commit timer 00:05:00"
-      tags: [config]
 
     # ------------------------------------------------------------------
     # Verify
     # ------------------------------------------------------------------
-    - name: Show PBR policy on Et1/1
+    - name: Verify config
       arista.eos.eos_command:
         commands:
+          - "show ip route {{ ashburn_ip }}"
           - show running-config interfaces Ethernet1/1
-          - show running-config section policy-map
-          - show ip interface Loopback101
-      register: pbr_interface
+      register: verify
 
     - name: Display verification
       ansible.builtin.debug:
-        var: pbr_interface.stdout_lines
-
-    - name: Show Loopback101
-      arista.eos.eos_command:
-        commands:
-          - show ip interface Loopback101
-      register: lo101
-
-    - name: Display Loopback101
-      ansible.builtin.debug:
-        var: lo101.stdout_lines
+        var: verify.stdout_lines
 
     - name: Reminder
       ansible.builtin.debug:
@@ -188,8 +183,12 @@
           Session: {{ session_name }}
           Checkpoint: {{ checkpoint_name }}
 
+          Changes applied:
+          1. Removed: Loopback101, VALIDATOR-RELAY PBR (ACL, class-map, policy-map, service-policy)
+          2. Added: ip route {{ ashburn_ip }}/32 {{ backbone_peer }}
+
           The config will auto-revert in 5 minutes unless committed.
-          Verify PBR policy is applied, then commit from the switch CLI:
+          Verify on the switch, then commit:
             configure session {{ session_name }} commit
             write memory
 

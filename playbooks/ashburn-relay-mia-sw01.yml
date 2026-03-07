@@ -1,14 +1,19 @@
 ---
-# Configure laconic-mia-sw01 for outbound validator traffic redirect
+# Configure laconic-mia-sw01 for validator traffic relay (inbound + outbound)
 #
-# Redirects outbound traffic from biscayne (src 137.239.194.65) arriving
-# via the doublezero0 GRE tunnel to was-sw01 via the backbone, preventing
-# BCP38 drops at mia-sw01's ISP uplink.
+# Outbound: Redirects outbound traffic from biscayne (src 137.239.194.65)
+# arriving via the doublezero0 GRE tunnel to was-sw01 via the backbone,
+# preventing BCP38 drops at mia-sw01's ISP uplink.
+#
+# Inbound: Routes traffic destined to 137.239.194.65 from the default VRF
+# to biscayne via Tunnel500 in vrf1. Without this, mia-sw01 sends
+# 137.239.194.65 out the ISP uplink back to was-sw01 (routing loop).
 #
 # Approach: The existing per-tunnel ACL (SEC-USER-500-IN) controls what
 # traffic enters vrf1 from Tunnel500. We add 137.239.194.65 to the ACL
 # and add a default route in vrf1 via egress-vrf default pointing to
-# was-sw01's backbone IP. No PBR needed — the ACL is the filter.
+# was-sw01's backbone IP. For inbound, an inter-VRF static route in the
+# default VRF forwards 137.239.194.65/32 to biscayne via Tunnel500.
 #
 # The other vrf1 tunnels (502, 504, 505) have their own ACLs that only
 # permit their specific source IPs, so the default route won't affect them.
@@ -39,6 +44,7 @@
     tunnel_interface: Tunnel500
     tunnel_vrf: vrf1
     tunnel_acl: SEC-USER-500-IN
+    tunnel_nexthop: 169.254.7.7  # biscayne's end of the Tunnel500 /31
     backbone_interface: Ethernet4/1
     session_name: validator-outbound
     checkpoint_name: pre-validator-outbound
@@ -117,6 +123,7 @@
           - "show ip route vrf {{ tunnel_vrf }} 0.0.0.0/0"
           - "show ip route vrf {{ tunnel_vrf }} {{ backbone_peer }}"
           - "show ip route {{ backbone_peer }}"
+          - "show ip route {{ ashburn_ip }}"
       register: vrf_routing
       tags: [preflight]
 
@@ -163,6 +170,11 @@
           # Default route in vrf1 via backbone to was-sw01 (egress-vrf default)
           # Safe because per-tunnel ACLs already restrict what enters vrf1
           - command: "ip route vrf {{ tunnel_vrf }} 0.0.0.0/0 egress-vrf default {{ backbone_interface }} {{ backbone_peer }}"
+          # Inbound: route traffic for ashburn IP from default VRF to biscayne via tunnel.
+          # Without this, mia-sw01 sends 137.239.194.65 out the ISP uplink → routing loop.
+          # NOTE: nexthop only, no interface — EOS silently drops cross-VRF routes that
+          # specify a tunnel interface (accepts in config but never installs in RIB).
+          - command: "ip route {{ ashburn_ip }}/32 egress-vrf {{ tunnel_vrf }} {{ tunnel_nexthop }}"
 
     - name: Show session diff
       arista.eos.eos_command:
@@ -189,6 +201,7 @@
         commands:
           - "show running-config | section ip access-list {{ tunnel_acl }}"
           - "show ip route vrf {{ tunnel_vrf }} 0.0.0.0/0"
+          - "show ip route {{ ashburn_ip }}"
       register: verify
 
     - name: Display verification
@@ -205,6 +218,7 @@
           Changes applied:
           1. ACL {{ tunnel_acl }}: added "45 permit ip host {{ ashburn_ip }} any"
           2. Default route in {{ tunnel_vrf }}: 0.0.0.0/0 egress-vrf default {{ backbone_interface }} {{ backbone_peer }}
+          3. Inbound route: {{ ashburn_ip }}/32 egress-vrf {{ tunnel_vrf }} {{ tunnel_nexthop }}
 
           The config will auto-revert in 5 minutes unless committed.
           Verify on the switch, then commit:

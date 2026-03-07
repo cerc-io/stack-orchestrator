@@ -573,14 +573,18 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
         Path(f"./data/{backup_subdir}/etcd"), deployment_dir
     )
     volume_definitions.append(
-        f"  - hostPath: {etcd_host_path}\n" f"    containerPath: /var/lib/etcd\n"
+        f"  - hostPath: {etcd_host_path}\n"
+        f"    containerPath: /var/lib/etcd\n"
+        f"    propagation: HostToContainer\n"
     )
 
     pki_host_path = _make_absolute_host_path(
         Path(f"./data/{backup_subdir}/pki"), deployment_dir
     )
     volume_definitions.append(
-        f"  - hostPath: {pki_host_path}\n" f"    containerPath: /etc/kubernetes/pki\n"
+        f"  - hostPath: {pki_host_path}\n"
+        f"    containerPath: /etc/kubernetes/pki\n"
+        f"    propagation: HostToContainer\n"
     )
 
     # Note these paths are relative to the location of the pod files (at present)
@@ -621,6 +625,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                                 volume_definitions.append(
                                     f"  - hostPath: {host_path}\n"
                                     f"    containerPath: {container_path}\n"
+                                    f"    propagation: HostToContainer\n"
                                 )
                                 if opts.o.debug:
                                     print(f"Added host path mount: {host_path}")
@@ -648,6 +653,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                                     volume_definitions.append(
                                         f"  - hostPath: {host_path}\n"
                                         f"    containerPath: {container_path}\n"
+                                        f"    propagation: HostToContainer\n"
                                     )
     return (
         ""
@@ -703,7 +709,11 @@ def _generate_high_memlock_spec_mount(deployment_dir: Path):
     references an absolute path.
     """
     spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
-    return f"  - hostPath: {spec_path}\n" f"    containerPath: {spec_path}\n"
+    return (
+        f"  - hostPath: {spec_path}\n"
+        f"    containerPath: {spec_path}\n"
+        f"    propagation: HostToContainer\n"
+    )
 
 
 def generate_high_memlock_spec_json():

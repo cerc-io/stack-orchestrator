@@ -1,0 +1,43 @@
+name: ashburn-relay
+topology:
+  kinds:
+    ceos:
+      image: ceos:4.34.0F
+    linux:
+      image: alpine:3.20
+
+  nodes:
+    # Ashburn switch — inbound traffic-policy + Loopback101 for 137.239.194.65
+    was-sw01:
+      kind: ceos
+      startup-config: was-sw01-startup.cfg
+
+    # Miami switch — outbound traffic-policy + GRE tunnel to biscayne
+    mia-sw01:
+      kind: ceos
+      startup-config: mia-sw01-startup.cfg
+
+    # Biscayne host — iptables DNAT/SNAT, fwmark, policy routing, GRE
+    biscayne:
+      kind: linux
+
+    # Simulates kind node (172.20.0.2) running the validator
+    kind-node:
+      kind: linux
+
+    # Simulates an internet peer sending/receiving validator traffic
+    internet-peer:
+      kind: linux
+
+  links:
+    # was-sw01 Et1 (uplink) <-> internet-peer
+    - endpoints: ["was-sw01:et1", "internet-peer:eth1"]
+
+    # was-sw01 Et2 <-> mia-sw01 Et2 (backbone, 172.16.1.188/31)
+    - endpoints: ["was-sw01:et2", "mia-sw01:et2"]
+
+    # mia-sw01 Et1 <-> biscayne (GRE underlay, 10.0.2.0/24)
+    - endpoints: ["mia-sw01:et1", "biscayne:eth1"]
+
+    # biscayne <-> kind-node (Docker bridge simulation, 172.20.0.0/24)
+    - endpoints: ["biscayne:eth2", "kind-node:eth1"]

@@ -45,6 +45,8 @@
     KUBECONFIG: /home/rix/.kube/config
   vars:
     deployment_dir: /srv/deployments/agave
+    stack_repo: /srv/deployments/agave-stack
+    stack_path: /srv/deployments/agave-stack/stack-orchestrator/stacks/agave
     laconic_so: /home/rix/.local/bin/laconic-so
     kind_cluster: laconic-70ce4c4b47e23b85
     k8s_namespace: "laconic-{{ kind_cluster }}"
@@ -108,6 +110,16 @@
       when: ns_delete.rc == 0
       tags: [teardown]
 
+    - name: Clear stale claimRefs on Released PVs
+      ansible.builtin.shell: |
+        for pv in $(kubectl get pv -o jsonpath='{range .items[?(@.status.phase=="Released")]}{.metadata.name}{"\n"}{end}'); do
+          kubectl patch pv "$pv" --type json \
+            -p '[{"op":"remove","path":"/spec/claimRef"}]'
+        done
+      register: pv_patch
+      changed_when: pv_patch.stdout != ""
+      tags: [teardown]
+
     # ---- wipe: opt-in data cleanup ------------------------------------------
     - name: Wipe ledger data
       shell: rm -rf {{ ledger_dir }}/*
@@ -165,7 +177,25 @@
       changed_when: false
       tags: [deploy, preflight]
 
-    # ---- deploy: bring up cluster, scale to 0 immediately -------------------
+    # ---- deploy: sync config, bring up cluster, scale to 0 ------------------
+    - name: Pull agave-stack repo
+      ansible.builtin.shell: |
+        cd {{ stack_repo }}
+        git fetch origin
+        git reset --hard origin/main
+      changed_when: true
+      tags: [deploy]
+
+    - name: Regenerate deployment config from updated stack
+      command: >
+        {{ laconic_so }}
+        --stack {{ stack_path }}
+        deploy create
+        --spec-file {{ deployment_dir }}/spec.yml
+        --deployment-dir {{ deployment_dir }}
+        --update
+      tags: [deploy]
+
     - name: Verify kind-config.yml has unified mount root
       command: "grep -c 'containerPath: /mnt$' {{ deployment_dir }}/kind-config.yml"
       register: mount_root_check

@@ -11,7 +11,7 @@
 #   ansible-playbook playbooks/health-check.yml -t network     # just network checks
 
 - name: Biscayne agave-stack health check
-  hosts: biscayne
+  hosts: all
   gather_facts: false
   environment:
     KUBECONFIG: /home/rix/.kube/config
@@ -249,16 +249,14 @@
       ansible.builtin.shell:
         cmd: |
           set -o pipefail
-          echo "=== /mnt/solana contents ==="
-          docker exec {{ kind_cluster }}-control-plane ls /mnt/solana/
-          echo "=== /mnt/solana filesystem ==="
-          docker exec {{ kind_cluster }}-control-plane df -T /mnt/solana
-          echo "=== /mnt/solana/ramdisk filesystem ==="
-          docker exec {{ kind_cluster }}-control-plane df -T /mnt/solana/ramdisk 2>/dev/null || echo "ramdisk not visible"
-          echo "=== /mnt/solana/snapshots ==="
-          docker exec {{ kind_cluster }}-control-plane ls /mnt/solana/snapshots/ 2>/dev/null || echo "snapshots not visible"
-          echo "=== /mnt/solana/ledger ==="
-          docker exec {{ kind_cluster }}-control-plane ls /mnt/solana/ledger/ 2>/dev/null | head -5 || echo "ledger not visible"
+          echo "=== PV mount filesystems ==="
+          docker exec {{ kind_cluster }}-control-plane df -T /mnt/validator-ledger /mnt/validator-accounts /mnt/validator-snapshots /mnt/validator-log 2>/dev/null || echo "PV mounts not visible"
+          echo "=== /mnt/validator-ledger ==="
+          docker exec {{ kind_cluster }}-control-plane ls /mnt/validator-ledger/ 2>/dev/null | head -5 || echo "ledger not visible"
+          echo "=== /mnt/validator-snapshots ==="
+          docker exec {{ kind_cluster }}-control-plane ls /mnt/validator-snapshots/ 2>/dev/null || echo "snapshots not visible"
+          echo "=== /mnt/validator-accounts ==="
+          docker exec {{ kind_cluster }}-control-plane ls /mnt/validator-accounts/ 2>/dev/null || echo "accounts not visible"
         executable: /bin/bash
       register: kind_mounts
       changed_when: false

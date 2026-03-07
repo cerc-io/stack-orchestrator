@@ -72,11 +72,10 @@ These units run before docker, so the kind node's bind mounts always see the
 ramdisk. **No manual intervention is needed after reboot.**
 
 **Mount propagation**: The kind node bind-mounts `/srv/kind` → `/mnt` at container
-start. New mounts under `/srv/kind` on the host (like the rbind at
-`/srv/kind/solana`) do NOT propagate into the kind node because kind's default
-mount propagation is `None`. A kind node restart is required to pick up new host
-mounts. **TODO**: Fix laconic-so to set `propagation: HostToContainer` on the
-kind-mount-root extraMount, which would make host mounts propagate automatically.
+start. laconic-so sets `propagation: HostToContainer` on all kind extraMounts
+(commit `a11d40f2` in stack-orchestrator), so host submounts (like the rbind at
+`/srv/kind/solana`) propagate into the kind node automatically. A kind restart
+is required to pick up the new config after updating laconic-so.
 
 ### KUBECONFIG
 

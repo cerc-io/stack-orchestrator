@@ -1,0 +1,251 @@
+---
+# Ashburn relay health check — full path verification
+#
+# Cross-inventory playbook: checks was-sw01, mia-sw01, and biscayne.
+# All tasks are read-only — safe to run at any time.
+#
+# Usage:
+#   ansible-playbook -i inventory-switches/switches.yml \
+#     -i inventory/biscayne.yml playbooks/ashburn-relay-check.yml
+
+- name: Check was-sw01 relay config
+  hosts: was-sw01
+  gather_facts: false
+
+  vars:
+    ashburn_ip: 137.239.194.65
+
+  tasks:
+    - name: Check loopback interfaces
+      arista.eos.eos_command:
+        commands:
+          - show ip interface brief | include Loopback
+      register: was_loopbacks
+      changed_when: false
+
+    - name: Check route for ashburn IP
+      arista.eos.eos_command:
+        commands:
+          - "show ip route {{ ashburn_ip }}"
+      register: was_route
+      changed_when: false
+
+    - name: Check Et1/1 config
+      arista.eos.eos_command:
+        commands:
+          - show running-config interfaces Ethernet1/1
+      register: was_et1
+      changed_when: false
+
+    - name: Check traffic-policies
+      arista.eos.eos_command:
+        commands:
+          - "show running-config | section traffic-policy"
+      register: was_traffic_policy
+      changed_when: false
+
+    - name: Check system-rule
+      arista.eos.eos_command:
+        commands:
+          - "show running-config | include system-rule"
+      register: was_system_rule
+      changed_when: false
+
+    - name: Check monitor sessions
+      arista.eos.eos_command:
+        commands:
+          - show monitor session
+      register: was_monitor
+      changed_when: false
+
+    - name: Check backbone interface
+      arista.eos.eos_command:
+        commands:
+          - show interfaces Ethernet4/1 status
+      register: was_backbone
+      changed_when: false
+
+    - name: Show was-sw01 relay status
+      ansible.builtin.debug:
+        msg:
+          loopbacks: "{{ was_loopbacks.stdout_lines[0] }}"
+          route_to_ashburn_ip: "{{ was_route.stdout_lines[0] }}"
+          et1_config: "{{ was_et1.stdout_lines[0] }}"
+          traffic_policy: "{{ was_traffic_policy.stdout[0] | default('none') }}"
+          system_rule: "{{ was_system_rule.stdout[0] | default('none') }}"
+          monitor_sessions: "{{ was_monitor.stdout_lines[0] }}"
+          backbone: "{{ was_backbone.stdout_lines[0] }}"
+
+- name: Check mia-sw01 relay config
+  hosts: mia-sw01
+  gather_facts: false
+
+  vars:
+    ashburn_ip: 137.239.194.65
+
+  tasks:
+    - name: Check tunnel interfaces
+      arista.eos.eos_command:
+        commands:
+          - show ip interface brief | include Tunnel
+      register: mia_tunnels
+      changed_when: false
+
+    - name: Check Tunnel100 config
+      arista.eos.eos_command:
+        commands:
+          - show running-config interfaces Tunnel100
+      register: mia_tunnel100
+      changed_when: false
+
+    - name: Check Tunnel100 ACL
+      arista.eos.eos_command:
+        commands:
+          - show ip access-lists SEC-VALIDATOR-100-IN
+      register: mia_acl
+      changed_when: false
+
+    - name: Check route for ashburn IP
+      arista.eos.eos_command:
+        commands:
+          - "show ip route {{ ashburn_ip }}"
+      register: mia_route
+      changed_when: false
+
+    - name: Check traffic-policies
+      arista.eos.eos_command:
+        commands:
+          - "show running-config | section traffic-policy"
+      register: mia_traffic_policy
+      changed_when: false
+
+    - name: Check system-rule
+      arista.eos.eos_command:
+        commands:
+          - "show running-config | include system-rule"
+      register: mia_system_rule
+      changed_when: false
+
+    - name: Check backbone interface
+      arista.eos.eos_command:
+        commands:
+          - show interfaces Ethernet4/1 status
+      register: mia_backbone
+      changed_when: false
+
+    - name: Show mia-sw01 relay status
+      ansible.builtin.debug:
+        msg:
+          tunnels: "{{ mia_tunnels.stdout_lines[0] }}"
+          tunnel100_config: "{{ mia_tunnel100.stdout_lines[0] }}"
+          tunnel100_acl: "{{ mia_acl.stdout_lines[0] }}"
+          route_to_ashburn_ip: "{{ mia_route.stdout_lines[0] }}"
+          traffic_policy: "{{ mia_traffic_policy.stdout[0] | default('none') }}"
+          system_rule: "{{ mia_system_rule.stdout[0] | default('none') }}"
+          backbone: "{{ mia_backbone.stdout_lines[0] }}"
+
+- name: Check biscayne relay state
+  hosts: biscayne
+  gather_facts: false
+
+  vars:
+    ashburn_ip: 137.239.194.65
+    tunnel_device: gre-ashburn
+    tunnel_remote_ip: 169.254.100.0
+
+  tasks:
+    - name: Check GRE tunnel
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          ip tunnel show {{ tunnel_device }} 2>&1 || echo "tunnel not found"
+        executable: /bin/bash
+      register: biscayne_tunnel
+      changed_when: false
+
+    - name: Check loopback IP
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          ip addr show lo | grep '{{ ashburn_ip }}' || echo "not configured"
+        executable: /bin/bash
+      register: biscayne_lo
+      changed_when: false
+
+    - name: Check iptables DNAT rules
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          iptables -t nat -L PREROUTING -v -n | grep '{{ ashburn_ip }}'
+          || echo "no DNAT rules"
+        executable: /bin/bash
+      register: biscayne_dnat
+      changed_when: false
+      become: true
+
+    - name: Check iptables mangle rules
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          iptables -t mangle -L PREROUTING -v -n | grep 'MARK'
+          || echo "no mangle rules"
+        executable: /bin/bash
+      register: biscayne_mangle
+      changed_when: false
+      become: true
+
+    - name: Check iptables SNAT rule
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          iptables -t nat -L POSTROUTING -v -n | grep '{{ ashburn_ip }}'
+          || echo "no SNAT rule"
+        executable: /bin/bash
+      register: biscayne_snat
+      changed_when: false
+      become: true
+
+    - name: Check policy routing
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          ip rule show | grep ashburn || echo "no policy rule"
+        executable: /bin/bash
+      register: biscayne_policy
+      changed_when: false
+
+    - name: Check ashburn routing table
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          ip route show table ashburn 2>&1 || echo "table not found"
+        executable: /bin/bash
+      register: biscayne_table
+      changed_when: false
+
+    - name: Check tunnel ping
+      ansible.builtin.command:
+        cmd: "ping -c 2 -W 2 {{ tunnel_remote_ip }}"
+      register: biscayne_ping
+      changed_when: false
+      failed_when: false
+
+    - name: Check ashburn-relay service
+      ansible.builtin.systemd:
+        name: ashburn-relay.service
+      register: biscayne_service
+      check_mode: true
+      failed_when: false
+
+    - name: Show biscayne relay status
+      ansible.builtin.debug:
+        msg:
+          gre_tunnel: "{{ biscayne_tunnel.stdout }}"
+          loopback_ip: "{{ biscayne_lo.stdout }}"
+          dnat_rules: "{{ biscayne_dnat.stdout_lines }}"
+          mangle_rules: "{{ biscayne_mangle.stdout_lines }}"
+          snat_rule: "{{ biscayne_snat.stdout_lines }}"
+          policy_routing: "{{ biscayne_policy.stdout }}"
+          routing_table: "{{ biscayne_table.stdout }}"
+          tunnel_ping: "{{ 'OK (' + biscayne_ping.stdout_lines[-1] + ')' if biscayne_ping.rc == 0 else 'FAILED' }}"
+          systemd_service: "{{ biscayne_service.status.ActiveState | default('not installed') }}"

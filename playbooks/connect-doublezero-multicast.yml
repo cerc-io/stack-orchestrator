@@ -9,7 +9,7 @@
 #   ansible-playbook playbooks/connect-doublezero-multicast.yml --check  # dry-run
 
 - name: Connect biscayne to DoubleZero multicast
-  hosts: biscayne
+  hosts: all
   gather_facts: false
 
   vars:

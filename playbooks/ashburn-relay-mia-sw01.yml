@@ -29,7 +29,7 @@
 #   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-mia-sw01.yml -e rollback=true
 
 - name: Configure mia-sw01 validator relay tunnel
-  hosts: mia-sw01
+  hosts: all
   gather_facts: false
 
   vars:

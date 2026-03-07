@@ -26,7 +26,7 @@
 #   ansible-playbook playbooks/ashburn-relay-biscayne.yml -e rollback=true
 
 - name: Configure biscayne Ashburn validator relay
-  hosts: biscayne
+  hosts: all
   gather_facts: false
 
   vars:
@@ -72,9 +72,18 @@
           ansible.builtin.shell:
             cmd: |
               set -o pipefail
-              iptables -t nat -D PREROUTING -p udp -d {{ ashburn_ip }} --dport {{ gossip_port }} -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} 2>/dev/null || true
-              iptables -t nat -D PREROUTING -p tcp -d {{ ashburn_ip }} --dport {{ gossip_port }} -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} 2>/dev/null || true
-              iptables -t nat -D PREROUTING -p udp -d {{ ashburn_ip }} --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j DNAT --to-destination {{ kind_node_ip }} 2>/dev/null || true
+              iptables -t nat -D PREROUTING -p udp -d {{ ashburn_ip }} \
+                --dport {{ gossip_port }} \
+                -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} \
+                2>/dev/null || true
+              iptables -t nat -D PREROUTING -p tcp -d {{ ashburn_ip }} \
+                --dport {{ gossip_port }} \
+                -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} \
+                2>/dev/null || true
+              iptables -t nat -D PREROUTING -p udp -d {{ ashburn_ip }} \
+                --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} \
+                -j DNAT --to-destination {{ kind_node_ip }} \
+                2>/dev/null || true
             executable: /bin/bash
           changed_when: false
 
@@ -82,9 +91,15 @@
           ansible.builtin.shell:
             cmd: |
               set -o pipefail
-              iptables -t mangle -D PREROUTING -s {{ kind_network }} -p udp --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
-              iptables -t mangle -D PREROUTING -s {{ kind_network }} -p udp --sport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
-              iptables -t mangle -D PREROUTING -s {{ kind_network }} -p tcp --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+              iptables -t mangle -D PREROUTING -s {{ kind_network }} \
+                -p udp --sport {{ gossip_port }} \
+                -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+              iptables -t mangle -D PREROUTING -s {{ kind_network }} \
+                -p udp --sport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} \
+                -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+              iptables -t mangle -D PREROUTING -s {{ kind_network }} \
+                -p tcp --sport {{ gossip_port }} \
+                -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
             executable: /bin/bash
           changed_when: false
 
@@ -102,15 +117,21 @@
             executable: /bin/bash
           changed_when: false
 
-        - name: Persist cleaned iptables
-          ansible.builtin.command:
-            cmd: netfilter-persistent save
-          changed_when: true
+        - name: Disable and remove ashburn-relay service
+          ansible.builtin.systemd:
+            name: ashburn-relay.service
+            enabled: false
+            state: stopped
+          failed_when: false
 
-        - name: Remove if-up.d script
+        - name: Remove ashburn-relay files
           ansible.builtin.file:
-            path: /etc/network/if-up.d/ashburn-routing
+            path: "{{ item }}"
             state: absent
+          loop:
+            - /etc/systemd/system/ashburn-relay.service
+            - /usr/local/sbin/ashburn-relay-setup.sh
+            - /etc/network/if-up.d/ashburn-routing
 
         - name: Rollback complete
           ansible.builtin.debug:
@@ -140,7 +161,7 @@
 
     - name: Show existing iptables nat rules
       ansible.builtin.shell:
-        cmd: iptables -t nat -L -v -n --line-numbers | head -60
+        cmd: set -o pipefail && iptables -t nat -L -v -n --line-numbers | head -60
         executable: /bin/bash
       register: existing_nat
       changed_when: false
@@ -288,6 +309,7 @@
     - name: Add policy routing rule for fwmark
       ansible.builtin.shell:
         cmd: |
+          set -o pipefail
           if ip rule show | grep -q 'fwmark 0x64 lookup ashburn'; then
             echo "rule already exists"
           else
@@ -309,20 +331,51 @@
     # ------------------------------------------------------------------
     # Persistence
     # ------------------------------------------------------------------
-    - name: Save iptables rules
-      ansible.builtin.command:
-        cmd: netfilter-persistent save
-      changed_when: true
+    # A systemd oneshot service replaces both if-up.d (which depends on
+    # networking.service, inactive on this host) and netfilter-persistent
+    # (which runs before Docker, so Docker's chain setup blows away rules).
+    # This service runs After=docker.service and idempotently applies all
+    # tunnel, iptables, and policy routing state.
+    - name: Install ashburn-relay systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/ashburn-relay.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Ashburn validator relay (GRE tunnel, iptables, policy routing)
+          After=docker.service network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStart=/usr/local/sbin/ashburn-relay-setup.sh
+
+          [Install]
+          WantedBy=multi-user.target
+      register: relay_unit
       tags: [inbound, outbound]
 
-    - name: Install if-up.d persistence script
+    - name: Install ashburn-relay setup script
       ansible.builtin.template:
-        src: files/ashburn-routing-ifup.sh.j2
-        dest: /etc/network/if-up.d/ashburn-routing
-        mode: '0755'
-        owner: root
-        group: root
-      tags: [outbound]
+        src: files/ashburn-relay-setup.sh.j2
+        dest: /usr/local/sbin/ashburn-relay-setup.sh
+        mode: "0755"
+      register: relay_script
+      tags: [inbound, outbound]
+
+    - name: Reload systemd and enable ashburn-relay
+      ansible.builtin.systemd:
+        name: ashburn-relay.service
+        daemon_reload: "{{ relay_unit.changed or relay_script.changed }}"
+        enabled: true
+      tags: [inbound, outbound]
+
+    - name: Remove stale if-up.d script
+      ansible.builtin.file:
+        path: /etc/network/if-up.d/ashburn-routing
+        state: absent
+      tags: [inbound, outbound]
 
     # ------------------------------------------------------------------
     # Verification
@@ -345,7 +398,7 @@
 
     - name: Show NAT rules
       ansible.builtin.shell:
-        cmd: iptables -t nat -L -v -n --line-numbers 2>&1 | head -40
+        cmd: set -o pipefail && iptables -t nat -L -v -n --line-numbers 2>&1 | head -40
         executable: /bin/bash
       register: nat_rules
       changed_when: false
@@ -374,7 +427,7 @@
 
     - name: Show loopback addresses
       ansible.builtin.shell:
-        cmd: ip addr show lo | grep inet
+        cmd: set -o pipefail && ip addr show lo | grep inet
         executable: /bin/bash
       register: lo_addrs
       changed_when: false

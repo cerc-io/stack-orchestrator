@@ -19,7 +19,7 @@
 #   ansible-playbook -i inventory/switches.yml playbooks/ashburn-relay-was-sw01.yml -e rollback=true
 
 - name: Configure was-sw01 inbound validator relay
-  hosts: was-sw01
+  hosts: all
   gather_facts: false
 
   vars:

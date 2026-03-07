@@ -23,12 +23,13 @@
 #     mounting each boot.
 #     Persisted as: format-ramdisk.service (mkfs before mount) + fstab entry
 #
-#   Invariant 3: /srv/kind/solana is an rbind of /srv/solana
+#   Invariant 3: /srv/kind/solana is XFS (zvol) and /srv/kind/solana/ramdisk is XFS (ram0)
 #     Why: kind mounts /srv/kind → /mnt inside the kind node. PVs reference
-#     /mnt/solana/*. Without the rbind, /srv/kind/solana resolves to the ZFS
-#     dataset (biscayne/DATA/srv/kind), not the zvol — violating invariant 1.
-#     Persisted as: fstab entry with x-systemd.requires=zfs-mount.service
-#       (must mount AFTER ZFS, or ZFS overlay at /srv/kind hides it)
+#     /mnt/solana/*. An rbind of /srv/solana does NOT work because ZFS's
+#     shared propagation (shared:75 on /srv) overlays ZFS on top of the bind.
+#     Direct device mounts bypass propagation entirely.
+#     Persisted as: two fstab entries — zvol at /srv/kind/solana, ram0 at
+#       /srv/kind/solana/ramdisk, both with x-systemd.requires ordering
 #
 # This playbook checks each invariant and only acts if it's not met.
 # Idempotent — safe to run multiple times.
@@ -48,6 +49,7 @@
     kind_solana_dir: /srv/kind/solana
     accounts_dir: /srv/solana/ramdisk/accounts
     deployment_dir: /srv/deployments/agave
+    kind_ramdisk_opts: "noatime,nodiratime,nofail,x-systemd.requires=format-ramdisk.service,x-systemd.requires=srv-kind-solana.mount"
 
   tasks:
     # ---- systemd units ----------------------------------------------------------
@@ -106,30 +108,30 @@
         line: '{{ ramdisk_device }} {{ ramdisk_mount }} xfs noatime,nodiratime,nofail,x-systemd.requires=format-ramdisk.service 0 0'
       register: fstab_ramdisk
 
-    # rbind /srv/solana to /srv/kind/solana AFTER zfs-mount.service and ramdisk.
-    # Without this ordering, ZFS overlay at /srv/kind hides the bind mount.
-    - name: Ensure kind bind mount fstab entry
+    # Direct device mounts at /srv/kind/solana — bypasses ZFS shared propagation.
+    # An rbind of /srv/solana fails because ZFS's shared:75 on /srv overlays
+    # ZFS on top of any bind mount under /srv. Direct device mounts avoid this.
+    - name: Ensure kind zvol fstab entry
       ansible.builtin.lineinfile:
         path: /etc/fstab
         regexp: '^\S+\s+{{ kind_solana_dir }}\s'
-        line: '{{ solana_dir }} {{ kind_solana_dir }} none rbind,nofail,x-systemd.requires=zfs-mount.service,x-systemd.requires=srv-solana-ramdisk.mount 0 0'
+        line: '{{ zvol_device }} {{ kind_solana_dir }} xfs defaults,nofail,x-systemd.requires=zfs-mount.service 0 0'
       register: fstab_kind
 
-    # Remove stale fstab entries from previous attempts (direct zvol mount,
-    # separate ramdisk mount at /srv/kind/solana/ramdisk)
-    - name: Remove stale kind zvol fstab entry
-      ansible.builtin.lineinfile:
-        path: /etc/fstab
-        regexp: '^{{ zvol_device }}\s+{{ kind_solana_dir }}\s'
-        state: absent
-      register: fstab_stale_zvol
-
-    - name: Remove stale kind ramdisk fstab entry
+    - name: Ensure kind ramdisk fstab entry
       ansible.builtin.lineinfile:
         path: /etc/fstab
         regexp: '^\S+\s+{{ kind_solana_dir }}/ramdisk\s'
+        line: "{{ ramdisk_device }} {{ kind_solana_dir }}/ramdisk xfs {{ kind_ramdisk_opts }} 0 0"
+      register: fstab_kind_ramdisk
+
+    # Remove stale rbind fstab entry from previous approach
+    - name: Remove stale kind rbind fstab entry
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^\S+\s+{{ kind_solana_dir }}\s+none\s+rbind'
         state: absent
-      register: fstab_stale_ramdisk
+      register: fstab_stale_rbind
 
     # ---- reload and enable ------------------------------------------------------
     - name: Reload systemd
@@ -137,8 +139,9 @@
         daemon_reload: true
       when: >-
         unit_file.changed or accounts_unit.changed or
-        fstab_zvol.changed or fstab_ramdisk.changed or fstab_kind.changed or
-        fstab_stale_zvol.changed or fstab_stale_ramdisk.changed
+        fstab_zvol.changed or fstab_ramdisk.changed or
+        fstab_kind.changed or fstab_kind_ramdisk.changed or
+        fstab_stale_rbind.changed
 
     - name: Enable ramdisk services
       ansible.builtin.systemd:
@@ -164,14 +167,14 @@
       changed_when: ramdisk_mounted.rc != 0
       when: ramdisk_mounted.rc != 0
 
-    # ---- apply kind bind mount now if not correct ------------------------------
-    - name: Check kind bind mount
+    # ---- apply kind device mounts now if not correct ----------------------------
+    - name: Check kind zvol mount is XFS
       ansible.builtin.shell:
         cmd: >
           set -o pipefail &&
-          findmnt -n -o SOURCE {{ kind_solana_dir }} | grep -q '{{ solana_dir }}'
+          findmnt -n -o FSTYPE {{ kind_solana_dir }} | grep -q xfs
         executable: /bin/bash
-      register: kind_mount_check
+      register: kind_zvol_check
       failed_when: false
       changed_when: false
 
@@ -181,17 +184,47 @@
           umount {{ kind_solana_dir }}/ramdisk 2>/dev/null || true
           umount {{ kind_solana_dir }} 2>/dev/null || true
         executable: /bin/bash
-      changed_when: kind_mount_check.rc != 0
-      when: kind_mount_check.rc != 0
+      changed_when: kind_zvol_check.rc != 0
+      when: kind_zvol_check.rc != 0
 
-    - name: Apply kind bind mount now
+    - name: Mount zvol at kind solana dir
       ansible.posix.mount:
         path: "{{ kind_solana_dir }}"
-        src: "{{ solana_dir }}"
-        fstype: none
-        opts: rbind
+        src: "{{ zvol_device }}"
+        fstype: xfs
         state: mounted
-      when: kind_mount_check.rc != 0
+      when: kind_zvol_check.rc != 0
+
+    - name: Check kind ramdisk mount is XFS
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          findmnt -n -o FSTYPE {{ kind_solana_dir }}/ramdisk | grep -q xfs
+        executable: /bin/bash
+      register: kind_ramdisk_check
+      failed_when: false
+      changed_when: false
+
+    - name: Mount ramdisk at kind solana ramdisk dir
+      ansible.posix.mount:
+        path: "{{ kind_solana_dir }}/ramdisk"
+        src: "{{ ramdisk_device }}"
+        fstype: xfs
+        opts: noatime,nodiratime
+        state: mounted
+      when: kind_ramdisk_check.rc != 0
+
+    # Docker requires shared propagation on mounts it bind-mounts into
+    # containers. Without this, `docker start` fails with "not a shared
+    # or slave mount".
+    # No ansible module supports mount propagation flags; command required.
+    - name: Ensure shared propagation on kind mounts  # noqa: command-instead-of-module
+      ansible.builtin.command:
+        cmd: mount --make-shared {{ item }}
+      loop:
+        - "{{ kind_solana_dir }}"
+        - "{{ kind_solana_dir }}/ramdisk"
+      changed_when: false
 
     # ---- verify -----------------------------------------------------------------
     - name: Verify ramdisk is XFS
@@ -206,7 +239,19 @@
         executable: /bin/bash
       changed_when: false
 
-    - name: Verify kind bind mount contents
+    - name: Verify kind zvol is XFS
+      ansible.builtin.shell:
+        cmd: set -o pipefail && df -T {{ kind_solana_dir }} | grep -q xfs
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Verify kind ramdisk is XFS
+      ansible.builtin.shell:
+        cmd: set -o pipefail && df -T {{ kind_solana_dir }}/ramdisk | grep -q xfs
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Verify kind mount contents
       ansible.builtin.shell:
         cmd: >
           set -o pipefail &&
@@ -216,8 +261,11 @@
       register: kind_mount_verify
       changed_when: false
 
-    # Assert the kind node sees XFS (zvol), not ZFS. If this fails, kind
-    # needs a restart or laconic-so needs the HostToContainer propagation fix.
+    # Assert the kind node sees XFS at the PV mount paths.
+    # laconic-so creates individual extraMounts per volume:
+    #   /srv/kind/solana/ledger → /mnt/validator-ledger (inside kind node)
+    #   /srv/kind/solana/ramdisk/accounts → /mnt/validator-accounts
+    # The PV hostPaths use /mnt/<volume-name>, not /mnt/solana/<subpath>.
     - name: Read cluster-id from deployment
       ansible.builtin.shell:
         cmd: set -o pipefail && grep '^cluster-id:' {{ deployment_dir }}/deployment.yml | awk '{print $2}'
@@ -225,12 +273,13 @@
       register: cluster_id_result
       changed_when: false
 
-    - name: Verify kind node sees XFS at /mnt/solana
+    - name: Check kind node XFS visibility
       ansible.builtin.shell:
         cmd: >
           set -o pipefail &&
           docker exec {{ cluster_id_result.stdout }}-control-plane
-          stat -f -c '%T' /mnt/solana | grep -q xfs
+          df -T /mnt/validator-ledger /mnt/validator-accounts
+          | grep -c xfs
         executable: /bin/bash
       register: kind_fstype
       changed_when: false
@@ -240,4 +289,7 @@
       ansible.builtin.debug:
         msg:
           kind_mount: "{{ kind_mount_verify.stdout_lines }}"
-          kind_fstype: "{{ 'xfs (correct)' if kind_fstype.rc == 0 else 'NOT XFS — kind restart required' }}"
+          kind_fstype: "{{ 'xfs (correct)' if kind_fstype.stdout | default('0') | int >= 2 else 'NOT XFS — kind restart required' }}"
+
+- name: Configure Ashburn validator relay
+  ansible.builtin.import_playbook: ashburn-relay-biscayne.yml

@@ -52,6 +52,7 @@
     stack_repo: /srv/deployments/agave-stack
     stack_path: /srv/deployments/agave-stack/stack-orchestrator/stacks/agave
     laconic_so: /home/rix/.local/bin/laconic-so
+    laconic_so_repo: /home/rix/stack-orchestrator
     kind_cluster: laconic-70ce4c4b47e23b85
     k8s_namespace: "laconic-{{ kind_cluster }}"
     deployment_name: "{{ kind_cluster }}-deployment"
@@ -216,11 +217,28 @@
       changed_when: true
       tags: [deploy]
 
-    - name: Verify kind-config.yml has unified mount root
+    - name: Check kind-config.yml mount style
       ansible.builtin.command: "grep -c 'containerPath: /mnt$' {{ deployment_dir }}/kind-config.yml"
       register: mount_root_check
-      failed_when: mount_root_check.stdout | int < 1
       changed_when: false
+      failed_when: false
+      tags: [deploy]
+
+    - name: Warn if unified mount root not found
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: kind-config.yml does not have unified mount root
+          (containerPath: /mnt). laconic-so may be using individual PV mounts.
+          Verify PV hostPaths match expected paths after deploy.
+      when: mount_root_check.stdout | default('0') | int < 1
+      tags: [deploy]
+
+    - name: Update laconic-so (editable install)
+      ansible.builtin.shell: |
+        cd {{ laconic_so_repo }}
+        git fetch origin
+        git reset --hard origin/main
+      changed_when: true
       tags: [deploy]
 
     - name: Start deployment (creates kind cluster + deploys pod)

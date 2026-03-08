@@ -14,9 +14,8 @@ below it are correct. Playbooks belong to exactly one layer.
 | 5. Deploy agave | Deploy agave-stack into kind, snapshot download, scale up | `biscayne-redeploy.yml` (snapshot/verify tags), `biscayne-recover.yml` |
 
 **Layer 4 invariants** (asserted by `biscayne-prepare-agave.yml`):
-- `/srv/solana` is XFS on a zvol — agave uses io_uring which deadlocks on ZFS
-- `/srv/solana/ramdisk` is XFS on `/dev/ram0` — accounts must be on ramdisk
-- `/srv/kind/solana` is an rbind of `/srv/solana` — makes the zvol visible to kind at `/mnt/solana`
+- `/srv/kind/solana` is XFS on a zvol — agave uses io_uring which deadlocks on ZFS. `/srv/solana` is NOT the zvol (it's a ZFS dataset directory); never use it for data paths
+- `/srv/kind/solana/ramdisk` is tmpfs (1TB) — accounts must be in RAM
 
 These invariants are checked at runtime and persisted to fstab/systemd so they
 survive reboot. They are agave's requirements reaching into the boot sequence,
@@ -58,18 +57,13 @@ Correct shutdown sequence:
 
 ### Ramdisk
 
-The accounts directory must be on a ramdisk for performance. `/dev/ram0` loses its
-filesystem on reboot and must be reformatted before mounting.
+The accounts directory must be in RAM for performance. tmpfs is used instead of
+`/dev/ram0` — simpler (no format-on-boot service needed), resizable on the fly
+with `mount -o remount,size=<new>`, and what most Solana operators use.
 
-**Boot ordering is handled by systemd units** (installed by `biscayne-prepare-agave.yml`):
-- `format-ramdisk.service`: runs `mkfs.xfs -f /dev/ram0` before `local-fs.target`
-- fstab entry: mounts `/dev/ram0` at `/srv/solana/ramdisk` with
-  `x-systemd.requires=format-ramdisk.service`
-- `ramdisk-accounts.service`: creates `/srv/solana/ramdisk/accounts` and sets
-  ownership after the mount
-
-These units run before docker, so the kind node's bind mounts always see the
-ramdisk. **No manual intervention is needed after reboot.**
+**Boot ordering**: fstab entry mounts tmpfs at `/srv/kind/solana/ramdisk` with
+`x-systemd.requires=srv-kind-solana.mount`. tmpfs mounts natively via fstab —
+no systemd format service needed. **No manual intervention after reboot.**
 
 **Mount propagation**: The kind node bind-mounts `/srv/kind` → `/mnt` at container
 start. laconic-so sets `propagation: HostToContainer` on all kind extraMounts
@@ -139,10 +133,11 @@ kind node via a single bind mount.
 - Deployment: `laconic-70ce4c4b47e23b85-deployment`
 - Kind node container: `laconic-70ce4c4b47e23b85-control-plane`
 - Deployment dir: `/srv/deployments/agave`
-- Snapshot dir: `/srv/solana/snapshots`
-- Ledger dir: `/srv/solana/ledger`
-- Accounts dir: `/srv/solana/ramdisk/accounts`
-- Log dir: `/srv/solana/log`
+- Snapshot dir: `/srv/kind/solana/snapshots` (on zvol, visible to kind at `/mnt/validator-snapshots`)
+- Ledger dir: `/srv/kind/solana/ledger` (on zvol, visible to kind at `/mnt/validator-ledger`)
+- Accounts dir: `/srv/kind/solana/ramdisk/accounts` (on ramdisk `/dev/ram0`, visible to kind at `/mnt/validator-accounts`)
+- Log dir: `/srv/kind/solana/log` (on zvol, visible to kind at `/mnt/validator-log`)
+- **WARNING**: `/srv/solana` is a ZFS dataset directory, NOT the zvol. Never use it for data paths.
 - Host bind mount root: `/srv/kind` -> kind node `/mnt`
 - laconic-so: `/home/rix/.local/bin/laconic-so` (editable install)
 
@@ -150,10 +145,10 @@ kind node via a single bind mount.
 
 | PV Name              | hostPath                      |
 |----------------------|-------------------------------|
-| validator-snapshots  | /mnt/solana/snapshots         |
-| validator-ledger     | /mnt/solana/ledger            |
-| validator-accounts   | /mnt/solana/ramdisk/accounts  |
-| validator-log        | /mnt/solana/log               |
+| validator-snapshots  | /mnt/validator-snapshots      |
+| validator-ledger     | /mnt/validator-ledger         |
+| validator-accounts   | /mnt/validator-accounts       |
+| validator-log        | /mnt/validator-log            |
 
 ### Snapshot Freshness
 
@@ -164,7 +159,7 @@ try to catch up from an old snapshot — it will take too long and may never con
 Check with:
 ```
 # Snapshot slot (from filename)
-ls /srv/solana/snapshots/snapshot-*.tar.*
+ls /srv/kind/solana/snapshots/snapshot-*.tar.*
 
 # Current mainnet slot
 curl -s -X POST -H "Content-Type: application/json" \

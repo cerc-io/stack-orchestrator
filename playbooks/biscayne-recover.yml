@@ -33,10 +33,9 @@
     kind_cluster: laconic-70ce4c4b47e23b85
     k8s_namespace: "laconic-{{ kind_cluster }}"
     deployment_name: "{{ kind_cluster }}-deployment"
-    snapshot_dir: /srv/solana/snapshots
-    accounts_dir: /srv/solana/ramdisk/accounts
-    ramdisk_mount: /srv/solana/ramdisk
-    ramdisk_device: /dev/ram0
+    snapshot_dir: /srv/kind/solana/snapshots
+    accounts_dir: /srv/kind/solana/ramdisk/accounts
+    ramdisk_mount: /srv/kind/solana/ramdisk
     snapshot_script_local: "{{ playbook_dir }}/../scripts/snapshot-download.py"
     snapshot_script: /tmp/snapshot-download.py
     snapshot_args: ""

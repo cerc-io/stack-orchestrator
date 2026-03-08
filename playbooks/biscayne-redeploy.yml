@@ -57,11 +57,11 @@
     kind_cluster: laconic-70ce4c4b47e23b85
     k8s_namespace: "laconic-{{ kind_cluster }}"
     deployment_name: "{{ kind_cluster }}-deployment"
-    snapshot_dir: /srv/solana/snapshots
-    ledger_dir: /srv/solana/ledger
-    accounts_dir: /srv/solana/ramdisk/accounts
-    ramdisk_mount: /srv/solana/ramdisk
-    ramdisk_device: /dev/ram0
+    snapshot_dir: /srv/kind/solana/snapshots
+    ledger_dir: /srv/kind/solana/ledger
+    accounts_dir: /srv/kind/solana/ramdisk/accounts
+    ramdisk_mount: /srv/kind/solana/ramdisk
+    ramdisk_size: 1024G
     snapshot_script_local: "{{ playbook_dir }}/../scripts/snapshot-download.py"
     snapshot_script: /tmp/snapshot-download.py
     # Flags — non-destructive by default
@@ -139,12 +139,9 @@
       when: wipe_ledger | bool
       tags: [wipe]
 
-    - name: Wipe accounts ramdisk (umount + mkfs.xfs + mount)
+    - name: Wipe accounts ramdisk
       ansible.builtin.shell: |
-        set -o pipefail
-        mountpoint -q {{ ramdisk_mount }} && umount {{ ramdisk_mount }} || true
-        mkfs.xfs -f {{ ramdisk_device }}
-        mount {{ ramdisk_mount }}
+        rm -rf {{ accounts_dir }}/*
         mkdir -p {{ accounts_dir }}
         chown solana:solana {{ ramdisk_mount }} {{ accounts_dir }}
       become: true

@@ -6,7 +6,7 @@
 #
 # Prerequisites:
 #   - biscayne-prepare-agave.yml has been run (fstab entries, systemd units)
-#   - A snapshot exists in /srv/solana/snapshots (or use biscayne-recover.yml)
+#   - A snapshot exists in /srv/kind/solana/snapshots (or use biscayne-recover.yml)
 #
 # Usage:
 #   ansible-playbook playbooks/biscayne-start.yml

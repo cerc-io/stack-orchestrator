@@ -1,3 +1,4 @@
 .venv/
 sessions.duckdb
 sessions.duckdb.wal
+.worktrees

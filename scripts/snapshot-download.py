@@ -9,8 +9,8 @@ Based on the discovery approach from etcusr/solana-snapshot-finder but replaces
 the single-connection wget download with aria2c parallel chunked downloads.
 
 Usage:
-    # Download to /srv/solana/snapshots (mainnet, 16 connections)
-    ./snapshot-download.py -o /srv/solana/snapshots
+    # Download to /srv/kind/solana/snapshots (mainnet, 16 connections)
+    ./snapshot-download.py -o /srv/kind/solana/snapshots
 
     # Dry run — find best source, print URL
     ./snapshot-download.py --dry-run
@@ -43,7 +43,6 @@ import urllib.request
 from dataclasses import dataclass, field
 from http.client import HTTPResponse
 from pathlib import Path
-from typing import NoReturn
 from urllib.request import Request
 
 log: logging.Logger = logging.getLogger("snapshot-download")
@@ -192,16 +191,12 @@ def _parse_snapshot_filename(location: str) -> tuple[str, str | None]:
 def probe_rpc_snapshot(
     rpc_address: str,
     current_slot: int,
-    max_age_slots: int,
-    max_latency_ms: float,
 ) -> SnapshotSource | None:
     """Probe a single RPC node for available snapshots.
 
-    Probes for full snapshot first (required), then incremental. Records all
-    available files. Which files to actually download is decided at download
-    time based on what already exists locally — not here.
-
-    Based on the discovery approach from etcusr/solana-snapshot-finder.
+    Discovery only — no filtering. Returns a SnapshotSource with all available
+    info so the caller can decide what to keep. Filtering happens after all
+    probes complete, so rejected sources are still visible for debugging.
     """
     full_url: str = f"http://{rpc_address}/snapshot.tar.bz2"
 
@@ -211,8 +206,6 @@ def probe_rpc_snapshot(
         return None
 
     latency_ms: float = full_latency * 1000
-    if latency_ms > max_latency_ms:
-        return None
 
     full_filename, full_path = _parse_snapshot_filename(full_location)
     fm: re.Match[str] | None = FULL_SNAP_RE.match(full_filename)
@@ -221,9 +214,6 @@ def probe_rpc_snapshot(
 
     full_snap_slot: int = int(fm.group(1))
     slots_diff: int = current_slot - full_snap_slot
-
-    if slots_diff > max_age_slots or slots_diff < -100:
-        return None
 
     file_paths: list[str] = [full_path]
 
@@ -255,7 +245,11 @@ def discover_sources(
     threads: int,
     version_filter: str | None,
 ) -> list[SnapshotSource]:
-    """Discover all snapshot sources from the cluster."""
+    """Discover all snapshot sources, then filter.
+
+    Probing and filtering are separate: all reachable sources are collected
+    first so we can report what exists even if filters reject everything.
+    """
     rpc_nodes: list[str] = get_cluster_rpc_nodes(rpc_url, version_filter)
     if not rpc_nodes:
         log.error("No RPC nodes found via getClusterNodes")
@@ -263,31 +257,59 @@ def discover_sources(
 
     log.info("Found %d RPC nodes, probing for snapshots...", len(rpc_nodes))
 
-    sources: list[SnapshotSource] = []
+    all_sources: list[SnapshotSource] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as pool:
         futures: dict[concurrent.futures.Future[SnapshotSource | None], str] = {
-            pool.submit(
-                probe_rpc_snapshot, addr, current_slot,
-                max_age_slots, max_latency_ms,
-            ): addr
+            pool.submit(probe_rpc_snapshot, addr, current_slot): addr
             for addr in rpc_nodes
         }
         done: int = 0
         for future in concurrent.futures.as_completed(futures):
             done += 1
             if done % 200 == 0:
-                log.info("  probed %d/%d nodes, %d sources found",
-                         done, len(rpc_nodes), len(sources))
+                log.info("  probed %d/%d nodes, %d reachable",
+                         done, len(rpc_nodes), len(all_sources))
             try:
                 result: SnapshotSource | None = future.result()
             except (urllib.error.URLError, OSError, TimeoutError) as e:
                 log.debug("Probe failed for %s: %s", futures[future], e)
                 continue
             if result:
-                sources.append(result)
+                all_sources.append(result)
 
-    log.info("Found %d RPC nodes with suitable snapshots", len(sources))
-    return sources
+    log.info("Discovered %d reachable sources", len(all_sources))
+
+    # Apply filters
+    filtered: list[SnapshotSource] = []
+    rejected_age: int = 0
+    rejected_latency: int = 0
+    for src in all_sources:
+        if src.slots_diff > max_age_slots or src.slots_diff < -100:
+            rejected_age += 1
+            continue
+        if src.latency_ms > max_latency_ms:
+            rejected_latency += 1
+            continue
+        filtered.append(src)
+
+    if rejected_age or rejected_latency:
+        log.info("Filtered: %d rejected by age (>%d slots), %d by latency (>%.0fms)",
+                 rejected_age, max_age_slots, rejected_latency, max_latency_ms)
+
+    if not filtered and all_sources:
+        # Show what was available so the user can adjust filters
+        all_sources.sort(key=lambda s: s.slots_diff)
+        best = all_sources[0]
+        log.warning("All %d sources rejected by filters. Best available: "
+                     "%s (age=%d slots, latency=%.0fms). "
+                     "Try --max-snapshot-age %d --max-latency %.0f",
+                     len(all_sources), best.rpc_address,
+                     best.slots_diff, best.latency_ms,
+                     best.slots_diff + 500,
+                     max(best.latency_ms * 1.5, 500))
+
+    log.info("Found %d sources after filtering", len(filtered))
+    return filtered
 
 
 # -- Speed benchmark -----------------------------------------------------------
@@ -336,7 +358,7 @@ def download_aria2c(
     cmd: list[str] = [
         "aria2c",
         "--file-allocation=none",
-        "--continue=true",
+        "--continue=false",
         f"--max-connection-per-server={connections}",
         f"--split={total_splits}",
         "--min-split-size=50M",
@@ -380,97 +402,74 @@ def download_aria2c(
     return True
 
 
-# -- Main ----------------------------------------------------------------------
+# -- Public API ----------------------------------------------------------------
 
 
-def main() -> int:
-    p: argparse.ArgumentParser = argparse.ArgumentParser(
-        description="Download Solana snapshots with aria2c parallel downloads",
-    )
-    p.add_argument("-o", "--output", default="/srv/solana/snapshots",
-                   help="Snapshot output directory (default: /srv/solana/snapshots)")
-    p.add_argument("-c", "--cluster", default="mainnet-beta",
-                   choices=list(CLUSTER_RPC),
-                   help="Solana cluster (default: mainnet-beta)")
-    p.add_argument("-r", "--rpc", default=None,
-                   help="RPC URL for cluster discovery (default: public RPC)")
-    p.add_argument("-n", "--connections", type=int, default=16,
-                   help="aria2c connections per download (default: 16)")
-    p.add_argument("-t", "--threads", type=int, default=500,
-                   help="Threads for parallel RPC probing (default: 500)")
-    p.add_argument("--max-snapshot-age", type=int, default=1300,
-                   help="Max snapshot age in slots (default: 1300)")
-    p.add_argument("--max-latency", type=float, default=100,
-                   help="Max RPC probe latency in ms (default: 100)")
-    p.add_argument("--min-download-speed", type=int, default=20,
-                   help="Min download speed in MiB/s (default: 20)")
-    p.add_argument("--measurement-time", type=int, default=7,
-                   help="Speed measurement duration in seconds (default: 7)")
-    p.add_argument("--max-speed-checks", type=int, default=15,
-                   help="Max nodes to benchmark before giving up (default: 15)")
-    p.add_argument("--version", default=None,
-                   help="Filter nodes by version prefix (e.g. '2.2')")
-    p.add_argument("--full-only", action="store_true",
-                   help="Download only full snapshot, skip incremental")
-    p.add_argument("--dry-run", action="store_true",
-                   help="Find best source and print URL, don't download")
-    p.add_argument("-v", "--verbose", action="store_true")
-    args: argparse.Namespace = p.parse_args()
+def download_best_snapshot(
+    output_dir: str,
+    *,
+    cluster: str = "mainnet-beta",
+    rpc_url: str | None = None,
+    connections: int = 16,
+    threads: int = 500,
+    max_snapshot_age: int = 10000,
+    max_latency: float = 500,
+    min_download_speed: int = 20,
+    measurement_time: int = 7,
+    max_speed_checks: int = 15,
+    version_filter: str | None = None,
+    full_only: bool = False,
+) -> bool:
+    """Download the best available snapshot to output_dir.
 
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-        datefmt="%H:%M:%S",
-    )
+    Programmatic API for use by entrypoint.py or other callers.
+    Returns True on success, False on failure.
+    """
+    resolved_rpc: str = rpc_url or CLUSTER_RPC[cluster]
 
-    rpc_url: str = args.rpc or CLUSTER_RPC[args.cluster]
-
-    # aria2c is required for actual downloads (not dry-run)
-    if not args.dry_run and not shutil.which("aria2c"):
+    if not shutil.which("aria2c"):
         log.error("aria2c not found. Install with: apt install aria2")
-        return 1
+        return False
 
-    # Get current slot
-    log.info("Cluster: %s | RPC: %s", args.cluster, rpc_url)
-    current_slot: int | None = get_current_slot(rpc_url)
+    log.info("Cluster: %s | RPC: %s", cluster, resolved_rpc)
+    current_slot: int | None = get_current_slot(resolved_rpc)
     if current_slot is None:
-        log.error("Cannot get current slot from %s", rpc_url)
-        return 1
+        log.error("Cannot get current slot from %s", resolved_rpc)
+        return False
     log.info("Current slot: %d", current_slot)
 
-    # Discover sources
     sources: list[SnapshotSource] = discover_sources(
-        rpc_url, current_slot,
-        max_age_slots=args.max_snapshot_age,
-        max_latency_ms=args.max_latency,
-        threads=args.threads,
-        version_filter=args.version,
+        resolved_rpc, current_slot,
+        max_age_slots=max_snapshot_age,
+        max_latency_ms=max_latency,
+        threads=threads,
+        version_filter=version_filter,
     )
     if not sources:
         log.error("No snapshot sources found")
-        return 1
+        return False
 
     # Sort by latency (lowest first) for speed benchmarking
     sources.sort(key=lambda s: s.latency_ms)
 
-    # Benchmark top candidates — all speeds in MiB/s (binary, 1 MiB = 1048576 bytes)
-    log.info("Benchmarking download speed on top %d sources...", args.max_speed_checks)
+    # Benchmark top candidates
+    log.info("Benchmarking download speed on top %d sources...", max_speed_checks)
     fast_sources: list[SnapshotSource] = []
     checked: int = 0
-    min_speed_bytes: int = args.min_download_speed * 1024 * 1024  # MiB to bytes
+    min_speed_bytes: int = min_download_speed * 1024 * 1024
 
     for source in sources:
-        if checked >= args.max_speed_checks:
+        if checked >= max_speed_checks:
             break
         checked += 1
 
-        speed: float = measure_speed(source.rpc_address, args.measurement_time)
+        speed: float = measure_speed(source.rpc_address, measurement_time)
         source.download_speed = speed
         speed_mib: float = speed / (1024 ** 2)
 
         if speed < min_speed_bytes:
             log.info("  %s: %.1f MiB/s (too slow, need >=%d MiB/s)",
-                     source.rpc_address, speed_mib, args.min_download_speed)
+                     source.rpc_address, speed_mib, min_download_speed)
             continue
 
         log.info("  %s: %.1f MiB/s (latency: %.0fms, age: %d slots)",
@@ -480,19 +479,17 @@ def main() -> int:
 
     if not fast_sources:
         log.error("No source met minimum speed requirement (%d MiB/s)",
-                  args.min_download_speed)
-        log.info("Try: --min-download-speed 10")
-        return 1
+                  min_download_speed)
+        return False
 
     # Use the fastest source as primary, collect mirrors for each file
     best: SnapshotSource = fast_sources[0]
     file_paths: list[str] = best.file_paths
-    if args.full_only:
+    if full_only:
         file_paths = [fp for fp in file_paths
                       if fp.rsplit("/", 1)[-1].startswith("snapshot-")]
 
-    # Build mirror URL lists: for each file, collect URLs from all fast sources
-    # that serve the same filename
+    # Build mirror URL lists
     download_plan: list[tuple[str, list[str]]] = []
     for fp in file_paths:
         filename: str = fp.rsplit("/", 1)[-1]
@@ -509,37 +506,129 @@ def main() -> int:
              best.rpc_address, speed_mib, len(fast_sources))
     for filename, mirror_urls in download_plan:
         log.info("  %s (%d mirrors)", filename, len(mirror_urls))
-        for url in mirror_urls:
-            log.info("    %s", url)
 
-    if args.dry_run:
-        for _, mirror_urls in download_plan:
-            for url in mirror_urls:
-                print(url)
-        return 0
-
-    # Download — skip files that already exist locally
-    os.makedirs(args.output, exist_ok=True)
+    # Download
+    os.makedirs(output_dir, exist_ok=True)
     total_start: float = time.monotonic()
 
     for filename, mirror_urls in download_plan:
-        filepath: Path = Path(args.output) / filename
+        filepath: Path = Path(output_dir) / filename
         if filepath.exists() and filepath.stat().st_size > 0:
             log.info("Skipping %s (already exists: %.1f GB)",
                      filename, filepath.stat().st_size / (1024 ** 3))
             continue
-        if not download_aria2c(mirror_urls, args.output, filename, args.connections):
+        if not download_aria2c(mirror_urls, output_dir, filename, connections):
             log.error("Failed to download %s", filename)
-            return 1
+            return False
 
     total_elapsed: float = time.monotonic() - total_start
     log.info("All downloads complete in %.0fs", total_elapsed)
     for filename, _ in download_plan:
-        fp: Path = Path(args.output) / filename
-        if fp.exists():
-            log.info("  %s (%.1f GB)", fp.name, fp.stat().st_size / (1024 ** 3))
+        fp_path: Path = Path(output_dir) / filename
+        if fp_path.exists():
+            log.info("  %s (%.1f GB)", fp_path.name, fp_path.stat().st_size / (1024 ** 3))
 
-    return 0
+    return True
+
+
+# -- Main (CLI) ----------------------------------------------------------------
+
+
+def main() -> int:
+    p: argparse.ArgumentParser = argparse.ArgumentParser(
+        description="Download Solana snapshots with aria2c parallel downloads",
+    )
+    p.add_argument("-o", "--output", default="/srv/kind/solana/snapshots",
+                   help="Snapshot output directory (default: /srv/kind/solana/snapshots)")
+    p.add_argument("-c", "--cluster", default="mainnet-beta",
+                   choices=list(CLUSTER_RPC),
+                   help="Solana cluster (default: mainnet-beta)")
+    p.add_argument("-r", "--rpc", default=None,
+                   help="RPC URL for cluster discovery (default: public RPC)")
+    p.add_argument("-n", "--connections", type=int, default=16,
+                   help="aria2c connections per download (default: 16)")
+    p.add_argument("-t", "--threads", type=int, default=500,
+                   help="Threads for parallel RPC probing (default: 500)")
+    p.add_argument("--max-snapshot-age", type=int, default=10000,
+                   help="Max snapshot age in slots (default: 10000)")
+    p.add_argument("--max-latency", type=float, default=500,
+                   help="Max RPC probe latency in ms (default: 500)")
+    p.add_argument("--min-download-speed", type=int, default=20,
+                   help="Min download speed in MiB/s (default: 20)")
+    p.add_argument("--measurement-time", type=int, default=7,
+                   help="Speed measurement duration in seconds (default: 7)")
+    p.add_argument("--max-speed-checks", type=int, default=15,
+                   help="Max nodes to benchmark before giving up (default: 15)")
+    p.add_argument("--version", default=None,
+                   help="Filter nodes by version prefix (e.g. '2.2')")
+    p.add_argument("--full-only", action="store_true",
+                   help="Download only full snapshot, skip incremental")
+    p.add_argument("--dry-run", action="store_true",
+                   help="Find best source and print URL, don't download")
+    p.add_argument("--post-cmd",
+                   help="Shell command to run after successful download "
+                        "(e.g. 'kubectl scale deployment ... --replicas=1')")
+    p.add_argument("-v", "--verbose", action="store_true")
+    args: argparse.Namespace = p.parse_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    # Dry-run uses inline flow (needs access to sources for URL printing)
+    if args.dry_run:
+        rpc_url: str = args.rpc or CLUSTER_RPC[args.cluster]
+        current_slot: int | None = get_current_slot(rpc_url)
+        if current_slot is None:
+            log.error("Cannot get current slot from %s", rpc_url)
+            return 1
+
+        sources: list[SnapshotSource] = discover_sources(
+            rpc_url, current_slot,
+            max_age_slots=args.max_snapshot_age,
+            max_latency_ms=args.max_latency,
+            threads=args.threads,
+            version_filter=args.version,
+        )
+        if not sources:
+            log.error("No snapshot sources found")
+            return 1
+
+        sources.sort(key=lambda s: s.latency_ms)
+        best = sources[0]
+        for fp in best.file_paths:
+            print(f"http://{best.rpc_address}{fp}")
+        return 0
+
+    ok: bool = download_best_snapshot(
+        args.output,
+        cluster=args.cluster,
+        rpc_url=args.rpc,
+        connections=args.connections,
+        threads=args.threads,
+        max_snapshot_age=args.max_snapshot_age,
+        max_latency=args.max_latency,
+        min_download_speed=args.min_download_speed,
+        measurement_time=args.measurement_time,
+        max_speed_checks=args.max_speed_checks,
+        version_filter=args.version,
+        full_only=args.full_only,
+    )
+
+    if ok and args.post_cmd:
+        log.info("Running post-download command: %s", args.post_cmd)
+        result: subprocess.CompletedProcess[bytes] = subprocess.run(
+            args.post_cmd, shell=True,
+        )
+        if result.returncode != 0:
+            log.error("Post-download command failed with exit code %d",
+                      result.returncode)
+            return 1
+        log.info("Post-download command completed successfully")
+
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

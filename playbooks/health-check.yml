@@ -211,7 +211,7 @@
     # ------------------------------------------------------------------
     - name: Check ramdisk usage
       ansible.builtin.command:
-        cmd: df -h /srv/solana/ramdisk
+        cmd: df -h /srv/kind/solana/ramdisk
       register: ramdisk_df
       changed_when: false
       failed_when: false
@@ -238,7 +238,7 @@
         cmd: >
           set -o pipefail &&
           findmnt -n -o TARGET,SOURCE,FSTYPE,PROPAGATION
-          /srv/solana /srv/solana/ramdisk /srv/kind/solana 2>&1
+          /srv/kind/solana /srv/kind/solana/ramdisk 2>&1
         executable: /bin/bash
       register: host_mounts
       changed_when: false

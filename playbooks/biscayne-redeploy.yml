@@ -62,7 +62,7 @@
     accounts_dir: /srv/kind/solana/ramdisk/accounts
     ramdisk_mount: /srv/kind/solana/ramdisk
     ramdisk_size: 1024G
-    snapshot_script_local: "{{ playbook_dir }}/../scripts/snapshot-download.py"
+    snapshot_script_local: "{{ playbook_dir }}/../scripts/agave-container/snapshot_download.py"
     snapshot_script: /tmp/snapshot-download.py
     # Flags — non-destructive by default
     wipe_accounts: false

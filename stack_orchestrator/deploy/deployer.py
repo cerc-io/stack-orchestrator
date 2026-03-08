@@ -28,7 +28,7 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def update(self):
+    def update_envs(self):
         pass
 
     @abstractmethod

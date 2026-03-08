@@ -62,7 +62,7 @@ class DockerDeployer(Deployer):
             except DockerException as e:
                 raise DeployerException(e)
 
-    def update(self):
+    def update_envs(self):
         if not opts.o.dry_run:
             try:
                 return self.docker.compose.restart()

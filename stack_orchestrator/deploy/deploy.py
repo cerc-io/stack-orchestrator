@@ -182,8 +182,8 @@ def status_operation(ctx):
     ctx.obj.deployer.status()
 
 
-def update_operation(ctx):
-    ctx.obj.deployer.update()
+def update_envs_operation(ctx):
+    ctx.obj.deployer.update_envs()
 
 
 def ps_operation(ctx):

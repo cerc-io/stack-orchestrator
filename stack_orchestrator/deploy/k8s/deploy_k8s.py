@@ -598,7 +598,7 @@ class K8sDeployer(Deployer):
                 log_data = "******* No logs available ********\n"
         return log_stream_from_string(log_data)
 
-    def update(self):
+    def update_envs(self):
         self.connect_api()
         ref_deployment = self.cluster_info.get_deployment()
         if not ref_deployment or not ref_deployment.metadata:

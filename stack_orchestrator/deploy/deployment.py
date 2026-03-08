@@ -31,7 +31,7 @@ from stack_orchestrator.deploy.deploy import (
     exec_operation,
     logs_operation,
     create_deploy_context,
-    update_operation,
+    update_envs_operation,
 )
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
@@ -210,11 +210,11 @@ def status(ctx):
     status_operation(ctx)
 
 
-@command.command()
+@command.command(name="update-envs")
 @click.pass_context
-def update(ctx):
+def update_envs(ctx):
     ctx.obj = make_deploy_context(ctx)
-    update_operation(ctx)
+    update_envs_operation(ctx)
 
 
 @command.command()

@@ -114,7 +114,7 @@ def up(ctx, stay_attached, skip_cluster_management, extra_args):
 )
 @click.option(
     "--skip-cluster-management/--perform-cluster-management",
-    default=False,
+    default=True,
     help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
 )
 @click.argument("extra_args", nargs=-1)  # help: command: up <service1> <service2>
@@ -132,7 +132,7 @@ def start(ctx, stay_attached, skip_cluster_management, extra_args):
 )
 @click.option(
     "--skip-cluster-management/--perform-cluster-management",
-    default=False,
+    default=True,
     help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
 )
 @click.argument("extra_args", nargs=-1)  # help: command: down <service1> <service2>
@@ -151,7 +151,7 @@ def down(ctx, delete_volumes, skip_cluster_management, extra_args):
 )
 @click.option(
     "--skip-cluster-management/--perform-cluster-management",
-    default=False,
+    default=True,
     help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
 )
 @click.argument("extra_args", nargs=-1)  # help: command: down <service1> <service2>

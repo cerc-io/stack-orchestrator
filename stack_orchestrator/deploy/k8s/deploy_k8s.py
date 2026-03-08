@@ -202,6 +202,10 @@ class K8sDeployer(Deployer):
                 print(f"ConfigMap created: {resp}")
         except ApiException as e:
             if e.status == 409:
+                existing = self.core_api.read_namespaced_config_map(
+                    name=cfg_map.metadata.name, namespace=self.k8s_namespace
+                )
+                cfg_map.metadata.resource_version = existing.metadata.resource_version
                 resp = self.core_api.replace_namespaced_config_map(
                     name=cfg_map.metadata.name,
                     namespace=self.k8s_namespace,
@@ -225,6 +229,13 @@ class K8sDeployer(Deployer):
                 print("Deployment created:")
         except ApiException as e:
             if e.status == 409:
+                existing = self.apps_api.read_namespaced_deployment(
+                    name=deployment.metadata.name,
+                    namespace=self.k8s_namespace,
+                )
+                deployment.metadata.resource_version = (
+                    existing.metadata.resource_version
+                )
                 resp = cast(
                     client.V1Deployment,
                     self.apps_api.replace_namespaced_deployment(
@@ -246,7 +257,11 @@ class K8sDeployer(Deployer):
                 print(f"{meta.namespace} {meta.name} {meta.generation} {img}")
 
     def _ensure_service(self, service, kind: str = "Service"):
-        """Create or replace a Service (idempotent)."""
+        """Create or replace a Service (idempotent).
+
+        Services have immutable fields (spec.clusterIP) that must be
+        preserved from the existing object on replace.
+        """
         try:
             resp = self.core_api.create_namespaced_service(
                 namespace=self.k8s_namespace, body=service
@@ -255,6 +270,12 @@ class K8sDeployer(Deployer):
                 print(f"{kind} created: {resp}")
         except ApiException as e:
             if e.status == 409:
+                existing = self.core_api.read_namespaced_service(
+                    name=service.metadata.name, namespace=self.k8s_namespace
+                )
+                service.metadata.resource_version = existing.metadata.resource_version
+                if existing.spec.cluster_ip:
+                    service.spec.cluster_ip = existing.spec.cluster_ip
                 resp = self.core_api.replace_namespaced_service(
                     name=service.metadata.name,
                     namespace=self.k8s_namespace,
@@ -275,6 +296,10 @@ class K8sDeployer(Deployer):
                 print(f"Ingress created: {resp}")
         except ApiException as e:
             if e.status == 409:
+                existing = self.networking_api.read_namespaced_ingress(
+                    name=ingress.metadata.name, namespace=self.k8s_namespace
+                )
+                ingress.metadata.resource_version = existing.metadata.resource_version
                 resp = self.networking_api.replace_namespaced_ingress(
                     name=ingress.metadata.name,
                     namespace=self.k8s_namespace,

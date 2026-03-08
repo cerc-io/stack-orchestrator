@@ -1,0 +1,116 @@
+---
+# Configure iptables DNAT rules for agave validator
+#
+# Routes external traffic to the kind node's pod IP (172.20.0.2).
+# Rules must be inserted BEFORE Docker's ADDRTYPE LOCAL rule in
+# PREROUTING, otherwise Docker's chain swallows the traffic.
+#
+# Two external IPs:
+#   186.233.184.235 — primary host IP (direct access)
+#   137.239.194.65  — Ashburn relay loopback (GRE tunnel endpoint)
+#
+# DOCKER-USER chain rules allow forwarded traffic to reach the pod.
+#
+# Idempotent: checks for existing rules before inserting.
+# Persistent: saves rules via iptables-persistent.
+#
+# Usage:
+#   ansible-playbook playbooks/biscayne-iptables.yml
+#
+- name: Configure iptables for agave validator
+  hosts: all
+  gather_facts: false
+  become: true
+  vars:
+    pod_ip: 172.20.0.2
+    host_ip: 186.233.184.235
+    relay_ip: 137.239.194.65
+    # Ports to forward
+    tcp_ports:
+      - 8899   # RPC
+      - 8900   # RPC WebSocket
+      - 8001   # Gossip
+    udp_ports:
+      - 8001         # Gossip UDP
+    udp_ranges:
+      - 9000:9025    # Validator dynamic ports
+
+  tasks:
+    # ---- PREROUTING DNAT rules ---------------------------------------------------
+    # Host IP rules (186.233.184.235 → pod)
+    - name: "PREROUTING DNAT host IP TCP ports to pod"
+      ansible.builtin.iptables:
+        table: nat
+        chain: PREROUTING
+        protocol: tcp
+        destination: "{{ host_ip }}"
+        destination_port: "{{ item }}"
+        jump: DNAT
+        to_destination: "{{ pod_ip }}:{{ item }}"
+        action: insert
+        rule_num: 1
+      loop: "{{ tcp_ports }}"
+      register: prerouting_host_tcp
+
+    # Relay IP rules (137.239.194.65 → pod)
+    - name: "PREROUTING DNAT relay IP TCP ports to pod"
+      ansible.builtin.iptables:
+        table: nat
+        chain: PREROUTING
+        protocol: tcp
+        destination: "{{ relay_ip }}"
+        destination_port: "{{ item }}"
+        jump: DNAT
+        to_destination: "{{ pod_ip }}:{{ item }}"
+        action: insert
+        rule_num: 1
+      loop: "{{ tcp_ports }}"
+      register: prerouting_relay_tcp
+
+    - name: "PREROUTING DNAT relay IP UDP ports to pod"
+      ansible.builtin.iptables:
+        table: nat
+        chain: PREROUTING
+        protocol: udp
+        destination: "{{ relay_ip }}"
+        destination_port: "{{ item }}"
+        jump: DNAT
+        to_destination: "{{ pod_ip }}"
+        action: insert
+        rule_num: 1
+      loop: "{{ udp_ports + udp_ranges }}"
+      register: prerouting_relay_udp
+
+    # ---- DOCKER-USER accept rules ------------------------------------------------
+    - name: "DOCKER-USER accept TCP to pod"
+      ansible.builtin.iptables:
+        chain: DOCKER-USER
+        protocol: tcp
+        destination: "{{ pod_ip }}"
+        destination_port: "{{ item }}"
+        jump: ACCEPT
+        action: insert
+        rule_num: 1
+      loop: "{{ tcp_ports }}"
+      register: dockeruser_tcp
+
+    - name: "DOCKER-USER accept UDP to pod"
+      ansible.builtin.iptables:
+        chain: DOCKER-USER
+        protocol: udp
+        destination: "{{ pod_ip }}"
+        destination_port: "{{ item }}"
+        jump: ACCEPT
+        action: insert
+        rule_num: 1
+      loop: "{{ udp_ports + udp_ranges }}"
+      register: dockeruser_udp
+
+    # ---- Persist rules -----------------------------------------------------------
+    - name: Save iptables rules
+      ansible.builtin.command: netfilter-persistent save
+      changed_when: true
+      when: >-
+        prerouting_host_tcp.changed or prerouting_relay_tcp.changed or
+        prerouting_relay_udp.changed or dockeruser_tcp.changed or
+        dockeruser_udp.changed

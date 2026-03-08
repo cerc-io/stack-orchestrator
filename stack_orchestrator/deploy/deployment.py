@@ -23,6 +23,7 @@ from stack_orchestrator.deploy.images import push_images_operation
 from stack_orchestrator.deploy.deploy import (
     up_operation,
     down_operation,
+    prepare_operation,
     ps_operation,
     port_operation,
     status_operation,
@@ -123,6 +124,27 @@ def start(ctx, stay_attached, skip_cluster_management, extra_args):
     ctx.obj = make_deploy_context(ctx)
     services_list = list(extra_args) or None
     up_operation(ctx, services_list, stay_attached, skip_cluster_management)
+
+
+@command.command()
+@click.option(
+    "--skip-cluster-management/--perform-cluster-management",
+    default=False,
+    help="Skip cluster initialization (only for kind-k8s deployments)",
+)
+@click.pass_context
+def prepare(ctx, skip_cluster_management):
+    """Create cluster infrastructure without starting pods.
+
+    Sets up the kind cluster, namespace, PVs, PVCs, ConfigMaps, Services,
+    and Ingresses — everything that 'start' does EXCEPT creating the
+    Deployment resource. No pods will be scheduled.
+
+    Use 'start --skip-cluster-management' afterward to create the Deployment
+    and start pods when ready.
+    """
+    ctx.obj = make_deploy_context(ctx)
+    prepare_operation(ctx, skip_cluster_management)
 
 
 # TODO: remove legacy up command since it's an alias for stop

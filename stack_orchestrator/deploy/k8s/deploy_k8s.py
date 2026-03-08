@@ -371,21 +371,14 @@ class K8sDeployer(Deployer):
                 self._ensure_config_map(cfg_map)
 
     def _create_deployment(self):
-        # Process compose files into a Deployment
+        """Create the k8s Deployment resource (which starts pods)."""
         deployment = self.cluster_info.get_deployment(
             image_pull_policy=None if self.is_kind() else "Always"
         )
-        # Create the k8s objects
         if opts.o.debug:
             print(f"Sending this deployment: {deployment}")
         if not opts.o.dry_run:
             self._ensure_deployment(deployment)
-
-        service = self.cluster_info.get_service()
-        if opts.o.debug:
-            print(f"Sending this service: {service}")
-        if service and not opts.o.dry_run:
-            self._ensure_service(service)
 
     def _find_certificate_for_host_name(self, host_name):
         all_certificates = self.custom_obj_api.list_namespaced_custom_object(
@@ -424,24 +417,25 @@ class K8sDeployer(Deployer):
         return None
 
     def up(self, detach, skip_cluster_management, services):
+        self._setup_cluster_and_namespace(skip_cluster_management)
+        self._create_infrastructure()
+        self._create_deployment()
+
+    def _setup_cluster_and_namespace(self, skip_cluster_management):
+        """Create kind cluster (if needed) and namespace. Shared by up() and prepare()."""
         self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:
             if self.is_kind() and not self.skip_cluster_management:
-                # Create the kind cluster (or reuse existing one)
                 kind_config = str(
                     self.deployment_dir.joinpath(constants.kind_config_filename)
                 )
                 actual_cluster = create_cluster(self.kind_cluster_name, kind_config)
                 if actual_cluster != self.kind_cluster_name:
-                    # An existing cluster was found, use it instead
                     self.kind_cluster_name = actual_cluster
-                # Only load locally-built images into kind
-                # Registry images (docker.io, ghcr.io, etc.) will be pulled by k8s
                 local_containers = self.deployment_context.stack.obj.get(
                     "containers", []
                 )
                 if local_containers:
-                    # Filter image_set to only images matching local containers
                     local_images = {
                         img
                         for img in self.cluster_info.image_set
@@ -449,47 +443,48 @@ class K8sDeployer(Deployer):
                     }
                     if local_images:
                         load_images_into_kind(self.kind_cluster_name, local_images)
-                # Note: if no local containers defined, all images come from registries
             self.connect_api()
-            # Create deployment-specific namespace for resource isolation
             self._ensure_namespace()
             if self.is_kind() and not self.skip_cluster_management:
-                # Configure ingress controller (not installed by default in kind)
-                # Skip if already running (idempotent for shared cluster)
                 if not is_ingress_running():
                     install_ingress_for_kind(self.cluster_info.spec.get_acme_email())
-                    # Wait for ingress to start
-                    # (deployment provisioning will fail unless this is done)
                     wait_for_ingress_in_kind()
-                # Create RuntimeClass if unlimited_memlock is enabled
                 if self.cluster_info.spec.get_unlimited_memlock():
                     _create_runtime_class(
                         constants.high_memlock_runtime,
                         constants.high_memlock_runtime,
                     )
-
         else:
             print("Dry run mode enabled, skipping k8s API connect")
 
-        # Create registry secret if configured
+    def _create_infrastructure(self):
+        """Create PVs, PVCs, ConfigMaps, Services, Ingresses, NodePorts.
+
+        Everything except the Deployment resource (which starts pods).
+        Shared by up() and prepare().
+        """
         from stack_orchestrator.deploy.deployment_create import create_registry_secret
 
         create_registry_secret(self.cluster_info.spec, self.cluster_info.app_name)
 
         self._create_volume_data()
-        self._create_deployment()
+
+        # Create the ClusterIP service (paired with the deployment)
+        service = self.cluster_info.get_service()
+        if service and not opts.o.dry_run:
+            if opts.o.debug:
+                print(f"Sending this service: {service}")
+            self._ensure_service(service)
 
         http_proxy_info = self.cluster_info.spec.get_http_proxy()
-        # Note: we don't support tls for kind (enabling tls causes errors)
         use_tls = http_proxy_info and not self.is_kind()
         certificate = (
             self._find_certificate_for_host_name(http_proxy_info[0]["host-name"])
             if use_tls
             else None
         )
-        if opts.o.debug:
-            if certificate:
-                print(f"Using existing certificate: {certificate}")
+        if opts.o.debug and certificate:
+            print(f"Using existing certificate: {certificate}")
 
         ingress = self.cluster_info.get_ingress(
             use_tls=use_tls, certificate=certificate
@@ -499,9 +494,8 @@ class K8sDeployer(Deployer):
                 print(f"Sending this ingress: {ingress}")
             if not opts.o.dry_run:
                 self._ensure_ingress(ingress)
-        else:
-            if opts.o.debug:
-                print("No ingress configured")
+        elif opts.o.debug:
+            print("No ingress configured")
 
         nodeports: List[client.V1Service] = self.cluster_info.get_nodeports()
         for nodeport in nodeports:
@@ -509,6 +503,17 @@ class K8sDeployer(Deployer):
                 print(f"Sending this nodeport: {nodeport}")
             if not opts.o.dry_run:
                 self._ensure_service(nodeport, kind="NodePort")
+
+    def prepare(self, skip_cluster_management):
+        """Create cluster infrastructure without starting pods.
+
+        Sets up kind cluster, namespace, PVs, PVCs, ConfigMaps, Services,
+        Ingresses, and NodePorts — everything that up() does EXCEPT creating
+        the Deployment resource.
+        """
+        self._setup_cluster_and_namespace(skip_cluster_management)
+        self._create_infrastructure()
+        print("Cluster infrastructure prepared (no pods started).")
 
     def down(self, timeout, volumes, skip_cluster_management):
         self.skip_cluster_management = skip_cluster_management

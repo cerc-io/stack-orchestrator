@@ -87,6 +87,20 @@
             executable: /bin/bash
           changed_when: false
 
+        - name: Remove DOCKER-USER relay rules
+          ansible.builtin.shell:
+            cmd: |
+              set -o pipefail
+              iptables -D DOCKER-USER -p udp -d {{ kind_node_ip }} \
+                --dport {{ gossip_port }} -j ACCEPT 2>/dev/null || true
+              iptables -D DOCKER-USER -p tcp -d {{ kind_node_ip }} \
+                --dport {{ gossip_port }} -j ACCEPT 2>/dev/null || true
+              iptables -D DOCKER-USER -p udp -d {{ kind_node_ip }} \
+                --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} \
+                -j ACCEPT 2>/dev/null || true
+            executable: /bin/bash
+          changed_when: false
+
         - name: Remove outbound mangle rules
           ansible.builtin.shell:
             cmd: |
@@ -251,6 +265,36 @@
     - name: Show DNAT result
       ansible.builtin.debug:
         var: dnat_result.stdout_lines
+      tags: [inbound]
+
+    - name: Allow DNAT'd relay traffic through DOCKER-USER
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          # Docker's FORWARD chain drops traffic to bridge networks unless
+          # explicitly accepted. DOCKER-USER runs first and is the correct
+          # place for user rules. These ACCEPT rules let DNAT'd relay
+          # traffic reach the kind node (172.20.0.2).
+          for rule in \
+            "-p udp -d {{ kind_node_ip }} --dport {{ gossip_port }} -j ACCEPT" \
+            "-p tcp -d {{ kind_node_ip }} --dport {{ gossip_port }} -j ACCEPT" \
+            "-p udp -d {{ kind_node_ip }} --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} -j ACCEPT" \
+          ; do
+            if ! iptables -C DOCKER-USER $rule 2>/dev/null; then
+              iptables -I DOCKER-USER 1 $rule
+              echo "added: $rule"
+            else
+              echo "exists: $rule"
+            fi
+          done
+        executable: /bin/bash
+      register: forward_result
+      changed_when: "'added' in forward_result.stdout"
+      tags: [inbound]
+
+    - name: Show DOCKER-USER result
+      ansible.builtin.debug:
+        var: forward_result.stdout_lines
       tags: [inbound]
 
     # ------------------------------------------------------------------

@@ -59,7 +59,7 @@ run_test() {
   shift
   ansible biscayne -i "$BISCAYNE_INV" -m ansible.builtin.shell \
     -a "nsenter --net --target $KIND_PID python3 /tmp/$name $*" \
-    --become 2>&1 | grep -E '^OK|^TIMEOUT|^ERROR|^REFUSED|^NOTE' || echo "NO OUTPUT"
+    --become 2>&1 | grep -E '^OK|^TIMEOUT|^ERROR|^REFUSED|^NOTE|^FAIL' || echo "NO OUTPUT"
 }
 
 echo "=== Ashburn Relay End-to-End Test ==="
@@ -99,6 +99,23 @@ if echo "$result" | grep -q "^OK"; then
   pass "TCP dport $GOSSIP_PORT: $result"
 else
   fail "TCP dport $GOSSIP_PORT: $result"
+fi
+echo ""
+
+# Test 4: ip_echo UDP reachability — the actual validator startup check
+# Sends correct ip_echo protocol to entrypoint, which probes our UDP port.
+# This is the path that causes CrashLoopBackOff when broken.
+# Triggers: outbound TCP dport 8001 (mangle mark → tunnel → SNAT)
+#           inbound UDP dport 8001 (was-sw01 → backbone → mia-sw01 → tunnel → DNAT)
+echo "--- Test 4: ip_echo UDP reachability (inbound UDP probe) ---"
+result=$(run_test relay-test-ip-echo.py 34.83.231.102 "$GOSSIP_PORT")
+if echo "$result" | grep -q "^OK inbound UDP"; then
+  pass "ip_echo UDP reachability: $result"
+elif echo "$result" | grep -q "^OK"; then
+  # Partial success — TCP worked but no UDP probes arrived
+  fail "ip_echo partial — no inbound UDP: $result"
+else
+  fail "ip_echo: $result"
 fi
 echo ""
 

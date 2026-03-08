@@ -35,6 +35,21 @@ for rule in \
   fi
 done
 
+# FORWARD: allow DNAT'd relay traffic through Docker's FORWARD chain.
+# Docker drops traffic to bridge networks unless explicitly accepted.
+# DOCKER-USER runs before all Docker chains and survives daemon restarts.
+for rule in \
+  "-p udp -d {{ kind_node_ip }} --dport {{ gossip_port }} -j ACCEPT" \
+  "-p tcp -d {{ kind_node_ip }} --dport {{ gossip_port }} -j ACCEPT" \
+  "-p udp -d {{ kind_node_ip }} \
+    --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} \
+    -j ACCEPT" \
+; do
+  if ! iptables -C DOCKER-USER $rule 2>/dev/null; then
+    iptables -I DOCKER-USER 1 $rule
+  fi
+done
+
 # Outbound mangle (fwmark for policy routing)
 # sport rules: gossip/repair/TVU traffic FROM validator well-known ports
 # dport rule: ip_echo TCP TO entrypoint port 8001 (ephemeral sport,

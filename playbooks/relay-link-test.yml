@@ -1,0 +1,135 @@
+---
+# Link-by-link test for inbound UDP through the Ashburn relay.
+#
+# Tests whether a UDP packet sent from panic to 137.239.194.65:8001
+# arrives at each hop along the inbound path:
+#   1. biscayne gre-ashburn (post-tunnel decap)
+#   2. biscayne DNAT counter
+#   3. kind node network namespace
+#
+# Usage:
+#   ansible-playbook -i inventory/biscayne.yml -i inventory/panic.yml \
+#     playbooks/relay-link-test.yml
+#
+- name: Link test — start captures on biscayne
+  hosts: biscayne
+  gather_facts: false
+  become: true
+  vars:
+    relay_ip: 137.239.194.65
+    gossip_port: 8001
+    kind_node: laconic-70ce4c4b47e23b85-control-plane
+    panic_ip: 166.84.136.68
+  tasks:
+    - name: Get kind node PID
+      ansible.builtin.shell:
+        cmd: >-
+          docker inspect --format '{%raw%}{{.State.Pid}}{%endraw%}' {{ kind_node }}
+      register: kind_pid_result
+      changed_when: false
+
+    - name: Get DNAT counter before
+      ansible.builtin.shell:
+        cmd: >-
+          iptables -t nat -L PREROUTING -v -n | grep 'udp dpt:{{ gossip_port }}' | awk '{print $1}'
+      register: dnat_before
+      changed_when: false
+
+    - name: Start tcpdump on gre-ashburn
+      ansible.builtin.shell:
+        cmd: >-
+          timeout 15 tcpdump -c 1 -nn -i gre-ashburn
+          'src host {{ panic_ip }} and udp dst port {{ gossip_port }}'
+          > /tmp/link-test-gre.txt 2>&1
+      async: 20
+      poll: 0
+      register: tcpdump_gre
+
+    - name: Start tcpdump on bridge
+      ansible.builtin.shell:
+        cmd: >-
+          timeout 15 tcpdump -c 1 -nn -i br-cf46a62ab5b2
+          'udp dst port {{ gossip_port }}'
+          > /tmp/link-test-br.txt 2>&1
+      async: 20
+      poll: 0
+      register: tcpdump_br
+
+    - name: Start tcpdump in kind netns
+      ansible.builtin.shell:
+        cmd: >-
+          nsenter --net --target {{ kind_pid_result.stdout | trim }}
+          timeout 15 tcpdump -c 1 -nn -i eth0
+          'udp dst port {{ gossip_port }}'
+          > /tmp/link-test-kind.txt 2>&1
+      async: 20
+      poll: 0
+      register: tcpdump_kind
+
+    - name: Wait for captures to start
+      ansible.builtin.pause:
+        seconds: 2
+
+- name: Link test — send from panic
+  hosts: panic
+  gather_facts: false
+  vars:
+    relay_ip: 137.239.194.65
+    gossip_port: 8001
+  tasks:
+    - name: Send 3 UDP probes with 1s interval
+      ansible.builtin.raw: "python3 -c \"import socket,time;s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);[s.sendto(b'PROBE',('{{ relay_ip }}',{{ gossip_port }})) or time.sleep(1) for i in range(3)];print('OK sent 3 probes to {{ relay_ip }}:{{ gossip_port }}');s.close()\""
+      register: send_result
+      changed_when: false
+
+    - name: Show send result
+      ansible.builtin.debug:
+        var: send_result.stdout
+
+- name: Link test — collect results
+  hosts: biscayne
+  gather_facts: false
+  become: true
+  vars:
+    gossip_port: 8001
+  tasks:
+    - name: Wait for captures to finish
+      ansible.builtin.pause:
+        seconds: 10
+
+    - name: Get DNAT counter after
+      ansible.builtin.shell:
+        cmd: >-
+          iptables -t nat -L PREROUTING -v -n | grep 'udp dpt:{{ gossip_port }}' | awk '{print $1}'
+      register: dnat_after
+      changed_when: false
+
+    - name: Read gre-ashburn capture
+      ansible.builtin.command:
+        cmd: cat /tmp/link-test-gre.txt
+      register: cap_gre
+      changed_when: false
+
+    - name: Read bridge capture
+      ansible.builtin.command:
+        cmd: cat /tmp/link-test-br.txt
+      register: cap_br
+      changed_when: false
+
+    - name: Read kind netns capture
+      ansible.builtin.command:
+        cmd: cat /tmp/link-test-kind.txt
+      register: cap_kind
+      changed_when: false
+
+    - name: Report results
+      ansible.builtin.debug:
+        msg: |
+          === Link-by-link results ===
+          DNAT counter: {{ dnat_before.stdout }} → {{ dnat_after.stdout }}
+          --- gre-ashburn ---
+          {{ cap_gre.stdout }}
+          --- bridge ---
+          {{ cap_br.stdout }}
+          --- kind netns ---
+          {{ cap_kind.stdout }}

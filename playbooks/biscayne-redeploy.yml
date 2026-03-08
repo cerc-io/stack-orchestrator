@@ -139,9 +139,10 @@
       when: wipe_ledger | bool
       tags: [wipe]
 
-    - name: Wipe accounts ramdisk
+    - name: Wipe accounts ramdisk (remount tmpfs)
       ansible.builtin.shell: |
-        rm -rf {{ accounts_dir }}/*
+        umount {{ ramdisk_mount }} 2>/dev/null || true
+        mount -t tmpfs -o nodev,nosuid,noexec,nodiratime,size={{ ramdisk_size }} tmpfs {{ ramdisk_mount }}
         mkdir -p {{ accounts_dir }}
         chown solana:solana {{ ramdisk_mount }} {{ accounts_dir }}
       become: true

@@ -92,8 +92,8 @@
       when: agave_procs.rc == 0
 
     # ---- step 3: wipe accounts ramdisk -----------------------------------------
-    # Cannot umount+mkfs because the kind node's bind mount holds it open.
-    # Instead, delete contents. This is sufficient — agave starts clean.
+    # Cannot umount+remount because the kind node's bind mount holds it open.
+    # rm -rf is required here (slower than remount but the only option).
     - name: Wipe accounts data
       ansible.builtin.shell: |
         rm -rf {{ accounts_dir }}/*

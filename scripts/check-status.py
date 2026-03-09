@@ -27,13 +27,37 @@ import urllib.request
 
 SSH_HOST = "biscayne.vaasl.io"
 KUBECONFIG = "/home/rix/.kube/config"
-NAMESPACE = "laconic-laconic-70ce4c4b47e23b85"
-DEPLOYMENT = "laconic-70ce4c4b47e23b85-deployment"
-POD_LABEL = "laconic-70ce4c4b47e23b85"
-KIND_CONTAINER = "laconic-70ce4c4b47e23b85-control-plane"
+DEPLOYMENT_DIR = "/srv/deployments/agave"
 SNAPSHOT_DIR = "/srv/kind/solana/snapshots"
 RAMDISK = "/srv/kind/solana/ramdisk"
 MAINNET_RPC = "https://api.mainnet-beta.solana.com"
+
+# Derived from deployment.yml on first connect
+CLUSTER_ID: str = ""
+NAMESPACE: str = ""
+DEPLOYMENT: str = ""
+POD_LABEL: str = ""
+KIND_CONTAINER: str = ""
+
+
+# -- Discovery ----------------------------------------------------------------
+
+
+def discover() -> None:
+    """Read cluster-id from deployment.yml and derive all identifiers."""
+    global CLUSTER_ID, NAMESPACE, DEPLOYMENT, POD_LABEL, KIND_CONTAINER
+    rc, out = ssh(
+        f"grep '^cluster-id:' {DEPLOYMENT_DIR}/deployment.yml "
+        "| awk '{print $2}'"
+    )
+    if rc != 0 or not out:
+        print(f"ERROR: cannot read cluster-id from {DEPLOYMENT_DIR}/deployment.yml")
+        sys.exit(1)
+    CLUSTER_ID = out.strip()
+    NAMESPACE = f"laconic-{CLUSTER_ID}"
+    DEPLOYMENT = f"{CLUSTER_ID}-deployment"
+    POD_LABEL = CLUSTER_ID
+    KIND_CONTAINER = f"{CLUSTER_ID}-control-plane"
 
 
 # -- Helpers ------------------------------------------------------------------
@@ -258,6 +282,8 @@ def main() -> int:
     p.add_argument("-i", "--interval", type=int, default=30,
                    help="Watch interval in seconds (default: 30)")
     args = p.parse_args()
+
+    discover()
 
     try:
         if args.watch:

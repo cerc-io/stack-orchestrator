@@ -120,6 +120,27 @@ class Spec:
             self.obj.get(constants.resources_key, {}).get("containers", {})
         )
 
+    def get_container_resources_for(
+        self, container_name: str
+    ) -> typing.Optional[Resources]:
+        """Look up per-container resource overrides from spec.yml.
+
+        Checks resources.containers.<container_name> in the spec. Returns None
+        if no per-container override exists (caller falls back to other sources).
+        """
+        containers_block = self.obj.get(constants.resources_key, {}).get(
+            "containers", {}
+        )
+        if container_name in containers_block:
+            entry = containers_block[container_name]
+            # Only treat it as a per-container override if it's a dict with
+            # reservations/limits nested inside (not a top-level global key)
+            if isinstance(entry, dict) and (
+                "reservations" in entry or "limits" in entry
+            ):
+                return Resources(entry)
+        return None
+
     def get_volume_resources(self):
         return Resources(
             self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {})

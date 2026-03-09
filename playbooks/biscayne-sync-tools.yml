@@ -30,15 +30,19 @@
     stack_branch: main
 
   tasks:
+    # Git operations run as the connecting user (no become) so that
+    # SSH agent forwarding works. sudo drops SSH_AUTH_SOCK.
     - name: Update laconic-so (editable install)
+      become: false
       ansible.builtin.shell: |
         cd {{ laconic_so_repo }}
-        git fetch origin
+        git fetch origin {{ laconic_so_branch }}
         git reset --hard origin/{{ laconic_so_branch }}
       register: laconic_so_update
       changed_when: true
 
     - name: Show laconic-so version
+      become: false
       ansible.builtin.shell:
         cmd: set -o pipefail && cd {{ laconic_so_repo }} && git log --oneline -1
         executable: /bin/bash
@@ -49,24 +53,17 @@
       ansible.builtin.debug:
         msg: "laconic-so: {{ laconic_so_version.stdout }}"
 
-    - name: Find SSH agent socket
-      ansible.builtin.shell:
-        cmd: set -o pipefail && ls -t /tmp/ssh-*/agent.* 2>/dev/null | head -1
-        executable: /bin/bash
-      register: ssh_agent_socket
-      changed_when: false
-      failed_when: ssh_agent_socket.stdout == ""
-
     - name: Pull agave-stack repo
+      become: false
       ansible.builtin.shell: |
-        export SSH_AUTH_SOCK={{ ssh_agent_socket.stdout }}
         cd {{ stack_repo }}
-        git fetch origin
+        git fetch origin {{ stack_branch }}
         git reset --hard origin/{{ stack_branch }}
       register: stack_update
       changed_when: true
 
     - name: Show agave-stack version
+      become: false
       ansible.builtin.shell:
         cmd: set -o pipefail && cd {{ stack_repo }} && git log --oneline -1
         executable: /bin/bash

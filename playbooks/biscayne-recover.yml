@@ -10,7 +10,8 @@
 #   2. Wait for pods to terminate (io_uring safety check)
 #   3. Wipe accounts ramdisk
 #   4. Clean old snapshots
-#   5. Scale to 1 — container entrypoint downloads snapshot + starts validator
+#   5. Ensure terminationGracePeriodSeconds is 300 (for graceful shutdown)
+#   6. Scale to 1 — container entrypoint downloads snapshot + starts validator
 #
 # The playbook exits after step 5. The container handles snapshot download
 # (60+ min) and validator startup autonomously. Monitor with:
@@ -95,7 +96,18 @@
       become: true
       changed_when: true
 
-    # ---- step 5: scale to 1 — entrypoint handles snapshot download ------------
+    # ---- step 5: ensure terminationGracePeriodSeconds -------------------------
+    # laconic-so doesn't support this declaratively. Patch the deployment so
+    # k8s gives the entrypoint 300s to perform graceful shutdown via admin RPC.
+    - name: Ensure terminationGracePeriodSeconds is 300
+      ansible.builtin.command: >
+        kubectl patch deployment {{ deployment_name }}
+        -n {{ k8s_namespace }}
+        -p '{"spec":{"template":{"spec":{"terminationGracePeriodSeconds":300}}}}'
+      register: patch_result
+      changed_when: "'no change' not in patch_result.stdout"
+
+    # ---- step 6: scale to 1 — entrypoint handles snapshot download ------------
     # The container's entrypoint.py checks snapshot freshness, cleans stale
     # snapshots, downloads fresh ones (with rolling incremental convergence),
     # then starts the validator. No host-side download needed.

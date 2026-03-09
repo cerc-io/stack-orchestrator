@@ -655,8 +655,9 @@ def download_best_snapshot(
                 log.info("Downloading incremental %s (%d mirrors, slot %d, gap %d slots)",
                          inc_fn, len(inc_mirrors), inc_slot, gap)
                 if not download_aria2c(inc_mirrors, output_dir, inc_fn, connections):
-                    log.error("Failed to download incremental %s", inc_fn)
-                    break
+                    log.warning("Failed to download incremental %s — re-probing in 10s", inc_fn)
+                    time.sleep(10)
+                    continue
 
                 prev_inc_filename = inc_fn
 

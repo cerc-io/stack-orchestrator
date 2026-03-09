@@ -1,0 +1,286 @@
+---
+# One-time migration: zvol/XFS → ZFS dataset for /srv/kind/solana
+#
+# Background:
+#   Biscayne used a ZFS zvol formatted as XFS to work around io_uring/ZFS
+#   deadlocks. The root cause is now handled by graceful shutdown via admin
+#   RPC (agave-validator exit --force), so the zvol/XFS layer is unnecessary.
+#
+# What this does:
+#   1. Asserts the validator is scaled to 0 (does NOT scale it — that's
+#      the operator's job via biscayne-stop.yml)
+#   2. Creates a child ZFS dataset biscayne/DATA/srv/kind/solana
+#   3. Copies data from the zvol to the new dataset (rsync)
+#   4. Updates fstab (removes zvol line, fixes tmpfs dependency)
+#   5. Destroys the zvol after verification
+#
+# Prerequisites:
+#   - Validator MUST be stopped (scale 0, no agave processes)
+#   - Run biscayne-stop.yml first
+#
+# Usage:
+#   ansible-playbook -i inventory/ playbooks/biscayne-migrate-storage.yml
+#
+# After migration, run biscayne-prepare-agave.yml to update its checks,
+# then biscayne-start.yml to bring the validator back up.
+#
+- name: Migrate storage from zvol/XFS to ZFS dataset
+  hosts: all
+  gather_facts: false
+  become: true
+  environment:
+    KUBECONFIG: /home/rix/.kube/config
+  vars:
+    kind_cluster: laconic-70ce4c4b47e23b85
+    k8s_namespace: "laconic-{{ kind_cluster }}"
+    deployment_name: "{{ kind_cluster }}-deployment"
+    zvol_device: /dev/zvol/biscayne/DATA/volumes/solana
+    zvol_dataset: biscayne/DATA/volumes/solana
+    new_dataset: biscayne/DATA/srv/kind/solana
+    kind_solana_dir: /srv/kind/solana
+    ramdisk_mount: /srv/kind/solana/ramdisk
+    ramdisk_size: 1024G
+    # Temporary mount for zvol during data copy
+    zvol_tmp_mount: /mnt/zvol-migration-tmp
+
+  tasks:
+    # ---- preconditions --------------------------------------------------------
+    - name: Check deployment replica count
+      ansible.builtin.command: >
+        kubectl get deployment {{ deployment_name }}
+        -n {{ k8s_namespace }}
+        -o jsonpath='{.spec.replicas}'
+      register: current_replicas
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if validator is running
+      ansible.builtin.fail:
+        msg: >-
+          Validator must be scaled to 0 before migration.
+          Current replicas: {{ current_replicas.stdout | default('unknown') }}.
+          Run biscayne-stop.yml first.
+      when: current_replicas.stdout | default('0') | int > 0
+
+    - name: Verify no agave processes in kind node
+      ansible.builtin.command: >
+        docker exec {{ kind_cluster }}-control-plane
+        pgrep -c agave-validator
+      register: agave_procs
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if agave still running
+      ansible.builtin.fail:
+        msg: >-
+          agave-validator process still running inside kind node.
+          Cannot migrate while validator is active.
+      when: agave_procs.rc == 0
+
+    # ---- check current state --------------------------------------------------
+    - name: Check if zvol device exists
+      ansible.builtin.stat:
+        path: "{{ zvol_device }}"
+      register: zvol_exists
+
+    - name: Check if ZFS dataset already exists
+      ansible.builtin.command: zfs list -H -o name {{ new_dataset }}
+      register: dataset_exists
+      failed_when: false
+      changed_when: false
+
+    - name: Check current mount type at {{ kind_solana_dir }}
+      ansible.builtin.shell:
+        cmd: set -o pipefail && findmnt -n -o FSTYPE {{ kind_solana_dir }}
+        executable: /bin/bash
+      register: current_fstype
+      failed_when: false
+      changed_when: false
+
+    - name: Report current state
+      ansible.builtin.debug:
+        msg:
+          zvol_exists: "{{ zvol_exists.stat.exists | default(false) }}"
+          dataset_exists: "{{ dataset_exists.rc == 0 }}"
+          current_fstype: "{{ current_fstype.stdout | default('none') }}"
+
+    # ---- skip if already migrated ---------------------------------------------
+    - name: End play if already on ZFS dataset
+      ansible.builtin.meta: end_play
+      when:
+        - dataset_exists.rc == 0
+        - current_fstype.stdout | default('') == 'zfs'
+        - not (zvol_exists.stat.exists | default(false))
+
+    # ---- step 1: unmount ramdisk and zvol ------------------------------------
+    - name: Unmount ramdisk
+      ansible.posix.mount:
+        path: "{{ ramdisk_mount }}"
+        state: unmounted
+
+    - name: Unmount zvol from {{ kind_solana_dir }}
+      ansible.posix.mount:
+        path: "{{ kind_solana_dir }}"
+        state: unmounted
+      when: current_fstype.stdout | default('') == 'xfs'
+
+    # ---- step 2: create ZFS dataset -----------------------------------------
+    - name: Create ZFS dataset {{ new_dataset }}
+      ansible.builtin.command: >
+        zfs create -o mountpoint={{ kind_solana_dir }} {{ new_dataset }}
+      changed_when: true
+      when: dataset_exists.rc != 0
+
+    - name: Mount ZFS dataset if it already existed
+      ansible.builtin.command: zfs mount {{ new_dataset }}
+      changed_when: true
+      failed_when: false
+      when: dataset_exists.rc == 0
+
+    - name: Verify ZFS dataset is mounted
+      ansible.builtin.shell:
+        cmd: set -o pipefail && findmnt -n -o FSTYPE {{ kind_solana_dir }} | grep -q zfs
+        executable: /bin/bash
+      changed_when: false
+
+    # ---- step 3: copy data from zvol ----------------------------------------
+    - name: Create temporary mount point for zvol
+      ansible.builtin.file:
+        path: "{{ zvol_tmp_mount }}"
+        state: directory
+        mode: "0755"
+      when: zvol_exists.stat.exists | default(false)
+
+    - name: Mount zvol at temporary location
+      ansible.posix.mount:
+        path: "{{ zvol_tmp_mount }}"
+        src: "{{ zvol_device }}"
+        fstype: xfs
+        state: mounted
+      when: zvol_exists.stat.exists | default(false)
+
+    - name: Copy data from zvol to ZFS dataset  # noqa: command-instead-of-module
+      ansible.builtin.command: >
+        rsync -a --info=progress2
+        --exclude='ramdisk/'
+        {{ zvol_tmp_mount }}/
+        {{ kind_solana_dir }}/
+      changed_when: true
+      when: zvol_exists.stat.exists | default(false)
+
+    # ---- step 4: verify data integrity --------------------------------------
+    - name: Check key directories exist on new dataset
+      ansible.builtin.stat:
+        path: "{{ kind_solana_dir }}/{{ item }}"
+      register: dir_checks
+      loop:
+        - ledger
+        - snapshots
+        - log
+
+    - name: Report directory verification
+      ansible.builtin.debug:
+        msg: "{{ item.item }}: {{ 'exists' if item.stat.exists else 'MISSING' }}"
+      loop: "{{ dir_checks.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    # ---- step 5: update fstab ------------------------------------------------
+    - name: Remove zvol fstab entry
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^\S+zvol\S+\s+{{ kind_solana_dir }}\s'
+        state: absent
+      register: fstab_zvol_removed
+
+    # Also match any XFS entry for kind_solana_dir (non-zvol form)
+    - name: Remove any XFS fstab entry for {{ kind_solana_dir }}
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^\S+\s+{{ kind_solana_dir }}\s+xfs'
+        state: absent
+
+    # ZFS datasets are mounted by zfs-mount.service automatically.
+    # The tmpfs ramdisk depends on the solana dir existing, which ZFS
+    # guarantees via zfs-mount.service. Update the systemd dependency.
+    - name: Update tmpfs ramdisk fstab entry
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '^\S+\s+{{ ramdisk_mount }}\s'
+        line: "tmpfs {{ ramdisk_mount }} tmpfs nodev,nosuid,noexec,nodiratime,size={{ ramdisk_size }},nofail,x-systemd.requires=zfs-mount.service 0 0"
+
+    - name: Reload systemd  # noqa: no-handler
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: fstab_zvol_removed.changed
+
+    # ---- step 6: mount ramdisk -----------------------------------------------
+    - name: Mount tmpfs ramdisk
+      ansible.posix.mount:
+        path: "{{ ramdisk_mount }}"
+        src: tmpfs
+        fstype: tmpfs
+        opts: "nodev,nosuid,noexec,nodiratime,size={{ ramdisk_size }}"
+        state: mounted
+
+    - name: Ensure accounts directory
+      ansible.builtin.file:
+        path: "{{ ramdisk_mount }}/accounts"
+        state: directory
+        owner: solana
+        group: solana
+        mode: "0755"
+
+    # ---- step 7: clean up zvol -----------------------------------------------
+    - name: Unmount zvol from temporary location
+      ansible.posix.mount:
+        path: "{{ zvol_tmp_mount }}"
+        state: unmounted
+      when: zvol_exists.stat.exists | default(false)
+
+    - name: Remove temporary mount point
+      ansible.builtin.file:
+        path: "{{ zvol_tmp_mount }}"
+        state: absent
+
+    - name: Destroy zvol {{ zvol_dataset }}
+      ansible.builtin.command: zfs destroy {{ zvol_dataset }}
+      changed_when: true
+      when: zvol_exists.stat.exists | default(false)
+
+    # ---- step 8: ensure shared propagation for docker ------------------------
+    - name: Ensure shared propagation on kind mounts  # noqa: command-instead-of-module
+      ansible.builtin.command:
+        cmd: mount --make-shared {{ item }}
+      loop:
+        - "{{ kind_solana_dir }}"
+        - "{{ ramdisk_mount }}"
+      changed_when: false
+
+    # ---- verification ---------------------------------------------------------
+    - name: Verify solana dir is ZFS
+      ansible.builtin.shell:
+        cmd: set -o pipefail && df -T {{ kind_solana_dir }} | grep -q zfs
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Verify ramdisk is tmpfs
+      ansible.builtin.shell:
+        cmd: set -o pipefail && df -T {{ ramdisk_mount }} | grep -q tmpfs
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Verify zvol is destroyed
+      ansible.builtin.command: zfs list -H -o name {{ zvol_dataset }}
+      register: zvol_gone
+      failed_when: zvol_gone.rc == 0
+      changed_when: false
+
+    - name: Migration complete
+      ansible.builtin.debug:
+        msg: >-
+          Storage migration complete.
+          {{ kind_solana_dir }} is now a ZFS dataset ({{ new_dataset }}).
+          Ramdisk at {{ ramdisk_mount }} (tmpfs, {{ ramdisk_size }}).
+          zvol {{ zvol_dataset }} destroyed.
+          Next: update biscayne-prepare-agave.yml, then start the validator.

@@ -2,11 +2,16 @@
 """Agave validator entrypoint — snapshot management, arg construction, liveness probe.
 
 Two subcommands:
-  entrypoint.py serve   (default) — snapshot freshness check + exec agave-validator
+  entrypoint.py serve   (default) — snapshot freshness check + run agave-validator
   entrypoint.py probe   — liveness probe (slot lag check, exits 0/1)
 
 Replaces the bash entrypoint.sh / start-rpc.sh / start-validator.sh with a single
 Python module. Test mode still dispatches to start-test.sh.
+
+Python stays as PID 1 and traps SIGTERM. On SIGTERM, it runs
+``agave-validator exit --force --ledger /data/ledger`` which connects to the
+admin RPC Unix socket and tells the validator to flush I/O and exit cleanly.
+This avoids the io_uring/ZFS deadlock that occurs when the process is killed.
 
 All configuration comes from environment variables — same vars as the original
 bash scripts. See compose files for defaults.
@@ -18,8 +23,10 @@ import json
 import logging
 import os
 import re
+import signal
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -365,11 +372,77 @@ def append_extra_args(args: list[str]) -> list[str]:
     return args
 
 
+# -- Graceful shutdown --------------------------------------------------------
+
+# Timeout for graceful exit via admin RPC. Leave 30s margin for k8s
+# terminationGracePeriodSeconds (300s).
+GRACEFUL_EXIT_TIMEOUT = 270
+
+
+def graceful_exit(child: subprocess.Popen[bytes]) -> None:
+    """Request graceful shutdown via the admin RPC Unix socket.
+
+    Runs ``agave-validator exit --force --ledger /data/ledger`` which connects
+    to the admin RPC socket at ``/data/ledger/admin.rpc`` and sets the
+    validator's exit flag. The validator flushes all I/O and exits cleanly,
+    avoiding the io_uring/ZFS deadlock.
+
+    If the admin RPC exit fails or the child doesn't exit within the timeout,
+    falls back to SIGTERM then SIGKILL.
+    """
+    log.info("SIGTERM received — requesting graceful exit via admin RPC")
+    try:
+        result = subprocess.run(
+            ["agave-validator", "exit", "--force", "--ledger", LEDGER_DIR],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0:
+            log.info("Admin RPC exit requested successfully")
+        else:
+            log.warning(
+                "Admin RPC exit returned %d: %s",
+                result.returncode, result.stderr.strip(),
+            )
+    except subprocess.TimeoutExpired:
+        log.warning("Admin RPC exit command timed out after 30s")
+    except FileNotFoundError:
+        log.warning("agave-validator binary not found for exit command")
+
+    # Wait for child to exit
+    try:
+        child.wait(timeout=GRACEFUL_EXIT_TIMEOUT)
+        log.info("Validator exited cleanly with code %d", child.returncode)
+        return
+    except subprocess.TimeoutExpired:
+        log.warning(
+            "Validator did not exit within %ds — sending SIGTERM",
+            GRACEFUL_EXIT_TIMEOUT,
+        )
+
+    # Fallback: SIGTERM
+    child.terminate()
+    try:
+        child.wait(timeout=15)
+        log.info("Validator exited after SIGTERM with code %d", child.returncode)
+        return
+    except subprocess.TimeoutExpired:
+        log.warning("Validator did not exit after SIGTERM — sending SIGKILL")
+
+    # Last resort: SIGKILL
+    child.kill()
+    child.wait()
+    log.info("Validator killed with SIGKILL, code %d", child.returncode)
+
+
 # -- Serve subcommand ---------------------------------------------------------
 
 
 def cmd_serve() -> None:
-    """Main serve flow: snapshot check, setup, exec agave-validator."""
+    """Main serve flow: snapshot check, setup, run agave-validator as child.
+
+    Python stays as PID 1 and traps SIGTERM to perform graceful shutdown
+    via the admin RPC Unix socket.
+    """
     mode = env("AGAVE_MODE", "test")
     log.info("AGAVE_MODE=%s", mode)
 
@@ -407,7 +480,21 @@ def cmd_serve() -> None:
     Path("/tmp/entrypoint-start").write_text(str(time.time()))
 
     log.info("Starting agave-validator with %d arguments", len(args))
-    os.execvp("agave-validator", ["agave-validator"] + args)
+    child = subprocess.Popen(["agave-validator"] + args)
+
+    # Forward SIGUSR1 to child (log rotation)
+    signal.signal(signal.SIGUSR1, lambda _sig, _frame: child.send_signal(signal.SIGUSR1))
+
+    # Trap SIGTERM — run graceful_exit in a thread so the signal handler returns
+    # immediately and child.wait() in the main thread can observe the exit.
+    def _on_sigterm(_sig: int, _frame: object) -> None:
+        threading.Thread(target=graceful_exit, args=(child,), daemon=True).start()
+
+    signal.signal(signal.SIGTERM, _on_sigterm)
+
+    # Wait for child — if it exits on its own (crash, normal exit), propagate code
+    child.wait()
+    sys.exit(child.returncode)
 
 
 # -- Probe subcommand ---------------------------------------------------------

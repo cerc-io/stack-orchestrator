@@ -10,16 +10,16 @@ below it are correct. Playbooks belong to exactly one layer.
 | 1. Base system | Docker, ZFS, packages | Out of scope (manual/PXE) |
 | 2. Prepare kind | `/srv/kind` exists (ZFS dataset) | None needed (ZFS handles it) |
 | 3. Install kind | `laconic-so deployment start` creates kind cluster, mounts `/srv/kind` → `/mnt` in kind node | `biscayne-redeploy.yml` (deploy tags) |
-| 4. Prepare agave | Host storage for agave: zvol, ramdisk, rbind into `/srv/kind/solana` | `biscayne-prepare-agave.yml` |
+| 4. Prepare agave | Host storage for agave: ZFS dataset, ramdisk | `biscayne-prepare-agave.yml` |
 | 5. Deploy agave | Deploy agave-stack into kind, snapshot download, scale up | `biscayne-redeploy.yml` (snapshot/verify tags), `biscayne-recover.yml` |
 
 **Layer 4 invariants** (asserted by `biscayne-prepare-agave.yml`):
-- `/srv/kind/solana` is XFS on a zvol — agave uses io_uring which deadlocks on ZFS. `/srv/solana` is NOT the zvol (it's a ZFS dataset directory); never use it for data paths
+- `/srv/kind/solana` is a ZFS dataset (`biscayne/DATA/srv/kind/solana`), child of the `/srv/kind` dataset
 - `/srv/kind/solana/ramdisk` is tmpfs (1TB) — accounts must be in RAM
+- `/srv/solana` is NOT the data path — it's a directory on the parent ZFS dataset. All data paths use `/srv/kind/solana`
 
 These invariants are checked at runtime and persisted to fstab/systemd so they
-survive reboot. They are agave's requirements reaching into the boot sequence,
-not base system concerns.
+survive reboot.
 
 **Cross-cutting**: `health-check.yml` (read-only diagnostics), `biscayne-stop.yml`
 (layer 5 — graceful shutdown), `fix-pv-mounts.yml` (layer 5 — PV repair).
@@ -30,11 +30,8 @@ not base system concerns.
 
 The agave validator runs inside a kind-based k8s cluster managed by `laconic-so`.
 The kind node is a Docker container. **Never restart or kill the kind node container
-while the validator is running.** Agave uses `io_uring` for async I/O, and on ZFS,
-killing the process can produce unkillable kernel threads (D-state in
-`io_wq_put_and_exit` blocked on ZFS transaction commits). This deadlocks the
-container's PID namespace, making `docker stop`, `docker restart`, `docker exec`,
-and even `reboot` hang.
+while the validator is running.** Use `agave-validator exit --force` via the admin
+RPC socket for graceful shutdown, or scale the deployment to 0 and wait.
 
 Correct shutdown sequence:
 
@@ -61,15 +58,16 @@ The accounts directory must be in RAM for performance. tmpfs is used instead of
 `/dev/ram0` — simpler (no format-on-boot service needed), resizable on the fly
 with `mount -o remount,size=<new>`, and what most Solana operators use.
 
-**Boot ordering**: fstab entry mounts tmpfs at `/srv/kind/solana/ramdisk` with
-`x-systemd.requires=srv-kind-solana.mount`. tmpfs mounts natively via fstab —
-no systemd format service needed. **No manual intervention after reboot.**
+**Boot ordering**: `/srv/kind/solana` is a ZFS dataset mounted automatically by
+`zfs-mount.service`. The tmpfs ramdisk fstab entry uses
+`x-systemd.requires=zfs-mount.service` to ensure the dataset is mounted first.
+**No manual intervention after reboot.**
 
 **Mount propagation**: The kind node bind-mounts `/srv/kind` → `/mnt` at container
 start. laconic-so sets `propagation: HostToContainer` on all kind extraMounts
-(commit `a11d40f2` in stack-orchestrator), so host submounts (like the rbind at
-`/srv/kind/solana`) propagate into the kind node automatically. A kind restart
-is required to pick up the new config after updating laconic-so.
+(commit `a11d40f2` in stack-orchestrator), so host submounts propagate into the
+kind node automatically. A kind restart is required to pick up the new config
+after updating laconic-so.
 
 ### KUBECONFIG
 
@@ -92,21 +90,20 @@ Then export it:
 export SSH_AUTH_SOCK=/tmp/ssh-XXXX/agent.NNNN
 ```
 
-### io_uring/ZFS Deadlock — Root Cause
+### io_uring/ZFS Deadlock — Historical Note
 
-When agave-validator is killed while performing I/O against ZFS-backed paths (not
-the ramdisk), io_uring worker threads get stuck in D-state:
-```
-io_wq_put_and_exit → dsl_dir_tempreserve_space (ZFS module)
-```
-These threads are unkillable (SIGKILL has no effect on D-state processes). They
-prevent the container's PID namespace from being reaped (`zap_pid_ns_processes`
-waits forever), which breaks `docker stop`, `docker restart`, `docker exec`, and
-even `reboot`. The only fix is a hard power cycle.
+Agave uses io_uring for async I/O. Killing agave ungracefully while it has
+outstanding I/O against ZFS can produce unkillable D-state kernel threads
+(`io_wq_put_and_exit` blocked on ZFS transactions), deadlocking the container.
 
-**Prevention**: Always scale the deployment to 0 and wait for the pod to terminate
-before any destructive operation (namespace delete, kind restart, host reboot).
-The `biscayne-stop.yml` playbook enforces this.
+**Prevention**: Use graceful shutdown (`agave-validator exit --force` via admin
+RPC, or scale to 0 and wait). The `biscayne-stop.yml` playbook enforces this.
+With graceful shutdown, io_uring contexts are closed cleanly and ZFS storage
+is safe to use directly (no zvol/XFS workaround needed).
+
+**ZFS fix**: The underlying io_uring bug is fixed in ZFS 2.2.8+ (PR #17298).
+Biscayne currently runs ZFS 2.2.2. Upgrading ZFS will eliminate the deadlock
+risk entirely, even for ungraceful shutdowns.
 
 ### laconic-so Architecture
 
@@ -133,11 +130,11 @@ kind node via a single bind mount.
 - Deployment: `laconic-70ce4c4b47e23b85-deployment`
 - Kind node container: `laconic-70ce4c4b47e23b85-control-plane`
 - Deployment dir: `/srv/deployments/agave`
-- Snapshot dir: `/srv/kind/solana/snapshots` (on zvol, visible to kind at `/mnt/validator-snapshots`)
-- Ledger dir: `/srv/kind/solana/ledger` (on zvol, visible to kind at `/mnt/validator-ledger`)
-- Accounts dir: `/srv/kind/solana/ramdisk/accounts` (on ramdisk `/dev/ram0`, visible to kind at `/mnt/validator-accounts`)
-- Log dir: `/srv/kind/solana/log` (on zvol, visible to kind at `/mnt/validator-log`)
-- **WARNING**: `/srv/solana` is a ZFS dataset directory, NOT the zvol. Never use it for data paths.
+- Snapshot dir: `/srv/kind/solana/snapshots` (ZFS dataset, visible to kind at `/mnt/validator-snapshots`)
+- Ledger dir: `/srv/kind/solana/ledger` (ZFS dataset, visible to kind at `/mnt/validator-ledger`)
+- Accounts dir: `/srv/kind/solana/ramdisk/accounts` (tmpfs ramdisk, visible to kind at `/mnt/validator-accounts`)
+- Log dir: `/srv/kind/solana/log` (ZFS dataset, visible to kind at `/mnt/validator-log`)
+- **WARNING**: `/srv/solana` is a different ZFS dataset directory. All data paths use `/srv/kind/solana`.
 - Host bind mount root: `/srv/kind` -> kind node `/mnt`
 - laconic-so: `/home/rix/.local/bin/laconic-so` (editable install)
 

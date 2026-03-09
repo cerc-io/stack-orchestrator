@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -206,9 +207,11 @@ def display(iteration: int = 0) -> None:
     snapshots = check_snapshots()
     ramdisk = check_ramdisk()
 
-    print(f"\n{'=' * 60}")
-    print(f"  Biscayne Agave Status — {ts}")
-    print(f"{'=' * 60}")
+    # Clear screen and home cursor for clean redraw in watch mode
+    if iteration > 0:
+        print("\033[2J\033[H", end="")
+
+    print(f"\n  Biscayne Agave Status — {ts}\n")
 
     # Pod
     print(f"\n  Pod: {pod['phase']}")
@@ -275,13 +278,29 @@ def display(iteration: int = 0) -> None:
 # -- Main ---------------------------------------------------------------------
 
 
+def spawn_tmux_pane(interval: int) -> None:
+    """Launch this script with --watch in a new tmux pane."""
+    script = os.path.abspath(__file__)
+    cmd = f"python3 {script} --watch -i {interval}"
+    subprocess.run(
+        ["tmux", "split-window", "-h", "-d", cmd],
+        check=True,
+    )
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--watch", action="store_true", help="Repeat every interval")
+    p.add_argument("--pane", action="store_true",
+                   help="Launch --watch in a new tmux pane")
     p.add_argument("-i", "--interval", type=int, default=30,
                    help="Watch interval in seconds (default: 30)")
     args = p.parse_args()
+
+    if args.pane:
+        spawn_tmux_pane(args.interval)
+        return 0
 
     discover()
 

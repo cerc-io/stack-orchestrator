@@ -5,11 +5,12 @@
 # This MUST be done before any kind node restart, host reboot,
 # or docker operations.
 #
-# The agave validator uses io_uring for async I/O. On ZFS, killing
-# the process ungracefully (SIGKILL, docker kill, etc.) can produce
-# unkillable kernel threads stuck in io_wq_put_and_exit, deadlocking
-# the container's PID namespace. A graceful SIGTERM via k8s scale-down
-# allows agave to flush and close its io_uring contexts cleanly.
+# The container entrypoint (PID 1) traps SIGTERM and runs
+# ``agave-validator exit --force --ledger /data/ledger`` which tells
+# the validator to flush I/O and exit cleanly via the admin RPC Unix
+# socket. This avoids the io_uring/ZFS deadlock that occurs when the
+# process is killed. terminationGracePeriodSeconds must be set to 300
+# on the k8s deployment to allow time for the flush.
 #
 # Usage:
 #   # Stop the validator
@@ -41,6 +42,17 @@
       register: current_replicas
       failed_when: false
       changed_when: false
+
+    # Ensure k8s gives the entrypoint enough time for graceful shutdown
+    # via admin RPC before sending SIGKILL.
+    - name: Ensure terminationGracePeriodSeconds is 300
+      ansible.builtin.command: >
+        kubectl patch deployment {{ deployment_name }}
+        -n {{ k8s_namespace }}
+        -p '{"spec":{"template":{"spec":{"terminationGracePeriodSeconds":300}}}}'
+      register: patch_result
+      changed_when: "'no change' not in patch_result.stdout"
+      when: current_replicas.stdout | default('0') | int > 0
 
     - name: Scale deployment to 0
       ansible.builtin.command: >

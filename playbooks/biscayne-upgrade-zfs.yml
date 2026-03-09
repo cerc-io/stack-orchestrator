@@ -1,0 +1,158 @@
+---
+# Upgrade ZFS from 2.2.2 to 2.2.9 via arter97's zfs-lts PPA
+#
+# Fixes the io_uring deadlock (OpenZFS PR #17298) at the kernel module level.
+# After this upgrade, the zvol/XFS workaround is unnecessary and can be removed
+# with biscayne-migrate-storage.yml.
+#
+# PPA: ppa:arter97/zfs-lts (Juhyung Park, OpenZFS contributor)
+# Builds from source on Launchpad — transparent, auditable.
+#
+# WARNING: This playbook triggers a reboot at the end. If the io_uring zombie
+# is present, the reboot WILL HANG. The operator must hard power cycle the
+# machine (IPMI/iDRAC/physical). The playbook does not wait for the reboot —
+# run the verify tag separately after the machine comes back.
+#
+# Usage:
+#   # Full upgrade (adds PPA, upgrades, reboots)
+#   ansible-playbook -i inventory/ playbooks/biscayne-upgrade-zfs.yml
+#
+#   # Verify after reboot
+#   ansible-playbook -i inventory/ playbooks/biscayne-upgrade-zfs.yml \
+#     --tags verify
+#
+#   # Dry run — show what would be upgraded
+#   ansible-playbook -i inventory/ playbooks/biscayne-upgrade-zfs.yml \
+#     --tags dry-run
+#
+- name: Upgrade ZFS via arter97/zfs-lts PPA
+  hosts: all
+  gather_facts: true
+  become: true
+  vars:
+    zfs_min_version: "2.2.8"
+    ppa_name: "ppa:arter97/zfs-lts"
+    zfs_packages:
+      - zfsutils-linux
+      - zfs-dkms
+      - libzfs5linux
+
+  tasks:
+    # ---- pre-flight checks ----------------------------------------------------
+    - name: Get current ZFS version
+      ansible.builtin.command: modinfo -F version zfs
+      register: zfs_current_version
+      changed_when: false
+      tags: [always]
+
+    - name: Report current ZFS version
+      ansible.builtin.debug:
+        msg: "Current ZFS: {{ zfs_current_version.stdout }}"
+      tags: [always]
+
+    - name: Skip if already upgraded
+      ansible.builtin.meta: end_play
+      when: zfs_current_version.stdout is version(zfs_min_version, '>=')
+      tags: [always]
+
+    # ---- dry run ---------------------------------------------------------------
+    - name: Show available ZFS packages from PPA (dry run)
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          apt-cache policy zfsutils-linux zfs-dkms 2>/dev/null |
+          grep -A2 'zfsutils-linux\|zfs-dkms'
+        executable: /bin/bash
+      changed_when: false
+      failed_when: false
+      tags:
+        - dry-run
+        - never
+
+    # ---- add PPA ---------------------------------------------------------------
+    - name: Add arter97/zfs-lts PPA
+      ansible.builtin.apt_repository:
+        repo: "{{ ppa_name }}"
+        state: present
+        update_cache: true
+      tags: [upgrade]
+
+    # ---- upgrade ZFS packages --------------------------------------------------
+    - name: Upgrade ZFS packages
+      ansible.builtin.apt:
+        name: "{{ zfs_packages }}"
+        state: latest  # noqa: package-latest
+        update_cache: true
+      register: zfs_upgrade
+      tags: [upgrade]
+
+    - name: Show upgrade result
+      ansible.builtin.debug:
+        msg: "{{ zfs_upgrade.stdout_lines | default(['no output']) }}"
+      tags: [upgrade]
+
+    # ---- reboot ----------------------------------------------------------------
+    - name: Report pre-reboot status
+      ansible.builtin.debug:
+        msg: >-
+          ZFS packages upgraded. Rebooting now.
+          If the io_uring zombie is present, this reboot WILL HANG.
+          Hard power cycle the machine, then run this playbook with
+          --tags verify to confirm the upgrade.
+      tags: [upgrade]
+
+    - name: Reboot to load new ZFS modules
+      ansible.builtin.reboot:
+        msg: "ZFS upgrade — rebooting to load new kernel modules"
+        reboot_timeout: 600
+      tags: [upgrade]
+      # This will timeout if io_uring zombie blocks shutdown.
+      # Operator must hard power cycle. That's expected.
+
+    # ---- post-reboot verification -----------------------------------------------
+    - name: Get ZFS version after reboot
+      ansible.builtin.command: modinfo -F version zfs
+      register: zfs_new_version
+      changed_when: false
+      tags:
+        - verify
+        - never
+
+    - name: Verify ZFS version meets minimum
+      ansible.builtin.assert:
+        that:
+          - zfs_new_version.stdout is version(zfs_min_version, '>=')
+        fail_msg: >-
+          ZFS version {{ zfs_new_version.stdout }} is below minimum
+          {{ zfs_min_version }}. Upgrade may have failed.
+        success_msg: "ZFS {{ zfs_new_version.stdout }} — io_uring fix confirmed."
+      tags:
+        - verify
+        - never
+
+    - name: Verify ZFS pools are healthy
+      ansible.builtin.command: zpool status -x
+      register: zpool_status
+      changed_when: false
+      failed_when: "'all pools are healthy' not in zpool_status.stdout"
+      tags:
+        - verify
+        - never
+
+    - name: Verify ZFS datasets are mounted
+      ansible.builtin.command: zfs mount
+      register: zfs_mounts
+      changed_when: false
+      tags:
+        - verify
+        - never
+
+    - name: Report verification
+      ansible.builtin.debug:
+        msg:
+          zfs_version: "{{ zfs_new_version.stdout }}"
+          pools: "{{ zpool_status.stdout }}"
+          mounts: "{{ zfs_mounts.stdout_lines }}"
+      tags:
+        - verify
+        - never

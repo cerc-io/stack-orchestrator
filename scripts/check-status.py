@@ -29,6 +29,7 @@ SSH_HOST = "biscayne.vaasl.io"
 KUBECONFIG = "/home/rix/.kube/config"
 NAMESPACE = "laconic-laconic-70ce4c4b47e23b85"
 DEPLOYMENT = "laconic-70ce4c4b47e23b85-deployment"
+POD_LABEL = "laconic-70ce4c4b47e23b85"
 KIND_CONTAINER = "laconic-70ce4c4b47e23b85-control-plane"
 SNAPSHOT_DIR = "/srv/kind/solana/snapshots"
 RAMDISK = "/srv/kind/solana/ramdisk"
@@ -76,7 +77,7 @@ def get_mainnet_slot() -> int | None:
 def check_pod() -> dict:
     """Get pod phase and container statuses."""
     rc, out = kubectl(
-        f"get pods -n {NAMESPACE} -l app={DEPLOYMENT} "
+        f"get pods -n {NAMESPACE} -l app={POD_LABEL} "
         "-o json"
     )
     if rc != 0 or not out:

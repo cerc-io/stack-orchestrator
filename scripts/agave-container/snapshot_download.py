@@ -601,8 +601,18 @@ def download_best_snapshot(
             log.info("Rolling incremental download (base slot %d, convergence %d slots)...",
                      full_snap_slot, convergence_slots)
             prev_inc_filename: str | None = None
+            loop_start: float = time.monotonic()
+            max_convergence_time: float = 1800.0  # 30 min wall-clock limit
 
             while True:
+                if time.monotonic() - loop_start > max_convergence_time:
+                    if prev_inc_filename:
+                        log.warning("Convergence timeout (%.0fs) — using %s",
+                                    max_convergence_time, prev_inc_filename)
+                    else:
+                        log.warning("Convergence timeout (%.0fs) — no incremental downloaded",
+                                    max_convergence_time)
+                    break
                 inc_fn, inc_mirrors = probe_incremental(fast_sources, full_snap_slot)
                 if inc_fn is None:
                     if prev_inc_filename is None:

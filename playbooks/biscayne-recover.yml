@@ -7,14 +7,14 @@
 #
 # Steps:
 #   1. Scale deployment to 0
-#   2. Wait for pods to terminate
+#   2. Wait for pods to terminate (io_uring safety check)
 #   3. Wipe accounts ramdisk
 #   4. Clean old snapshots
 #   5. Scale to 1 — container entrypoint downloads snapshot + starts validator
-#   6. Verify snapshot freshness
-#   7. Wait for pod Running
-#   8. Verify validator log
-#   9. Check RPC health
+#
+# The playbook exits after step 5. The container handles snapshot download
+# (60+ min) and validator startup autonomously. Monitor with:
+#   scripts/check-status.py --watch
 #
 # Usage:
 #   ansible-playbook -i inventory/biscayne.yml playbooks/biscayne-recover.yml
@@ -31,10 +31,6 @@
     snapshot_dir: /srv/kind/solana/snapshots
     accounts_dir: /srv/kind/solana/ramdisk/accounts
     ramdisk_mount: /srv/kind/solana/ramdisk
-    # Mainnet RPC for slot comparison
-    mainnet_rpc: https://api.mainnet-beta.solana.com
-    # Maximum slots behind before snapshot is considered stale
-    max_slot_lag: 20000
 
   tasks:
     # ---- step 1: scale to 0 ---------------------------------------------------
@@ -109,95 +105,9 @@
         -n {{ k8s_namespace }} --replicas=1
       changed_when: true
 
-    # ---- step 6: wait for pod running ------------------------------------------
-    # The entrypoint downloads the snapshot before starting the validator.
-    # The pod reaches Running immediately (entrypoint is PID 1), but the
-    # validator log won't appear until download + startup completes.
-    - name: Wait for pod to be running
-      ansible.builtin.command: >
-        kubectl get pods -n {{ k8s_namespace }}
-        -l app={{ deployment_name }}
-        -o jsonpath='{.items[0].status.phase}'
-      register: pod_status
-      retries: 60
-      delay: 10
-      until: pod_status.stdout == "Running"
-      changed_when: false
-
-    # ---- step 7: wait for snapshot download to complete -----------------------
-    # The entrypoint writes the snapshot to the PV. Wait for it to appear
-    # on the host (zvol mount is shared).
-    - name: Wait for snapshot file to appear
-      ansible.builtin.shell: set -o pipefail && ls -1 {{ snapshot_dir }}/snapshot-*.tar.* 2>/dev/null | head -1
-      args:
-        executable: /bin/bash
-      register: snapshot_file
-      retries: 180
-      delay: 20
-      until: snapshot_file.stdout != ""
-      changed_when: false
-
-    # ---- step 8: verify snapshot freshness ------------------------------------
-    - name: Get snapshot filename
-      ansible.builtin.shell: set -o pipefail && ls -1 {{ snapshot_dir }}/snapshot-*.tar.* | head -1 | xargs basename
-      args:
-        executable: /bin/bash
-      register: snapshot_filename
-      changed_when: false
-
-    - name: Extract snapshot slot from filename
-      ansible.builtin.set_fact:
-        snapshot_slot: "{{ snapshot_filename.stdout | regex_search('snapshot-([0-9]+)-', '\\1') | first }}"
-
-    - name: Get current mainnet slot
-      ansible.builtin.uri:
-        url: "{{ mainnet_rpc }}"
-        method: POST
-        body_format: json
-        body:
-          jsonrpc: "2.0"
-          id: 1
-          method: getSlot
-          params:
-            - commitment: finalized
-        return_content: true
-      register: mainnet_slot_response
-
-    - name: Report snapshot freshness
+    - name: Report
       ansible.builtin.debug:
         msg: >-
-          Snapshot slot {{ snapshot_slot }}, mainnet {{ mainnet_slot_response.json.result }},
-          {{ mainnet_slot_response.json.result | int - snapshot_slot | int }} slots behind.
-
-    # ---- step 9: wait for validator log ---------------------------------------
-    - name: Wait for validator log file
-      ansible.builtin.command: >
-        kubectl exec -n {{ k8s_namespace }}
-        deployment/{{ deployment_name }}
-        -c agave-validator -- test -f /data/log/validator.log
-      register: log_file_check
-      retries: 30
-      delay: 20
-      until: log_file_check.rc == 0
-      changed_when: false
-
-    # ---- step 10: check RPC health --------------------------------------------
-    - name: Check RPC health (non-blocking)
-      ansible.builtin.uri:
-        url: http://{{ inventory_hostname }}:8899/health
-        return_content: true
-      register: rpc_health
-      retries: 6
-      delay: 30
-      until: rpc_health.status == 200
-      failed_when: false
-
-    - name: Report final status
-      ansible.builtin.debug:
-        msg: >-
-          Recovery complete.
-          Snapshot: slot {{ snapshot_slot }}
-          ({{ mainnet_slot_response.json.result | int - snapshot_slot | int }} slots behind).
-          Pod: {{ pod_status.stdout }}.
-          Log: {{ 'writing' if log_file_check.rc == 0 else 'not yet' }}.
-          RPC: {{ rpc_health.content | default('not yet responding — still catching up') }}.
+          Recovery initiated. The container entrypoint will download a fresh
+          snapshot and start the validator. Monitor progress with:
+          scripts/check-status.py --watch

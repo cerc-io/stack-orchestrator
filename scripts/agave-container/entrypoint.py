@@ -158,7 +158,8 @@ def maybe_download_snapshot(snapshots_dir: str) -> None:
     sys.path.insert(0, str(script_dir))
     from snapshot_download import download_best_snapshot
 
-    ok = download_best_snapshot(snapshots_dir)
+    convergence = int(env("SNAPSHOT_CONVERGENCE_SLOTS", "500"))
+    ok = download_best_snapshot(snapshots_dir, convergence_slots=convergence)
     if not ok:
         log.error("Snapshot download failed — starting without fresh snapshot")
 

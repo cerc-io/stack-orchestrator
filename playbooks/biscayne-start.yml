@@ -61,24 +61,33 @@
     # laconic-so creates individual extraMounts per volume:
     #   /srv/kind/solana/ledger → /mnt/validator-ledger (inside kind node)
     #   /srv/kind/solana/ramdisk/accounts → /mnt/validator-accounts
-    - name: Verify kind node sees XFS at PV paths
+    - name: Verify kind node sees correct filesystems at PV paths
       ansible.builtin.shell:
         cmd: >
           set -o pipefail &&
           docker exec {{ kind_node }}
           df -T /mnt/validator-ledger /mnt/validator-accounts
-          | grep -c xfs
         executable: /bin/bash
-      register: kind_xfs_check
+      register: kind_fs_check
       changed_when: false
 
-    - name: Fail if PV paths are not XFS
+    - name: Fail if ledger is not XFS (zvol)
       ansible.builtin.fail:
         msg: >-
-          Expected 2 XFS mounts (validator-ledger, validator-accounts) but
-          found {{ kind_xfs_check.stdout }}. Run biscayne-prepare-agave.yml
-          and restart the kind container.
-      when: kind_xfs_check.stdout | int < 2
+          validator-ledger must be XFS (on zvol). Got:
+          {{ kind_fs_check.stdout }}
+      when: "'xfs' not in kind_fs_check.stdout"
+
+    - name: Fail if accounts is on ZFS (must be tmpfs)
+      ansible.builtin.shell:
+        cmd: >
+          set -o pipefail &&
+          docker exec {{ kind_node }}
+          df -T /mnt/validator-accounts | grep -q zfs
+        executable: /bin/bash
+      register: accounts_zfs_check
+      changed_when: false
+      failed_when: accounts_zfs_check.rc == 0
 
     - name: Show kind node PV filesystems
       ansible.builtin.shell:

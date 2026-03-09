@@ -1,46 +1,33 @@
 ---
-# Redeploy agave-stack on biscayne with aria2c snapshot pre-download
+# Redeploy agave-stack on biscayne
 #
-# The validator's built-in downloader fetches snapshots at ~18 MB/s (single
-# connection). snapshot-download.py uses aria2c with 16 parallel connections to
-# saturate available bandwidth, cutting 90+ min downloads to ~10 min.
+# The container entrypoint (entrypoint.py) handles snapshot download and
+# agave-validator startup internally. This playbook just manages the k8s
+# lifecycle: teardown, optional data wipe, deploy, and verify.
 #
 # Flow:
-#   1. [teardown]  Delete k8s namespace (preserve kind cluster)
+#   1. [teardown]  Scale to 0, wait for clean exit, delete namespace
 #   2. [wipe]      Conditionally clear ledger / accounts / old snapshots
-#   3. [deploy]    laconic-so deployment start, then immediately scale to 0
-#   4. [snapshot]  Download snapshot via aria2c to host bind mount
-#   5. [snapshot]  Verify snapshot visible inside kind node
-#   6. [deploy,scale-up] Scale validator back to 1
-#   7. [verify]    Wait for pod Running, check logs + RPC health
+#   3. [deploy]    Preflight checks, laconic-so deployment start
+#   4. [verify]    Wait for pod Running, check logs + RPC health
 #
-# The validator cannot run during snapshot download — it would lock/use the
-# snapshot files. laconic-so creates the cluster AND deploys the pod in one
-# shot, so we scale to 0 immediately after deploy, download, then scale to 1.
+# The entrypoint.py inside the container:
+#   - Checks snapshot freshness against mainnet
+#   - Downloads fresh snapshot via aria2c if needed
+#   - Builds agave-validator args from env vars
+#   - Execs agave-validator
 #
 # Usage:
-#   # Standard redeploy (download snapshot, preserve accounts + ledger)
-#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml
+#   # Standard redeploy
+#   ansible-playbook -i inventory/biscayne.yml playbooks/biscayne-redeploy.yml
 #
 #   # Full wipe (accounts + ledger) — slow rebuild
-#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml \
+#   ansible-playbook -i inventory/biscayne.yml playbooks/biscayne-redeploy.yml \
 #     -e wipe_accounts=true -e wipe_ledger=true
 #
-#   # Skip snapshot download (use existing)
-#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml \
-#     -e skip_snapshot=true
-#
-#   # Pass extra args to snapshot-download.py
-#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml \
-#     -e 'snapshot_args=--version 2.2 --min-download-speed 50'
-#
-#   # Snapshot only (no teardown/deploy)
-#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml \
-#     --tags snapshot
-#
-#   # Resume after partial failure (download snapshot, scale up, verify)
-#   ansible-playbook -i biscayne.vaasl.io, playbooks/biscayne-redeploy.yml \
-#     --tags snapshot,scale-up,verify
+#   # Skip snapshot cleanup (use existing)
+#   ansible-playbook -i inventory/biscayne.yml playbooks/biscayne-redeploy.yml \
+#     -e skip_snapshot_cleanup=true
 #
 - name: Redeploy agave validator on biscayne
   hosts: all
@@ -53,7 +40,7 @@
     stack_path: /srv/deployments/agave-stack/stack-orchestrator/stacks/agave
     laconic_so: /home/rix/.local/bin/laconic-so
     laconic_so_repo: /home/rix/stack-orchestrator
-    laconic_so_branch: main
+    laconic_so_branch: fix/kind-mount-propagation
     kind_cluster: laconic-70ce4c4b47e23b85
     k8s_namespace: "laconic-{{ kind_cluster }}"
     deployment_name: "{{ kind_cluster }}-deployment"
@@ -62,13 +49,10 @@
     accounts_dir: /srv/kind/solana/ramdisk/accounts
     ramdisk_mount: /srv/kind/solana/ramdisk
     ramdisk_size: 1024G
-    snapshot_script_local: "{{ playbook_dir }}/../scripts/agave-container/snapshot_download.py"
-    snapshot_script: /tmp/snapshot-download.py
     # Flags — non-destructive by default
     wipe_accounts: false
     wipe_ledger: false
-    skip_snapshot: false
-    snapshot_args: ""
+    skip_snapshot_cleanup: false
 
   tasks:
     # ---- teardown: graceful stop, then delete namespace ----------------------
@@ -121,12 +105,14 @@
       tags: [teardown]
 
     - name: Clear stale claimRefs on Released PVs
-      ansible.builtin.shell: |
-        set -o pipefail
-        for pv in $(kubectl get pv -o jsonpath='{range .items[?(@.status.phase=="Released")]}{.metadata.name}{"\n"}{end}'); do
-          kubectl patch pv "$pv" --type json \
-            -p '[{"op":"remove","path":"/spec/claimRef"}]'
-        done
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          for pv in $(kubectl get pv -o jsonpath='{range .items[?(@.status.phase=="Released")]}{.metadata.name}{"\n"}{end}'); do
+            kubectl patch pv "$pv" --type json \
+              -p '[{"op":"remove","path":"/spec/claimRef"}]'
+          done
+        executable: /bin/bash
       register: pv_patch
       changed_when: pv_patch.stdout != ""
       tags: [teardown]
@@ -151,20 +137,22 @@
       tags: [wipe]
 
     - name: Clean old snapshots (keep newest full + incremental)
-      ansible.builtin.shell: |
-        set -o pipefail
-        cd {{ snapshot_dir }} || exit 0
-        newest=$(ls -t snapshot-*.tar.* 2>/dev/null | head -1)
-        if [ -n "$newest" ]; then
-          newest_inc=$(ls -t incremental-snapshot-*.tar.* 2>/dev/null | head -1)
-          find . -maxdepth 1 -name '*.tar.*' \
-            ! -name "$newest" \
-            ! -name "${newest_inc:-__none__}" \
-            -delete
-        fi
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          cd {{ snapshot_dir }} || exit 0
+          newest=$(ls -t snapshot-*.tar.* 2>/dev/null | head -1)
+          if [ -n "$newest" ]; then
+            newest_inc=$(ls -t incremental-snapshot-*.tar.* 2>/dev/null | head -1)
+            find . -maxdepth 1 -name '*.tar.*' \
+              ! -name "$newest" \
+              ! -name "${newest_inc:-__none__}" \
+              -delete
+          fi
+        executable: /bin/bash
       become: true
       changed_when: true
-      when: not skip_snapshot | bool
+      when: not skip_snapshot_cleanup | bool
       tags: [wipe]
 
     # ---- preflight: verify ramdisk and mounts before deploy ------------------
@@ -175,35 +163,16 @@
       changed_when: false
       tags: [deploy, preflight]
 
-    - name: Verify ramdisk is xfs (not the underlying ZFS)
+    - name: Verify ramdisk is tmpfs (not the underlying ZFS)
       ansible.builtin.shell:
-        cmd: set -o pipefail && df -T {{ ramdisk_mount }} | grep -q xfs
+        cmd: set -o pipefail && df -T {{ ramdisk_mount }} | grep -q tmpfs
         executable: /bin/bash
       register: ramdisk_type
       failed_when: ramdisk_type.rc != 0
       changed_when: false
       tags: [deploy, preflight]
 
-    # ---- deploy: sync config, bring up cluster, scale to 0 ------------------
-    - name: Pull agave-stack repo
-      ansible.builtin.shell: |
-        cd {{ stack_repo }}
-        git fetch origin
-        git reset --hard origin/{{ laconic_so_branch }}
-      changed_when: true
-      tags: [deploy]
-
-    - name: Regenerate deployment config from updated stack
-      ansible.builtin.command: >
-        {{ laconic_so }}
-        --stack {{ stack_path }}
-        deploy create
-        --spec-file {{ deployment_dir }}/spec.yml
-        --deployment-dir {{ deployment_dir }}
-        --update
-      changed_when: true
-      tags: [deploy]
-
+    # ---- deploy: bring up cluster, let entrypoint handle snapshot ------------
     - name: Check kind-config.yml mount style
       ansible.builtin.command: "grep -c 'containerPath: /mnt$' {{ deployment_dir }}/kind-config.yml"
       register: mount_root_check
@@ -218,14 +187,6 @@
           (containerPath: /mnt). laconic-so may be using individual PV mounts.
           Verify PV hostPaths match expected paths after deploy.
       when: mount_root_check.stdout | default('0') | int < 1
-      tags: [deploy]
-
-    - name: Update laconic-so (editable install)
-      ansible.builtin.shell: |
-        cd {{ laconic_so_repo }}
-        git fetch origin
-        git reset --hard origin/{{ laconic_so_branch }}
-      changed_when: true
       tags: [deploy]
 
     - name: Start deployment (creates kind cluster + deploys pod)
@@ -272,99 +233,17 @@
         cmd: >
           set -o pipefail &&
           docker exec {{ kind_cluster }}-control-plane
-          df -T /mnt/validator-accounts 2>/dev/null | grep -q xfs
+          df -T /mnt/validator-accounts 2>/dev/null | grep -q tmpfs
         executable: /bin/bash
       register: kind_ramdisk_check
       failed_when: kind_ramdisk_check.rc != 0
       changed_when: false
       tags: [deploy]
 
-    - name: Scale validator to 0 (stop before snapshot download)
-      ansible.builtin.command: >
-        kubectl scale deployment {{ deployment_name }}
-        -n {{ k8s_namespace }} --replicas=0
-      changed_when: true
-      tags: [deploy]
-
-    - name: Wait for pods to terminate
-      ansible.builtin.command: >
-        kubectl get pods -n {{ k8s_namespace }}
-        -l app={{ deployment_name }}
-        -o jsonpath='{.items}'
-      register: pods_gone
-      retries: 30
-      delay: 5
-      until: pods_gone.stdout == "[]" or pods_gone.stdout == ""
-      changed_when: false
-      failed_when: false
-      tags: [deploy]
-
-    # ---- snapshot: download via aria2c, verify in kind node ------------------
-    - name: Verify aria2c installed
-      ansible.builtin.command: which aria2c
-      changed_when: false
-      when: not skip_snapshot | bool
-      tags: [snapshot]
-
-    - name: Copy snapshot script to remote
-      ansible.builtin.copy:
-        src: "{{ snapshot_script_local }}"
-        dest: "{{ snapshot_script }}"
-        mode: "0755"
-      when: not skip_snapshot | bool
-      tags: [snapshot]
-
-    - name: Verify kind node mounts
-      ansible.builtin.command: >
-        docker exec {{ kind_cluster }}-control-plane
-        ls /mnt/validator-snapshots/
-      register: kind_mount_check
-      changed_when: false
-      tags: [snapshot]
-
-    - name: Download snapshot via aria2c
-      ansible.builtin.shell: >
-        python3 {{ snapshot_script }}
-        -o {{ snapshot_dir }}
-        {{ snapshot_args }}
-      become: true
-      register: snapshot_result
-      changed_when: true
-      when: not skip_snapshot | bool
-      timeout: 3600
-      tags: [snapshot]
-
-    - name: Show snapshot download result
-      ansible.builtin.debug:
-        msg: "{{ snapshot_result.stdout_lines | default(['skipped']) }}"
-      tags: [snapshot]
-
-    - name: Verify snapshot visible inside kind node
-      ansible.builtin.shell: >
-        set -o pipefail &&
-        docker exec {{ kind_cluster }}-control-plane
-        find /mnt/validator-snapshots/ -name '*.tar.*' -maxdepth 1 | head -5
-      register: kind_snapshot_check
-      failed_when: kind_snapshot_check.stdout == ""
-      changed_when: false
-      when: not skip_snapshot | bool
-      tags: [snapshot]
-
-    - name: Show snapshot files in kind node
-      ansible.builtin.debug:
-        msg: "{{ kind_snapshot_check.stdout_lines | default(['skipped']) }}"
-      when: not skip_snapshot | bool
-      tags: [snapshot]
-
-    # ---- deploy (cont): scale validator back up with snapshot ----------------
-    - name: Scale validator to 1 (start with downloaded snapshot)
-      ansible.builtin.command: >
-        kubectl scale deployment {{ deployment_name }}
-        -n {{ k8s_namespace }} --replicas=1
-      changed_when: true
-      tags: [deploy, scale-up]
-
     # ---- verify: confirm validator is running --------------------------------
+    # The entrypoint.py handles snapshot download + agave-validator startup.
+    # Pod will be Running once the container starts, but agave-validator won't
+    # exec until after snapshot download completes (if needed).
     - name: Wait for pod to be running
       ansible.builtin.command: >
         kubectl get pods -n {{ k8s_namespace }}

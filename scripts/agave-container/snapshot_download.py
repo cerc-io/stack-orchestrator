@@ -513,11 +513,18 @@ def download_best_snapshot(
     for filename, mirror_urls in download_plan:
         log.info("  %s (%d mirrors)", filename, len(mirror_urls))
 
-    # Download
+    # Download — full snapshot first, then re-probe for fresh incremental
     os.makedirs(output_dir, exist_ok=True)
     total_start: float = time.monotonic()
 
+    # Separate full and incremental from the initial plan
+    full_downloads: list[tuple[str, list[str]]] = []
     for filename, mirror_urls in download_plan:
+        if filename.startswith("snapshot-"):
+            full_downloads.append((filename, mirror_urls))
+
+    # Download full snapshot(s)
+    for filename, mirror_urls in full_downloads:
         filepath: Path = Path(output_dir) / filename
         if filepath.exists() and filepath.stat().st_size > 0:
             log.info("Skipping %s (already exists: %.1f GB)",
@@ -526,6 +533,47 @@ def download_best_snapshot(
         if not download_aria2c(mirror_urls, output_dir, filename, connections):
             log.error("Failed to download %s", filename)
             return False
+
+    # After full snapshot download, re-probe for a fresh incremental.
+    # The initial incremental is stale by now (full download takes 10+ min).
+    if not full_only:
+        # Get the full snapshot slot from the filename we just downloaded
+        full_filename: str = full_downloads[0][0]
+        fm_post: re.Match[str] | None = FULL_SNAP_RE.match(full_filename)
+        if fm_post:
+            full_snap_slot: int = int(fm_post.group(1))
+            log.info("Re-probing for fresh incremental based on slot %d...", full_snap_slot)
+            inc_downloaded: bool = False
+            for source in fast_sources:
+                inc_url_re: str = f"http://{source.rpc_address}/incremental-snapshot.tar.bz2"
+                inc_location, _ = head_no_follow(inc_url_re, timeout=2)
+                if not inc_location:
+                    continue
+                inc_fn, inc_fp = _parse_snapshot_filename(inc_location)
+                m_inc: re.Match[str] | None = INCR_SNAP_RE.match(inc_fn)
+                if not m_inc:
+                    continue
+                if int(m_inc.group(1)) != full_snap_slot:
+                    log.debug("  %s: incremental base slot %s != full %d, skipping",
+                              source.rpc_address, m_inc.group(1), full_snap_slot)
+                    continue
+                # Found a matching incremental — build mirror list and download
+                inc_mirrors: list[str] = [f"http://{source.rpc_address}{inc_fp}"]
+                for other in fast_sources:
+                    if other.rpc_address == source.rpc_address:
+                        continue
+                    other_loc, _ = head_no_follow(
+                        f"http://{other.rpc_address}/incremental-snapshot.tar.bz2", timeout=2)
+                    if other_loc:
+                        other_fn, other_fp = _parse_snapshot_filename(other_loc)
+                        if other_fn == inc_fn:
+                            inc_mirrors.append(f"http://{other.rpc_address}{other_fp}")
+                log.info("  Found incremental %s (%d mirrors)", inc_fn, len(inc_mirrors))
+                if download_aria2c(inc_mirrors, output_dir, inc_fn, connections):
+                    inc_downloaded = True
+                break
+            if not inc_downloaded:
+                log.info("No matching incremental found — validator will replay from full snapshot")
 
     total_elapsed: float = time.monotonic() - total_start
     log.info("All downloads complete in %.0fs", total_elapsed)

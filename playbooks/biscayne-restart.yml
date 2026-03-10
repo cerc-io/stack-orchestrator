@@ -1,0 +1,109 @@
+---
+# Restart agave validator with updated image/config
+#
+# Gracefully stops the validator, then uses laconic-so deployment restart
+# to pick up new container images and config changes. Does NOT recreate
+# the kind cluster — preserves all data volumes and cluster state.
+#
+# Prerequisites:
+#   - biscayne-sync-tools.yml has been run (optionally with --tags build-container)
+#
+# Usage:
+#   ansible-playbook -i inventory/biscayne.yml playbooks/biscayne-restart.yml
+#
+- name: Restart agave validator
+  hosts: all
+  gather_facts: false
+  environment:
+    KUBECONFIG: /home/rix/.kube/config
+  vars:
+    deployment_dir: /srv/deployments/agave
+    laconic_so: /home/rix/.local/bin/laconic-so
+    kind_cluster: laconic-70ce4c4b47e23b85
+    k8s_namespace: "laconic-{{ kind_cluster }}"
+    deployment_name: "{{ kind_cluster }}-deployment"
+
+  tasks:
+    # ---- graceful stop -------------------------------------------------------
+    - name: Get current replica count
+      ansible.builtin.command: >
+        kubectl get deployment {{ deployment_name }}
+        -n {{ k8s_namespace }}
+        -o jsonpath='{.spec.replicas}'
+      register: current_replicas
+      failed_when: false
+      changed_when: false
+
+    - name: Ensure terminationGracePeriodSeconds is 300
+      ansible.builtin.command: >
+        kubectl patch deployment {{ deployment_name }}
+        -n {{ k8s_namespace }}
+        -p '{"spec":{"template":{"spec":{"terminationGracePeriodSeconds":300}}}}'
+      register: patch_result
+      changed_when: "'no change' not in patch_result.stdout"
+      when: current_replicas.stdout | default('0') | int > 0
+
+    - name: Scale deployment to 0
+      ansible.builtin.command: >
+        kubectl scale deployment {{ deployment_name }}
+        -n {{ k8s_namespace }} --replicas=0
+      changed_when: true
+      when: current_replicas.stdout | default('0') | int > 0
+
+    - name: Wait for pods to terminate
+      ansible.builtin.command: >
+        kubectl get pods -n {{ k8s_namespace }}
+        -l app={{ deployment_name }}
+        -o jsonpath='{.items}'
+      register: pods_gone
+      changed_when: false
+      retries: 60
+      delay: 5
+      until: pods_gone.stdout == "[]" or pods_gone.stdout == ""
+      when: current_replicas.stdout | default('0') | int > 0
+
+    - name: Verify no agave processes in kind node
+      ansible.builtin.command: >
+        docker exec {{ kind_cluster }}-control-plane
+        pgrep -c agave-validator
+      register: agave_procs
+      failed_when: false
+      changed_when: false
+
+    - name: Fail if agave still running
+      ansible.builtin.fail:
+        msg: >-
+          agave-validator still running inside kind node after pod
+          termination. Investigate before proceeding.
+      when: agave_procs.rc == 0
+
+    - name: Report stopped
+      ansible.builtin.debug:
+        msg: "Validator stopped cleanly. Applying new config..."
+
+    # ---- apply new config and restart ----------------------------------------
+    - name: Restart deployment with updated config/image
+      ansible.builtin.command: >
+        {{ laconic_so }}
+        deployment --dir {{ deployment_dir }}
+        restart
+      register: restart_result
+      changed_when: true
+
+    # ---- verify --------------------------------------------------------------
+    - name: Wait for pod running
+      ansible.builtin.command: >
+        kubectl get pods -n {{ k8s_namespace }}
+        -l app={{ deployment_name }}
+        -o jsonpath='{.items[0].status.phase}'
+      register: pod_phase
+      changed_when: false
+      retries: 30
+      delay: 10
+      until: pod_phase.stdout == "Running"
+
+    - name: Report restarted
+      ansible.builtin.debug:
+        msg: >-
+          Validator restarted with new image/config.
+          Pod phase: {{ pod_phase.stdout }}.

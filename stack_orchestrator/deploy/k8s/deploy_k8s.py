@@ -25,16 +25,19 @@ from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.deploy.k8s.helpers import (
+    connect_registry_to_kind_network,
     containers_in_pod,
     create_cluster,
     destroy_cluster,
+    ensure_local_registry,
     generate_high_memlock_spec_json,
     generate_kind_config,
     install_ingress_for_kind,
     is_ingress_running,
-    load_images_into_kind,
+    local_registry_image,
     log_stream_from_string,
     pods_in_deployment,
+    push_images_to_local_registry,
     wait_for_ingress_in_kind,
 )
 from stack_orchestrator.opts import opts
@@ -450,10 +453,28 @@ class K8sDeployer(Deployer):
         deployment = self.cluster_info.get_deployment(
             image_pull_policy=None if self.is_kind() else "Always"
         )
+        if self.is_kind():
+            self._rewrite_local_images(deployment)
         if opts.o.debug:
             print(f"Sending this deployment: {deployment}")
         if not opts.o.dry_run:
             self._ensure_deployment(deployment)
+
+    def _rewrite_local_images(self, deployment):
+        """Rewrite local container images to use the local registry.
+
+        Images built locally (listed in stack.yml containers) are pushed to
+        localhost:5001 by push_images_to_local_registry(). The k8s pod spec
+        must reference them at that address so containerd pulls from the
+        local registry instead of trying to find them in its local store.
+        """
+        local_containers = self.deployment_context.stack.obj.get("containers", [])
+        if not local_containers:
+            return
+        containers = deployment.spec.template.spec.containers or []
+        for container in containers:
+            if any(c in container.image for c in local_containers):
+                container.image = local_registry_image(container.image)
 
     def _find_certificate_for_host_name(self, host_name):
         all_certificates = self.custom_obj_api.list_namespaced_custom_object(
@@ -504,10 +525,12 @@ class K8sDeployer(Deployer):
         self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:
             if self.is_kind() and not self.skip_cluster_management:
+                ensure_local_registry()
                 kind_config = str(self.deployment_dir.joinpath(constants.kind_config_filename))
                 actual_cluster = create_cluster(self.kind_cluster_name, kind_config)
                 if actual_cluster != self.kind_cluster_name:
                     self.kind_cluster_name = actual_cluster
+                connect_registry_to_kind_network(self.kind_cluster_name)
                 local_containers = self.deployment_context.stack.obj.get("containers", [])
                 if local_containers:
                     local_images = {
@@ -516,7 +539,7 @@ class K8sDeployer(Deployer):
                         if any(c in img for c in local_containers)
                     }
                     if local_images:
-                        load_images_into_kind(self.kind_cluster_name, local_images)
+                        push_images_to_local_registry(local_images)
             self.connect_api()
             self._ensure_namespace()
             if self.is_kind() and not self.skip_cluster_management:

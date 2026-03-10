@@ -1,0 +1,27 @@
+services:
+  agave-test:
+    restart: unless-stopped
+    image: laconicnetwork/agave:local
+    security_opt:
+      - seccomp=unconfined
+    environment:
+      AGAVE_MODE: test
+      FACILITATOR_PUBKEY: ${FACILITATOR_PUBKEY:-}
+      SERVER_PUBKEY: ${SERVER_PUBKEY:-}
+      CLIENT_PUBKEY: ${CLIENT_PUBKEY:-}
+      MINT_DECIMALS: ${MINT_DECIMALS:-6}
+      MINT_AMOUNT: ${MINT_AMOUNT:-1000000000}
+    volumes:
+      - test-ledger:/data/ledger
+    ports:
+      - "8899"
+      - "8900"
+    healthcheck:
+      test: ["CMD", "solana", "cluster-version", "--url", "http://127.0.0.1:8899"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+volumes:
+  test-ledger:

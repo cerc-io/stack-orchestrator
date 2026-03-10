@@ -1,0 +1,4 @@
+# Restart validator every 4 hours (mitigate memory leaks)
+0 */4 * * * /scripts/restart-node.sh role=validator
+# Restart RPC every 6 hours (staggered from validator)
+30 */6 * * * /scripts/restart-node.sh role=rpc

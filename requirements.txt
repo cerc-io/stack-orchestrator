@@ -6,7 +6,7 @@ python-on-whales>=0.64.0
 click>=8.1.6
 PyYAML>=6.0.1
 ruamel.yaml>=0.17.32
-pydantic==1.10.9
+pydantic==1.10.13
 tomli==2.0.1
 validators==0.22.0
 kubernetes>=28.1.0

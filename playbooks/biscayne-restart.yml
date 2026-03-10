@@ -87,8 +87,30 @@
         {{ laconic_so }}
         deployment --dir {{ deployment_dir }}
         restart
+      vars:
+        # -E preserves SSH_AUTH_SOCK through sudo so laconic-so can git pull
+        ansible_become_flags: "-E"
       register: restart_result
       changed_when: true
+
+    # laconic-so restart deletes the namespace (dropping PVCs) then recreates.
+    # PVs survive but enter Released state with stale claimRefs. Clear them
+    # so the new PVCs can bind.
+    - name: Clear stale claimRefs on Released PVs
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail &&
+          kubectl get pv -o json |
+          python3 -c "
+          import json, subprocess, sys;
+          pvs = json.load(sys.stdin)['items'];
+          [subprocess.run(['kubectl', 'patch', 'pv', pv['metadata']['name'],
+            '--type=json', '-p=[{\"op\":\"remove\",\"path\":\"/spec/claimRef\"}]'],
+            check=True) for pv in pvs if pv['status'].get('phase') == 'Released']
+          "
+        executable: /bin/bash
+      changed_when: true
+      failed_when: false
 
     # ---- verify --------------------------------------------------------------
     - name: Wait for pod running

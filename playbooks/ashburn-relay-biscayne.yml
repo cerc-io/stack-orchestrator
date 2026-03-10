@@ -1,13 +1,34 @@
 ---
 # Configure biscayne for Ashburn validator relay
 #
-# Sets up inbound DNAT (137.239.194.65 → kind node) and outbound SNAT +
-# policy routing (validator traffic → GRE tunnel → mia-sw01 → was-sw01).
+# WHY THIS USES FIREWALLD ZONES (not just iptables):
 #
-# Uses a dedicated GRE tunnel to mia-sw01 (NOT the DoubleZero-managed
-# doublezero0/Tunnel500). The tunnel source is biscayne's public IP
-# (186.233.184.235) and the destination is mia-sw01's free LAN IP
-# (209.42.167.137).
+#   Biscayne runs firewalld with the nftables backend. Firewalld's nftables
+#   filter_FORWARD chain (priority filter+10) rejects forwarded traffic
+#   between interfaces that aren't in known zones. The original playbook
+#   used only iptables rules, which run at priority filter (0) and were
+#   accepted by Docker's chains — but then firewalld's nftables chain
+#   rejected the same packets because it didn't know about the Docker
+#   bridges or gre-ashburn.
+#
+#   The fix: Docker bridges go in the 'docker' zone, gre-ashburn goes in
+#   'trusted', and a 'docker-to-relay' policy allows forwarding between
+#   them. These are firewalld --permanent rules that survive reboots.
+#
+# WHY IPTABLES IS STILL NEEDED:
+#
+#   Docker's iptables FORWARD chain (priority filter) runs BEFORE
+#   firewalld's nftables chain (priority filter+10). Docker's FORWARD
+#   policy is DROP, and its DOCKER-FORWARD subchain only accepts
+#   RELATED,ESTABLISHED inbound. So NEW inbound DNAT'd traffic is dropped
+#   by Docker before firewalld can accept it. DOCKER-USER ACCEPT rules
+#   and DNAT-before-Docker ordering must remain as iptables.
+#
+# Layers:
+#   1. Firewalld zones + policies (permanent, survives reboots/reloads)
+#   2. GRE tunnel + loopback IP (iproute2, restored by systemd service)
+#   3. iptables DNAT/SNAT/mangle (restored by systemd service)
+#   4. Policy routing (iproute2, restored by systemd service)
 #
 # Usage:
 #   # Full setup (inbound + outbound)
@@ -18,9 +39,6 @@
 #
 #   # Outbound only (SNAT + policy routing)
 #   ansible-playbook playbooks/ashburn-relay-biscayne.yml -t outbound
-#
-#   # Pre-flight checks only
-#   ansible-playbook playbooks/ashburn-relay-biscayne.yml -t preflight
 #
 #   # Rollback
 #   ansible-playbook playbooks/ashburn-relay-biscayne.yml -e rollback=true
@@ -33,7 +51,6 @@
     ashburn_ip: 137.239.194.65
     kind_node_ip: 172.20.0.2
     kind_network: 172.20.0.0/16
-    # New dedicated GRE tunnel (not DZ-managed doublezero0)
     tunnel_device: gre-ashburn
     tunnel_local_ip: 169.254.100.1      # biscayne end of /31
     tunnel_remote_ip: 169.254.100.0     # mia-sw01 end of /31
@@ -45,6 +62,12 @@
     gossip_port: 8001
     dynamic_port_range_start: 9000
     dynamic_port_range_end: 9025
+    # Docker bridge for the kind network — find with:
+    #   ip route get 172.20.0.2 | grep -oP 'dev \K\S+'
+    docker_bridges:
+      - br-cf46a62ab5b2
+      - docker0
+      - br-4fb6f6795448
     rollback: false
 
   tasks:
@@ -54,6 +77,30 @@
     - name: Rollback all Ashburn relay rules
       when: rollback | bool
       block:
+        - name: Remove firewalld zone assignments
+          ansible.posix.firewalld:
+            zone: "{{ item.zone }}"
+            interface: "{{ item.iface }}"
+            permanent: true
+            state: disabled
+          loop:
+            - {zone: docker, iface: br-cf46a62ab5b2}
+            - {zone: docker, iface: docker0}
+            - {zone: docker, iface: br-4fb6f6795448}
+            - {zone: trusted, iface: gre-ashburn}
+          failed_when: false
+
+        - name: Remove docker-to-relay policy
+          ansible.builtin.command:
+            cmd: firewall-cmd --permanent --delete-policy=docker-to-relay
+          failed_when: false
+          changed_when: false
+
+        - name: Reload firewalld
+          ansible.builtin.command:
+            cmd: firewall-cmd --reload
+          changed_when: false
+
         - name: Remove Ashburn IP from loopback
           ansible.builtin.command:
             cmd: ip addr del {{ ashburn_ip }}/32 dev lo
@@ -61,36 +108,26 @@
           changed_when: false
 
         - name: Remove GRE tunnel
-          ansible.builtin.shell:
-            cmd: |
-              ip link set {{ tunnel_device }} down 2>/dev/null || true
-              ip tunnel del {{ tunnel_device }} 2>/dev/null || true
-            executable: /bin/bash
+          ansible.builtin.command:
+            cmd: ip tunnel del {{ tunnel_device }}
+          failed_when: false
           changed_when: false
 
-        - name: Remove inbound DNAT rules
+        - name: Flush iptables relay rules
           ansible.builtin.shell:
             cmd: |
-              set -o pipefail
+              set -euo pipefail
+              # DNAT
               iptables -t nat -D PREROUTING -p udp -d {{ ashburn_ip }} \
                 --dport {{ gossip_port }} \
-                -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} \
-                2>/dev/null || true
+                -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} 2>/dev/null || true
               iptables -t nat -D PREROUTING -p tcp -d {{ ashburn_ip }} \
                 --dport {{ gossip_port }} \
-                -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} \
-                2>/dev/null || true
+                -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }} 2>/dev/null || true
               iptables -t nat -D PREROUTING -p udp -d {{ ashburn_ip }} \
                 --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} \
-                -j DNAT --to-destination {{ kind_node_ip }} \
-                2>/dev/null || true
-            executable: /bin/bash
-          changed_when: false
-
-        - name: Remove DOCKER-USER relay rules
-          ansible.builtin.shell:
-            cmd: |
-              set -o pipefail
+                -j DNAT --to-destination {{ kind_node_ip }} 2>/dev/null || true
+              # DOCKER-USER
               iptables -D DOCKER-USER -p udp -d {{ kind_node_ip }} \
                 --dport {{ gossip_port }} -j ACCEPT 2>/dev/null || true
               iptables -D DOCKER-USER -p tcp -d {{ kind_node_ip }} \
@@ -98,31 +135,19 @@
               iptables -D DOCKER-USER -p udp -d {{ kind_node_ip }} \
                 --dport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} \
                 -j ACCEPT 2>/dev/null || true
-            executable: /bin/bash
-          changed_when: false
-
-        - name: Remove outbound mangle rules
-          ansible.builtin.shell:
-            cmd: |
-              set -o pipefail
+              # Mangle
               iptables -t mangle -D PREROUTING -s {{ kind_network }} \
-                -p udp --sport {{ gossip_port }} \
-                -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+                -p udp --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
               iptables -t mangle -D PREROUTING -s {{ kind_network }} \
                 -p udp --sport {{ dynamic_port_range_start }}:{{ dynamic_port_range_end }} \
                 -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
               iptables -t mangle -D PREROUTING -s {{ kind_network }} \
-                -p tcp --sport {{ gossip_port }} \
-                -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+                -p tcp --sport {{ gossip_port }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
               iptables -t mangle -D PREROUTING -s {{ kind_network }} \
-                -p tcp --dport {{ gossip_port }} \
-                -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
-            executable: /bin/bash
-          changed_when: false
-
-        - name: Remove outbound SNAT rule
-          ansible.builtin.shell:
-            cmd: iptables -t nat -D POSTROUTING -m mark --mark {{ fwmark }} -j SNAT --to-source {{ ashburn_ip }} 2>/dev/null || true
+                -p tcp --dport {{ gossip_port }} -j MARK --set-mark {{ fwmark }} 2>/dev/null || true
+              # SNAT
+              iptables -t nat -D POSTROUTING -m mark --mark {{ fwmark }} \
+                -j SNAT --to-source {{ ashburn_ip }} 2>/dev/null || true
             executable: /bin/bash
           changed_when: false
 
@@ -130,6 +155,7 @@
           ansible.builtin.shell:
             cmd: |
               ip rule del fwmark {{ fwmark }} table {{ rt_table_name }} 2>/dev/null || true
+              ip rule del from {{ kind_network }} fwmark {{ fwmark }} table {{ rt_table_name }} 2>/dev/null || true
               ip route del default table {{ rt_table_name }} 2>/dev/null || true
             executable: /bin/bash
           changed_when: false
@@ -176,43 +202,79 @@
       failed_when: kind_ping.rc != 0
       tags: [preflight, inbound]
 
-    - name: Show existing iptables nat rules
-      ansible.builtin.shell:
-        cmd: set -o pipefail && iptables -t nat -L -v -n --line-numbers | head -60
-        executable: /bin/bash
-      register: existing_nat
+    # ------------------------------------------------------------------
+    # Firewalld zones and policies (permanent, survives reboots)
+    # ------------------------------------------------------------------
+    # Docker's iptables FORWARD chain (priority filter) drops packets that
+    # don't match DOCKER-USER or DOCKER-FORWARD. Firewalld's nftables
+    # filter_FORWARD (priority filter+10) then checks zone-based policies.
+    # Without the docker zone + docker-to-relay policy, firewalld rejects
+    # outbound traffic from Docker bridges to gre-ashburn because neither
+    # interface is in a known zone.
+    - name: Add Docker bridges to docker zone
+      ansible.posix.firewalld:
+        zone: docker
+        interface: "{{ item }}"
+        permanent: true
+        state: enabled
+      loop: "{{ docker_bridges }}"
+      register: docker_zone_result
+      tags: [outbound, inbound]
+
+    - name: Add GRE tunnel to trusted zone
+      ansible.posix.firewalld:
+        zone: trusted
+        interface: "{{ tunnel_device }}"
+        permanent: true
+        state: enabled
+      register: trusted_zone_result
+      tags: [outbound, inbound]
+
+    - name: Check if docker-to-relay policy exists
+      ansible.builtin.command:
+        cmd: firewall-cmd --info-policy=docker-to-relay
+      register: policy_check
       changed_when: false
-      tags: [preflight]
+      failed_when: false
+      tags: [outbound]
 
-    - name: Display existing NAT rules
-      ansible.builtin.debug:
-        var: existing_nat.stdout_lines
-      tags: [preflight]
-
-    - name: Check for existing GRE tunnel
+    - name: Create docker-to-relay forwarding policy
+      when: policy_check.rc != 0
       ansible.builtin.shell:
-        cmd: ip tunnel show {{ tunnel_device }} 2>&1 || echo "tunnel does not exist"
+        cmd: |
+          set -euo pipefail
+          firewall-cmd --permanent --new-policy=docker-to-relay
+          firewall-cmd --permanent --policy=docker-to-relay --set-target=ACCEPT
+          firewall-cmd --permanent --policy=docker-to-relay --add-ingress-zone=docker
+          firewall-cmd --permanent --policy=docker-to-relay --add-egress-zone=trusted
+          echo "policy created"
         executable: /bin/bash
-      register: existing_tunnel
-      changed_when: false
-      tags: [preflight]
+      register: policy_result
+      changed_when: "'created' in policy_result.stdout"
+      tags: [outbound]
 
-    - name: Display existing tunnel
-      ansible.builtin.debug:
-        var: existing_tunnel.stdout_lines
-      tags: [preflight]
+    - name: Reload firewalld
+      ansible.builtin.command:
+        cmd: firewall-cmd --reload
+      when: >-
+        docker_zone_result.changed or
+        trusted_zone_result.changed or
+        (policy_result is defined and policy_result.changed)
+      changed_when: true
+      tags: [outbound, inbound]
 
     # ------------------------------------------------------------------
-    # GRE tunnel setup
+    # GRE tunnel setup (iproute2)
     # ------------------------------------------------------------------
     - name: Create GRE tunnel
       ansible.builtin.shell:
         cmd: |
-          set -o pipefail
+          set -euo pipefail
           if ip tunnel show {{ tunnel_device }} 2>/dev/null; then
             echo "tunnel already exists"
           else
-            ip tunnel add {{ tunnel_device }} mode gre local {{ tunnel_src }} remote {{ tunnel_dst }} ttl 64
+            ip tunnel add {{ tunnel_device }} mode gre \
+              local {{ tunnel_src }} remote {{ tunnel_dst }} ttl 64
             ip addr add {{ tunnel_local_ip }}/31 dev {{ tunnel_device }}
             ip link set {{ tunnel_device }} up mtu 8972
             echo "tunnel created"
@@ -222,29 +284,27 @@
       changed_when: "'created' in tunnel_result.stdout"
       tags: [outbound]
 
-    - name: Show tunnel result
-      ansible.builtin.debug:
-        var: tunnel_result.stdout_lines
-      tags: [outbound]
-
     # ------------------------------------------------------------------
-    # Inbound: DNAT for 137.239.194.65 → kind node
+    # Inbound: DNAT for 137.239.194.65 → kind node (iptables)
     # ------------------------------------------------------------------
+    # These must be iptables rules inserted before Docker's ADDRTYPE LOCAL
+    # rule in nat PREROUTING. Firewalld forward-ports can't guarantee
+    # ordering relative to Docker's chains.
     - name: Add Ashburn IP to loopback
       ansible.builtin.command:
         cmd: ip addr add {{ ashburn_ip }}/32 dev lo
       register: add_ip
       changed_when: add_ip.rc == 0
-      failed_when: "add_ip.rc != 0 and 'already assigned' not in add_ip.stderr and 'File exists' not in add_ip.stderr"
+      failed_when: >-
+        add_ip.rc != 0 and
+        'already assigned' not in add_ip.stderr and
+        'File exists' not in add_ip.stderr
       tags: [inbound]
 
-    - name: Add DNAT rules (inserted before DOCKER chain)
+    - name: Add DNAT rules (before Docker's chain)
       ansible.builtin.shell:
         cmd: |
           set -o pipefail
-          # DNAT rules must be before Docker's ADDRTYPE LOCAL rule, otherwise
-          # Docker's PREROUTING chain swallows traffic to 137.239.194.65 (which
-          # is on loopback and therefore type LOCAL).
           for rule in \
             "-p udp -d {{ ashburn_ip }} --dport {{ gossip_port }} -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }}" \
             "-p tcp -d {{ ashburn_ip }} --dport {{ gossip_port }} -j DNAT --to-destination {{ kind_node_ip }}:{{ gossip_port }}" \
@@ -262,19 +322,13 @@
       changed_when: "'added' in dnat_result.stdout"
       tags: [inbound]
 
-    - name: Show DNAT result
-      ansible.builtin.debug:
-        var: dnat_result.stdout_lines
-      tags: [inbound]
-
-    - name: Allow DNAT'd relay traffic through DOCKER-USER
+    - name: Allow DNAT'd traffic through Docker's FORWARD chain
       ansible.builtin.shell:
         cmd: |
           set -o pipefail
-          # Docker's FORWARD chain drops traffic to bridge networks unless
-          # explicitly accepted. DOCKER-USER runs first and is the correct
-          # place for user rules. These ACCEPT rules let DNAT'd relay
-          # traffic reach the kind node (172.20.0.2).
+          # Docker's iptables FORWARD (priority filter) drops NEW inbound
+          # traffic to bridge networks. DOCKER-USER is the only place to
+          # add ACCEPT rules that survive Docker daemon restarts.
           for rule in \
             "-p udp -d {{ kind_node_ip }} --dport {{ gossip_port }} -j ACCEPT" \
             "-p tcp -d {{ kind_node_ip }} --dport {{ gossip_port }} -j ACCEPT" \
@@ -292,14 +346,14 @@
       changed_when: "'added' in forward_result.stdout"
       tags: [inbound]
 
-    - name: Show DOCKER-USER result
-      ansible.builtin.debug:
-        var: forward_result.stdout_lines
-      tags: [inbound]
-
     # ------------------------------------------------------------------
-    # Outbound: fwmark + SNAT + policy routing via new tunnel
+    # Outbound: fwmark + SNAT + policy routing (iptables + iproute2)
     # ------------------------------------------------------------------
+    # Mangle marks select which traffic gets policy-routed through the
+    # relay. Source-based routing (ip rule from 172.20.0.0/16) would be
+    # simpler but routes ALL Docker traffic through the tunnel, including
+    # DNS and health checks. Port-specific marks keep non-validator
+    # traffic on the default route.
     - name: Mark outbound validator traffic (mangle PREROUTING)
       ansible.builtin.shell:
         cmd: |
@@ -322,29 +376,20 @@
       changed_when: "'added' in mangle_result.stdout"
       tags: [outbound]
 
-    - name: Show mangle result
-      ansible.builtin.debug:
-        var: mangle_result.stdout_lines
-      tags: [outbound]
-
-    - name: SNAT marked traffic to Ashburn IP (before Docker MASQUERADE)
+    - name: SNAT marked traffic to Ashburn IP
       ansible.builtin.shell:
         cmd: |
           set -o pipefail
-          if iptables -t nat -C POSTROUTING -m mark --mark {{ fwmark }} -j SNAT --to-source {{ ashburn_ip }} 2>/dev/null; then
-            echo "SNAT rule already exists"
+          rule="-m mark --mark {{ fwmark }} -j SNAT --to-source {{ ashburn_ip }}"
+          if iptables -t nat -C POSTROUTING $rule 2>/dev/null; then
+            echo "exists"
           else
-            iptables -t nat -I POSTROUTING 1 -m mark --mark {{ fwmark }} -j SNAT --to-source {{ ashburn_ip }}
-            echo "SNAT rule inserted at position 1"
+            iptables -t nat -I POSTROUTING 1 $rule
+            echo "added"
           fi
         executable: /bin/bash
       register: snat_result
-      changed_when: "'inserted' in snat_result.stdout"
-      tags: [outbound]
-
-    - name: Show SNAT result
-      ansible.builtin.debug:
-        var: snat_result.stdout
+      changed_when: "'added' in snat_result.stdout"
       tags: [outbound]
 
     - name: Ensure rt_tables entry exists
@@ -359,10 +404,10 @@
         cmd: |
           set -o pipefail
           if ip rule show | grep -q 'fwmark 0x64 lookup ashburn'; then
-            echo "rule already exists"
+            echo "exists"
           else
             ip rule add fwmark {{ fwmark }} table {{ rt_table_name }}
-            echo "rule added"
+            echo "added"
           fi
         executable: /bin/bash
       register: rule_result
@@ -370,29 +415,29 @@
       tags: [outbound]
 
     - name: Add default route via GRE tunnel in ashburn table
-      ansible.builtin.shell:
+      ansible.builtin.command:
         cmd: ip route replace default via {{ tunnel_remote_ip }} dev {{ tunnel_device }} table {{ rt_table_name }}
-        executable: /bin/bash
       changed_when: true
       tags: [outbound]
 
     # ------------------------------------------------------------------
-    # Persistence
+    # Persistence (systemd service for non-firewalld state)
     # ------------------------------------------------------------------
-    # A systemd oneshot service replaces both if-up.d (which depends on
-    # networking.service, inactive on this host) and netfilter-persistent
-    # (which runs before Docker, so Docker's chain setup blows away rules).
-    # This service runs After=docker.service and idempotently applies all
-    # tunnel, iptables, and policy routing state.
+    # Firewalld zones/policies persist natively (--permanent + reload).
+    # The systemd service restores: GRE tunnel, loopback IP, iptables
+    # rules (DNAT, DOCKER-USER, mangle, SNAT), and policy routing.
+    # Runs After=docker.service because Docker recreates its iptables
+    # chains on startup.
     - name: Install ashburn-relay systemd service
       ansible.builtin.copy:
         dest: /etc/systemd/system/ashburn-relay.service
         mode: "0644"
         content: |
           [Unit]
-          Description=Ashburn validator relay (GRE tunnel, iptables, policy routing)
-          After=docker.service network-online.target
+          Description=Ashburn relay (GRE tunnel, iptables, policy routing)
+          After=docker.service network-online.target firewalld.service
           Wants=network-online.target
+          Requires=firewalld.service
 
           [Service]
           Type=oneshot
@@ -428,67 +473,42 @@
     # ------------------------------------------------------------------
     # Verification
     # ------------------------------------------------------------------
-    - name: Show tunnel status
+    - name: Verify firewalld zones
+      ansible.builtin.shell:
+        cmd: |
+          echo "=== docker zone ==="
+          firewall-cmd --zone=docker --list-interfaces
+          echo "=== trusted zone ==="
+          firewall-cmd --zone=trusted --list-interfaces
+          echo "=== docker-to-relay policy ==="
+          firewall-cmd --info-policy=docker-to-relay
+        executable: /bin/bash
+      register: zone_info
+      changed_when: false
+      tags: [outbound, inbound]
+
+    - name: Verify tunnel and routing
       ansible.builtin.shell:
         cmd: |
           echo "=== tunnel ==="
           ip tunnel show {{ tunnel_device }}
-          echo ""
-          echo "=== tunnel addr ==="
           ip addr show {{ tunnel_device }}
-          echo ""
           echo "=== ping tunnel peer ==="
           ping -c 1 -W 2 {{ tunnel_remote_ip }} 2>&1 || echo "tunnel peer unreachable"
-        executable: /bin/bash
-      register: tunnel_status
-      changed_when: false
-      tags: [outbound]
-
-    - name: Show NAT rules
-      ansible.builtin.shell:
-        cmd: set -o pipefail && iptables -t nat -L -v -n --line-numbers 2>&1 | head -40
-        executable: /bin/bash
-      register: nat_rules
-      changed_when: false
-      tags: [inbound, outbound]
-
-    - name: Show mangle rules
-      ansible.builtin.shell:
-        cmd: iptables -t mangle -L -v -n 2>&1
-        executable: /bin/bash
-      register: mangle_rules
-      changed_when: false
-      tags: [outbound]
-
-    - name: Show policy routing
-      ansible.builtin.shell:
-        cmd: |
           echo "=== ip rule ==="
           ip rule show
-          echo ""
-          echo "=== ashburn routing table ==="
+          echo "=== ashburn table ==="
           ip route show table {{ rt_table_name }} 2>/dev/null || echo "table empty"
         executable: /bin/bash
       register: routing_info
       changed_when: false
       tags: [outbound]
 
-    - name: Show loopback addresses
-      ansible.builtin.shell:
-        cmd: set -o pipefail && ip addr show lo | grep inet
-        executable: /bin/bash
-      register: lo_addrs
-      changed_when: false
-      tags: [inbound]
-
     - name: Display verification
       ansible.builtin.debug:
         msg:
-          tunnel: "{{ tunnel_status.stdout_lines | default([]) }}"
-          nat_rules: "{{ nat_rules.stdout_lines }}"
-          mangle_rules: "{{ mangle_rules.stdout_lines | default([]) }}"
+          firewalld: "{{ zone_info.stdout_lines }}"
           routing: "{{ routing_info.stdout_lines | default([]) }}"
-          loopback: "{{ lo_addrs.stdout_lines | default([]) }}"
       tags: [inbound, outbound]
 
     - name: Summary
@@ -498,12 +518,8 @@
           Ashburn IP: {{ ashburn_ip }} (on lo)
           GRE tunnel: {{ tunnel_device }} ({{ tunnel_src }} → {{ tunnel_dst }})
             link: {{ tunnel_local_ip }}/31 ↔ {{ tunnel_remote_ip }}/31
-          Inbound DNAT: {{ ashburn_ip }}:8001,9000-9025 → {{ kind_node_ip }}
-          Outbound SNAT: {{ kind_network }} sport 8001,9000-9025 → {{ ashburn_ip }}
-          Policy route: fwmark {{ fwmark }} → table {{ rt_table_name }} → via {{ tunnel_remote_ip }} dev {{ tunnel_device }}
-
-          Next steps:
-          1. Apply mia-sw01 config (Tunnel100 must be up on both sides)
-          2. Verify tunnel: ping {{ tunnel_remote_ip }}
-          3. Test from kelce: echo test | nc -u -w 1 137.239.194.65 9000
-          4. Check validator gossip ContactInfo shows {{ ashburn_ip }} for all addresses
+          Firewalld: Docker bridges in 'docker' zone, {{ tunnel_device }} in 'trusted' zone
+            Policy: docker-to-relay (docker → trusted, ACCEPT)
+          Inbound DNAT: {{ ashburn_ip }}:8001,9000-9025 → {{ kind_node_ip }} (iptables)
+          Outbound SNAT: fwmark {{ fwmark }} → {{ ashburn_ip }} (iptables)
+          Policy route: fwmark {{ fwmark }} → table {{ rt_table_name }} → via {{ tunnel_remote_ip }}

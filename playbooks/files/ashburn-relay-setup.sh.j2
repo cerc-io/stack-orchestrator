@@ -1,11 +1,20 @@
 #!/bin/bash
 # Ashburn validator relay — runtime setup
 #
-# Called by ashburn-relay.service (After=docker.service) on boot.
-# Idempotent — safe to run multiple times.
+# Called by ashburn-relay.service (After=docker.service firewalld.service)
+# on boot. Idempotent — safe to run multiple times.
 #
-# Creates GRE tunnel, loopback IP, iptables rules, and policy routing
-# so that validator traffic enters/exits via 137.239.194.65 (Ashburn).
+# Creates GRE tunnel, loopback IP, iptables rules, and policy routing.
+# Firewalld zones/policies are permanent (not managed here).
+#
+# WHY IPTABLES + FIREWALLD:
+# Docker uses iptables (priority filter) for its FORWARD chain.
+# Firewalld uses nftables (priority filter+10). Docker's chain runs
+# first and drops packets that firewalld would accept. So:
+#   - DNAT must be iptables (inserted before Docker's ADDRTYPE LOCAL rule)
+#   - DOCKER-USER must be iptables (Docker's FORWARD chain requires it)
+#   - Mangle/SNAT must be iptables (firewalld has no native mark/SNAT)
+#   - Forwarding (Docker bridge → gre-ashburn) is firewalld (zones/policies)
 set -euo pipefail
 
 # GRE tunnel to mia-sw01
@@ -35,9 +44,10 @@ for rule in \
   fi
 done
 
-# FORWARD: allow DNAT'd relay traffic through Docker's FORWARD chain.
-# Docker drops traffic to bridge networks unless explicitly accepted.
-# DOCKER-USER runs before all Docker chains and survives daemon restarts.
+# DOCKER-USER: accept DNAT'd relay traffic through Docker's FORWARD chain.
+# Docker's iptables FORWARD (priority filter) drops NEW inbound traffic to
+# bridge networks. DOCKER-USER is the only place for user ACCEPT rules
+# that survive Docker daemon restarts.
 for rule in \
   "-p udp -d {{ kind_node_ip }} --dport {{ gossip_port }} -j ACCEPT" \
   "-p tcp -d {{ kind_node_ip }} --dport {{ gossip_port }} -j ACCEPT" \
@@ -51,10 +61,6 @@ for rule in \
 done
 
 # Outbound mangle (fwmark for policy routing)
-# sport rules: gossip/repair/TVU traffic FROM validator well-known ports
-# dport rule: ip_echo TCP TO entrypoint port 8001 (ephemeral sport,
-#   so sport-based rules miss it; without this the entrypoint sees
-#   biscayne's real IP and probes that instead of the Ashburn relay IP)
 for rule in \
   "-p udp -s {{ kind_network }} --sport {{ gossip_port }} \
     -j MARK --set-mark {{ fwmark }}" \

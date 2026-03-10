@@ -400,13 +400,84 @@ def install_ingress_for_kind(acme_email: str = ""):
         )
 
 
-def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
-    for image in image_set:
+LOCAL_REGISTRY_NAME = "kind-registry"
+LOCAL_REGISTRY_HOST_PORT = 5001
+LOCAL_REGISTRY_CONTAINER_PORT = 5000
+
+
+def ensure_local_registry():
+    """Ensure a persistent local registry container is running.
+
+    The registry survives kind cluster recreates — images pushed to it
+    remain available without re-pushing. After ensuring the registry is
+    running, connects it to the kind Docker network so kind nodes can
+    pull from it.
+    """
+    # Check if registry container exists (running or stopped)
+    check = subprocess.run(
+        f"docker inspect {LOCAL_REGISTRY_NAME}",
+        shell=True,
+        capture_output=True,
+    )
+    if check.returncode != 0:
+        # Create the registry container
         result = _run_command(
-            f"kind load docker-image {image} --name {kind_cluster_name}"
+            f"docker run -d --restart=always"
+            f" -p {LOCAL_REGISTRY_HOST_PORT}:{LOCAL_REGISTRY_CONTAINER_PORT}"
+            f" --name {LOCAL_REGISTRY_NAME} registry:2"
         )
         if result.returncode != 0:
-            raise DeployerException(f"kind load docker-image failed: {result}")
+            raise DeployerException(f"Failed to start local registry: {result}")
+        print(f"Started local registry on port {LOCAL_REGISTRY_HOST_PORT}")
+    else:
+        # Ensure it's running (may have been stopped)
+        _run_command(f"docker start {LOCAL_REGISTRY_NAME}")
+        if opts.o.debug:
+            print("Local registry already exists, ensured running")
+
+
+def connect_registry_to_kind_network(kind_cluster_name: str):
+    """Connect the local registry to the kind Docker network.
+
+    Idempotent — silently succeeds if already connected.
+    """
+    network = "kind"
+    result = subprocess.run(
+        f"docker network connect {network} {LOCAL_REGISTRY_NAME}",
+        shell=True,
+        capture_output=True,
+    )
+    if result.returncode != 0 and b"already exists" not in result.stderr:
+        raise DeployerException(
+            f"Failed to connect registry to kind network: " f"{result.stderr.decode()}"
+        )
+
+
+def push_images_to_local_registry(image_set: Set[str]):
+    """Tag and push images to the local registry.
+
+    Near-instant compared to kind load (shared filesystem, layer dedup).
+    """
+    for image in image_set:
+        registry_image = local_registry_image(image)
+        tag_result = _run_command(f"docker tag {image} {registry_image}")
+        if tag_result.returncode != 0:
+            raise DeployerException(f"docker tag failed for {image}: {tag_result}")
+        push_result = _run_command(f"docker push {registry_image}")
+        if push_result.returncode != 0:
+            raise DeployerException(
+                f"docker push failed for {registry_image}: {push_result}"
+            )
+        if opts.o.debug:
+            print(f"Pushed {registry_image} to local registry")
+
+
+def local_registry_image(image: str) -> str:
+    """Rewrite an image reference to use the local registry.
+
+    e.g. laconicnetwork/agave:local -> localhost:5001/laconicnetwork/agave:local
+    """
+    return f"localhost:{LOCAL_REGISTRY_HOST_PORT}/{image}"
 
 
 def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
@@ -906,24 +977,42 @@ def generate_cri_base_json():
 def _generate_containerd_config_patches(
     deployment_dir: Path, has_high_memlock: bool
 ) -> str:
-    """Generate containerdConfigPatches YAML for custom runtime handlers.
+    """Generate containerdConfigPatches YAML for containerd configuration.
 
-    This configures containerd to have a runtime handler named 'high-memlock'
-    that uses a custom OCI base spec with unlimited RLIMIT_MEMLOCK.
+    Includes:
+    - Local registry mirror (localhost:5001 -> http://kind-registry:5000)
+    - Custom runtime handler for high-memlock (if enabled)
     """
-    if not has_high_memlock:
+    patches = []
+
+    # Always configure the local registry mirror so kind nodes pull from it
+    registry_plugin = (
+        'plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:{}"'.format(
+            LOCAL_REGISTRY_HOST_PORT
+        )
+    )
+    endpoint = f"http://{LOCAL_REGISTRY_NAME}:{LOCAL_REGISTRY_CONTAINER_PORT}"
+    patches.append(f"    [{registry_plugin}]\n" f'      endpoint = ["{endpoint}"]')
+
+    if has_high_memlock:
+        spec_path = deployment_dir.joinpath(
+            constants.high_memlock_spec_filename
+        ).resolve()
+        runtime_name = constants.high_memlock_runtime
+        plugin_path = 'plugins."io.containerd.grpc.v1.cri".containerd.runtimes'
+        patches.append(
+            f"    [{plugin_path}.{runtime_name}]\n"
+            '      runtime_type = "io.containerd.runc.v2"\n'
+            f'      base_runtime_spec = "{spec_path}"'
+        )
+
+    if not patches:
         return ""
 
-    spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
-    runtime_name = constants.high_memlock_runtime
-    plugin_path = 'plugins."io.containerd.grpc.v1.cri".containerd.runtimes'
-    return (
-        "containerdConfigPatches:\n"
-        "  - |-\n"
-        f"    [{plugin_path}.{runtime_name}]\n"
-        '      runtime_type = "io.containerd.runc.v2"\n'
-        f'      base_runtime_spec = "{spec_path}"\n'
-    )
+    result = "containerdConfigPatches:\n"
+    for patch in patches:
+        result += "  - |-\n" + patch + "\n"
+    return result
 
 
 # Note: this makes any duplicate definition in b overwrite a

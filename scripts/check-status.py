@@ -19,12 +19,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
 import urllib.request
-
-# -- Config -------------------------------------------------------------------
 
 SSH_HOST = "biscayne.vaasl.io"
 KUBECONFIG = "/home/rix/.kube/config"
@@ -33,15 +32,11 @@ SNAPSHOT_DIR = "/srv/kind/solana/snapshots"
 RAMDISK = "/srv/kind/solana/ramdisk"
 MAINNET_RPC = "https://api.mainnet-beta.solana.com"
 
-# Derived from deployment.yml on first connect
 CLUSTER_ID: str = ""
 NAMESPACE: str = ""
 DEPLOYMENT: str = ""
 POD_LABEL: str = ""
 KIND_CONTAINER: str = ""
-
-
-# -- Discovery ----------------------------------------------------------------
 
 
 def discover() -> None:
@@ -59,9 +54,6 @@ def discover() -> None:
     DEPLOYMENT = f"{CLUSTER_ID}-deployment"
     POD_LABEL = CLUSTER_ID
     KIND_CONTAINER = f"{CLUSTER_ID}-control-plane"
-
-
-# -- Helpers ------------------------------------------------------------------
 
 
 def ssh(cmd: str, timeout: int = 15) -> tuple[int, str]:
@@ -94,9 +86,6 @@ def get_mainnet_slot() -> int | None:
             return json.loads(resp.read())["result"]
     except Exception:
         return None
-
-
-# -- Checks -------------------------------------------------------------------
 
 
 def check_pod() -> dict:
@@ -187,38 +176,32 @@ def check_ramdisk() -> str:
     return out
 
 
-# -- Display ------------------------------------------------------------------
-
-
 prev_slot: int | None = None
 prev_time: float | None = None
 
 
-def display(iteration: int = 0) -> None:
-    """Run all checks and print status."""
+def render() -> list[str]:
+    """Gather all data and return lines to display."""
     global prev_slot, prev_time
 
     now = time.time()
     ts = time.strftime("%H:%M:%S")
+    lines: list[str] = []
 
-    # Gather data
     pod = check_pod()
     mainnet = get_mainnet_slot()
     snapshots = check_snapshots()
     ramdisk = check_ramdisk()
 
-    # Clear screen and home cursor for clean redraw in watch mode
-    if iteration > 0:
-        print("\033[2J\033[H", end="")
-
-    print(f"\n  Biscayne Agave Status — {ts}\n")
+    lines.append(f"  Biscayne Agave Status  {ts}")
+    lines.append("")
 
     # Pod
-    print(f"\n  Pod: {pod['phase']}")
+    lines.append(f"  Pod: {pod['phase']}")
     for name, cs in pod["containers"].items():
-        ready = "✓" if cs["ready"] else "✗"
+        ready = "+" if cs["ready"] else "x"
         restarts = f" (restarts: {cs['restarts']})" if cs["restarts"] > 0 else ""
-        print(f"    {ready} {name}: {cs['state']}{restarts}")
+        lines.append(f"    {ready} {name}: {cs['state']}{restarts}")
 
     # Validator slot
     validator_slot = None
@@ -227,6 +210,7 @@ def display(iteration: int = 0) -> None:
         if agave.get("ready"):
             validator_slot = check_validator_slot()
 
+    lines.append("")
     if validator_slot is not None and mainnet is not None:
         gap = mainnet - validator_slot
         rate = ""
@@ -234,7 +218,6 @@ def display(iteration: int = 0) -> None:
             dt = now - prev_time
             if dt > 0:
                 slots_gained = validator_slot - prev_slot
-                # Net rate = our replay rate minus chain production
                 net_rate = slots_gained / dt
                 if net_rate > 0:
                     eta_sec = gap / net_rate
@@ -244,38 +227,58 @@ def display(iteration: int = 0) -> None:
                     rate = f"  net {net_rate:+.1f} slots/s (falling behind)"
         prev_slot = validator_slot
         prev_time = now
-        print(f"\n  Validator: slot {validator_slot:,}")
-        print(f"  Mainnet:   slot {mainnet:,}")
-        print(f"  Gap:       {gap:,} slots{rate}")
+        lines.append(f"  Validator: slot {validator_slot:,}")
+        lines.append(f"  Mainnet:   slot {mainnet:,}")
+        lines.append(f"  Gap:       {gap:,} slots{rate}")
     elif mainnet is not None:
-        print(f"\n  Validator: not responding (downloading or starting)")
-        print(f"  Mainnet:   slot {mainnet:,}")
+        lines.append("  Validator: not responding (downloading or starting)")
+        lines.append(f"  Mainnet:   slot {mainnet:,}")
     else:
-        print(f"\n  Mainnet:   unreachable")
+        lines.append("  Mainnet:   unreachable")
 
     # Snapshots
+    lines.append("")
     if snapshots:
-        print(f"\n  Snapshots:")
+        lines.append("  Snapshots:")
         for s in snapshots:
-            print(f"    {s['size']:>6s}  {s['name']}")
+            lines.append(f"    {s['size']:>6s}  {s['name']}")
     else:
-        print(f"\n  Snapshots: none on disk")
+        lines.append("  Snapshots: none on disk")
 
     # Ramdisk
-    print(f"  Ramdisk:   {ramdisk}")
+    lines.append(f"  Ramdisk:   {ramdisk}")
 
     # Entrypoint logs (only if validator not yet responding)
     if validator_slot is None and pod["phase"] in ("Running", "Pending"):
         logs = check_entrypoint_logs(10)
         if logs and logs != "(no logs)":
-            print(f"\n  Entrypoint logs (last 10 lines):")
+            lines.append("")
+            lines.append("  Entrypoint logs (last 10 lines):")
             for line in logs.splitlines():
-                print(f"    {line}")
+                lines.append(f"    {line}")
 
-    print()
+    return lines
 
 
-# -- Main ---------------------------------------------------------------------
+def display(watch: bool, prev_lines: int) -> int:
+    """Render status and paint to terminal. Returns number of lines written."""
+    output = render()
+    cols = shutil.get_terminal_size().columns
+
+    if watch:
+        # Move cursor to top-left without clearing — overwrite in place
+        sys.stdout.write("\033[H")
+
+    for line in output:
+        # Pad to terminal width to overwrite stale characters from prior frame
+        sys.stdout.write(line.ljust(cols)[:cols] + "\n")
+
+    # If previous frame had more lines, blank the leftover rows
+    for _ in range(max(0, prev_lines - len(output))):
+        sys.stdout.write(" " * cols + "\n")
+
+    sys.stdout.flush()
+    return len(output)
 
 
 def spawn_tmux_pane(interval: int) -> None:
@@ -304,17 +307,26 @@ def main() -> int:
 
     discover()
 
+    if args.watch:
+        # Hide cursor, clear screen once at start
+        sys.stdout.write("\033[?25l\033[2J\033[H")
+        sys.stdout.flush()
+
     try:
+        prev_lines = 0
         if args.watch:
-            i = 0
             while True:
-                display(i)
-                i += 1
+                prev_lines = display(watch=True, prev_lines=prev_lines)
                 time.sleep(args.interval)
         else:
-            display()
+            display(watch=False, prev_lines=0)
     except KeyboardInterrupt:
-        print()
+        pass
+    finally:
+        if args.watch:
+            # Show cursor again
+            sys.stdout.write("\033[?25l\n")
+            sys.stdout.flush()
     return 0
 
 

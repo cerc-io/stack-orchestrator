@@ -1,0 +1,10 @@
+version: "1.1"
+name: agave
+description: "Agave/Jito Solana validator, RPC node, or test-validator"
+containers:
+  - laconicnetwork/agave
+  - laconicnetwork/doublezero
+pods:
+  - agave
+  - doublezero
+  - monitoring

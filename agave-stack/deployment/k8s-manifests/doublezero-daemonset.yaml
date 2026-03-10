@@ -1,0 +1,50 @@
+# DoubleZero DaemonSet - applied separately from laconic-so deployment
+# laconic-so does not support hostNetwork in generated k8s resources,
+# so this manifest is applied via kubectl after 'deployment start'.
+#
+# DoubleZero creates GRE tunnels (IP protocol 47) and runs BGP (tcp/179)
+# on link-local 169.254.0.0/16. This requires host network access.
+# The GRE routes injected into the node routing table are automatically
+# visible to all pods using hostNetwork.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: doublezero
+  labels:
+    app: doublezero
+spec:
+  selector:
+    matchLabels:
+      app: doublezero
+  template:
+    metadata:
+      labels:
+        app: doublezero
+    spec:
+      hostNetwork: true
+      containers:
+        - name: doublezerod
+          image: laconicnetwork/doublezero:local
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - NET_ADMIN
+          env:
+            - name: VALIDATOR_IDENTITY_PATH
+              value: /data/config/validator-identity.json
+            - name: DOUBLEZERO_RPC_ENDPOINT
+              value: http://127.0.0.1:8899
+          volumeMounts:
+            - name: validator-config
+              mountPath: /data/config
+              readOnly: true
+            - name: doublezero-config
+              mountPath: /root/.config/doublezero
+      volumes:
+        - name: validator-config
+          persistentVolumeClaim:
+            claimName: validator-config
+        - name: doublezero-config
+          persistentVolumeClaim:
+            claimName: doublezero-config

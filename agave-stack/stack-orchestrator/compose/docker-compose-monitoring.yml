@@ -1,0 +1,49 @@
+services:
+  monitoring-influxdb:
+    image: influxdb:1.8
+    restart: unless-stopped
+    environment:
+      INFLUXDB_DB: agave_metrics
+      INFLUXDB_HTTP_AUTH_ENABLED: "true"
+      INFLUXDB_ADMIN_USER: admin
+      INFLUXDB_ADMIN_PASSWORD: admin
+      INFLUXDB_REPORTING_DISABLED: "true"
+    volumes:
+      - monitoring-influxdb-data:/var/lib/influxdb
+    ports:
+      - "8086"
+
+  monitoring-grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_PATHS_DATA: /var/lib/grafana
+    volumes:
+      - monitoring-grafana-data:/var/lib/grafana
+      - monitoring-grafana-datasources:/etc/grafana/provisioning/datasources:ro
+      - monitoring-grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "3000"
+
+  monitoring-telegraf:
+    image: telegraf:1.36
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      NODE_RPC_URL: ${NODE_RPC_URL:-http://localhost:8899}
+      CANONICAL_RPC_URL: ${CANONICAL_RPC_URL:-https://api.mainnet-beta.solana.com}
+      INFLUXDB_URL: ${INFLUXDB_URL:-http://localhost:8086}
+    volumes:
+      - monitoring-telegraf-config:/etc/telegraf:ro
+      - monitoring-telegraf-scripts:/scripts:ro
+
+volumes:
+  monitoring-influxdb-data:
+  monitoring-grafana-data:
+  monitoring-grafana-datasources:
+  monitoring-grafana-dashboards:
+  monitoring-telegraf-config:
+  monitoring-telegraf-scripts:

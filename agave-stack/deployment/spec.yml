@@ -1,0 +1,113 @@
+# Biscayne Solana Validator deployment spec
+# Host: biscayne.vaasl.io (186.233.184.235)
+# Identity: 4WeLUxfQghbhsLEuwaAzjZiHg2VBw87vqHc4iZrGvKPr
+stack: /srv/deployments/agave-stack/stack-orchestrator/stacks/agave
+deploy-to: k8s-kind
+kind-mount-root: /srv/kind
+network:
+  http-proxy:
+    - host-name: biscayne.vaasl.io
+      routes:
+        - path: /
+          proxy-to: agave-validator:8899
+        - path: /
+          proxy-to: agave-validator:8900
+          websocket: true
+  ports:
+    agave-validator:
+      - '8899'
+      - '8900'
+      - '8001'
+      - 8001/udp
+      - 9000/udp
+      - 9001/udp
+      - 9002/udp
+      - 9003/udp
+      - 9004/udp
+      - 9005/udp
+      - 9006/udp
+      - 9007/udp
+      - 9008/udp
+      - 9009/udp
+      - 9010/udp
+      - 9011/udp
+      - 9012/udp
+      - 9013/udp
+      - 9014/udp
+      - 9015/udp
+      - 9016/udp
+      - 9017/udp
+      - 9018/udp
+      - 9019/udp
+      - 9020/udp
+      - 9021/udp
+      - 9022/udp
+      - 9023/udp
+      - 9024/udp
+      - 9025/udp
+resources:
+  containers:
+    reservations:
+      cpus: '4.0'
+      memory: 256000M
+    limits:
+      cpus: '32.0'
+      memory: 921600M
+security:
+  privileged: true
+  unlimited-memlock: true
+  capabilities:
+    - IPC_LOCK
+volumes:
+  # Config volumes — on ZFS dataset (backed up via snapshots)
+  validator-config: /srv/deployments/agave/data/validator-config
+  doublezero-validator-identity: /srv/deployments/agave/data/validator-config
+  doublezero-config: /srv/deployments/agave/data/doublezero-config
+  # Heavy data volumes — on zvol/ramdisk (not backed up, rebuildable)
+  validator-ledger: /srv/kind/solana/ledger
+  validator-accounts: /srv/kind/solana/ramdisk/accounts
+  validator-snapshots: /srv/kind/solana/snapshots
+  validator-log: /srv/kind/solana/log
+  # Monitoring
+  monitoring-influxdb-data: /srv/kind/solana/monitoring/influxdb
+  monitoring-grafana-data: /srv/kind/solana/monitoring/grafana
+configmaps:
+  monitoring-telegraf-config: config/monitoring/telegraf-config
+  monitoring-telegraf-scripts: config/monitoring/scripts
+  monitoring-grafana-datasources: config/monitoring/grafana-datasources
+  monitoring-grafana-dashboards: config/monitoring/grafana-dashboards
+config:
+  # Mode: 'rpc' (non-voting) — matches current biscayne systemd config
+  AGAVE_MODE: rpc
+  # Mainnet entrypoints
+  VALIDATOR_ENTRYPOINT: entrypoint.mainnet-beta.solana.com:8001
+  EXTRA_ENTRYPOINTS: entrypoint2.mainnet-beta.solana.com:8001 entrypoint3.mainnet-beta.solana.com:8001 entrypoint4.mainnet-beta.solana.com:8001 entrypoint5.mainnet-beta.solana.com:8001
+  # Known validators (Solana Foundation, Everstake, Chorus One)
+  KNOWN_VALIDATOR: 7Np41oeYqPefeNQEHSv1UDhYrehxin3NStELsSKCT4K2
+  EXTRA_KNOWN_VALIDATORS: GdnSyH3YtwcxFvQrVVJMm1JhTS4QVX7MFsX56uJLUfiZ dDzy5SR3AXdYWVqbDEkVFdvSPCtS9ihF5kJkHCtXoFs DE1bawNcRJB9rVm3buyMVfr8mBEoyyu73NBovf2oXJsJ CakcnaRDHka2gXyfbEd2d3xsvkJkqsLw2akB3zsN1D2S C1ocKDYMCm2ooWptMMnpd5VEB2Nx4UMJgRuYofysyzcA GwHH8ciFhR8vejWCqmg8FWZUCNtubPY2esALvy5tBvji 6WgdYhhGE53WrZ7ywJA15hBVkw7CRbQ8yDBBTwmBtAHN
+  # Network
+  RPC_PORT: '8899'
+  RPC_BIND_ADDRESS: 0.0.0.0
+  GOSSIP_PORT: '8001'
+  GOSSIP_HOST: 137.239.194.65
+  DYNAMIC_PORT_RANGE: 9000-10000
+  # Cluster verification
+  EXPECTED_GENESIS_HASH: 5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d
+  EXPECTED_SHRED_VERSION: '50093'
+  # Storage
+  LIMIT_LEDGER_SIZE: '50000000'
+  SNAPSHOT_INTERVAL_SLOTS: '1000'
+  MAXIMUM_SNAPSHOTS_TO_RETAIN: '5'
+  NO_INCREMENTAL_SNAPSHOTS: 'true'
+  RUST_LOG: info,solana_metrics=warn
+  SOLANA_METRICS_CONFIG: host=http://localhost:8086,db=agave_metrics,u=admin,p=admin
+  # Jito MEV (NY region shred receiver) — disabled until voting enabled
+  JITO_ENABLE: 'false'
+  JITO_BLOCK_ENGINE_URL: https://mainnet.block-engine.jito.wtf
+  JITO_SHRED_RECEIVER_ADDR: 141.98.216.96:1002
+  JITO_TIP_PAYMENT_PROGRAM: T1pyyaTNZsKv2WcRAB8oVnk93mLJw2XzjtVYqCsaHqt
+  JITO_DISTRIBUTION_PROGRAM: 4R3gSG8BpU4t19KYj8CfnbtRpnT8gtk4dvTHxVRwc2r7
+  JITO_MERKLE_ROOT_AUTHORITY: 8F4jGUmxF36vQ6yabnsxX6AQVXdKBhs8kGSUuRKSg8Xt
+  JITO_COMMISSION_BPS: '800'
+  # DoubleZero
+  DOUBLEZERO_RPC_ENDPOINT: http://127.0.0.1:8899

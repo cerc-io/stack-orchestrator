@@ -11,7 +11,8 @@
 #   3. Wipe accounts ramdisk
 #   4. Clean old snapshots
 #   5. Ensure terminationGracePeriodSeconds is 300 (for graceful shutdown)
-#   6. Scale to 1 — container entrypoint downloads snapshot + starts validator
+#   6. Fix PV permissions (grafana runs as UID 472, laconic-so creates as root)
+#   7. Scale to 1 — container entrypoint downloads snapshot + starts validator
 #
 # The playbook exits after step 5. The container handles snapshot download
 # (60+ min) and validator startup autonomously. Monitor with:
@@ -107,7 +108,16 @@
       register: patch_result
       changed_when: "'no change' not in patch_result.stdout"
 
-    # ---- step 6: scale to 1 — entrypoint handles snapshot download ------------
+    # ---- step 6: fix PV permissions ---------------------------------------------
+    # laconic-so creates PV hostPath dirs as root. Grafana runs as UID 472 and
+    # can't write to its data dir. Fix ownership inside the kind node.
+    - name: Fix grafana PV ownership in kind node
+      ansible.builtin.command: >
+        docker exec {{ kind_cluster }}-control-plane
+        chown 472:472 /tmp/grafana-data
+      changed_when: true
+
+    # ---- step 7: scale to 1 — entrypoint handles snapshot download ------------
     # The container's entrypoint.py checks snapshot freshness, cleans stale
     # snapshots, downloads fresh ones (with rolling incremental convergence),
     # then starts the validator. No host-side download needed.

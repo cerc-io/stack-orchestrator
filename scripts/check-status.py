@@ -266,8 +266,8 @@ def display(watch: bool, prev_lines: int) -> int:
     cols = shutil.get_terminal_size().columns
 
     if watch:
-        # Move cursor to top-left without clearing — overwrite in place
-        sys.stdout.write("\033[H")
+        # Move home; clear from cursor to end of screen to wipe stale content
+        sys.stdout.write("\033[H\033[J")
 
     for line in output:
         # Pad to terminal width to overwrite stale characters from prior frame
@@ -325,7 +325,7 @@ def main() -> int:
     finally:
         if args.watch:
             # Show cursor again
-            sys.stdout.write("\033[?25l\n")
+            sys.stdout.write("\033[?25h\n")
             sys.stdout.flush()
     return 0
 

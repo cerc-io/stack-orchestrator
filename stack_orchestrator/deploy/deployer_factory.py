@@ -14,13 +14,13 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from stack_orchestrator import constants
-from stack_orchestrator.deploy.k8s.deploy_k8s import (
-    K8sDeployer,
-    K8sDeployerConfigGenerator,
-)
 from stack_orchestrator.deploy.compose.deploy_docker import (
     DockerDeployer,
     DockerDeployerConfigGenerator,
+)
+from stack_orchestrator.deploy.k8s.deploy_k8s import (
+    K8sDeployer,
+    K8sDeployerConfigGenerator,
 )
 
 
@@ -44,10 +44,7 @@ def getDeployer(
             compose_project_name,
             compose_env_file,
         )
-    elif (
-        type == type == constants.k8s_deploy_type
-        or type == constants.k8s_kind_deploy_type
-    ):
+    elif type == type == constants.k8s_deploy_type or type == constants.k8s_kind_deploy_type:
         return K8sDeployer(
             type,
             deployment_context,

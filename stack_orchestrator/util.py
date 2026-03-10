@@ -13,14 +13,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from decouple import config
 import os.path
 import sys
-import ruamel.yaml
+from collections.abc import Mapping
 from pathlib import Path
+from typing import NoReturn
+
+import ruamel.yaml
+from decouple import config
 from dotenv import dotenv_values
-from typing import Mapping, NoReturn, Optional, Set, List
-from stack_orchestrator.constants import stack_file_name, deployment_file_name
+
+from stack_orchestrator.constants import deployment_file_name, stack_file_name
 
 
 def include_exclude_check(s, include, exclude):
@@ -50,14 +53,9 @@ def get_dev_root_path(ctx):
     if ctx and ctx.local_stack:
         # TODO: This code probably doesn't work
         dev_root_path = os.getcwd()[0 : os.getcwd().rindex("stack-orchestrator")]
-        print(
-            f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: "
-            f"{dev_root_path}"
-        )
+        print(f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: " f"{dev_root_path}")
     else:
-        dev_root_path = os.path.expanduser(
-            str(config("CERC_REPO_BASE_DIR", default="~/cerc"))
-        )
+        dev_root_path = os.path.expanduser(str(config("CERC_REPO_BASE_DIR", default="~/cerc")))
     return dev_root_path
 
 
@@ -65,7 +63,7 @@ def get_dev_root_path(ctx):
 def get_parsed_stack_config(stack):
     stack_file_path = get_stack_path(stack).joinpath(stack_file_name)
     if stack_file_path.exists():
-        return get_yaml().load(open(stack_file_path, "r"))
+        return get_yaml().load(open(stack_file_path))
     # We try here to generate a useful diagnostic error
     # First check if the stack directory is present
     if stack_file_path.parent.exists():
@@ -101,10 +99,10 @@ def get_job_list(parsed_stack):
     return result
 
 
-def get_plugin_code_paths(stack) -> List[Path]:
+def get_plugin_code_paths(stack) -> list[Path]:
     parsed_stack = get_parsed_stack_config(stack)
     pods = parsed_stack["pods"]
-    result: Set[Path] = set()
+    result: set[Path] = set()
     for pod in pods:
         if type(pod) is str:
             result.add(get_stack_path(stack))
@@ -191,7 +189,7 @@ def get_job_file_path(stack, parsed_stack, job_name: str):
 def get_pod_script_paths(parsed_stack, pod_name: str):
     pods = parsed_stack["pods"]
     result = []
-    if not type(pods[0]) is str:
+    if type(pods[0]) is not str:
         for pod in pods:
             if pod["name"] == pod_name:
                 pod_root_dir = os.path.join(
@@ -243,7 +241,7 @@ def get_k8s_dir():
 def get_parsed_deployment_spec(spec_file):
     spec_file_path = Path(spec_file)
     try:
-        return get_yaml().load(open(spec_file_path, "r"))
+        return get_yaml().load(open(spec_file_path))
     except FileNotFoundError as error:
         # We try here to generate a useful diagnostic error
         print(f"Error: spec file: {spec_file_path} does not exist")
@@ -293,5 +291,6 @@ def warn_exit(s) -> NoReturn:
     sys.exit(0)
 
 
-def env_var_map_from_file(file: Path) -> Mapping[str, Optional[str]]:
-    return dotenv_values(file)
+def env_var_map_from_file(file: Path) -> Mapping[str, str | None]:
+    result: Mapping[str, str | None] = dotenv_values(file)
+    return result

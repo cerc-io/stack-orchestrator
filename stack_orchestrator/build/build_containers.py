@@ -22,17 +22,19 @@
 # allow re-build of either all or specific containers
 
 import os
-import sys
-from decouple import config
 import subprocess
-import click
+import sys
 from pathlib import Path
-from stack_orchestrator.opts import opts
-from stack_orchestrator.util import include_exclude_check, stack_is_external, error_exit
+
+import click
+from decouple import config
+
 from stack_orchestrator.base import get_npm_registry_url
 from stack_orchestrator.build.build_types import BuildContext
-from stack_orchestrator.build.publish import publish_image
 from stack_orchestrator.build.build_util import get_containers_in_scope
+from stack_orchestrator.build.publish import publish_image
+from stack_orchestrator.opts import opts
+from stack_orchestrator.util import error_exit, include_exclude_check, stack_is_external
 
 # TODO: find a place for this
 #    epilog="Config provided either in .env or settings.ini or env vars:
@@ -59,9 +61,7 @@ def make_container_build_env(
     container_build_env.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
     container_build_env.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})
     container_build_env.update(
-        {"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args}
-        if extra_build_args
-        else {}
+        {"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args} if extra_build_args else {}
     )
     docker_host_env = os.getenv("DOCKER_HOST")
     if docker_host_env:
@@ -81,12 +81,8 @@ def process_container(build_context: BuildContext) -> bool:
 
     # Check if this is in an external stack
     if stack_is_external(build_context.stack):
-        container_parent_dir = Path(build_context.stack).parent.parent.joinpath(
-            "container-build"
-        )
-        temp_build_dir = container_parent_dir.joinpath(
-            build_context.container.replace("/", "-")
-        )
+        container_parent_dir = Path(build_context.stack).parent.parent.joinpath("container-build")
+        temp_build_dir = container_parent_dir.joinpath(build_context.container.replace("/", "-"))
         temp_build_script_filename = temp_build_dir.joinpath("build.sh")
         # Now check if the container exists in the external stack.
         if not temp_build_script_filename.exists():
@@ -104,18 +100,13 @@ def process_container(build_context: BuildContext) -> bool:
         build_command = build_script_filename.as_posix()
     else:
         if opts.o.verbose:
-            print(
-                f"No script file found: {build_script_filename}, "
-                "using default build script"
-            )
+            print(f"No script file found: {build_script_filename}, " "using default build script")
         repo_dir = build_context.container.split("/")[1]
         # TODO: make this less of a hack -- should be specified in
         # some metadata somewhere. Check if we have a repo for this
         # container. If not, set the context dir to container-build subdir
         repo_full_path = os.path.join(build_context.dev_root_path, repo_dir)
-        repo_dir_or_build_dir = (
-            repo_full_path if os.path.exists(repo_full_path) else build_dir
-        )
+        repo_dir_or_build_dir = repo_full_path if os.path.exists(repo_full_path) else build_dir
         build_command = (
             os.path.join(build_context.container_build_dir, "default-build.sh")
             + f" {default_container_tag} {repo_dir_or_build_dir}"
@@ -159,9 +150,7 @@ def process_container(build_context: BuildContext) -> bool:
     default=False,
     help="Publish the built images in the specified image registry",
 )
-@click.option(
-    "--image-registry", help="Specify the image registry for --publish-images"
-)
+@click.option("--image-registry", help="Specify the image registry for --publish-images")
 @click.pass_context
 def command(
     ctx,
@@ -185,14 +174,9 @@ def command(
 
     if local_stack:
         dev_root_path = os.getcwd()[0 : os.getcwd().rindex("stack-orchestrator")]
-        print(
-            f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: "
-            f"{dev_root_path}"
-        )
+        print(f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: " f"{dev_root_path}")
     else:
-        dev_root_path = os.path.expanduser(
-            config("CERC_REPO_BASE_DIR", default="~/cerc")
-        )
+        dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
     if not opts.o.quiet:
         print(f"Dev Root is: {dev_root_path}")
@@ -230,10 +214,7 @@ def command(
             else:
                 print(f"Error running build for {build_context.container}")
                 if not opts.o.continue_on_error:
-                    error_exit(
-                        "container build failed and --continue-on-error "
-                        "not set, exiting"
-                    )
+                    error_exit("container build failed and --continue-on-error " "not set, exiting")
                     sys.exit(1)
                 else:
                     print(

@@ -1,12 +1,12 @@
 # See
 # https://medium.com/nerd-for-tech/how-to-build-and-distribute-a-cli-tool-with-python-537ae41d9d78
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("README.md", encoding="utf-8") as fh:
     long_description = fh.read()
-with open("requirements.txt", "r", encoding="utf-8") as fh:
+with open("requirements.txt", encoding="utf-8") as fh:
     requirements = fh.read()
-with open("stack_orchestrator/data/version.txt", "r", encoding="utf-8") as fh:
+with open("stack_orchestrator/data/version.txt", encoding="utf-8") as fh:
     version = fh.readlines()[-1].strip(" \n")
 setup(
     name="laconic-stack-orchestrator",

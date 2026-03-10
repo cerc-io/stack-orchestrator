@@ -13,12 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import json
+import os
 import subprocess
 import tempfile
-import os
-import json
 from pathlib import Path
-from typing import Optional
+
 from stack_orchestrator.util import get_yaml
 
 
@@ -40,18 +40,19 @@ def get_release_name_from_chart(chart_dir: Path) -> str:
         raise Exception(f"Chart.yaml not found: {chart_yaml_path}")
 
     yaml = get_yaml()
-    chart_yaml = yaml.load(open(chart_yaml_path, "r"))
+    chart_yaml = yaml.load(open(chart_yaml_path))
 
     if "name" not in chart_yaml:
         raise Exception(f"Chart name not found in {chart_yaml_path}")
 
-    return chart_yaml["name"]
+    name: str = chart_yaml["name"]
+    return name
 
 
 def run_helm_job(
     chart_dir: Path,
     job_name: str,
-    release: Optional[str] = None,
+    release: str | None = None,
     namespace: str = "default",
     timeout: int = 600,
     verbose: bool = False,
@@ -94,9 +95,7 @@ def run_helm_job(
         print(f"Running job '{job_name}' from helm chart: {chart_dir}")
 
     # Use helm template to render the job manifest
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".yaml", delete=False
-    ) as tmp_file:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as tmp_file:
         try:
             # Render job template with job enabled
             # Use --set-json to properly handle job names with dashes
@@ -116,9 +115,7 @@ def run_helm_job(
             if verbose:
                 print(f"Running: {' '.join(helm_cmd)}")
 
-            result = subprocess.run(
-                helm_cmd, check=True, capture_output=True, text=True
-            )
+            result = subprocess.run(helm_cmd, check=True, capture_output=True, text=True)
             tmp_file.write(result.stdout)
             tmp_file.flush()
 
@@ -139,9 +136,7 @@ def run_helm_job(
                 "-n",
                 namespace,
             ]
-            subprocess.run(
-                kubectl_apply_cmd, check=True, capture_output=True, text=True
-            )
+            subprocess.run(kubectl_apply_cmd, check=True, capture_output=True, text=True)
 
             if verbose:
                 print(f"Job {actual_job_name} created, waiting for completion...")
@@ -164,7 +159,7 @@ def run_helm_job(
 
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
-            raise Exception(f"Job failed: {error_msg}")
+            raise Exception(f"Job failed: {error_msg}") from e
         finally:
             # Clean up temp file
             if os.path.exists(tmp_file.name):

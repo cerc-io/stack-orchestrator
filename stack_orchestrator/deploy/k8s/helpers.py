@@ -13,20 +13,22 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import os
+import re
+import subprocess
+from collections.abc import Mapping
+from pathlib import Path
+from typing import cast
+
+import yaml
 from kubernetes import client, utils, watch
 from kubernetes.client.exceptions import ApiException
-import os
-from pathlib import Path
-import subprocess
-import re
-from typing import Set, Mapping, List, Optional, cast
-import yaml
 
-from stack_orchestrator.util import get_k8s_dir, error_exit
-from stack_orchestrator.opts import opts
+from stack_orchestrator import constants
 from stack_orchestrator.deploy.deploy_util import parsed_pod_files_map_from_file_names
 from stack_orchestrator.deploy.deployer import DeployerException
-from stack_orchestrator import constants
+from stack_orchestrator.opts import opts
+from stack_orchestrator.util import error_exit, get_k8s_dir
 
 
 def is_host_path_mount(volume_name: str) -> bool:
@@ -77,9 +79,7 @@ def get_kind_cluster():
     Uses `kind get clusters` to find existing clusters.
     Returns the cluster name or None if no cluster exists.
     """
-    result = subprocess.run(
-        "kind get clusters", shell=True, capture_output=True, text=True
-    )
+    result = subprocess.run("kind get clusters", shell=True, capture_output=True, text=True)
     if result.returncode != 0:
         return None
 
@@ -98,12 +98,12 @@ def _run_command(command: str):
     return result
 
 
-def _get_etcd_host_path_from_kind_config(config_file: str) -> Optional[str]:
+def _get_etcd_host_path_from_kind_config(config_file: str) -> str | None:
     """Extract etcd host path from kind config extraMounts."""
     import yaml
 
     try:
-        with open(config_file, "r") as f:
+        with open(config_file) as f:
             config = yaml.safe_load(f)
     except Exception:
         return None
@@ -113,7 +113,8 @@ def _get_etcd_host_path_from_kind_config(config_file: str) -> Optional[str]:
         extra_mounts = node.get("extraMounts", [])
         for mount in extra_mounts:
             if mount.get("containerPath") == "/var/lib/etcd":
-                return mount.get("hostPath")
+                host_path: str | None = mount.get("hostPath")
+                return host_path
     return None
 
 
@@ -133,8 +134,7 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
     db_path = Path(etcd_path) / "member" / "snap" / "db"
     # Check existence using docker since etcd dir is root-owned
     check_cmd = (
-        f"docker run --rm -v {etcd_path}:/etcd:ro alpine:3.19 "
-        "test -f /etcd/member/snap/db"
+        f"docker run --rm -v {etcd_path}:/etcd:ro alpine:3.19 " "test -f /etcd/member/snap/db"
     )
     check_result = subprocess.run(check_cmd, shell=True, capture_output=True)
     if check_result.returncode != 0:
@@ -148,8 +148,16 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
     etcd_image = "gcr.io/etcd-development/etcd:v3.5.9"
     temp_dir = "/tmp/laconic-etcd-cleanup"
 
-    # Whitelist: prefixes to KEEP - everything else gets deleted
-    keep_prefixes = "/registry/secrets/caddy-system"
+    # Whitelist: prefixes to KEEP - everything else gets deleted.
+    # Must include core cluster resources (kubernetes service, kube-system
+    # secrets) or kindnet panics on restart — KUBERNETES_SERVICE_HOST is
+    # injected from the kubernetes ClusterIP service in default namespace.
+    keep_prefixes = [
+        "/registry/secrets/caddy-system",
+        "/registry/services/specs/default/kubernetes",
+        "/registry/services/endpoints/default/kubernetes",
+    ]
+    keep_prefixes_str = " ".join(keep_prefixes)
 
     # The etcd image is distroless (no shell). We extract the statically-linked
     # etcdctl binary and run it from alpine which has shell + jq support.
@@ -195,13 +203,21 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
         sleep 3
 
         # Use alpine with extracted etcdctl to run commands (alpine has shell + jq)
-        # Export caddy secrets
+        # Export whitelisted keys (caddy TLS certs + core cluster services)
         docker run --rm \
             -v {temp_dir}:/backup \
             --network container:laconic-etcd-cleanup \
-            $ALPINE_IMAGE sh -c \
-            '/backup/etcdctl get --prefix "{keep_prefixes}" -w json \
-                > /backup/kept.json 2>/dev/null || echo "{{}}" > /backup/kept.json'
+            $ALPINE_IMAGE sh -c '
+                apk add --no-cache jq >/dev/null 2>&1
+                echo "[]" > /backup/all-kvs.json
+                for prefix in {keep_prefixes_str}; do
+                    /backup/etcdctl get --prefix "$prefix" -w json 2>/dev/null \
+                        | jq ".kvs // []" >> /backup/all-kvs.json || true
+                done
+                jq -s "add" /backup/all-kvs.json \
+                    | jq "{{kvs: .}}" > /backup/kept.json 2>/dev/null \
+                    || echo "{{}}" > /backup/kept.json
+            '
 
         # Delete ALL registry keys
         docker run --rm \
@@ -321,7 +337,7 @@ def is_ingress_running() -> bool:
 
 def wait_for_ingress_in_kind():
     core_v1 = client.CoreV1Api()
-    for i in range(20):
+    for _i in range(20):
         warned_waiting = False
         w = watch.Watch()
         for event in w.stream(
@@ -348,9 +364,7 @@ def wait_for_ingress_in_kind():
 def install_ingress_for_kind(acme_email: str = ""):
     api_client = client.ApiClient()
     ingress_install = os.path.abspath(
-        get_k8s_dir().joinpath(
-            "components", "ingress", "ingress-caddy-kind-deploy.yaml"
-        )
+        get_k8s_dir().joinpath("components", "ingress", "ingress-caddy-kind-deploy.yaml")
     )
     if opts.o.debug:
         print("Installing Caddy ingress controller in kind cluster")
@@ -384,13 +398,82 @@ def install_ingress_for_kind(acme_email: str = ""):
         )
 
 
-def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
-    for image in image_set:
+LOCAL_REGISTRY_NAME = "kind-registry"
+LOCAL_REGISTRY_HOST_PORT = 5001
+LOCAL_REGISTRY_CONTAINER_PORT = 5000
+
+
+def ensure_local_registry():
+    """Ensure a persistent local registry container is running.
+
+    The registry survives kind cluster recreates — images pushed to it
+    remain available without re-pushing. After ensuring the registry is
+    running, connects it to the kind Docker network so kind nodes can
+    pull from it.
+    """
+    # Check if registry container exists (running or stopped)
+    check = subprocess.run(
+        f"docker inspect {LOCAL_REGISTRY_NAME}",
+        shell=True,
+        capture_output=True,
+    )
+    if check.returncode != 0:
+        # Create the registry container
         result = _run_command(
-            f"kind load docker-image {image} --name {kind_cluster_name}"
+            f"docker run -d --restart=always"
+            f" -p {LOCAL_REGISTRY_HOST_PORT}:{LOCAL_REGISTRY_CONTAINER_PORT}"
+            f" --name {LOCAL_REGISTRY_NAME} registry:2"
         )
         if result.returncode != 0:
-            raise DeployerException(f"kind load docker-image failed: {result}")
+            raise DeployerException(f"Failed to start local registry: {result}")
+        print(f"Started local registry on port {LOCAL_REGISTRY_HOST_PORT}")
+    else:
+        # Ensure it's running (may have been stopped)
+        _run_command(f"docker start {LOCAL_REGISTRY_NAME}")
+        if opts.o.debug:
+            print("Local registry already exists, ensured running")
+
+
+def connect_registry_to_kind_network(kind_cluster_name: str):
+    """Connect the local registry to the kind Docker network.
+
+    Idempotent — silently succeeds if already connected.
+    """
+    network = "kind"
+    result = subprocess.run(
+        f"docker network connect {network} {LOCAL_REGISTRY_NAME}",
+        shell=True,
+        capture_output=True,
+    )
+    if result.returncode != 0 and b"already exists" not in result.stderr:
+        raise DeployerException(
+            f"Failed to connect registry to kind network: " f"{result.stderr.decode()}"
+        )
+
+
+def push_images_to_local_registry(image_set: set[str]):
+    """Tag and push images to the local registry.
+
+    Near-instant compared to kind load (shared filesystem, layer dedup).
+    """
+    for image in image_set:
+        registry_image = local_registry_image(image)
+        tag_result = _run_command(f"docker tag {image} {registry_image}")
+        if tag_result.returncode != 0:
+            raise DeployerException(f"docker tag failed for {image}: {tag_result}")
+        push_result = _run_command(f"docker push {registry_image}")
+        if push_result.returncode != 0:
+            raise DeployerException(f"docker push failed for {registry_image}: {push_result}")
+        if opts.o.debug:
+            print(f"Pushed {registry_image} to local registry")
+
+
+def local_registry_image(image: str) -> str:
+    """Rewrite an image reference to use the local registry.
+
+    e.g. laconicnetwork/agave:local -> localhost:5001/laconicnetwork/agave:local
+    """
+    return f"localhost:{LOCAL_REGISTRY_HOST_PORT}/{image}"
 
 
 def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
@@ -406,11 +489,9 @@ def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
     return pods
 
 
-def containers_in_pod(core_api: client.CoreV1Api, pod_name: str) -> List[str]:
-    containers: List[str] = []
-    pod_response = cast(
-        client.V1Pod, core_api.read_namespaced_pod(pod_name, namespace="default")
-    )
+def containers_in_pod(core_api: client.CoreV1Api, pod_name: str) -> list[str]:
+    containers: list[str] = []
+    pod_response = cast(client.V1Pod, core_api.read_namespaced_pod(pod_name, namespace="default"))
     if opts.o.debug:
         print(f"pod_response: {pod_response}")
     if not pod_response.spec or not pod_response.spec.containers:
@@ -433,7 +514,7 @@ def named_volumes_from_pod_files(parsed_pod_files):
         parsed_pod_file = parsed_pod_files[pod]
         if "volumes" in parsed_pod_file:
             volumes = parsed_pod_file["volumes"]
-            for volume, value in volumes.items():
+            for volume, _value in volumes.items():
                 # Volume definition looks like:
                 # 'laconicd-data': None
                 named_volumes.append(volume)
@@ -465,14 +546,10 @@ def volume_mounts_for_service(parsed_pod_files, service):
                             mount_split = mount_string.split(":")
                             volume_name = mount_split[0]
                             mount_path = mount_split[1]
-                            mount_options = (
-                                mount_split[2] if len(mount_split) == 3 else None
-                            )
+                            mount_options = mount_split[2] if len(mount_split) == 3 else None
                             # For host path mounts, use sanitized name
                             if is_host_path_mount(volume_name):
-                                k8s_volume_name = sanitize_host_path_to_volume_name(
-                                    volume_name
-                                )
+                                k8s_volume_name = sanitize_host_path_to_volume_name(volume_name)
                             else:
                                 k8s_volume_name = volume_name
                             if opts.o.debug:
@@ -511,9 +588,7 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
                     claim = client.V1PersistentVolumeClaimVolumeSource(
                         claim_name=f"{app_name}-{volume_name}"
                     )
-                    volume = client.V1Volume(
-                        name=volume_name, persistent_volume_claim=claim
-                    )
+                    volume = client.V1Volume(name=volume_name, persistent_volume_claim=claim)
                     result.append(volume)
 
         # Handle host path mounts from service volumes
@@ -526,15 +601,11 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
                         mount_split = mount_string.split(":")
                         volume_source = mount_split[0]
                         if is_host_path_mount(volume_source):
-                            sanitized_name = sanitize_host_path_to_volume_name(
-                                volume_source
-                            )
+                            sanitized_name = sanitize_host_path_to_volume_name(volume_source)
                             if sanitized_name not in seen_host_path_volumes:
                                 seen_host_path_volumes.add(sanitized_name)
                                 # Create hostPath volume for mount inside kind node
-                                kind_mount_path = get_kind_host_path_mount_path(
-                                    sanitized_name
-                                )
+                                kind_mount_path = get_kind_host_path_mount_path(sanitized_name)
                                 host_path_source = client.V1HostPathVolumeSource(
                                     path=kind_mount_path, type="FileOrCreate"
                                 )
@@ -569,18 +640,18 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     deployment_id = deployment_context.id
     backup_subdir = f"cluster-backups/{deployment_id}"
 
-    etcd_host_path = _make_absolute_host_path(
-        Path(f"./data/{backup_subdir}/etcd"), deployment_dir
-    )
+    etcd_host_path = _make_absolute_host_path(Path(f"./data/{backup_subdir}/etcd"), deployment_dir)
     volume_definitions.append(
-        f"  - hostPath: {etcd_host_path}\n" f"    containerPath: /var/lib/etcd\n"
+        f"  - hostPath: {etcd_host_path}\n"
+        f"    containerPath: /var/lib/etcd\n"
+        f"    propagation: HostToContainer\n"
     )
 
-    pki_host_path = _make_absolute_host_path(
-        Path(f"./data/{backup_subdir}/pki"), deployment_dir
-    )
+    pki_host_path = _make_absolute_host_path(Path(f"./data/{backup_subdir}/pki"), deployment_dir)
     volume_definitions.append(
-        f"  - hostPath: {pki_host_path}\n" f"    containerPath: /etc/kubernetes/pki\n"
+        f"  - hostPath: {pki_host_path}\n"
+        f"    containerPath: /etc/kubernetes/pki\n"
+        f"    propagation: HostToContainer\n"
     )
 
     # Note these paths are relative to the location of the pod files (at present)
@@ -606,21 +677,16 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
 
                         if is_host_path_mount(volume_name):
                             # Host path mount - add extraMount for kind
-                            sanitized_name = sanitize_host_path_to_volume_name(
-                                volume_name
-                            )
+                            sanitized_name = sanitize_host_path_to_volume_name(volume_name)
                             if sanitized_name not in seen_host_path_mounts:
                                 seen_host_path_mounts.add(sanitized_name)
                                 # Resolve path relative to compose directory
-                                host_path = resolve_host_path_for_kind(
-                                    volume_name, deployment_dir
-                                )
-                                container_path = get_kind_host_path_mount_path(
-                                    sanitized_name
-                                )
+                                host_path = resolve_host_path_for_kind(volume_name, deployment_dir)
+                                container_path = get_kind_host_path_mount_path(sanitized_name)
                                 volume_definitions.append(
                                     f"  - hostPath: {host_path}\n"
                                     f"    containerPath: {container_path}\n"
+                                    f"    propagation: HostToContainer\n"
                                 )
                                 if opts.o.debug:
                                     print(f"Added host path mount: {host_path}")
@@ -630,10 +696,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                                 print(f"volume_name: {volume_name}")
                                 print(f"map: {volume_host_path_map}")
                                 print(f"mount path: {mount_path}")
-                            if (
-                                volume_name
-                                not in deployment_context.spec.get_configmaps()
-                            ):
+                            if volume_name not in deployment_context.spec.get_configmaps():
                                 if (
                                     volume_name in volume_host_path_map
                                     and volume_host_path_map[volume_name]
@@ -642,12 +705,11 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                                         volume_host_path_map[volume_name],
                                         deployment_dir,
                                     )
-                                    container_path = get_kind_pv_bind_mount_path(
-                                        volume_name
-                                    )
+                                    container_path = get_kind_pv_bind_mount_path(volume_name)
                                     volume_definitions.append(
                                         f"  - hostPath: {host_path}\n"
                                         f"    containerPath: {container_path}\n"
+                                        f"    propagation: HostToContainer\n"
                                     )
     return (
         ""
@@ -671,8 +733,7 @@ def _generate_kind_port_mappings_from_services(parsed_pod_files):
                         # TODO handle the complex cases
                         # Looks like: 80 or something more complicated
                         port_definitions.append(
-                            f"  - containerPort: {port_string}\n"
-                            f"    hostPort: {port_string}\n"
+                            f"  - containerPort: {port_string}\n" f"    hostPort: {port_string}\n"
                         )
     return (
         ""
@@ -685,9 +746,7 @@ def _generate_kind_port_mappings(parsed_pod_files):
     port_definitions = []
     # Map port 80 and 443 for the Caddy ingress controller (HTTPS support)
     for port_string in ["80", "443"]:
-        port_definitions.append(
-            f"  - containerPort: {port_string}\n    hostPort: {port_string}\n"
-        )
+        port_definitions.append(f"  - containerPort: {port_string}\n    hostPort: {port_string}\n")
     return (
         ""
         if len(port_definitions) == 0
@@ -703,7 +762,11 @@ def _generate_high_memlock_spec_mount(deployment_dir: Path):
     references an absolute path.
     """
     spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
-    return f"  - hostPath: {spec_path}\n" f"    containerPath: {spec_path}\n"
+    return (
+        f"  - hostPath: {spec_path}\n"
+        f"    containerPath: {spec_path}\n"
+        f"    propagation: HostToContainer\n"
+    )
 
 
 def generate_high_memlock_spec_json():
@@ -877,27 +940,37 @@ def generate_cri_base_json():
     return generate_high_memlock_spec_json()
 
 
-def _generate_containerd_config_patches(
-    deployment_dir: Path, has_high_memlock: bool
-) -> str:
-    """Generate containerdConfigPatches YAML for custom runtime handlers.
+def _generate_containerd_config_patches(deployment_dir: Path, has_high_memlock: bool) -> str:
+    """Generate containerdConfigPatches YAML for containerd configuration.
 
-    This configures containerd to have a runtime handler named 'high-memlock'
-    that uses a custom OCI base spec with unlimited RLIMIT_MEMLOCK.
+    Includes:
+    - Local registry mirror (localhost:5001 -> http://kind-registry:5000)
+    - Custom runtime handler for high-memlock (if enabled)
     """
-    if not has_high_memlock:
+    patches = []
+
+    # Always configure the local registry mirror so kind nodes pull from it
+    registry_plugin = f'plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:{LOCAL_REGISTRY_HOST_PORT}"'
+    endpoint = f"http://{LOCAL_REGISTRY_NAME}:{LOCAL_REGISTRY_CONTAINER_PORT}"
+    patches.append(f"    [{registry_plugin}]\n" f'      endpoint = ["{endpoint}"]')
+
+    if has_high_memlock:
+        spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
+        runtime_name = constants.high_memlock_runtime
+        plugin_path = 'plugins."io.containerd.grpc.v1.cri".containerd.runtimes'
+        patches.append(
+            f"    [{plugin_path}.{runtime_name}]\n"
+            '      runtime_type = "io.containerd.runc.v2"\n'
+            f'      base_runtime_spec = "{spec_path}"'
+        )
+
+    if not patches:
         return ""
 
-    spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
-    runtime_name = constants.high_memlock_runtime
-    plugin_path = 'plugins."io.containerd.grpc.v1.cri".containerd.runtimes'
-    return (
-        "containerdConfigPatches:\n"
-        "  - |-\n"
-        f"    [{plugin_path}.{runtime_name}]\n"
-        '      runtime_type = "io.containerd.runc.v2"\n'
-        f'      base_runtime_spec = "{spec_path}"\n'
-    )
+    result = "containerdConfigPatches:\n"
+    for patch in patches:
+        result += "  - |-\n" + patch + "\n"
+    return result
 
 
 # Note: this makes any duplicate definition in b overwrite a
@@ -906,9 +979,7 @@ def merge_envs(a: Mapping[str, str], b: Mapping[str, str]) -> Mapping[str, str]:
     return result
 
 
-def _expand_shell_vars(
-    raw_val: str, env_map: Optional[Mapping[str, str]] = None
-) -> str:
+def _expand_shell_vars(raw_val: str, env_map: Mapping[str, str] | None = None) -> str:
     # Expand docker-compose style variable substitution:
     # ${VAR} - use VAR value or empty string
     # ${VAR:-default} - use VAR value or default if unset/empty
@@ -933,7 +1004,7 @@ def _expand_shell_vars(
 
 
 def envs_from_compose_file(
-    compose_file_envs: Mapping[str, str], env_map: Optional[Mapping[str, str]] = None
+    compose_file_envs: Mapping[str, str], env_map: Mapping[str, str] | None = None
 ) -> Mapping[str, str]:
     result = {}
     for env_var, env_val in compose_file_envs.items():
@@ -943,7 +1014,7 @@ def envs_from_compose_file(
 
 
 def translate_sidecar_service_names(
-    envs: Mapping[str, str], sibling_service_names: List[str]
+    envs: Mapping[str, str], sibling_service_names: list[str]
 ) -> Mapping[str, str]:
     """Translate docker-compose service names to localhost for sidecar containers.
 
@@ -970,7 +1041,12 @@ def translate_sidecar_service_names(
             # Handle URLs like: postgres://user:pass@db:5432/dbname
             # and simple refs like: db:5432 or just db
             pattern = rf"\b{re.escape(service_name)}(:\d+)?\b"
-            new_val = re.sub(pattern, lambda m: f'localhost{m.group(1) or ""}', new_val)
+
+            def _replace_with_localhost(m: re.Match[str]) -> str:
+                port: str = m.group(1) or ""
+                return "localhost" + port
+
+            new_val = re.sub(pattern, _replace_with_localhost, new_val)
 
         result[env_var] = new_val
 
@@ -978,8 +1054,8 @@ def translate_sidecar_service_names(
 
 
 def envs_from_environment_variables_map(
-    map: Mapping[str, str]
-) -> List[client.V1EnvVar]:
+    map: Mapping[str, str],
+) -> list[client.V1EnvVar]:
     result = []
     for env_var, env_val in map.items():
         result.append(client.V1EnvVar(env_var, env_val))
@@ -1010,17 +1086,13 @@ def generate_kind_config(deployment_dir: Path, deployment_context):
     pod_files = [p for p in compose_file_dir.iterdir() if p.is_file()]
     parsed_pod_files_map = parsed_pod_files_map_from_file_names(pod_files)
     port_mappings_yml = _generate_kind_port_mappings(parsed_pod_files_map)
-    mounts_yml = _generate_kind_mounts(
-        parsed_pod_files_map, deployment_dir, deployment_context
-    )
+    mounts_yml = _generate_kind_mounts(parsed_pod_files_map, deployment_dir, deployment_context)
 
     # Check if unlimited_memlock is enabled
     unlimited_memlock = deployment_context.spec.get_unlimited_memlock()
 
     # Generate containerdConfigPatches for RuntimeClass support
-    containerd_patches_yml = _generate_containerd_config_patches(
-        deployment_dir, unlimited_memlock
-    )
+    containerd_patches_yml = _generate_containerd_config_patches(deployment_dir, unlimited_memlock)
 
     # Add high-memlock spec file mount if needed
     if unlimited_memlock:

@@ -13,19 +13,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import click
-from dataclasses import dataclass
 import json
 import platform
+from dataclasses import dataclass
+
+import click
+import requests
 from python_on_whales import DockerClient
 from python_on_whales.components.manifest.cli_wrapper import ManifestCLI, ManifestList
 from python_on_whales.utils import run
-import requests
-from typing import List
 
-from stack_orchestrator.opts import opts
-from stack_orchestrator.util import include_exclude_check, error_exit
 from stack_orchestrator.build.build_util import get_containers_in_scope
+from stack_orchestrator.opts import opts
+from stack_orchestrator.util import error_exit, include_exclude_check
 
 # Experimental fetch-container command
 
@@ -55,7 +55,7 @@ def _local_tag_for(container: str):
 # $ curl -u "my-username:my-token" -X GET \
 #   "https://<container-registry-hostname>/v2/cerc-io/cerc/test-container/tags/list"
 # {"name":"cerc-io/cerc/test-container","tags":["202402232130","202402232208"]}
-def _get_tags_for_container(container: str, registry_info: RegistryInfo) -> List[str]:
+def _get_tags_for_container(container: str, registry_info: RegistryInfo) -> list[str]:
     # registry looks like: git.vdb.to/cerc-io
     registry_parts = registry_info.registry.split("/")
     url = f"https://{registry_parts[0]}/v2/{registry_parts[1]}/{container}/tags/list"
@@ -68,16 +68,15 @@ def _get_tags_for_container(container: str, registry_info: RegistryInfo) -> List
         tag_info = response.json()
         if opts.o.debug:
             print(f"container tags list: {tag_info}")
-        tags_array = tag_info["tags"]
+        tags_array: list[str] = tag_info["tags"]
         return tags_array
     else:
         error_exit(
-            f"failed to fetch tags from image registry, "
-            f"status code: {response.status_code}"
+            f"failed to fetch tags from image registry, " f"status code: {response.status_code}"
         )
 
 
-def _find_latest(candidate_tags: List[str]):
+def _find_latest(candidate_tags: list[str]):
     # Lex sort should give us the latest first
     sorted_candidates = sorted(candidate_tags)
     if opts.o.debug:
@@ -86,8 +85,8 @@ def _find_latest(candidate_tags: List[str]):
 
 
 def _filter_for_platform(
-    container: str, registry_info: RegistryInfo, tag_list: List[str]
-) -> List[str]:
+    container: str, registry_info: RegistryInfo, tag_list: list[str]
+) -> list[str]:
     filtered_tags = []
     this_machine = platform.machine()
     # Translate between Python and docker platform names
@@ -151,15 +150,9 @@ def _add_local_tag(remote_tag: str, registry: str, local_tag: str):
     default=False,
     help="Overwrite a locally built image, if present",
 )
-@click.option(
-    "--image-registry", required=True, help="Specify the image registry to fetch from"
-)
-@click.option(
-    "--registry-username", required=True, help="Specify the image registry username"
-)
-@click.option(
-    "--registry-token", required=True, help="Specify the image registry access token"
-)
+@click.option("--image-registry", required=True, help="Specify the image registry to fetch from")
+@click.option("--registry-username", required=True, help="Specify the image registry username")
+@click.option("--registry-token", required=True, help="Specify the image registry access token")
 @click.pass_context
 def command(
     ctx,

@@ -16,21 +16,21 @@
 from pathlib import Path
 
 from stack_orchestrator import constants
-from stack_orchestrator.opts import opts
-from stack_orchestrator.util import (
-    get_parsed_stack_config,
-    get_pod_list,
-    get_pod_file_path,
-    get_job_list,
-    get_job_file_path,
-    error_exit,
-)
 from stack_orchestrator.deploy.k8s.helm.kompose_wrapper import (
     check_kompose_available,
-    get_kompose_version,
     convert_to_helm_chart,
+    get_kompose_version,
 )
-from stack_orchestrator.util import get_yaml
+from stack_orchestrator.opts import opts
+from stack_orchestrator.util import (
+    error_exit,
+    get_job_file_path,
+    get_job_list,
+    get_parsed_stack_config,
+    get_pod_file_path,
+    get_pod_list,
+    get_yaml,
+)
 
 
 def _wrap_job_templates_with_conditionals(chart_dir: Path, jobs: list) -> None:
@@ -88,7 +88,7 @@ def _post_process_chart(chart_dir: Path, chart_name: str, jobs: list) -> None:
     # Fix Chart.yaml
     chart_yaml_path = chart_dir / "Chart.yaml"
     if chart_yaml_path.exists():
-        chart_yaml = yaml.load(open(chart_yaml_path, "r"))
+        chart_yaml = yaml.load(open(chart_yaml_path))
 
         # Fix name
         chart_yaml["name"] = chart_name
@@ -108,9 +108,7 @@ def _post_process_chart(chart_dir: Path, chart_name: str, jobs: list) -> None:
         _wrap_job_templates_with_conditionals(chart_dir, jobs)
 
 
-def generate_helm_chart(
-    stack_path: str, spec_file: str, deployment_dir_path: Path
-) -> None:
+def generate_helm_chart(stack_path: str, spec_file: str, deployment_dir_path: Path) -> None:
     """
     Generate a self-sufficient Helm chart from stack compose files using Kompose.
 
@@ -152,7 +150,7 @@ def generate_helm_chart(
         error_exit(f"Deployment file not found: {deployment_file}")
 
     yaml = get_yaml()
-    deployment_config = yaml.load(open(deployment_file, "r"))
+    deployment_config = yaml.load(open(deployment_file))
     cluster_id = deployment_config.get(constants.cluster_id_key)
     if not cluster_id:
         error_exit(f"cluster-id not found in {deployment_file}")
@@ -219,10 +217,7 @@ def generate_helm_chart(
     # 5. Create chart directory and invoke Kompose
     chart_dir = deployment_dir_path / "chart"
 
-    print(
-        f"Converting {len(compose_files)} compose file(s) to Helm chart "
-        "using Kompose..."
-    )
+    print(f"Converting {len(compose_files)} compose file(s) to Helm chart " "using Kompose...")
 
     try:
         output = convert_to_helm_chart(
@@ -304,9 +299,7 @@ Edit the generated template files in `templates/` to customize:
 
     # Count generated files
     template_files = (
-        list((chart_dir / "templates").glob("*.yaml"))
-        if (chart_dir / "templates").exists()
-        else []
+        list((chart_dir / "templates").glob("*.yaml")) if (chart_dir / "templates").exists() else []
     )
     print(f"  Files:    {len(template_files)} template(s) generated")
 

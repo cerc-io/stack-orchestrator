@@ -30,9 +30,7 @@ def get_containers_in_scope(stack: str):
         # See: https://stackoverflow.com/a/20885799/1701505
         from stack_orchestrator import data
 
-        with importlib.resources.open_text(
-            data, "container-image-list.txt"
-        ) as container_list_file:
+        with importlib.resources.open_text(data, "container-image-list.txt") as container_list_file:
             containers_in_scope = container_list_file.read().splitlines()
 
     if opts.o.verbose:

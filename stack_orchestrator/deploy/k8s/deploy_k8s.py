@@ -12,43 +12,41 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import time
 from datetime import datetime, timezone
-
 from pathlib import Path
+from typing import Any, cast
+
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
-from typing import Any, Dict, List, Optional, cast
 
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
+from stack_orchestrator.deploy.deployment_context import DeploymentContext
+from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.deploy.k8s.helpers import (
+    connect_registry_to_kind_network,
+    containers_in_pod,
     create_cluster,
     destroy_cluster,
-    load_images_into_kind,
-)
-from stack_orchestrator.deploy.k8s.helpers import (
-    install_ingress_for_kind,
-    wait_for_ingress_in_kind,
-    is_ingress_running,
-)
-from stack_orchestrator.deploy.k8s.helpers import (
-    pods_in_deployment,
-    containers_in_pod,
-    log_stream_from_string,
-)
-from stack_orchestrator.deploy.k8s.helpers import (
-    generate_kind_config,
+    ensure_local_registry,
     generate_high_memlock_spec_json,
+    generate_kind_config,
+    install_ingress_for_kind,
+    is_ingress_running,
+    local_registry_image,
+    log_stream_from_string,
+    pods_in_deployment,
+    push_images_to_local_registry,
+    wait_for_ingress_in_kind,
 )
-from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.opts import opts
-from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.util import error_exit
 
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__dict__ = self
 
 
@@ -143,9 +141,7 @@ class K8sDeployer(Deployer):
         else:
             # Get the config file and pass to load_kube_config()
             config.load_kube_config(
-                config_file=self.deployment_dir.joinpath(
-                    constants.kube_config_filename
-                ).as_posix()
+                config_file=self.deployment_dir.joinpath(constants.kube_config_filename).as_posix()
             )
         self.core_api = client.CoreV1Api()
         self.networking_api = client.NetworkingV1Api()
@@ -153,10 +149,20 @@ class K8sDeployer(Deployer):
         self.custom_obj_api = client.CustomObjectsApi()
 
     def _ensure_namespace(self):
-        """Create the deployment namespace if it doesn't exist."""
+        """Create the deployment namespace if it doesn't exist.
+
+        If the namespace exists but is terminating (e.g., from a prior
+        down() call), wait for deletion to complete before creating a
+        fresh namespace.  K8s rejects resource creation in a terminating
+        namespace with 403 Forbidden, so proceeding without waiting
+        causes PVC/ConfigMap creation failures.
+        """
         if opts.o.dry_run:
             print(f"Dry run: would create namespace {self.k8s_namespace}")
             return
+
+        self._wait_for_namespace_deletion()
+
         try:
             self.core_api.read_namespace(name=self.k8s_namespace)
             if opts.o.debug:
@@ -176,6 +182,35 @@ class K8sDeployer(Deployer):
             else:
                 raise
 
+    def _wait_for_namespace_deletion(self):
+        """Block until the namespace is fully deleted, if it is terminating.
+
+        Polls every 2s for up to 120s.  If the namespace does not exist
+        (404) or is active, returns immediately.
+        """
+        deadline = time.monotonic() + 120
+        while True:
+            try:
+                ns = self.core_api.read_namespace(name=self.k8s_namespace)
+            except ApiException as e:
+                if e.status == 404:
+                    return  # Gone — ready to create
+                raise
+
+            phase = ns.status.phase if ns.status else None
+            if phase != "Terminating":
+                return  # Active or unknown — proceed
+
+            if time.monotonic() > deadline:
+                error_exit(
+                    f"Namespace {self.k8s_namespace} still terminating "
+                    f"after 120s — cannot proceed"
+                )
+
+            if opts.o.debug:
+                print(f"Namespace {self.k8s_namespace} is terminating, " f"waiting for deletion...")
+            time.sleep(2)
+
     def _delete_namespace(self):
         """Delete the deployment namespace and all resources within it."""
         if opts.o.dry_run:
@@ -192,6 +227,152 @@ class K8sDeployer(Deployer):
             else:
                 raise
 
+    def _ensure_config_map(self, cfg_map):
+        """Create or replace a ConfigMap (idempotent)."""
+        try:
+            resp = self.core_api.create_namespaced_config_map(
+                body=cfg_map, namespace=self.k8s_namespace
+            )
+            if opts.o.debug:
+                print(f"ConfigMap created: {resp}")
+        except ApiException as e:
+            if e.status == 409:
+                existing = self.core_api.read_namespaced_config_map(
+                    name=cfg_map.metadata.name, namespace=self.k8s_namespace
+                )
+                cfg_map.metadata.resource_version = existing.metadata.resource_version
+                resp = self.core_api.replace_namespaced_config_map(
+                    name=cfg_map.metadata.name,
+                    namespace=self.k8s_namespace,
+                    body=cfg_map,
+                )
+                if opts.o.debug:
+                    print(f"ConfigMap updated: {resp}")
+            else:
+                raise
+
+    def _ensure_deployment(self, deployment):
+        """Create or replace a Deployment (idempotent)."""
+        try:
+            resp = cast(
+                client.V1Deployment,
+                self.apps_api.create_namespaced_deployment(
+                    body=deployment, namespace=self.k8s_namespace
+                ),
+            )
+            if opts.o.debug:
+                print("Deployment created:")
+        except ApiException as e:
+            if e.status == 409:
+                existing = self.apps_api.read_namespaced_deployment(
+                    name=deployment.metadata.name,
+                    namespace=self.k8s_namespace,
+                )
+                deployment.metadata.resource_version = existing.metadata.resource_version
+                resp = cast(
+                    client.V1Deployment,
+                    self.apps_api.replace_namespaced_deployment(
+                        name=deployment.metadata.name,
+                        namespace=self.k8s_namespace,
+                        body=deployment,
+                    ),
+                )
+                if opts.o.debug:
+                    print("Deployment updated:")
+            else:
+                raise
+        if opts.o.debug:
+            meta = resp.metadata
+            spec = resp.spec
+            if meta and spec and spec.template.spec:
+                containers = spec.template.spec.containers
+                img = containers[0].image if containers else None
+                print(f"{meta.namespace} {meta.name} {meta.generation} {img}")
+
+    def _ensure_service(self, service, kind: str = "Service"):
+        """Create or replace a Service (idempotent).
+
+        Services have immutable fields (spec.clusterIP) that must be
+        preserved from the existing object on replace.
+        """
+        try:
+            resp = self.core_api.create_namespaced_service(
+                namespace=self.k8s_namespace, body=service
+            )
+            if opts.o.debug:
+                print(f"{kind} created: {resp}")
+        except ApiException as e:
+            if e.status == 409:
+                existing = self.core_api.read_namespaced_service(
+                    name=service.metadata.name, namespace=self.k8s_namespace
+                )
+                service.metadata.resource_version = existing.metadata.resource_version
+                if existing.spec.cluster_ip:
+                    service.spec.cluster_ip = existing.spec.cluster_ip
+                resp = self.core_api.replace_namespaced_service(
+                    name=service.metadata.name,
+                    namespace=self.k8s_namespace,
+                    body=service,
+                )
+                if opts.o.debug:
+                    print(f"{kind} updated: {resp}")
+            else:
+                raise
+
+    def _ensure_ingress(self, ingress):
+        """Create or replace an Ingress (idempotent)."""
+        try:
+            resp = self.networking_api.create_namespaced_ingress(
+                namespace=self.k8s_namespace, body=ingress
+            )
+            if opts.o.debug:
+                print(f"Ingress created: {resp}")
+        except ApiException as e:
+            if e.status == 409:
+                existing = self.networking_api.read_namespaced_ingress(
+                    name=ingress.metadata.name, namespace=self.k8s_namespace
+                )
+                ingress.metadata.resource_version = existing.metadata.resource_version
+                resp = self.networking_api.replace_namespaced_ingress(
+                    name=ingress.metadata.name,
+                    namespace=self.k8s_namespace,
+                    body=ingress,
+                )
+                if opts.o.debug:
+                    print(f"Ingress updated: {resp}")
+            else:
+                raise
+
+    def _clear_released_pv_claim_refs(self):
+        """Patch any Released PVs for this deployment to clear stale claimRefs.
+
+        After a namespace is deleted, PVCs are cascade-deleted but
+        cluster-scoped PVs survive in Released state with claimRefs
+        pointing to the now-deleted PVC UIDs.  New PVCs cannot bind
+        to these PVs until the stale claimRef is removed.
+        """
+        try:
+            pvs = self.core_api.list_persistent_volume(
+                label_selector=f"app={self.cluster_info.app_name}"
+            )
+        except ApiException:
+            return
+
+        for pv in pvs.items:
+            phase = pv.status.phase if pv.status else None
+            if phase == "Released" and pv.spec and pv.spec.claim_ref:
+                pv_name = pv.metadata.name
+                if opts.o.debug:
+                    old_ref = pv.spec.claim_ref
+                    print(
+                        f"Clearing stale claimRef on PV {pv_name} "
+                        f"(was {old_ref.namespace}/{old_ref.name})"
+                    )
+                self.core_api.patch_persistent_volume(
+                    name=pv_name,
+                    body={"spec": {"claimRef": None}},
+                )
+
     def _create_volume_data(self):
         # Create the host-path-mounted PVs for this deployment
         pvs = self.cluster_info.get_pvs()
@@ -200,24 +381,29 @@ class K8sDeployer(Deployer):
                 print(f"Sending this pv: {pv}")
             if not opts.o.dry_run:
                 try:
-                    pv_resp = self.core_api.read_persistent_volume(
-                        name=pv.metadata.name
-                    )
+                    pv_resp = self.core_api.read_persistent_volume(name=pv.metadata.name)
                     if pv_resp:
                         if opts.o.debug:
                             print("PVs already present:")
                             print(f"{pv_resp}")
                         continue
-                except:  # noqa: E722
-                    pass
+                except ApiException as e:
+                    if e.status != 404:
+                        raise
 
                 pv_resp = self.core_api.create_persistent_volume(body=pv)
                 if opts.o.debug:
                     print("PVs created:")
                     print(f"{pv_resp}")
 
+        # After PV creation/verification, clear stale claimRefs on any
+        # Released PVs so that new PVCs can bind to them.
+        if not opts.o.dry_run:
+            self._clear_released_pv_claim_refs()
+
         # Figure out the PVCs for this deployment
         pvcs = self.cluster_info.get_pvcs()
+        pvc_errors = []
         for pvc in pvcs:
             if opts.o.debug:
                 print(f"Sending this pvc: {pvc}")
@@ -232,15 +418,27 @@ class K8sDeployer(Deployer):
                             print("PVCs already present:")
                             print(f"{pvc_resp}")
                         continue
-                except:  # noqa: E722
-                    pass
+                except ApiException as e:
+                    if e.status != 404:
+                        raise
 
-                pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(
-                    body=pvc, namespace=self.k8s_namespace
-                )
-                if opts.o.debug:
-                    print("PVCs created:")
-                    print(f"{pvc_resp}")
+                try:
+                    pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(
+                        body=pvc, namespace=self.k8s_namespace
+                    )
+                    if opts.o.debug:
+                        print("PVCs created:")
+                        print(f"{pvc_resp}")
+                except ApiException as e:
+                    pvc_name = pvc.metadata.name
+                    print(f"Error creating PVC {pvc_name}: {e.reason}")
+                    pvc_errors.append(pvc_name)
+
+        if pvc_errors:
+            error_exit(
+                f"Failed to create PVCs: {', '.join(pvc_errors)}. "
+                f"Check namespace state and PV availability."
+            )
 
         # Figure out the ConfigMaps for this deployment
         config_maps = self.cluster_info.get_configmaps()
@@ -248,50 +446,35 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print(f"Sending this ConfigMap: {cfg_map}")
             if not opts.o.dry_run:
-                cfg_rsp = self.core_api.create_namespaced_config_map(
-                    body=cfg_map, namespace=self.k8s_namespace
-                )
-                if opts.o.debug:
-                    print("ConfigMap created:")
-                    print(f"{cfg_rsp}")
+                self._ensure_config_map(cfg_map)
 
     def _create_deployment(self):
-        # Process compose files into a Deployment
+        """Create the k8s Deployment resource (which starts pods)."""
         deployment = self.cluster_info.get_deployment(
             image_pull_policy=None if self.is_kind() else "Always"
         )
-        # Create the k8s objects
+        if self.is_kind():
+            self._rewrite_local_images(deployment)
         if opts.o.debug:
             print(f"Sending this deployment: {deployment}")
         if not opts.o.dry_run:
-            deployment_resp = cast(
-                client.V1Deployment,
-                self.apps_api.create_namespaced_deployment(
-                    body=deployment, namespace=self.k8s_namespace
-                ),
-            )
-            if opts.o.debug:
-                print("Deployment created:")
-                meta = deployment_resp.metadata
-                spec = deployment_resp.spec
-                if meta and spec and spec.template.spec:
-                    ns = meta.namespace
-                    name = meta.name
-                    gen = meta.generation
-                    containers = spec.template.spec.containers
-                    img = containers[0].image if containers else None
-                    print(f"{ns} {name} {gen} {img}")
+            self._ensure_deployment(deployment)
 
-        service = self.cluster_info.get_service()
-        if opts.o.debug:
-            print(f"Sending this service: {service}")
-        if service and not opts.o.dry_run:
-            service_resp = self.core_api.create_namespaced_service(
-                namespace=self.k8s_namespace, body=service
-            )
-            if opts.o.debug:
-                print("Service created:")
-                print(f"{service_resp}")
+    def _rewrite_local_images(self, deployment):
+        """Rewrite local container images to use the local registry.
+
+        Images built locally (listed in stack.yml containers) are pushed to
+        localhost:5001 by push_images_to_local_registry(). The k8s pod spec
+        must reference them at that address so containerd pulls from the
+        local registry instead of trying to find them in its local store.
+        """
+        local_containers = self.deployment_context.stack.obj.get("containers", [])
+        if not local_containers:
+            return
+        containers = deployment.spec.template.spec.containers or []
+        for container in containers:
+            if any(c in container.image for c in local_containers):
+                container.image = local_registry_image(container.image)
 
     def _find_certificate_for_host_name(self, host_name):
         all_certificates = self.custom_obj_api.list_namespaced_custom_object(
@@ -323,108 +506,109 @@ class K8sDeployer(Deployer):
                     if before < now < after:
                         # Check the status is Ready
                         for condition in status.get("conditions", []):
-                            if "True" == condition.get(
-                                "status"
-                            ) and "Ready" == condition.get("type"):
+                            if "True" == condition.get("status") and "Ready" == condition.get(
+                                "type"
+                            ):
                                 return cert
         return None
 
     def up(self, detach, skip_cluster_management, services):
+        self._setup_cluster_and_namespace(skip_cluster_management)
+        self._create_infrastructure()
+        self._create_deployment()
+
+    def _setup_cluster_and_namespace(self, skip_cluster_management):
+        """Create kind cluster (if needed) and namespace.
+
+        Shared by up() and prepare().
+        """
         self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:
             if self.is_kind() and not self.skip_cluster_management:
-                # Create the kind cluster (or reuse existing one)
-                kind_config = str(
-                    self.deployment_dir.joinpath(constants.kind_config_filename)
-                )
+                ensure_local_registry()
+                kind_config = str(self.deployment_dir.joinpath(constants.kind_config_filename))
                 actual_cluster = create_cluster(self.kind_cluster_name, kind_config)
                 if actual_cluster != self.kind_cluster_name:
-                    # An existing cluster was found, use it instead
                     self.kind_cluster_name = actual_cluster
-                # Only load locally-built images into kind
-                # Registry images (docker.io, ghcr.io, etc.) will be pulled by k8s
-                local_containers = self.deployment_context.stack.obj.get(
-                    "containers", []
-                )
+                connect_registry_to_kind_network(self.kind_cluster_name)
+                local_containers = self.deployment_context.stack.obj.get("containers", [])
                 if local_containers:
-                    # Filter image_set to only images matching local containers
                     local_images = {
                         img
                         for img in self.cluster_info.image_set
                         if any(c in img for c in local_containers)
                     }
                     if local_images:
-                        load_images_into_kind(self.kind_cluster_name, local_images)
-                # Note: if no local containers defined, all images come from registries
+                        push_images_to_local_registry(local_images)
             self.connect_api()
-            # Create deployment-specific namespace for resource isolation
             self._ensure_namespace()
             if self.is_kind() and not self.skip_cluster_management:
-                # Configure ingress controller (not installed by default in kind)
-                # Skip if already running (idempotent for shared cluster)
                 if not is_ingress_running():
                     install_ingress_for_kind(self.cluster_info.spec.get_acme_email())
-                    # Wait for ingress to start
-                    # (deployment provisioning will fail unless this is done)
                     wait_for_ingress_in_kind()
-                # Create RuntimeClass if unlimited_memlock is enabled
                 if self.cluster_info.spec.get_unlimited_memlock():
                     _create_runtime_class(
                         constants.high_memlock_runtime,
                         constants.high_memlock_runtime,
                     )
-
         else:
             print("Dry run mode enabled, skipping k8s API connect")
 
-        # Create registry secret if configured
+    def _create_infrastructure(self):
+        """Create PVs, PVCs, ConfigMaps, Services, Ingresses, NodePorts.
+
+        Everything except the Deployment resource (which starts pods).
+        Shared by up() and prepare().
+        """
         from stack_orchestrator.deploy.deployment_create import create_registry_secret
 
         create_registry_secret(self.cluster_info.spec, self.cluster_info.app_name)
 
         self._create_volume_data()
-        self._create_deployment()
+
+        # Create the ClusterIP service (paired with the deployment)
+        service = self.cluster_info.get_service()
+        if service and not opts.o.dry_run:
+            if opts.o.debug:
+                print(f"Sending this service: {service}")
+            self._ensure_service(service)
 
         http_proxy_info = self.cluster_info.spec.get_http_proxy()
-        # Note: we don't support tls for kind (enabling tls causes errors)
         use_tls = http_proxy_info and not self.is_kind()
         certificate = (
             self._find_certificate_for_host_name(http_proxy_info[0]["host-name"])
             if use_tls
             else None
         )
-        if opts.o.debug:
-            if certificate:
-                print(f"Using existing certificate: {certificate}")
+        if opts.o.debug and certificate:
+            print(f"Using existing certificate: {certificate}")
 
-        ingress = self.cluster_info.get_ingress(
-            use_tls=use_tls, certificate=certificate
-        )
+        ingress = self.cluster_info.get_ingress(use_tls=use_tls, certificate=certificate)
         if ingress:
             if opts.o.debug:
                 print(f"Sending this ingress: {ingress}")
             if not opts.o.dry_run:
-                ingress_resp = self.networking_api.create_namespaced_ingress(
-                    namespace=self.k8s_namespace, body=ingress
-                )
-                if opts.o.debug:
-                    print("Ingress created:")
-                    print(f"{ingress_resp}")
-        else:
-            if opts.o.debug:
-                print("No ingress configured")
+                self._ensure_ingress(ingress)
+        elif opts.o.debug:
+            print("No ingress configured")
 
-        nodeports: List[client.V1Service] = self.cluster_info.get_nodeports()
+        nodeports: list[client.V1Service] = self.cluster_info.get_nodeports()
         for nodeport in nodeports:
             if opts.o.debug:
                 print(f"Sending this nodeport: {nodeport}")
             if not opts.o.dry_run:
-                nodeport_resp = self.core_api.create_namespaced_service(
-                    namespace=self.k8s_namespace, body=nodeport
-                )
-                if opts.o.debug:
-                    print("NodePort created:")
-                    print(f"{nodeport_resp}")
+                self._ensure_service(nodeport, kind="NodePort")
+
+    def prepare(self, skip_cluster_management):
+        """Create cluster infrastructure without starting pods.
+
+        Sets up kind cluster, namespace, PVs, PVCs, ConfigMaps, Services,
+        Ingresses, and NodePorts — everything that up() does EXCEPT creating
+        the Deployment resource.
+        """
+        self._setup_cluster_and_namespace(skip_cluster_management)
+        self._create_infrastructure()
+        print("Cluster infrastructure prepared (no pods started).")
 
     def down(self, timeout, volumes, skip_cluster_management):
         self.skip_cluster_management = skip_cluster_management
@@ -488,7 +672,7 @@ class K8sDeployer(Deployer):
                 return
 
             cert = cast(
-                Dict[str, Any],
+                dict[str, Any],
                 self.custom_obj_api.get_namespaced_custom_object(
                     group="cert-manager.io",
                     version="v1",
@@ -504,7 +688,7 @@ class K8sDeployer(Deployer):
                 if lb_ingress:
                     ip = lb_ingress[0].ip or "?"
             cert_status = cert.get("status", {})
-            tls = "notBefore: %s; notAfter: %s; names: %s" % (
+            tls = "notBefore: {}; notAfter: {}; names: {}".format(
                 cert_status.get("notBefore", "?"),
                 cert_status.get("notAfter", "?"),
                 ingress.spec.tls[0].hosts,
@@ -545,9 +729,7 @@ class K8sDeployer(Deployer):
                     if c.ports:
                         for prt in c.ports:
                             ports[str(prt.container_port)] = [
-                                AttrDict(
-                                    {"HostIp": pod_ip, "HostPort": prt.container_port}
-                                )
+                                AttrDict({"HostIp": pod_ip, "HostPort": prt.container_port})
                             ]
 
                 ret.append(
@@ -598,7 +780,7 @@ class K8sDeployer(Deployer):
                 log_data = "******* No logs available ********\n"
         return log_stream_from_string(log_data)
 
-    def update(self):
+    def update_envs(self):
         self.connect_api()
         ref_deployment = self.cluster_info.get_deployment()
         if not ref_deployment or not ref_deployment.metadata:
@@ -609,9 +791,7 @@ class K8sDeployer(Deployer):
 
         deployment = cast(
             client.V1Deployment,
-            self.apps_api.read_namespaced_deployment(
-                name=ref_name, namespace=self.k8s_namespace
-            ),
+            self.apps_api.read_namespaced_deployment(name=ref_name, namespace=self.k8s_namespace),
         )
         if not deployment.spec or not deployment.spec.template:
             return
@@ -650,14 +830,14 @@ class K8sDeployer(Deployer):
         user=None,
         volumes=None,
         entrypoint=None,
-        env={},
-        ports=[],
+        env=None,
+        ports=None,
         detach=False,
     ):
         # We need to figure out how to do this -- check why we're being called first
         pass
 
-    def run_job(self, job_name: str, helm_release: Optional[str] = None):
+    def run_job(self, job_name: str, helm_release: str | None = None):
         if not opts.o.dry_run:
             from stack_orchestrator.deploy.k8s.helm.job_runner import run_helm_job
 
@@ -699,13 +879,9 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
             # Must be done before generate_kind_config() which references it.
             if self.deployment_context.spec.get_unlimited_memlock():
                 spec_content = generate_high_memlock_spec_json()
-                spec_file = deployment_dir.joinpath(
-                    constants.high_memlock_spec_filename
-                )
+                spec_file = deployment_dir.joinpath(constants.high_memlock_spec_filename)
                 if opts.o.debug:
-                    print(
-                        f"Creating high-memlock spec for unlimited memlock: {spec_file}"
-                    )
+                    print(f"Creating high-memlock spec for unlimited memlock: {spec_file}")
                 with open(spec_file, "w") as output_file:
                     output_file.write(spec_content)
 

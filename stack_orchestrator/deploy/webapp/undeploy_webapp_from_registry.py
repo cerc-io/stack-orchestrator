@@ -21,11 +21,11 @@ import sys
 import click
 
 from stack_orchestrator.deploy.webapp.util import (
-    TimedLogger,
     LaconicRegistryClient,
+    TimedLogger,
+    confirm_payment,
     match_owner,
     skip_by_tag,
-    confirm_payment,
 )
 
 main_logger = TimedLogger(file=sys.stderr)
@@ -40,9 +40,7 @@ def process_app_removal_request(
     delete_names,
     webapp_deployer_record,
 ):
-    deployment_record = laconic.get_record(
-        app_removal_request.attributes.deployment, require=True
-    )
+    deployment_record = laconic.get_record(app_removal_request.attributes.deployment, require=True)
     assert deployment_record is not None  # require=True ensures this
     assert deployment_record.attributes is not None
 
@@ -50,12 +48,10 @@ def process_app_removal_request(
     assert dns_record is not None  # require=True ensures this
     assert dns_record.attributes is not None
 
-    deployment_dir = os.path.join(
-        deployment_parent_dir, dns_record.attributes.name.lower()
-    )
+    deployment_dir = os.path.join(deployment_parent_dir, dns_record.attributes.name.lower())
 
     if not os.path.exists(deployment_dir):
-        raise Exception("Deployment directory %s does not exist." % deployment_dir)
+        raise Exception(f"Deployment directory {deployment_dir} does not exist.")
 
     # Check if the removal request is from the owner of the DnsRecord or
     # deployment record.
@@ -63,9 +59,7 @@ def process_app_removal_request(
 
     # Or of the original deployment request.
     if not matched_owner and deployment_record.attributes.request:
-        original_request = laconic.get_record(
-            deployment_record.attributes.request, require=True
-        )
+        original_request = laconic.get_record(deployment_record.attributes.request, require=True)
         assert original_request is not None  # require=True ensures this
         matched_owner = match_owner(app_removal_request, original_request)
 
@@ -75,8 +69,7 @@ def process_app_removal_request(
         deployment_id = deployment_record.id if deployment_record else "unknown"
         request_id = app_removal_request.id if app_removal_request else "unknown"
         raise Exception(
-            "Unable to confirm ownership of deployment %s for removal request %s"
-            % (deployment_id, request_id)
+            f"Unable to confirm ownership of deployment {deployment_id} for removal request {request_id}"
         )
 
     # TODO(telackey): Call the function directly. The easiest way to build
@@ -124,7 +117,7 @@ def process_app_removal_request(
 
 def load_known_requests(filename):
     if filename and os.path.exists(filename):
-        return json.load(open(filename, "r"))
+        return json.load(open(filename))
     return {}
 
 
@@ -138,9 +131,7 @@ def dump_known_requests(filename, requests):
 
 
 @click.command()
-@click.option(
-    "--laconic-config", help="Provide a config file for laconicd", required=True
-)
+@click.option("--laconic-config", help="Provide a config file for laconicd", required=True)
 @click.option(
     "--deployment-parent-dir",
     help="Create deployment directories beneath this directory",
@@ -153,9 +144,7 @@ def dump_known_requests(filename, requests):
     is_flag=True,
     default=False,
 )
-@click.option(
-    "--state-file", help="File to store state about previously seen requests."
-)
+@click.option("--state-file", help="File to store state about previously seen requests.")
 @click.option(
     "--only-update-state",
     help="Only update the state file, don't process any requests anything.",
@@ -166,12 +155,8 @@ def dump_known_requests(filename, requests):
     help="Delete all names associated with removed deployments.",
     default=True,
 )
-@click.option(
-    "--delete-volumes/--preserve-volumes", default=True, help="delete data volumes"
-)
-@click.option(
-    "--dry-run", help="Don't do anything, just report what would be done.", is_flag=True
-)
+@click.option("--delete-volumes/--preserve-volumes", default=True, help="delete data volumes")
+@click.option("--dry-run", help="Don't do anything, just report what would be done.", is_flag=True)
 @click.option(
     "--include-tags",
     help="Only include requests with matching tags (comma-separated).",
@@ -245,8 +230,7 @@ def command(  # noqa: C901
 
     if min_required_payment and not payment_address:
         print(
-            f"Minimum payment required, but no payment address listed "
-            f"for deployer: {lrn}.",
+            f"Minimum payment required, but no payment address listed " f"for deployer: {lrn}.",
             file=sys.stderr,
         )
         sys.exit(2)
@@ -303,9 +287,7 @@ def command(  # noqa: C901
             continue
         if not r.attributes.deployment:
             r_id = r.id if r else "unknown"
-            main_logger.log(
-                f"Skipping removal request {r_id} since it was a cancellation."
-            )
+            main_logger.log(f"Skipping removal request {r_id} since it was a cancellation.")
         elif r.attributes.deployment in one_per_deployment:
             r_id = r.id if r else "unknown"
             main_logger.log(f"Skipping removal request {r_id} since it was superseded.")
@@ -323,14 +305,12 @@ def command(  # noqa: C901
                 )
             elif skip_by_tag(r, include_tags, exclude_tags):
                 main_logger.log(
-                    "Skipping removal request %s, filtered by tag "
-                    "(include %s, exclude %s, present %s)"
-                    % (r.id, include_tags, exclude_tags, r.attributes.tags)
+                    f"Skipping removal request {r.id}, filtered by tag "
+                    f"(include {include_tags}, exclude {exclude_tags}, present {r.attributes.tags})"
                 )
             elif r.id in removals_by_request:
                 main_logger.log(
-                    f"Found satisfied request for {r.id} "
-                    f"at {removals_by_request[r.id].id}"
+                    f"Found satisfied request for {r.id} " f"at {removals_by_request[r.id].id}"
                 )
             elif r.attributes.deployment in removals_by_deployment:
                 main_logger.log(
@@ -344,8 +324,7 @@ def command(  # noqa: C901
                     requests_to_check_for_payment.append(r)
                 else:
                     main_logger.log(
-                        f"Skipping unsatisfied request {r.id} "
-                        "because we have seen it before."
+                        f"Skipping unsatisfied request {r.id} " "because we have seen it before."
                     )
         except Exception as e:
             main_logger.log(f"ERROR examining {r.id}: {e}")
@@ -370,9 +349,7 @@ def command(  # noqa: C901
     else:
         requests_to_execute = requests_to_check_for_payment
 
-    main_logger.log(
-        "Found %d unsatisfied request(s) to process." % len(requests_to_execute)
-    )
+    main_logger.log(f"Found {len(requests_to_execute)} unsatisfied request(s) to process.")
 
     if not dry_run:
         for r in requests_to_execute:

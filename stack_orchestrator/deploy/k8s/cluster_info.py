@@ -13,33 +13,31 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import os
 import base64
+import os
+from typing import Any
 
 from kubernetes import client
-from typing import Any, List, Optional, Set
 
-from stack_orchestrator.opts import opts
-from stack_orchestrator.util import env_var_map_from_file
+from stack_orchestrator.deploy.deploy_types import DeployEnvVars
+from stack_orchestrator.deploy.deploy_util import (
+    images_for_deployment,
+    parsed_pod_files_map_from_file_names,
+)
+from stack_orchestrator.deploy.images import remote_tag_for_image_unique
 from stack_orchestrator.deploy.k8s.helpers import (
+    envs_from_compose_file,
+    envs_from_environment_variables_map,
+    get_kind_pv_bind_mount_path,
+    merge_envs,
     named_volumes_from_pod_files,
+    translate_sidecar_service_names,
     volume_mounts_for_service,
     volumes_for_pod_files,
 )
-from stack_orchestrator.deploy.k8s.helpers import get_kind_pv_bind_mount_path
-from stack_orchestrator.deploy.k8s.helpers import (
-    envs_from_environment_variables_map,
-    envs_from_compose_file,
-    merge_envs,
-    translate_sidecar_service_names,
-)
-from stack_orchestrator.deploy.deploy_util import (
-    parsed_pod_files_map_from_file_names,
-    images_for_deployment,
-)
-from stack_orchestrator.deploy.deploy_types import DeployEnvVars
-from stack_orchestrator.deploy.spec import Spec, Resources, ResourceLimits
-from stack_orchestrator.deploy.images import remote_tag_for_image_unique
+from stack_orchestrator.deploy.spec import ResourceLimits, Resources, Spec
+from stack_orchestrator.opts import opts
+from stack_orchestrator.util import env_var_map_from_file
 
 DEFAULT_VOLUME_RESOURCES = Resources({"reservations": {"storage": "2Gi"}})
 
@@ -52,7 +50,7 @@ DEFAULT_CONTAINER_RESOURCES = Resources(
 
 
 def to_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequirements:
-    def to_dict(limits: Optional[ResourceLimits]):
+    def to_dict(limits: ResourceLimits | None):
         if not limits:
             return None
 
@@ -72,7 +70,7 @@ def to_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequi
 
 class ClusterInfo:
     parsed_pod_yaml_map: Any
-    image_set: Set[str] = set()
+    image_set: set[str] = set()
     app_name: str
     environment_variables: DeployEnvVars
     spec: Spec
@@ -80,14 +78,12 @@ class ClusterInfo:
     def __init__(self) -> None:
         pass
 
-    def int(self, pod_files: List[str], compose_env_file, deployment_name, spec: Spec):
+    def int(self, pod_files: list[str], compose_env_file, deployment_name, spec: Spec):
         self.parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
         # Find the set of images in the pods
         self.image_set = images_for_deployment(pod_files)
         # Filter out None values from env file
-        env_vars = {
-            k: v for k, v in env_var_map_from_file(compose_env_file).items() if v
-        }
+        env_vars = {k: v for k, v in env_var_map_from_file(compose_env_file).items() if v}
         self.environment_variables = DeployEnvVars(env_vars)
         self.app_name = deployment_name
         self.spec = spec
@@ -124,8 +120,7 @@ class ClusterInfo:
                         service = client.V1Service(
                             metadata=client.V1ObjectMeta(
                                 name=(
-                                    f"{self.app_name}-nodeport-"
-                                    f"{pod_port}-{protocol.lower()}"
+                                    f"{self.app_name}-nodeport-" f"{pod_port}-{protocol.lower()}"
                                 ),
                                 labels={"app": self.app_name},
                             ),
@@ -145,9 +140,7 @@ class ClusterInfo:
                         nodeports.append(service)
         return nodeports
 
-    def get_ingress(
-        self, use_tls=False, certificate=None, cluster_issuer="letsencrypt-prod"
-    ):
+    def get_ingress(self, use_tls=False, certificate=None, cluster_issuer="letsencrypt-prod"):
         # No ingress for a deployment that has no http-proxy defined, for now
         http_proxy_info_list = self.spec.get_http_proxy()
         ingress = None
@@ -162,9 +155,7 @@ class ClusterInfo:
             tls = (
                 [
                     client.V1IngressTLS(
-                        hosts=certificate["spec"]["dnsNames"]
-                        if certificate
-                        else [host_name],
+                        hosts=certificate["spec"]["dnsNames"] if certificate else [host_name],
                         secret_name=certificate["spec"]["secretName"]
                         if certificate
                         else f"{self.app_name}-tls",
@@ -237,8 +228,7 @@ class ClusterInfo:
             return None
 
         service_ports = [
-            client.V1ServicePort(port=p, target_port=p, name=f"port-{p}")
-            for p in sorted(ports_set)
+            client.V1ServicePort(port=p, target_port=p, name=f"port-{p}") for p in sorted(ports_set)
         ]
 
         service = client.V1Service(
@@ -290,9 +280,7 @@ class ClusterInfo:
                 volume_name=k8s_volume_name,
             )
             pvc = client.V1PersistentVolumeClaim(
-                metadata=client.V1ObjectMeta(
-                    name=f"{self.app_name}-{volume_name}", labels=labels
-                ),
+                metadata=client.V1ObjectMeta(name=f"{self.app_name}-{volume_name}", labels=labels),
                 spec=spec,
             )
             result.append(pvc)
@@ -309,9 +297,7 @@ class ClusterInfo:
                 continue
 
             if not cfg_map_path.startswith("/") and self.spec.file_path is not None:
-                cfg_map_path = os.path.join(
-                    os.path.dirname(str(self.spec.file_path)), cfg_map_path
-                )
+                cfg_map_path = os.path.join(os.path.dirname(str(self.spec.file_path)), cfg_map_path)
 
             # Read in all the files at a single-level of the directory.
             # This mimics the behavior of
@@ -320,9 +306,7 @@ class ClusterInfo:
             for f in os.listdir(cfg_map_path):
                 full_path = os.path.join(cfg_map_path, f)
                 if os.path.isfile(full_path):
-                    data[f] = base64.b64encode(open(full_path, "rb").read()).decode(
-                        "ASCII"
-                    )
+                    data[f] = base64.b64encode(open(full_path, "rb").read()).decode("ASCII")
 
             spec = client.V1ConfigMap(
                 metadata=client.V1ObjectMeta(
@@ -425,7 +409,7 @@ class ClusterInfo:
         return global_resources
 
     # TODO: put things like image pull policy into an object-scope struct
-    def get_deployment(self, image_pull_policy: Optional[str] = None):
+    def get_deployment(self, image_pull_policy: str | None = None):
         containers = []
         services = {}
         global_resources = self.spec.get_container_resources()
@@ -453,9 +437,7 @@ class ClusterInfo:
                             port_str = port_str.split(":")[-1]
                         port = int(port_str)
                         container_ports.append(
-                            client.V1ContainerPort(
-                                container_port=port, protocol=protocol
-                            )
+                            client.V1ContainerPort(container_port=port, protocol=protocol)
                         )
                     if opts.o.debug:
                         print(f"image: {image}")
@@ -473,9 +455,7 @@ class ClusterInfo:
                 # Translate docker-compose service names to localhost for sidecars
                 # All services in the same pod share the network namespace
                 sibling_services = [s for s in services.keys() if s != service_name]
-                merged_envs = translate_sidecar_service_names(
-                    merged_envs, sibling_services
-                )
+                merged_envs = translate_sidecar_service_names(merged_envs, sibling_services)
                 envs = envs_from_environment_variables_map(merged_envs)
                 if opts.o.debug:
                     print(f"Merged envs: {envs}")
@@ -488,18 +468,14 @@ class ClusterInfo:
                     if self.spec.get_image_registry() is not None
                     else image
                 )
-                volume_mounts = volume_mounts_for_service(
-                    self.parsed_pod_yaml_map, service_name
-                )
+                volume_mounts = volume_mounts_for_service(self.parsed_pod_yaml_map, service_name)
                 # Handle command/entrypoint from compose file
                 # In docker-compose: entrypoint -> k8s command, command -> k8s args
                 container_command = None
                 container_args = None
                 if "entrypoint" in service_info:
                     entrypoint = service_info["entrypoint"]
-                    container_command = (
-                        entrypoint if isinstance(entrypoint, list) else [entrypoint]
-                    )
+                    container_command = entrypoint if isinstance(entrypoint, list) else [entrypoint]
                 if "command" in service_info:
                     cmd = service_info["command"]
                     container_args = cmd if isinstance(cmd, list) else cmd.split()
@@ -528,18 +504,14 @@ class ClusterInfo:
                     volume_mounts=volume_mounts,
                     security_context=client.V1SecurityContext(
                         privileged=self.spec.get_privileged(),
-                        capabilities=client.V1Capabilities(
-                            add=self.spec.get_capabilities()
-                        )
+                        capabilities=client.V1Capabilities(add=self.spec.get_capabilities())
                         if self.spec.get_capabilities()
                         else None,
                     ),
                     resources=to_k8s_resource_requirements(container_resources),
                 )
                 containers.append(container)
-        volumes = volumes_for_pod_files(
-            self.parsed_pod_yaml_map, self.spec, self.app_name
-        )
+        volumes = volumes_for_pod_files(self.parsed_pod_yaml_map, self.spec, self.app_name)
         registry_config = self.spec.get_image_registry_config()
         if registry_config:
             secret_name = f"{self.app_name}-registry"

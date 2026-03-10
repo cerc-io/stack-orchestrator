@@ -15,8 +15,10 @@
 
 import os
 from abc import ABC, abstractmethod
-from stack_orchestrator.deploy.deploy import get_stack_status
+
 from decouple import config
+
+from stack_orchestrator.deploy.deploy import get_stack_status
 
 
 def get_stack(config, stack):

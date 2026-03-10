@@ -18,15 +18,17 @@
 # env vars:
 # CERC_REPO_BASE_DIR defaults to ~/cerc
 
+import importlib.resources
 import os
 import sys
-from shutil import rmtree, copytree
-from decouple import config
+from shutil import copytree, rmtree
+
 import click
-import importlib.resources
-from python_on_whales import docker, DockerException
+from decouple import config
+from python_on_whales import DockerException, docker
+
 from stack_orchestrator.base import get_stack
-from stack_orchestrator.util import include_exclude_check, get_parsed_stack_config
+from stack_orchestrator.util import get_parsed_stack_config, include_exclude_check
 
 builder_js_image_name = "cerc/builder-js:local"
 
@@ -70,14 +72,9 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
 
     if local_stack:
         dev_root_path = os.getcwd()[0 : os.getcwd().rindex("stack-orchestrator")]
-        print(
-            f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: "
-            f"{dev_root_path}"
-        )
+        print(f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: " f"{dev_root_path}")
     else:
-        dev_root_path = os.path.expanduser(
-            config("CERC_REPO_BASE_DIR", default="~/cerc")
-        )
+        dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
     build_root_path = os.path.join(dev_root_path, "build-trees")
 
@@ -94,9 +91,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
     # See: https://stackoverflow.com/a/20885799/1701505
     from stack_orchestrator import data
 
-    with importlib.resources.open_text(
-        data, "npm-package-list.txt"
-    ) as package_list_file:
+    with importlib.resources.open_text(data, "npm-package-list.txt") as package_list_file:
         all_packages = package_list_file.read().splitlines()
 
     packages_in_scope = []
@@ -132,8 +127,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
         build_command = [
             "sh",
             "-c",
-            "cd /workspace && "
-            f"build-npm-package-local-dependencies.sh {npm_registry_url}",
+            "cd /workspace && " f"build-npm-package-local-dependencies.sh {npm_registry_url}",
         ]
         if not dry_run:
             if verbose:
@@ -151,9 +145,7 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
             envs.update({"CERC_SCRIPT_DEBUG": "true"} if debug else {})
             envs.update({"CERC_FORCE_REBUILD": "true"} if force_rebuild else {})
             envs.update(
-                {"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args}
-                if extra_build_args
-                else {}
+                {"CERC_CONTAINER_EXTRA_BUILD_ARGS": extra_build_args} if extra_build_args else {}
             )
             try:
                 docker.run(
@@ -176,16 +168,10 @@ def command(ctx, include, exclude, force_rebuild, extra_build_args):
             except DockerException as e:
                 print(f"Error executing build for {package} in container:\n {e}")
                 if not continue_on_error:
-                    print(
-                        "FATAL Error: build failed and --continue-on-error "
-                        "not set, exiting"
-                    )
+                    print("FATAL Error: build failed and --continue-on-error " "not set, exiting")
                     sys.exit(1)
                 else:
-                    print(
-                        "****** Build Error, continuing because "
-                        "--continue-on-error is set"
-                    )
+                    print("****** Build Error, continuing because " "--continue-on-error is set")
 
         else:
             print("Skipped")
@@ -203,10 +189,7 @@ def _ensure_prerequisites():
     # Tell the user how to build it if not
     images = docker.image.list(builder_js_image_name)
     if len(images) == 0:
-        print(
-            f"FATAL: builder image: {builder_js_image_name} is required "
-            "but was not found"
-        )
+        print(f"FATAL: builder image: {builder_js_image_name} is required " "but was not found")
         print(
             "Please run this command to create it: "
             "laconic-so --stack build-support build-containers"

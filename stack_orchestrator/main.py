@@ -15,30 +15,24 @@
 
 import click
 
+from stack_orchestrator import opts, update, version
+from stack_orchestrator.build import build_containers, build_npms, build_webapp, fetch_containers
 from stack_orchestrator.command_types import CommandOptions
-from stack_orchestrator.repos import setup_repositories
-from stack_orchestrator.repos import fetch_stack
-from stack_orchestrator.build import build_containers, fetch_containers
-from stack_orchestrator.build import build_npms
-from stack_orchestrator.build import build_webapp
+from stack_orchestrator.deploy import deploy, deployment
 from stack_orchestrator.deploy.webapp import (
-    run_webapp,
     deploy_webapp,
     deploy_webapp_from_registry,
-    undeploy_webapp_from_registry,
-    publish_webapp_deployer,
-    publish_deployment_auction,
     handle_deployment_auction,
+    publish_deployment_auction,
+    publish_webapp_deployer,
     request_webapp_deployment,
     request_webapp_undeployment,
+    run_webapp,
+    undeploy_webapp_from_registry,
 )
-from stack_orchestrator.deploy import deploy
-from stack_orchestrator import version
-from stack_orchestrator.deploy import deployment
-from stack_orchestrator import opts
-from stack_orchestrator import update
+from stack_orchestrator.repos import fetch_stack, setup_repositories
 
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)

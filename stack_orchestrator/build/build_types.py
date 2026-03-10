@@ -16,7 +16,6 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
 
 
 @dataclass
@@ -24,5 +23,5 @@ class BuildContext:
     stack: str
     container: str
     container_build_dir: Path
-    container_build_env: Mapping[str, str]
+    container_build_env: dict[str, str]
     dev_root_path: str

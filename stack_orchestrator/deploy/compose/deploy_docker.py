@@ -14,12 +14,13 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 from pathlib import Path
-from typing import Optional
+
 from python_on_whales import DockerClient, DockerException
+
 from stack_orchestrator.deploy.deployer import (
     Deployer,
-    DeployerException,
     DeployerConfigGenerator,
+    DeployerException,
 )
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.opts import opts
@@ -32,10 +33,10 @@ class DockerDeployer(Deployer):
     def __init__(
         self,
         type: str,
-        deployment_context: Optional[DeploymentContext],
+        deployment_context: DeploymentContext | None,
         compose_files: list,
-        compose_project_name: Optional[str],
-        compose_env_file: Optional[str],
+        compose_project_name: str | None,
+        compose_env_file: str | None,
     ) -> None:
         self.docker = DockerClient(
             compose_files=compose_files,
@@ -53,21 +54,21 @@ class DockerDeployer(Deployer):
             try:
                 return self.docker.compose.up(detach=detach, services=services)
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
     def down(self, timeout, volumes, skip_cluster_management):
         if not opts.o.dry_run:
             try:
                 return self.docker.compose.down(timeout=timeout, volumes=volumes)
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
-    def update(self):
+    def update_envs(self):
         if not opts.o.dry_run:
             try:
                 return self.docker.compose.restart()
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
     def status(self):
         if not opts.o.dry_run:
@@ -75,23 +76,21 @@ class DockerDeployer(Deployer):
                 for p in self.docker.compose.ps():
                     print(f"{p.name}\t{p.state.status}")
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
     def ps(self):
         if not opts.o.dry_run:
             try:
                 return self.docker.compose.ps()
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
     def port(self, service, private_port):
         if not opts.o.dry_run:
             try:
-                return self.docker.compose.port(
-                    service=service, private_port=private_port
-                )
+                return self.docker.compose.port(service=service, private_port=private_port)
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
     def execute(self, service, command, tty, envs):
         if not opts.o.dry_run:
@@ -100,7 +99,7 @@ class DockerDeployer(Deployer):
                     service=service, command=command, tty=tty, envs=envs
                 )
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
     def logs(self, services, tail, follow, stream):
         if not opts.o.dry_run:
@@ -109,7 +108,7 @@ class DockerDeployer(Deployer):
                     services=services, tail=tail, follow=follow, stream=stream
                 )
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
     def run(
         self,
@@ -118,10 +117,14 @@ class DockerDeployer(Deployer):
         user=None,
         volumes=None,
         entrypoint=None,
-        env={},
-        ports=[],
+        env=None,
+        ports=None,
         detach=False,
     ):
+        if ports is None:
+            ports = []
+        if env is None:
+            env = {}
         if not opts.o.dry_run:
             try:
                 return self.docker.run(
@@ -136,9 +139,9 @@ class DockerDeployer(Deployer):
                     publish_all=len(ports) == 0,
                 )
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
-    def run_job(self, job_name: str, release_name: Optional[str] = None):
+    def run_job(self, job_name: str, release_name: str | None = None):
         # release_name is ignored for Docker deployments (only used for K8s/Helm)
         if not opts.o.dry_run:
             try:
@@ -155,9 +158,7 @@ class DockerDeployer(Deployer):
                 )
 
                 if not job_compose_file.exists():
-                    raise DeployerException(
-                        f"Job compose file not found: {job_compose_file}"
-                    )
+                    raise DeployerException(f"Job compose file not found: {job_compose_file}")
 
                 if opts.o.verbose:
                     print(f"Running job from: {job_compose_file}")
@@ -175,7 +176,7 @@ class DockerDeployer(Deployer):
                 return job_docker.compose.run(service=job_name, remove=True, tty=True)
 
             except DockerException as e:
-                raise DeployerException(e)
+                raise DeployerException(e) from e
 
 
 class DockerDeployerConfigGenerator(DeployerConfigGenerator):

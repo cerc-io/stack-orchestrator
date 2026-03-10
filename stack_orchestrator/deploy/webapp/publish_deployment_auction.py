@@ -30,9 +30,7 @@ def fatal(msg: str):
 
 
 @click.command()
-@click.option(
-    "--laconic-config", help="Provide a config file for laconicd", required=True
-)
+@click.option("--laconic-config", help="Provide a config file for laconicd", required=True)
 @click.option(
     "--app",
     help="The LRN of the application to deploy.",

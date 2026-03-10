@@ -12,18 +12,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import sys
 import json
+import sys
 
 import click
 
 from stack_orchestrator.deploy.webapp.util import (
+    AUCTION_KIND_PROVIDER,
     AttrDict,
+    AuctionStatus,
     LaconicRegistryClient,
     TimedLogger,
     load_known_requests,
-    AUCTION_KIND_PROVIDER,
-    AuctionStatus,
 )
 
 
@@ -44,16 +44,13 @@ def process_app_deployment_auction(
 
     # Check auction kind
     if auction.kind != AUCTION_KIND_PROVIDER:
-        raise Exception(
-            f"Auction kind needs to be ${AUCTION_KIND_PROVIDER}, got {auction.kind}"
-        )
+        raise Exception(f"Auction kind needs to be ${AUCTION_KIND_PROVIDER}, got {auction.kind}")
 
     if current_status == "PENDING":
         # Skip if pending auction not in commit state
         if auction.status != AuctionStatus.COMMIT:
             logger.log(
-                f"Skipping pending request, auction {auction_id} "
-                f"status: {auction.status}"
+                f"Skipping pending request, auction {auction_id} " f"status: {auction.status}"
             )
             return "SKIP", ""
 
@@ -115,9 +112,7 @@ def dump_known_auction_requests(filename, requests, status="SEEN"):
 
 
 @click.command()
-@click.option(
-    "--laconic-config", help="Provide a config file for laconicd", required=True
-)
+@click.option("--laconic-config", help="Provide a config file for laconicd", required=True)
 @click.option(
     "--state-file",
     help="File to store state about previously seen auction requests.",
@@ -133,9 +128,7 @@ def dump_known_auction_requests(filename, requests, status="SEEN"):
     help="File path to use for registry mutex lock",
     default=None,
 )
-@click.option(
-    "--dry-run", help="Don't do anything, just report what would be done.", is_flag=True
-)
+@click.option("--dry-run", help="Don't do anything, just report what would be done.", is_flag=True)
 @click.pass_context
 def command(
     ctx,
@@ -198,8 +191,7 @@ def command(
                         continue
 
                     logger.log(
-                        f"Found pending auction request {r.id} for application "
-                        f"{application}."
+                        f"Found pending auction request {r.id} for application " f"{application}."
                     )
 
                 # Add requests to be processed
@@ -209,9 +201,7 @@ def command(
                 result_status = "ERROR"
                 logger.log(f"ERROR: examining request {r.id}: " + str(e))
             finally:
-                logger.log(
-                    f"DONE: Examining request {r.id} with result {result_status}."
-                )
+                logger.log(f"DONE: Examining request {r.id} with result {result_status}.")
                 if result_status in ["ERROR"]:
                     dump_known_auction_requests(
                         state_file,

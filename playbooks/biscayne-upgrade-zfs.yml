@@ -35,7 +35,7 @@
     zfs_packages:
       - zfsutils-linux
       - zfs-dkms
-      - libzfs5linux
+      - libzfs4linux
 
   tasks:
     # ---- pre-flight checks ----------------------------------------------------
@@ -70,11 +70,12 @@
         - never
 
     # ---- add PPA ---------------------------------------------------------------
-    - name: Add arter97/zfs-lts PPA
-      ansible.builtin.apt_repository:
-        repo: "{{ ppa_name }}"
-        state: present
-        update_cache: true
+    # Use add-apt-repository CLI instead of apt_repository module —
+    # the module's Launchpad API fetch times out on biscayne.
+    - name: Add arter97/zfs-lts PPA  # noqa: command-instead-of-module
+      ansible.builtin.command: add-apt-repository -y {{ ppa_name }}
+      register: ppa_add
+      changed_when: "'Added' in ppa_add.stdout or 'added' in ppa_add.stderr"
       tags: [upgrade]
 
     # ---- upgrade ZFS packages --------------------------------------------------
@@ -82,7 +83,6 @@
       ansible.builtin.apt:
         name: "{{ zfs_packages }}"
         state: latest  # noqa: package-latest
-        update_cache: true
       register: zfs_upgrade
       tags: [upgrade]
 

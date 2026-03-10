@@ -113,7 +113,7 @@
         {{ laconic_so }}
         --stack {{ stack_path }}
         build-containers
-        --include laconicnetwork-agave
+        --include laconicnetwork/agave
       tags:
         - build-container
         - never

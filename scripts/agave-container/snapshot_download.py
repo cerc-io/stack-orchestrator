@@ -461,7 +461,212 @@ def download_aria2c(
     return True
 
 
+# -- Shared helpers ------------------------------------------------------------
+
+
+def _discover_and_benchmark(
+    rpc_url: str,
+    current_slot: int,
+    *,
+    max_snapshot_age: int = 10000,
+    max_latency: float = 500,
+    threads: int = 500,
+    min_download_speed: int = 20,
+    measurement_time: int = 7,
+    max_speed_checks: int = 15,
+    version_filter: str | None = None,
+) -> list[SnapshotSource]:
+    """Discover snapshot sources and benchmark download speed.
+
+    Returns sources that meet the minimum speed requirement, sorted by speed.
+    """
+    sources: list[SnapshotSource] = discover_sources(
+        rpc_url, current_slot,
+        max_age_slots=max_snapshot_age,
+        max_latency_ms=max_latency,
+        threads=threads,
+        version_filter=version_filter,
+    )
+    if not sources:
+        return []
+
+    sources.sort(key=lambda s: s.latency_ms)
+
+    log.info("Benchmarking download speed on top %d sources...", max_speed_checks)
+    fast_sources: list[SnapshotSource] = []
+    checked: int = 0
+    min_speed_bytes: int = min_download_speed * 1024 * 1024
+
+    for source in sources:
+        if checked >= max_speed_checks:
+            break
+        checked += 1
+
+        speed: float = measure_speed(source.rpc_address, measurement_time)
+        source.download_speed = speed
+        speed_mib: float = speed / (1024 ** 2)
+
+        if speed < min_speed_bytes:
+            log.info("  %s: %.1f MiB/s (too slow, need >=%d MiB/s)",
+                     source.rpc_address, speed_mib, min_download_speed)
+            continue
+
+        log.info("  %s: %.1f MiB/s (latency: %.0fms, age: %d slots)",
+                 source.rpc_address, speed_mib,
+                 source.latency_ms, source.slots_diff)
+        fast_sources.append(source)
+
+    return fast_sources
+
+
+def _rolling_incremental_download(
+    fast_sources: list[SnapshotSource],
+    full_snap_slot: int,
+    output_dir: str,
+    convergence_slots: int,
+    connections: int,
+    rpc_url: str,
+) -> str | None:
+    """Download incrementals in a loop until converged.
+
+    Probes fast_sources for incrementals matching full_snap_slot, downloads
+    the freshest one, then re-probes until the gap to head is within
+    convergence_slots. Returns the filename of the final incremental,
+    or None if no incremental was found.
+    """
+    prev_inc_filename: str | None = None
+    loop_start: float = time.monotonic()
+    max_convergence_time: float = 1800.0  # 30 min wall-clock limit
+
+    while True:
+        if time.monotonic() - loop_start > max_convergence_time:
+            if prev_inc_filename:
+                log.warning("Convergence timeout (%.0fs) — using %s",
+                            max_convergence_time, prev_inc_filename)
+            else:
+                log.warning("Convergence timeout (%.0fs) — no incremental downloaded",
+                            max_convergence_time)
+            break
+
+        inc_fn, inc_mirrors = probe_incremental(fast_sources, full_snap_slot)
+        if inc_fn is None:
+            if prev_inc_filename is None:
+                log.error("No matching incremental found for base slot %d",
+                          full_snap_slot)
+            else:
+                log.info("No newer incremental available, using %s", prev_inc_filename)
+            break
+
+        m_inc: re.Match[str] | None = INCR_SNAP_RE.match(inc_fn)
+        assert m_inc is not None
+        inc_slot: int = int(m_inc.group(2))
+
+        head_slot: int | None = get_current_slot(rpc_url)
+        if head_slot is None:
+            log.warning("Cannot get current slot — downloading best available incremental")
+            gap: int = convergence_slots + 1
+        else:
+            gap = head_slot - inc_slot
+
+        if inc_fn == prev_inc_filename:
+            if gap <= convergence_slots:
+                log.info("Incremental %s already downloaded (gap %d slots, converged)",
+                         inc_fn, gap)
+                break
+            log.info("No newer incremental yet (slot %d, gap %d slots), waiting...",
+                     inc_slot, gap)
+            time.sleep(10)
+            continue
+
+        if prev_inc_filename is not None:
+            old_path: Path = Path(output_dir) / prev_inc_filename
+            if old_path.exists():
+                log.info("Removing superseded incremental %s", prev_inc_filename)
+                old_path.unlink()
+
+        log.info("Downloading incremental %s (%d mirrors, slot %d, gap %d slots)",
+                 inc_fn, len(inc_mirrors), inc_slot, gap)
+        if not download_aria2c(inc_mirrors, output_dir, inc_fn, connections):
+            log.warning("Failed to download incremental %s — re-probing in 10s", inc_fn)
+            time.sleep(10)
+            continue
+
+        prev_inc_filename = inc_fn
+
+        if gap <= convergence_slots:
+            log.info("Converged: incremental slot %d is %d slots behind head",
+                     inc_slot, gap)
+            break
+
+        if head_slot is None:
+            break
+
+        log.info("Not converged (gap %d > %d), re-probing in 10s...",
+                 gap, convergence_slots)
+        time.sleep(10)
+
+    return prev_inc_filename
+
+
 # -- Public API ----------------------------------------------------------------
+
+
+def download_incremental_for_slot(
+    output_dir: str,
+    full_snap_slot: int,
+    *,
+    cluster: str = "mainnet-beta",
+    rpc_url: str | None = None,
+    connections: int = 16,
+    threads: int = 500,
+    max_snapshot_age: int = 10000,
+    max_latency: float = 500,
+    min_download_speed: int = 20,
+    measurement_time: int = 7,
+    max_speed_checks: int = 15,
+    version_filter: str | None = None,
+    convergence_slots: int = 500,
+) -> bool:
+    """Download an incremental snapshot for an existing full snapshot.
+
+    Discovers sources, benchmarks speed, then runs the rolling incremental
+    download loop for the given full snapshot base slot. Does NOT download
+    a full snapshot.
+
+    Returns True if an incremental was downloaded, False otherwise.
+    """
+    resolved_rpc: str = rpc_url or CLUSTER_RPC[cluster]
+
+    if not shutil.which("aria2c"):
+        log.error("aria2c not found. Install with: apt install aria2")
+        return False
+
+    log.info("Incremental download for base slot %d", full_snap_slot)
+    current_slot: int | None = get_current_slot(resolved_rpc)
+    if current_slot is None:
+        log.error("Cannot get current slot from %s", resolved_rpc)
+        return False
+
+    fast_sources: list[SnapshotSource] = _discover_and_benchmark(
+        resolved_rpc, current_slot,
+        max_snapshot_age=max_snapshot_age,
+        max_latency=max_latency,
+        threads=threads,
+        min_download_speed=min_download_speed,
+        measurement_time=measurement_time,
+        max_speed_checks=max_speed_checks,
+        version_filter=version_filter,
+    )
+    if not fast_sources:
+        log.error("No fast sources found")
+        return False
+
+    os.makedirs(output_dir, exist_ok=True)
+    result: str | None = _rolling_incremental_download(
+        fast_sources, full_snap_slot, output_dir,
+        convergence_slots, connections, resolved_rpc,
+    )
+    return result is not None
 
 
 def download_best_snapshot(
@@ -500,183 +705,68 @@ def download_best_snapshot(
         return False
     log.info("Current slot: %d", current_slot)
 
-    sources: list[SnapshotSource] = discover_sources(
+    fast_sources: list[SnapshotSource] = _discover_and_benchmark(
         resolved_rpc, current_slot,
-        max_age_slots=max_snapshot_age,
-        max_latency_ms=max_latency,
+        max_snapshot_age=max_snapshot_age,
+        max_latency=max_latency,
         threads=threads,
+        min_download_speed=min_download_speed,
+        measurement_time=measurement_time,
+        max_speed_checks=max_speed_checks,
         version_filter=version_filter,
     )
-    if not sources:
-        log.error("No snapshot sources found")
-        return False
-
-    # Sort by latency (lowest first) for speed benchmarking
-    sources.sort(key=lambda s: s.latency_ms)
-
-    # Benchmark top candidates
-    log.info("Benchmarking download speed on top %d sources...", max_speed_checks)
-    fast_sources: list[SnapshotSource] = []
-    checked: int = 0
-    min_speed_bytes: int = min_download_speed * 1024 * 1024
-
-    for source in sources:
-        if checked >= max_speed_checks:
-            break
-        checked += 1
-
-        speed: float = measure_speed(source.rpc_address, measurement_time)
-        source.download_speed = speed
-        speed_mib: float = speed / (1024 ** 2)
-
-        if speed < min_speed_bytes:
-            log.info("  %s: %.1f MiB/s (too slow, need >=%d MiB/s)",
-                     source.rpc_address, speed_mib, min_download_speed)
-            continue
-
-        log.info("  %s: %.1f MiB/s (latency: %.0fms, age: %d slots)",
-                 source.rpc_address, speed_mib,
-                 source.latency_ms, source.slots_diff)
-        fast_sources.append(source)
-
     if not fast_sources:
-        log.error("No source met minimum speed requirement (%d MiB/s)",
-                  min_download_speed)
+        log.error("No fast sources found")
         return False
 
-    # Use the fastest source as primary, collect mirrors for each file
+    # Use the fastest source as primary, build full snapshot download plan
     best: SnapshotSource = fast_sources[0]
-    file_paths: list[str] = best.file_paths
-    if full_only:
-        file_paths = [fp for fp in file_paths
-                      if fp.rsplit("/", 1)[-1].startswith("snapshot-")]
+    full_paths: list[str] = [fp for fp in best.file_paths
+                             if fp.rsplit("/", 1)[-1].startswith("snapshot-")]
+    if not full_paths:
+        log.error("Best source has no full snapshot")
+        return False
 
-    # Build mirror URL lists
-    download_plan: list[tuple[str, list[str]]] = []
-    for fp in file_paths:
-        filename: str = fp.rsplit("/", 1)[-1]
-        mirror_urls: list[str] = [f"http://{best.rpc_address}{fp}"]
-        for other in fast_sources[1:]:
-            for other_fp in other.file_paths:
-                if other_fp.rsplit("/", 1)[-1] == filename:
-                    mirror_urls.append(f"http://{other.rpc_address}{other_fp}")
-                    break
-        download_plan.append((filename, mirror_urls))
+    # Build mirror URLs for the full snapshot
+    full_filename: str = full_paths[0].rsplit("/", 1)[-1]
+    full_mirrors: list[str] = [f"http://{best.rpc_address}{full_paths[0]}"]
+    for other in fast_sources[1:]:
+        for other_fp in other.file_paths:
+            if other_fp.rsplit("/", 1)[-1] == full_filename:
+                full_mirrors.append(f"http://{other.rpc_address}{other_fp}")
+                break
 
     speed_mib: float = best.download_speed / (1024 ** 2)
-    log.info("Best source: %s (%.1f MiB/s), %d mirrors total",
-             best.rpc_address, speed_mib, len(fast_sources))
-    for filename, mirror_urls in download_plan:
-        log.info("  %s (%d mirrors)", filename, len(mirror_urls))
+    log.info("Best source: %s (%.1f MiB/s), %d mirrors",
+             best.rpc_address, speed_mib, len(full_mirrors))
 
-    # Download — full snapshot first, then re-probe for fresh incremental
+    # Download full snapshot
     os.makedirs(output_dir, exist_ok=True)
     total_start: float = time.monotonic()
 
-    # Separate full and incremental from the initial plan
-    full_downloads: list[tuple[str, list[str]]] = []
-    for filename, mirror_urls in download_plan:
-        if filename.startswith("snapshot-"):
-            full_downloads.append((filename, mirror_urls))
-
-    # Download full snapshot(s)
-    for filename, mirror_urls in full_downloads:
-        filepath: Path = Path(output_dir) / filename
-        if filepath.exists() and filepath.stat().st_size > 0:
-            log.info("Skipping %s (already exists: %.1f GB)",
-                     filename, filepath.stat().st_size / (1024 ** 3))
-            continue
-        if not download_aria2c(mirror_urls, output_dir, filename, connections):
-            log.error("Failed to download %s", filename)
+    filepath: Path = Path(output_dir) / full_filename
+    if filepath.exists() and filepath.stat().st_size > 0:
+        log.info("Skipping %s (already exists: %.1f GB)",
+                 full_filename, filepath.stat().st_size / (1024 ** 3))
+    else:
+        if not download_aria2c(full_mirrors, output_dir, full_filename, connections):
+            log.error("Failed to download %s", full_filename)
             return False
 
-    # After full snapshot download, rolling incremental download loop.
-    # The initial incremental is stale by now (full download takes 10+ min).
-    # Re-probe repeatedly until we find one close enough to head.
+    # Download incremental separately — the full download took minutes,
+    # so any incremental from discovery is stale. Re-probe for fresh ones.
     if not full_only:
-        full_filename: str = full_downloads[0][0]
-        fm_post: re.Match[str] | None = FULL_SNAP_RE.match(full_filename)
-        if fm_post:
-            full_snap_slot: int = int(fm_post.group(1))
-            log.info("Rolling incremental download (base slot %d, convergence %d slots)...",
-                     full_snap_slot, convergence_slots)
-            prev_inc_filename: str | None = None
-            loop_start: float = time.monotonic()
-            max_convergence_time: float = 1800.0  # 30 min wall-clock limit
-
-            while True:
-                if time.monotonic() - loop_start > max_convergence_time:
-                    if prev_inc_filename:
-                        log.warning("Convergence timeout (%.0fs) — using %s",
-                                    max_convergence_time, prev_inc_filename)
-                    else:
-                        log.warning("Convergence timeout (%.0fs) — no incremental downloaded",
-                                    max_convergence_time)
-                    break
-                inc_fn, inc_mirrors = probe_incremental(fast_sources, full_snap_slot)
-                if inc_fn is None:
-                    if prev_inc_filename is None:
-                        log.error("No matching incremental found for base slot %d "
-                                  "— validator will replay from full snapshot", full_snap_slot)
-                    else:
-                        log.info("No newer incremental available, using %s", prev_inc_filename)
-                    break
-
-                # Parse the incremental slot from the filename
-                m_inc: re.Match[str] | None = INCR_SNAP_RE.match(inc_fn)
-                assert m_inc is not None  # probe_incremental already validated
-                inc_slot: int = int(m_inc.group(2))
-
-                # Check convergence against current mainnet slot
-                head_slot: int | None = get_current_slot(resolved_rpc)
-                if head_slot is None:
-                    log.warning("Cannot get current slot — downloading best available incremental")
-                    gap: int = convergence_slots + 1  # force download, then break
-                else:
-                    gap = head_slot - inc_slot
-
-                # Skip download if we already have this exact incremental
-                if inc_fn == prev_inc_filename:
-                    if gap <= convergence_slots:
-                        log.info("Incremental %s already downloaded (gap %d slots, converged)", inc_fn, gap)
-                        break
-                    log.info("No newer incremental yet (slot %d, gap %d slots), waiting...",
-                             inc_slot, gap)
-                    time.sleep(10)
-                    continue
-
-                # Delete previous incremental before downloading the new one
-                if prev_inc_filename is not None:
-                    old_path: Path = Path(output_dir) / prev_inc_filename
-                    if old_path.exists():
-                        log.info("Removing superseded incremental %s", prev_inc_filename)
-                        old_path.unlink()
-
-                log.info("Downloading incremental %s (%d mirrors, slot %d, gap %d slots)",
-                         inc_fn, len(inc_mirrors), inc_slot, gap)
-                if not download_aria2c(inc_mirrors, output_dir, inc_fn, connections):
-                    log.warning("Failed to download incremental %s — re-probing in 10s", inc_fn)
-                    time.sleep(10)
-                    continue
-
-                prev_inc_filename = inc_fn
-
-                if gap <= convergence_slots:
-                    log.info("Converged: incremental slot %d is %d slots behind head", inc_slot, gap)
-                    break
-
-                if head_slot is None:
-                    break
-
-                log.info("Not converged (gap %d > %d), re-probing in 10s...", gap, convergence_slots)
-                time.sleep(10)
+        fm: re.Match[str] | None = FULL_SNAP_RE.match(full_filename)
+        if fm:
+            full_snap_slot: int = int(fm.group(1))
+            log.info("Downloading incremental for base slot %d...", full_snap_slot)
+            _rolling_incremental_download(
+                fast_sources, full_snap_slot, output_dir,
+                convergence_slots, connections, resolved_rpc,
+            )
 
     total_elapsed: float = time.monotonic() - total_start
     log.info("All downloads complete in %.0fs", total_elapsed)
-    for filename, _ in download_plan:
-        fp_path: Path = Path(output_dir) / filename
-        if fp_path.exists():
-            log.info("  %s (%.1f GB)", fp_path.name, fp_path.stat().st_size / (1024 ** 3))
 
     return True
 

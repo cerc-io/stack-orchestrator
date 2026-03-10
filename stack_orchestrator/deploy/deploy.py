@@ -15,36 +15,37 @@
 
 # Deploys the system components using a deployer (either docker-compose or k8s)
 
-import hashlib
 import copy
+import hashlib
 import os
+import subprocess
 import sys
 from dataclasses import dataclass
 from importlib import resources
-from typing import Optional
-import subprocess
-import click
 from pathlib import Path
+
+import click
+
 from stack_orchestrator import constants
-from stack_orchestrator.opts import opts
-from stack_orchestrator.util import (
-    get_stack_path,
-    include_exclude_check,
-    get_parsed_stack_config,
-    global_options2,
-    get_dev_root_path,
-    stack_is_in_deployment,
-    resolve_compose_file,
-)
-from stack_orchestrator.deploy.deployer import DeployerException
-from stack_orchestrator.deploy.deployer_factory import getDeployer
 from stack_orchestrator.deploy.compose.deploy_docker import DockerDeployer
 from stack_orchestrator.deploy.deploy_types import ClusterContext, DeployCommandContext
+from stack_orchestrator.deploy.deployer import DeployerException
+from stack_orchestrator.deploy.deployer_factory import getDeployer
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.deployment_create import create as deployment_create
 from stack_orchestrator.deploy.deployment_create import init as deployment_init
 from stack_orchestrator.deploy.deployment_create import setup as deployment_setup
 from stack_orchestrator.deploy.k8s import k8s_command
+from stack_orchestrator.opts import opts
+from stack_orchestrator.util import (
+    get_dev_root_path,
+    get_parsed_stack_config,
+    get_stack_path,
+    global_options2,
+    include_exclude_check,
+    resolve_compose_file,
+    stack_is_in_deployment,
+)
 
 
 @click.group()
@@ -52,9 +53,7 @@ from stack_orchestrator.deploy.k8s import k8s_command
 @click.option("--exclude", help="don't start these components")
 @click.option("--env-file", help="env file to be used")
 @click.option("--cluster", help="specify a non-default cluster name")
-@click.option(
-    "--deploy-to", help="cluster system to deploy to (compose or k8s or k8s-kind)"
-)
+@click.option("--deploy-to", help="cluster system to deploy to (compose or k8s or k8s-kind)")
 @click.pass_context
 def command(ctx, include, exclude, env_file, cluster, deploy_to):
     """deploy a stack"""
@@ -93,7 +92,7 @@ def command(ctx, include, exclude, env_file, cluster, deploy_to):
 
 def create_deploy_context(
     global_context,
-    deployment_context: Optional[DeploymentContext],
+    deployment_context: DeploymentContext | None,
     stack,
     include,
     exclude,
@@ -116,9 +115,7 @@ def create_deploy_context(
 
     # For helm chart deployments, skip compose file loading
     if is_helm_chart_deployment:
-        cluster_context = ClusterContext(
-            global_context, cluster, [], [], [], None, env_file
-        )
+        cluster_context = ClusterContext(global_context, cluster, [], [], [], None, env_file)
     else:
         cluster_context = _make_cluster_context(
             global_context, stack, include, exclude, cluster, env_file
@@ -134,9 +131,7 @@ def create_deploy_context(
     return DeployCommandContext(stack, cluster_context, deployer)
 
 
-def up_operation(
-    ctx, services_list, stay_attached=False, skip_cluster_management=False
-):
+def up_operation(ctx, services_list, stay_attached=False, skip_cluster_management=False):
     global_context = ctx.parent.parent.obj
     deploy_context = ctx.obj
     cluster_context = deploy_context.cluster_context
@@ -209,8 +204,7 @@ def ps_operation(ctx):
                         print(f"{port_mapping}", end="")
                     else:
                         print(
-                            f"{mapping[0]['HostIp']}:{mapping[0]['HostPort']}"
-                            f"->{port_mapping}",
+                            f"{mapping[0]['HostIp']}:{mapping[0]['HostPort']}" f"->{port_mapping}",
                             end="",
                         )
                     comma = ", "
@@ -260,11 +254,11 @@ def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
     logs_stream = ctx.obj.deployer.logs(
         services=services_list, tail=tail, follow=follow, stream=True
     )
-    for stream_type, stream_content in logs_stream:
+    for _stream_type, stream_content in logs_stream:
         print(stream_content.decode("utf-8"), end="")
 
 
-def run_job_operation(ctx, job_name: str, helm_release: Optional[str] = None):
+def run_job_operation(ctx, job_name: str, helm_release: str | None = None):
     global_context = ctx.parent.parent.obj
     if not global_context.dry_run:
         print(f"Running job: {job_name}")
@@ -284,9 +278,7 @@ def up(ctx, extra_args):
 
 
 @command.command()
-@click.option(
-    "--delete-volumes/--preserve-volumes", default=False, help="delete data volumes"
-)
+@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
 @click.argument("extra_args", nargs=-1)  # help: command: down<service1> <service2>
 @click.pass_context
 def down(ctx, delete_volumes, extra_args):
@@ -386,14 +378,10 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
     else:
         # See:
         # https://stackoverflow.com/questions/25389095/python-get-path-of-root-project-structure
-        compose_dir = (
-            Path(__file__).absolute().parent.parent.joinpath("data", "compose")
-        )
+        compose_dir = Path(__file__).absolute().parent.parent.joinpath("data", "compose")
 
     if cluster is None:
-        cluster = _make_default_cluster_name(
-            deployment, compose_dir, stack, include, exclude
-        )
+        cluster = _make_default_cluster_name(deployment, compose_dir, stack, include, exclude)
     else:
         _make_default_cluster_name(deployment, compose_dir, stack, include, exclude)
 
@@ -410,9 +398,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         if stack_config is not None:
             # TODO: syntax check the input here
             pods_in_scope = stack_config["pods"]
-            cluster_config = (
-                stack_config["config"] if "config" in stack_config else None
-            )
+            cluster_config = stack_config["config"] if "config" in stack_config else None
     else:
         pods_in_scope = all_pods
 
@@ -434,43 +420,29 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         if include_exclude_check(pod_name, include, exclude):
             if pod_repository is None or pod_repository == "internal":
                 if deployment:
-                    compose_file_name = os.path.join(
-                        compose_dir, f"docker-compose-{pod_path}.yml"
-                    )
+                    compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_path}.yml")
                 else:
                     compose_file_name = resolve_compose_file(stack, pod_name)
             else:
                 if deployment:
-                    compose_file_name = os.path.join(
-                        compose_dir, f"docker-compose-{pod_name}.yml"
-                    )
+                    compose_file_name = os.path.join(compose_dir, f"docker-compose-{pod_name}.yml")
                     pod_pre_start_command = pod.get("pre_start_command")
                     pod_post_start_command = pod.get("post_start_command")
-                    script_dir = compose_dir.parent.joinpath(
-                        "pods", pod_name, "scripts"
-                    )
+                    script_dir = compose_dir.parent.joinpath("pods", pod_name, "scripts")
                     if pod_pre_start_command is not None:
-                        pre_start_commands.append(
-                            os.path.join(script_dir, pod_pre_start_command)
-                        )
+                        pre_start_commands.append(os.path.join(script_dir, pod_pre_start_command))
                     if pod_post_start_command is not None:
-                        post_start_commands.append(
-                            os.path.join(script_dir, pod_post_start_command)
-                        )
+                        post_start_commands.append(os.path.join(script_dir, pod_post_start_command))
                 else:
                     # TODO: fix this code for external stack with scripts
                     pod_root_dir = os.path.join(
                         dev_root_path, pod_repository.split("/")[-1], pod["path"]
                     )
-                    compose_file_name = os.path.join(
-                        pod_root_dir, f"docker-compose-{pod_name}.yml"
-                    )
+                    compose_file_name = os.path.join(pod_root_dir, f"docker-compose-{pod_name}.yml")
                     pod_pre_start_command = pod.get("pre_start_command")
                     pod_post_start_command = pod.get("post_start_command")
                     if pod_pre_start_command is not None:
-                        pre_start_commands.append(
-                            os.path.join(pod_root_dir, pod_pre_start_command)
-                        )
+                        pre_start_commands.append(os.path.join(pod_root_dir, pod_pre_start_command))
                     if pod_post_start_command is not None:
                         post_start_commands.append(
                             os.path.join(pod_root_dir, pod_post_start_command)
@@ -514,9 +486,7 @@ def _run_command(ctx, cluster_name, command):
     command_env["CERC_SO_COMPOSE_PROJECT"] = cluster_name
     if ctx.debug:
         command_env["CERC_SCRIPT_DEBUG"] = "true"
-    command_result = subprocess.run(
-        command_file, shell=True, env=command_env, cwd=command_dir
-    )
+    command_result = subprocess.run(command_file, shell=True, env=command_env, cwd=command_dir)
     if command_result.returncode != 0:
         print(f"FATAL Error running command: {command}")
         sys.exit(1)
@@ -573,9 +543,7 @@ def _orchestrate_cluster_config(ctx, cluster_config, deployer, container_exec_en
                         # "It returned with code 1"
                         if "It returned with code 1" in str(error):
                             if ctx.verbose:
-                                print(
-                                    "Config export script returned an error, re-trying"
-                                )
+                                print("Config export script returned an error, re-trying")
                         # If the script failed to execute
                         # (e.g. the file is not there) then we get:
                         # "It returned with code 2"

@@ -1,6 +1,6 @@
-from functools import wraps
 import os
 import time
+from functools import wraps
 
 # Define default file path for the lock
 DEFAULT_LOCK_FILE_PATH = "/tmp/registry_mutex_lock_file"
@@ -17,7 +17,7 @@ def acquire_lock(client, lock_file_path, timeout):
         try:
             # Check if lock file exists and is potentially stale
             if os.path.exists(lock_file_path):
-                with open(lock_file_path, "r") as lock_file:
+                with open(lock_file_path) as lock_file:
                     timestamp = float(lock_file.read().strip())
 
                 # If lock is stale, remove the lock file
@@ -25,9 +25,7 @@ def acquire_lock(client, lock_file_path, timeout):
                     print(f"Stale lock detected, removing lock file {lock_file_path}")
                     os.remove(lock_file_path)
                 else:
-                    print(
-                        f"Lock file {lock_file_path} exists and is recent, waiting..."
-                    )
+                    print(f"Lock file {lock_file_path} exists and is recent, waiting...")
                     time.sleep(LOCK_RETRY_INTERVAL)
                     continue
 

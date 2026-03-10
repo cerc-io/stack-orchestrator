@@ -23,20 +23,19 @@
 
 import os
 import sys
-
-from decouple import config
-import click
 from pathlib import Path
+
+import click
+from decouple import config
+
 from stack_orchestrator.build import build_containers
-from stack_orchestrator.deploy.webapp.util import determine_base_container, TimedLogger
 from stack_orchestrator.build.build_types import BuildContext
+from stack_orchestrator.deploy.webapp.util import TimedLogger, determine_base_container
 
 
 @click.command()
 @click.option("--base-container")
-@click.option(
-    "--source-repo", help="directory containing the webapp to build", required=True
-)
+@click.option("--source-repo", help="directory containing the webapp to build", required=True)
 @click.option(
     "--force-rebuild",
     is_flag=True,
@@ -64,13 +63,10 @@ def command(ctx, base_container, source_repo, force_rebuild, extra_build_args, t
     if local_stack:
         dev_root_path = os.getcwd()[0 : os.getcwd().rindex("stack-orchestrator")]
         logger.log(
-            f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: "
-            f"{dev_root_path}"
+            f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: " f"{dev_root_path}"
         )
     else:
-        dev_root_path = os.path.expanduser(
-            config("CERC_REPO_BASE_DIR", default="~/cerc")
-        )
+        dev_root_path = os.path.expanduser(config("CERC_REPO_BASE_DIR", default="~/cerc"))
 
     if verbose:
         logger.log(f"Dev Root is: {dev_root_path}")

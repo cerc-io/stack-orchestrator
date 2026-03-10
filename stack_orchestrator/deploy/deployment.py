@@ -13,29 +13,28 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import click
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
+
+import click
 
 from stack_orchestrator import constants
-from stack_orchestrator.deploy.images import push_images_operation
 from stack_orchestrator.deploy.deploy import (
-    up_operation,
+    create_deploy_context,
     down_operation,
-    prepare_operation,
-    ps_operation,
-    port_operation,
-    status_operation,
-)
-from stack_orchestrator.deploy.deploy import (
     exec_operation,
     logs_operation,
-    create_deploy_context,
+    port_operation,
+    prepare_operation,
+    ps_operation,
+    status_operation,
+    up_operation,
     update_envs_operation,
 )
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
+from stack_orchestrator.deploy.images import push_images_operation
 
 
 @click.group()
@@ -149,9 +148,7 @@ def prepare(ctx, skip_cluster_management):
 
 # TODO: remove legacy up command since it's an alias for stop
 @command.command()
-@click.option(
-    "--delete-volumes/--preserve-volumes", default=False, help="delete data volumes"
-)
+@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
 @click.option(
     "--skip-cluster-management/--perform-cluster-management",
     default=True,
@@ -168,9 +165,7 @@ def down(ctx, delete_volumes, skip_cluster_management, extra_args):
 
 # stop is the preferred alias for down
 @command.command()
-@click.option(
-    "--delete-volumes/--preserve-volumes", default=False, help="delete data volumes"
-)
+@click.option("--delete-volumes/--preserve-volumes", default=False, help="delete data volumes")
 @click.option(
     "--skip-cluster-management/--perform-cluster-management",
     default=True,
@@ -256,9 +251,7 @@ def run_job(ctx, job_name, helm_release):
 
 @command.command()
 @click.option("--stack-path", help="Path to stack git repo (overrides stored path)")
-@click.option(
-    "--spec-file", help="Path to GitOps spec.yml in repo (e.g., deployment/spec.yml)"
-)
+@click.option("--spec-file", help="Path to GitOps spec.yml in repo (e.g., deployment/spec.yml)")
 @click.option("--config-file", help="Config file to pass to deploy init")
 @click.option(
     "--force",
@@ -292,33 +285,27 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
     commands.py on each restart. Use 'deploy init' only for initial
     spec generation, then customize and commit to your operator repo.
     """
-    from stack_orchestrator.util import get_yaml, get_parsed_deployment_spec
     from stack_orchestrator.deploy.deployment_create import create_operation
     from stack_orchestrator.deploy.dns_probe import verify_dns_via_probe
+    from stack_orchestrator.util import get_parsed_deployment_spec, get_yaml
 
     deployment_context: DeploymentContext = ctx.obj
 
     # Get current spec info (before git pull)
     current_spec = deployment_context.spec
     current_http_proxy = current_spec.get_http_proxy()
-    current_hostname = (
-        current_http_proxy[0]["host-name"] if current_http_proxy else None
-    )
+    current_hostname = current_http_proxy[0]["host-name"] if current_http_proxy else None
 
     # Resolve stack source path
     if stack_path:
         stack_source = Path(stack_path).resolve()
     else:
         # Try to get from deployment.yml
-        deployment_file = (
-            deployment_context.deployment_dir / constants.deployment_file_name
-        )
+        deployment_file = deployment_context.deployment_dir / constants.deployment_file_name
         deployment_data = get_yaml().load(open(deployment_file))
         stack_source_str = deployment_data.get("stack-source")
         if not stack_source_str:
-            print(
-                "Error: No stack-source in deployment.yml and --stack-path not provided"
-            )
+            print("Error: No stack-source in deployment.yml and --stack-path not provided")
             print("Use --stack-path to specify the stack git repository location")
             sys.exit(1)
         stack_source = Path(stack_source_str)
@@ -334,9 +321,7 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
 
     # Step 1: Git pull (brings in updated spec.yml from operator's repo)
     print("\n[1/4] Pulling latest code from stack repository...")
-    git_result = subprocess.run(
-        ["git", "pull"], cwd=stack_source, capture_output=True, text=True
-    )
+    git_result = subprocess.run(["git", "pull"], cwd=stack_source, capture_output=True, text=True)
     if git_result.returncode != 0:
         print(f"Git pull failed: {git_result.stderr}")
         sys.exit(1)
@@ -408,17 +393,13 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
     # Stop deployment
     print("\n[4/4] Restarting deployment...")
     ctx.obj = make_deploy_context(ctx)
-    down_operation(
-        ctx, delete_volumes=False, extra_args_list=[], skip_cluster_management=True
-    )
+    down_operation(ctx, delete_volumes=False, extra_args_list=[], skip_cluster_management=True)
 
     # Namespace deletion wait is handled by _ensure_namespace() in
     # the deployer — no fixed sleep needed here.
 
     # Start deployment
-    up_operation(
-        ctx, services_list=None, stay_attached=False, skip_cluster_management=True
-    )
+    up_operation(ctx, services_list=None, stay_attached=False, skip_cluster_management=True)
 
     print("\n=== Restart Complete ===")
     print("Deployment restarted with git-tracked configuration.")

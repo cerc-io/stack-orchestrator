@@ -13,22 +13,23 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from stack_orchestrator.util import get_yaml
+import os
+import re
+import sys
+from enum import Enum
+from pathlib import Path
+from shutil import copyfile, copytree
+
+import tomli
 from stack_orchestrator.deploy.deploy_types import (
     DeployCommandContext,
     LaconicStackSetupCommand,
 )
+from stack_orchestrator.deploy.deploy_util import VolumeMapping, run_container_command
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.stack_state import State
-from stack_orchestrator.deploy.deploy_util import VolumeMapping, run_container_command
 from stack_orchestrator.opts import opts
-from enum import Enum
-from pathlib import Path
-from shutil import copyfile, copytree
-import os
-import sys
-import tomli
-import re
+from stack_orchestrator.util import get_yaml
 
 default_spec_file_content = ""
 
@@ -80,9 +81,7 @@ def _copy_gentx_files(network_dir: Path, gentx_file_list: str):
         gentx_file_path = Path(gentx_file)
         copyfile(
             gentx_file_path,
-            os.path.join(
-                network_dir, "config", "gentx", os.path.basename(gentx_file_path)
-            ),
+            os.path.join(network_dir, "config", "gentx", os.path.basename(gentx_file_path)),
         )
 
 
@@ -91,7 +90,7 @@ def _remove_persistent_peers(network_dir: Path):
     if not config_file_path.exists():
         print("Error: config.toml not found")
         sys.exit(1)
-    with open(config_file_path, "r") as input_file:
+    with open(config_file_path) as input_file:
         config_file_content = input_file.read()
         persistent_peers_pattern = '^persistent_peers = "(.+?)"'
         replace_with = 'persistent_peers = ""'
@@ -110,7 +109,7 @@ def _insert_persistent_peers(config_dir: Path, new_persistent_peers: str):
     if not config_file_path.exists():
         print("Error: config.toml not found")
         sys.exit(1)
-    with open(config_file_path, "r") as input_file:
+    with open(config_file_path) as input_file:
         config_file_content = input_file.read()
         persistent_peers_pattern = r'^persistent_peers = ""'
         replace_with = f'persistent_peers = "{new_persistent_peers}"'
@@ -129,7 +128,7 @@ def _enable_cors(config_dir: Path):
     if not config_file_path.exists():
         print("Error: config.toml not found")
         sys.exit(1)
-    with open(config_file_path, "r") as input_file:
+    with open(config_file_path) as input_file:
         config_file_content = input_file.read()
         cors_pattern = r"^cors_allowed_origins = \[]"
         replace_with = 'cors_allowed_origins = ["*"]'
@@ -142,13 +141,11 @@ def _enable_cors(config_dir: Path):
     if not app_file_path.exists():
         print("Error: app.toml not found")
         sys.exit(1)
-    with open(app_file_path, "r") as input_file:
+    with open(app_file_path) as input_file:
         app_file_content = input_file.read()
         cors_pattern = r"^enabled-unsafe-cors = false"
         replace_with = "enabled-unsafe-cors = true"
-        app_file_content = re.sub(
-            cors_pattern, replace_with, app_file_content, flags=re.MULTILINE
-        )
+        app_file_content = re.sub(cors_pattern, replace_with, app_file_content, flags=re.MULTILINE)
     with open(app_file_path, "w") as output_file:
         output_file.write(app_file_content)
 
@@ -158,7 +155,7 @@ def _set_listen_address(config_dir: Path):
     if not config_file_path.exists():
         print("Error: config.toml not found")
         sys.exit(1)
-    with open(config_file_path, "r") as input_file:
+    with open(config_file_path) as input_file:
         config_file_content = input_file.read()
         existing_pattern = r'^laddr = "tcp://127.0.0.1:26657"'
         replace_with = 'laddr = "tcp://0.0.0.0:26657"'
@@ -172,7 +169,7 @@ def _set_listen_address(config_dir: Path):
     if not app_file_path.exists():
         print("Error: app.toml not found")
         sys.exit(1)
-    with open(app_file_path, "r") as input_file:
+    with open(app_file_path) as input_file:
         app_file_content = input_file.read()
         existing_pattern1 = r'^address = "tcp://localhost:1317"'
         replace_with1 = 'address = "tcp://0.0.0.0:1317"'
@@ -192,10 +189,7 @@ def _phase_from_params(parameters):
     phase = SetupPhase.ILLEGAL
     if parameters.initialize_network:
         if parameters.join_network or parameters.create_network:
-            print(
-                "Can't supply --join-network or --create-network "
-                "with --initialize-network"
-            )
+            print("Can't supply --join-network or --create-network " "with --initialize-network")
             sys.exit(1)
         if not parameters.chain_id:
             print("--chain-id is required")
@@ -207,26 +201,17 @@ def _phase_from_params(parameters):
         phase = SetupPhase.INITIALIZE
     elif parameters.join_network:
         if parameters.initialize_network or parameters.create_network:
-            print(
-                "Can't supply --initialize-network or --create-network "
-                "with --join-network"
-            )
+            print("Can't supply --initialize-network or --create-network " "with --join-network")
             sys.exit(1)
         phase = SetupPhase.JOIN
     elif parameters.create_network:
         if parameters.initialize_network or parameters.join_network:
-            print(
-                "Can't supply --initialize-network or --join-network "
-                "with --create-network"
-            )
+            print("Can't supply --initialize-network or --join-network " "with --create-network")
             sys.exit(1)
         phase = SetupPhase.CREATE
     elif parameters.connect_network:
         if parameters.initialize_network or parameters.join_network:
-            print(
-                "Can't supply --initialize-network or --join-network "
-                "with --connect-network"
-            )
+            print("Can't supply --initialize-network or --join-network " "with --connect-network")
             sys.exit(1)
         phase = SetupPhase.CONNECT
     return phase
@@ -341,8 +326,7 @@ def setup(
         output3, status3 = run_container_command(
             command_context,
             "laconicd",
-            f"laconicd cometbft show-validator "
-            f"--home {laconicd_home_path_in_container}",
+            f"laconicd cometbft show-validator " f"--home {laconicd_home_path_in_container}",
             mounts,
         )
         print(f"Node validator address: {output3}")
@@ -361,23 +345,16 @@ def setup(
             # Copy it into our network dir
             genesis_file_path = Path(parameters.genesis_file)
             if not os.path.exists(genesis_file_path):
-                print(
-                    f"Error: supplied genesis file: {parameters.genesis_file} "
-                    "does not exist."
-                )
+                print(f"Error: supplied genesis file: {parameters.genesis_file} " "does not exist.")
                 sys.exit(1)
             copyfile(
                 genesis_file_path,
-                os.path.join(
-                    network_dir, "config", os.path.basename(genesis_file_path)
-                ),
+                os.path.join(network_dir, "config", os.path.basename(genesis_file_path)),
             )
         else:
             # We're generating the genesis file
             # First look in the supplied gentx files for the other nodes' keys
-            other_node_keys = _get_node_keys_from_gentx_files(
-                parameters.gentx_address_list
-            )
+            other_node_keys = _get_node_keys_from_gentx_files(parameters.gentx_address_list)
             # Add those keys to our genesis, with balances we determine here (why?)
             outputk = None
             for other_node_key in other_node_keys:
@@ -398,8 +375,7 @@ def setup(
             output1, status1 = run_container_command(
                 command_context,
                 "laconicd",
-                f"laconicd genesis collect-gentxs "
-                f"--home {laconicd_home_path_in_container}",
+                f"laconicd genesis collect-gentxs " f"--home {laconicd_home_path_in_container}",
                 mounts,
             )
             if options.debug:
@@ -416,8 +392,7 @@ def setup(
         output2, status1 = run_container_command(
             command_context,
             "laconicd",
-            f"laconicd genesis validate-genesis "
-            f"--home {laconicd_home_path_in_container}",
+            f"laconicd genesis validate-genesis " f"--home {laconicd_home_path_in_container}",
             mounts,
         )
         print(f"validate-genesis result: {output2}")
@@ -452,9 +427,7 @@ def create(deployment_context: DeploymentContext, extra_args):
         sys.exit(1)
     # Copy the network directory contents into our deployment
     # TODO: change this to work with non local paths
-    deployment_config_dir = deployment_context.deployment_dir.joinpath(
-        "data", "laconicd-config"
-    )
+    deployment_config_dir = deployment_context.deployment_dir.joinpath("data", "laconicd-config")
     copytree(config_dir_path, deployment_config_dir, dirs_exist_ok=True)
     # If supplied, add the initial persistent peers to the config file
     if extra_args[1]:
@@ -465,9 +438,7 @@ def create(deployment_context: DeploymentContext, extra_args):
     _set_listen_address(deployment_config_dir)
     # Copy the data directory contents into our deployment
     # TODO: change this to work with non local paths
-    deployment_data_dir = deployment_context.deployment_dir.joinpath(
-        "data", "laconicd-data"
-    )
+    deployment_data_dir = deployment_context.deployment_dir.joinpath("data", "laconicd-data")
     copytree(data_dir_path, deployment_data_dir, dirs_exist_ok=True)
 
 

@@ -22,10 +22,10 @@ import subprocess
 import sys
 import tempfile
 import uuid
-import yaml
-
 from enum import Enum
-from typing import Any, List, Optional, TextIO
+from typing import Any, TextIO
+
+import yaml
 
 from stack_orchestrator.deploy.webapp.registry_mutex import registry_mutex
 
@@ -43,17 +43,17 @@ AUCTION_KIND_PROVIDER = "provider"
 
 class AttrDict(dict):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super(AttrDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__dict__ = self
 
     def __getattribute__(self, attr: str) -> Any:
-        __dict__ = super(AttrDict, self).__getattribute__("__dict__")
+        __dict__ = super().__getattribute__("__dict__")
         if attr in __dict__:
-            v = super(AttrDict, self).__getattribute__(attr)
+            v = super().__getattribute__(attr)
             if isinstance(v, dict):
                 return AttrDict(v)
             return v
-        return super(AttrDict, self).__getattribute__(attr)
+        return super().__getattribute__(attr)
 
     def __getattr__(self, attr: str) -> Any:
         # This method is called when attribute is not found
@@ -62,15 +62,13 @@ class AttrDict(dict):
 
 
 class TimedLogger:
-    def __init__(self, id: str = "", file: Optional[TextIO] = None) -> None:
+    def __init__(self, id: str = "", file: TextIO | None = None) -> None:
         self.start = datetime.datetime.now()
         self.last = self.start
         self.id = id
         self.file = file
 
-    def log(
-        self, msg: str, show_step_time: bool = True, show_total_time: bool = False
-    ) -> None:
+    def log(self, msg: str, show_step_time: bool = True, show_total_time: bool = False) -> None:
         prefix = f"{datetime.datetime.utcnow()} - {self.id}"
         if show_step_time:
             prefix += f" - {datetime.datetime.now() - self.last} (step)"
@@ -84,11 +82,11 @@ class TimedLogger:
 
 def load_known_requests(filename):
     if filename and os.path.exists(filename):
-        return json.load(open(filename, "r"))
+        return json.load(open(filename))
     return {}
 
 
-def logged_cmd(log_file: Optional[TextIO], *vargs: str) -> str:
+def logged_cmd(log_file: TextIO | None, *vargs: str) -> str:
     result = None
     try:
         if log_file:
@@ -105,15 +103,14 @@ def logged_cmd(log_file: Optional[TextIO], *vargs: str) -> str:
         raise err
 
 
-def match_owner(
-    recordA: Optional[AttrDict], *records: Optional[AttrDict]
-) -> Optional[str]:
+def match_owner(recordA: AttrDict | None, *records: AttrDict | None) -> str | None:
     if not recordA or not recordA.owners:
         return None
     for owner in recordA.owners:
         for otherRecord in records:
             if otherRecord and otherRecord.owners and owner in otherRecord.owners:
-                return owner
+                result: str | None = owner
+                return result
     return None
 
 
@@ -147,9 +144,7 @@ class LaconicRegistryClient:
             return self.cache["whoami"]
 
         args = ["laconic", "-c", self.config_file, "registry", "account", "get"]
-        results = [
-            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
-        ]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
 
         if len(results):
             self.cache["whoami"] = results[0]
@@ -178,9 +173,7 @@ class LaconicRegistryClient:
             "--address",
             address,
         ]
-        results = [
-            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
-        ]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
         if len(results):
             self.cache["accounts"][address] = results[0]
             return results[0]
@@ -203,9 +196,7 @@ class LaconicRegistryClient:
             "--id",
             id,
         ]
-        results = [
-            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
-        ]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
         self._add_to_cache(results)
         if len(results):
             return results[0]
@@ -216,9 +207,7 @@ class LaconicRegistryClient:
 
     def list_bonds(self):
         args = ["laconic", "-c", self.config_file, "registry", "bond", "list"]
-        results = [
-            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
-        ]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
         self._add_to_cache(results)
         return results
 
@@ -232,12 +221,10 @@ class LaconicRegistryClient:
 
         if criteria:
             for k, v in criteria.items():
-                args.append("--%s" % k)
+                args.append(f"--{k}")
                 args.append(str(v))
 
-        results = [
-            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
-        ]
+        results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
 
         # Most recent records first
         results.sort(key=lambda r: r.createTime or "")
@@ -246,7 +233,7 @@ class LaconicRegistryClient:
 
         return results
 
-    def _add_to_cache(self, records: List[AttrDict]) -> None:
+    def _add_to_cache(self, records: list[AttrDict]) -> None:
         if not records:
             return
 
@@ -271,9 +258,7 @@ class LaconicRegistryClient:
 
         args = ["laconic", "-c", self.config_file, "registry", "name", "resolve", name]
 
-        parsed = [
-            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
-        ]
+        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
         if parsed:
             self._add_to_cache(parsed)
             return parsed[0]
@@ -303,9 +288,7 @@ class LaconicRegistryClient:
             name_or_id,
         ]
 
-        parsed = [
-            AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
-        ]
+        parsed = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
         if len(parsed):
             self._add_to_cache(parsed)
             return parsed[0]
@@ -356,9 +339,7 @@ class LaconicRegistryClient:
 
         results = None
         try:
-            results = [
-                AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r
-            ]
+            results = [AttrDict(r) for r in json.loads(logged_cmd(self.log_file, *args)) if r]
         except:  # noqa: E722
             pass
 
@@ -422,7 +403,7 @@ class LaconicRegistryClient:
             record_file = open(record_fname, "w")
             yaml.dump(record, record_file)
             record_file.close()
-            print(open(record_fname, "r").read(), file=self.log_file)
+            print(open(record_fname).read(), file=self.log_file)
 
             new_record_id = json.loads(
                 logged_cmd(
@@ -573,10 +554,10 @@ def determine_base_container(clone_dir, app_type="webapp"):
 
 
 def build_container_image(
-    app_record: Optional[AttrDict],
+    app_record: AttrDict | None,
     tag: str,
-    extra_build_args: Optional[List[str]] = None,
-    logger: Optional[TimedLogger] = None,
+    extra_build_args: list[str] | None = None,
+    logger: TimedLogger | None = None,
 ) -> None:
     if app_record is None:
         raise ValueError("app_record cannot be None")
@@ -649,9 +630,7 @@ def build_container_image(
             )
             result.check_returncode()
 
-        base_container = determine_base_container(
-            clone_dir, app_record.attributes.app_type
-        )
+        base_container = determine_base_container(clone_dir, app_record.attributes.app_type)
 
         if logger:
             logger.log("Building webapp ...")
@@ -727,14 +706,12 @@ def publish_deployment(
     if not deploy_record:
         deploy_ver = "0.0.1"
     else:
-        deploy_ver = "0.0.%d" % (
-            int(deploy_record.attributes.version.split(".")[-1]) + 1
-        )
+        deploy_ver = f"0.0.{int(deploy_record.attributes.version.split('.')[-1]) + 1}"
 
     if not dns_record:
         dns_ver = "0.0.1"
     else:
-        dns_ver = "0.0.%d" % (int(dns_record.attributes.version.split(".")[-1]) + 1)
+        dns_ver = f"0.0.{int(dns_record.attributes.version.split('.')[-1]) + 1}"
 
     spec = yaml.full_load(open(os.path.join(deployment_dir, "spec.yml")))
     fqdn = spec["network"]["http-proxy"][0]["host-name"]
@@ -779,13 +756,9 @@ def publish_deployment(
 
         # Set auction or payment id from request
         if app_deployment_request.attributes.auction:
-            new_deployment_record["record"][
-                "auction"
-            ] = app_deployment_request.attributes.auction
+            new_deployment_record["record"]["auction"] = app_deployment_request.attributes.auction
         elif app_deployment_request.attributes.payment:
-            new_deployment_record["record"][
-                "payment"
-            ] = app_deployment_request.attributes.payment
+            new_deployment_record["record"]["payment"] = app_deployment_request.attributes.payment
 
     if webapp_deployer_record:
         new_deployment_record["record"]["deployer"] = webapp_deployer_record.names[0]
@@ -799,9 +772,7 @@ def publish_deployment(
 def hostname_for_deployment_request(app_deployment_request, laconic):
     dns_name = app_deployment_request.attributes.dns
     if not dns_name:
-        app = laconic.get_record(
-            app_deployment_request.attributes.application, require=True
-        )
+        app = laconic.get_record(app_deployment_request.attributes.application, require=True)
         dns_name = generate_hostname_for_app(app)
     elif dns_name.startswith("lrn://"):
         record = laconic.get_record(dns_name, require=True)
@@ -818,7 +789,7 @@ def generate_hostname_for_app(app):
         m.update(app.attributes.repository[0].encode())
     else:
         m.update(app.attributes.repository.encode())
-    return "%s-%s" % (last_part, m.hexdigest()[0:10])
+    return f"{last_part}-{m.hexdigest()[0:10]}"
 
 
 def skip_by_tag(r, include_tags, exclude_tags):
@@ -881,16 +852,13 @@ def confirm_payment(
     pay_denom = "".join([i for i in tx_amount if not i.isdigit()])
     if pay_denom != "alnt":
         logger.log(
-            f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected "
-            "payment denomination"
+            f"{record.id}: {pay_denom} in tx {tx.hash} is not an expected " "payment denomination"
         )
         return False
 
     pay_amount = int("".join([i for i in tx_amount if i.isdigit()]) or "0")
     if pay_amount < min_amount:
-        logger.log(
-            f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}"
-        )
+        logger.log(f"{record.id}: payment amount {tx.amount} is less than minimum {min_amount}")
         return False
 
     # Check if the payment was already used on a deployment
@@ -914,9 +882,7 @@ def confirm_payment(
         {"deployer": record.attributes.deployer, "payment": tx.hash}, all=True
     )
     if len(used):
-        logger.log(
-            f"{record.id}: payment {tx.hash} already used on deployment removal {used}"
-        )
+        logger.log(f"{record.id}: payment {tx.hash} already used on deployment removal {used}")
         return False
 
     return True
@@ -940,9 +906,7 @@ def confirm_auction(
 
     # Cross check app against application in the auction record
     requested_app = laconic.get_record(record.attributes.application, require=True)
-    auction_app = laconic.get_record(
-        auction_records_by_id[0].attributes.application, require=True
-    )
+    auction_app = laconic.get_record(auction_records_by_id[0].attributes.application, require=True)
     requested_app_id = requested_app.id if requested_app else None
     auction_app_id = auction_app.id if auction_app else None
     if requested_app_id != auction_app_id:

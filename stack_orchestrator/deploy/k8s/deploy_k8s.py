@@ -14,42 +14,36 @@
 
 import time
 from datetime import datetime, timezone
-
 from pathlib import Path
+from typing import Any, cast
+
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
-from typing import Any, Dict, List, Optional, cast
 
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
+from stack_orchestrator.deploy.deployment_context import DeploymentContext
+from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.deploy.k8s.helpers import (
+    containers_in_pod,
     create_cluster,
     destroy_cluster,
-    load_images_into_kind,
-)
-from stack_orchestrator.deploy.k8s.helpers import (
-    install_ingress_for_kind,
-    wait_for_ingress_in_kind,
-    is_ingress_running,
-)
-from stack_orchestrator.deploy.k8s.helpers import (
-    pods_in_deployment,
-    containers_in_pod,
-    log_stream_from_string,
-)
-from stack_orchestrator.deploy.k8s.helpers import (
-    generate_kind_config,
     generate_high_memlock_spec_json,
+    generate_kind_config,
+    install_ingress_for_kind,
+    is_ingress_running,
+    load_images_into_kind,
+    log_stream_from_string,
+    pods_in_deployment,
+    wait_for_ingress_in_kind,
 )
-from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo
 from stack_orchestrator.opts import opts
-from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.util import error_exit
 
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__dict__ = self
 
 
@@ -144,9 +138,7 @@ class K8sDeployer(Deployer):
         else:
             # Get the config file and pass to load_kube_config()
             config.load_kube_config(
-                config_file=self.deployment_dir.joinpath(
-                    constants.kube_config_filename
-                ).as_posix()
+                config_file=self.deployment_dir.joinpath(constants.kube_config_filename).as_posix()
             )
         self.core_api = client.CoreV1Api()
         self.networking_api = client.NetworkingV1Api()
@@ -213,10 +205,7 @@ class K8sDeployer(Deployer):
                 )
 
             if opts.o.debug:
-                print(
-                    f"Namespace {self.k8s_namespace} is terminating, "
-                    f"waiting for deletion..."
-                )
+                print(f"Namespace {self.k8s_namespace} is terminating, " f"waiting for deletion...")
             time.sleep(2)
 
     def _delete_namespace(self):
@@ -276,9 +265,7 @@ class K8sDeployer(Deployer):
                     name=deployment.metadata.name,
                     namespace=self.k8s_namespace,
                 )
-                deployment.metadata.resource_version = (
-                    existing.metadata.resource_version
-                )
+                deployment.metadata.resource_version = existing.metadata.resource_version
                 resp = cast(
                     client.V1Deployment,
                     self.apps_api.replace_namespaced_deployment(
@@ -391,9 +378,7 @@ class K8sDeployer(Deployer):
                 print(f"Sending this pv: {pv}")
             if not opts.o.dry_run:
                 try:
-                    pv_resp = self.core_api.read_persistent_volume(
-                        name=pv.metadata.name
-                    )
+                    pv_resp = self.core_api.read_persistent_volume(name=pv.metadata.name)
                     if pv_resp:
                         if opts.o.debug:
                             print("PVs already present:")
@@ -500,9 +485,9 @@ class K8sDeployer(Deployer):
                     if before < now < after:
                         # Check the status is Ready
                         for condition in status.get("conditions", []):
-                            if "True" == condition.get(
-                                "status"
-                            ) and "Ready" == condition.get("type"):
+                            if "True" == condition.get("status") and "Ready" == condition.get(
+                                "type"
+                            ):
                                 return cert
         return None
 
@@ -519,15 +504,11 @@ class K8sDeployer(Deployer):
         self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:
             if self.is_kind() and not self.skip_cluster_management:
-                kind_config = str(
-                    self.deployment_dir.joinpath(constants.kind_config_filename)
-                )
+                kind_config = str(self.deployment_dir.joinpath(constants.kind_config_filename))
                 actual_cluster = create_cluster(self.kind_cluster_name, kind_config)
                 if actual_cluster != self.kind_cluster_name:
                     self.kind_cluster_name = actual_cluster
-                local_containers = self.deployment_context.stack.obj.get(
-                    "containers", []
-                )
+                local_containers = self.deployment_context.stack.obj.get("containers", [])
                 if local_containers:
                     local_images = {
                         img
@@ -579,9 +560,7 @@ class K8sDeployer(Deployer):
         if opts.o.debug and certificate:
             print(f"Using existing certificate: {certificate}")
 
-        ingress = self.cluster_info.get_ingress(
-            use_tls=use_tls, certificate=certificate
-        )
+        ingress = self.cluster_info.get_ingress(use_tls=use_tls, certificate=certificate)
         if ingress:
             if opts.o.debug:
                 print(f"Sending this ingress: {ingress}")
@@ -590,7 +569,7 @@ class K8sDeployer(Deployer):
         elif opts.o.debug:
             print("No ingress configured")
 
-        nodeports: List[client.V1Service] = self.cluster_info.get_nodeports()
+        nodeports: list[client.V1Service] = self.cluster_info.get_nodeports()
         for nodeport in nodeports:
             if opts.o.debug:
                 print(f"Sending this nodeport: {nodeport}")
@@ -670,7 +649,7 @@ class K8sDeployer(Deployer):
                 return
 
             cert = cast(
-                Dict[str, Any],
+                dict[str, Any],
                 self.custom_obj_api.get_namespaced_custom_object(
                     group="cert-manager.io",
                     version="v1",
@@ -686,7 +665,7 @@ class K8sDeployer(Deployer):
                 if lb_ingress:
                     ip = lb_ingress[0].ip or "?"
             cert_status = cert.get("status", {})
-            tls = "notBefore: %s; notAfter: %s; names: %s" % (
+            tls = "notBefore: {}; notAfter: {}; names: {}".format(
                 cert_status.get("notBefore", "?"),
                 cert_status.get("notAfter", "?"),
                 ingress.spec.tls[0].hosts,
@@ -727,9 +706,7 @@ class K8sDeployer(Deployer):
                     if c.ports:
                         for prt in c.ports:
                             ports[str(prt.container_port)] = [
-                                AttrDict(
-                                    {"HostIp": pod_ip, "HostPort": prt.container_port}
-                                )
+                                AttrDict({"HostIp": pod_ip, "HostPort": prt.container_port})
                             ]
 
                 ret.append(
@@ -791,9 +768,7 @@ class K8sDeployer(Deployer):
 
         deployment = cast(
             client.V1Deployment,
-            self.apps_api.read_namespaced_deployment(
-                name=ref_name, namespace=self.k8s_namespace
-            ),
+            self.apps_api.read_namespaced_deployment(name=ref_name, namespace=self.k8s_namespace),
         )
         if not deployment.spec or not deployment.spec.template:
             return
@@ -832,14 +807,14 @@ class K8sDeployer(Deployer):
         user=None,
         volumes=None,
         entrypoint=None,
-        env={},
-        ports=[],
+        env=None,
+        ports=None,
         detach=False,
     ):
         # We need to figure out how to do this -- check why we're being called first
         pass
 
-    def run_job(self, job_name: str, helm_release: Optional[str] = None):
+    def run_job(self, job_name: str, helm_release: str | None = None):
         if not opts.o.dry_run:
             from stack_orchestrator.deploy.k8s.helm.job_runner import run_helm_job
 
@@ -881,13 +856,9 @@ class K8sDeployerConfigGenerator(DeployerConfigGenerator):
             # Must be done before generate_kind_config() which references it.
             if self.deployment_context.spec.get_unlimited_memlock():
                 spec_content = generate_high_memlock_spec_json()
-                spec_file = deployment_dir.joinpath(
-                    constants.high_memlock_spec_filename
-                )
+                spec_file = deployment_dir.joinpath(constants.high_memlock_spec_filename)
                 if opts.o.debug:
-                    print(
-                        f"Creating high-memlock spec for unlimited memlock: {spec_file}"
-                    )
+                    print(f"Creating high-memlock spec for unlimited memlock: {spec_file}")
                 with open(spec_file, "w") as output_file:
                     output_file.write(spec_content)
 

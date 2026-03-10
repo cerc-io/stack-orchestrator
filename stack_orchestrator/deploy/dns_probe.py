@@ -6,7 +6,7 @@
 import secrets
 import socket
 import time
-from typing import Optional
+
 import requests
 from kubernetes import client
 
@@ -15,7 +15,8 @@ def get_server_egress_ip() -> str:
     """Get this server's public egress IP via ipify."""
     response = requests.get("https://api.ipify.org", timeout=10)
     response.raise_for_status()
-    return response.text.strip()
+    result: str = response.text.strip()
+    return result
 
 
 def resolve_hostname(hostname: str) -> list[str]:
@@ -27,7 +28,7 @@ def resolve_hostname(hostname: str) -> list[str]:
         return []
 
 
-def verify_dns_simple(hostname: str, expected_ip: Optional[str] = None) -> bool:
+def verify_dns_simple(hostname: str, expected_ip: str | None = None) -> bool:
     """Simple DNS verification - check hostname resolves to expected IP.
 
     If expected_ip not provided, uses server's egress IP.
@@ -98,9 +99,7 @@ def delete_probe_ingress(namespace: str = "default"):
     """Delete the temporary probe ingress."""
     networking_api = client.NetworkingV1Api()
     try:
-        networking_api.delete_namespaced_ingress(
-            name="laconic-dns-probe", namespace=namespace
-        )
+        networking_api.delete_namespaced_ingress(name="laconic-dns-probe", namespace=namespace)
     except client.exceptions.ApiException:
         pass  # Ignore if already deleted
 

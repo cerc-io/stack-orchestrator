@@ -13,10 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import subprocess
 import shutil
+import subprocess
 from pathlib import Path
-from typing import List, Optional
 
 
 def check_kompose_available() -> bool:
@@ -37,9 +36,7 @@ def get_kompose_version() -> str:
     if not check_kompose_available():
         raise Exception("kompose not found in PATH")
 
-    result = subprocess.run(
-        ["kompose", "version"], capture_output=True, text=True, timeout=10
-    )
+    result = subprocess.run(["kompose", "version"], capture_output=True, text=True, timeout=10)
 
     if result.returncode != 0:
         raise Exception(f"Failed to get kompose version: {result.stderr}")
@@ -53,7 +50,7 @@ def get_kompose_version() -> str:
 
 
 def convert_to_helm_chart(
-    compose_files: List[Path], output_dir: Path, chart_name: Optional[str] = None
+    compose_files: list[Path], output_dir: Path, chart_name: str | None = None
 ) -> str:
     """
     Invoke kompose to convert Docker Compose files to a Helm chart.
@@ -71,8 +68,7 @@ def convert_to_helm_chart(
     """
     if not check_kompose_available():
         raise Exception(
-            "kompose not found in PATH. "
-            "Install from: https://kompose.io/installation/"
+            "kompose not found in PATH. " "Install from: https://kompose.io/installation/"
         )
 
     # Ensure output directory exists
@@ -95,9 +91,7 @@ def convert_to_helm_chart(
 
     if result.returncode != 0:
         raise Exception(
-            f"Kompose conversion failed:\n"
-            f"Command: {' '.join(cmd)}\n"
-            f"Error: {result.stderr}"
+            f"Kompose conversion failed:\n" f"Command: {' '.join(cmd)}\n" f"Error: {result.stderr}"
         )
 
     return result.stdout

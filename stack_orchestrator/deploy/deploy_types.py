@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from typing import List, Mapping, Optional
+from collections.abc import Mapping
 from dataclasses import dataclass
+
 from stack_orchestrator.command_types import CommandOptions
 from stack_orchestrator.deploy.deployer import Deployer
 
@@ -23,19 +24,19 @@ from stack_orchestrator.deploy.deployer import Deployer
 class ClusterContext:
     # TODO: this should be in its own object not stuffed in here
     options: CommandOptions
-    cluster: Optional[str]
-    compose_files: List[str]
-    pre_start_commands: List[str]
-    post_start_commands: List[str]
-    config: Optional[str]
-    env_file: Optional[str]
+    cluster: str | None
+    compose_files: list[str]
+    pre_start_commands: list[str]
+    post_start_commands: list[str]
+    config: str | None
+    env_file: str | None
 
 
 @dataclass
 class DeployCommandContext:
     stack: str
     cluster_context: ClusterContext
-    deployer: Optional[Deployer]
+    deployer: Deployer | None
 
 
 @dataclass

@@ -16,13 +16,14 @@
 
 from pathlib import Path
 from shutil import copy
+
 import yaml
 
 
 def create(context, extra_args):
     # Our goal here is just to copy the json files for blast
     yml_path = context.deployment_dir.joinpath("spec.yml")
-    with open(yml_path, "r") as file:
+    with open(yml_path) as file:
         data = yaml.safe_load(file)
 
     mount_point = data["volumes"]["blast-data"]

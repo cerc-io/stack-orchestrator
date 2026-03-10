@@ -1,6 +1,7 @@
-from web3.auto import w3
-import ruamel.yaml as yaml
 import sys
+
+import ruamel.yaml as yaml
+from web3.auto import w3
 
 w3.eth.account.enable_unaudited_hdwallet_features()
 
@@ -11,8 +12,6 @@ if len(sys.argv) > 1:
 with open(testnet_config_path) as stream:
     data = yaml.safe_load(stream)
 
-for key, value in data["el_premine"].items():
-    acct = w3.eth.account.from_mnemonic(
-        data["mnemonic"], account_path=key, passphrase=""
-    )
-    print("%s,%s,%s" % (key, acct.address, acct.key.hex()))
+for key, _value in data["el_premine"].items():
+    acct = w3.eth.account.from_mnemonic(data["mnemonic"], account_path=key, passphrase="")
+    print(f"{key},{acct.address},{acct.key.hex()}")

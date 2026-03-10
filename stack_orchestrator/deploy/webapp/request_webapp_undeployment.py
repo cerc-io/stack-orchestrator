@@ -26,12 +26,8 @@ def fatal(msg: str) -> None:
 
 
 @click.command()
-@click.option(
-    "--laconic-config", help="Provide a config file for laconicd", required=True
-)
-@click.option(
-    "--deployer", help="The LRN of the deployer to process this request.", required=True
-)
+@click.option("--laconic-config", help="Provide a config file for laconicd", required=True)
+@click.option("--deployer", help="The LRN of the deployer to process this request.", required=True)
 @click.option(
     "--deployment",
     help="Deployment record (ApplicationDeploymentRecord) id of the deployment.",
@@ -44,9 +40,7 @@ def fatal(msg: str) -> None:
         "'auto' to use the deployer's minimum required payment."
     ),
 )
-@click.option(
-    "--use-payment", help="The TX id of an existing, unused payment", default=None
-)
+@click.option("--use-payment", help="The TX id of an existing, unused payment", default=None)
 @click.option(
     "--dry-run",
     help="Don't publish anything, just report what would be done.",

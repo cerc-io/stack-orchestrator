@@ -18,9 +18,9 @@ import os
 from pathlib import Path
 
 from stack_orchestrator import constants
-from stack_orchestrator.util import get_yaml
-from stack_orchestrator.deploy.stack import Stack
 from stack_orchestrator.deploy.spec import Spec
+from stack_orchestrator.deploy.stack import Stack
+from stack_orchestrator.util import get_yaml
 
 
 class DeploymentContext:
@@ -58,7 +58,7 @@ class DeploymentContext:
         self.stack.init_from_file(self.get_stack_file())
         deployment_file_path = self.get_deployment_file()
         if deployment_file_path.exists():
-            obj = get_yaml().load(open(deployment_file_path, "r"))
+            obj = get_yaml().load(open(deployment_file_path))
             self.id = obj[constants.cluster_id_key]
         # Handle the case of a legacy deployment with no file
         # Code below is intended to match the output from _make_default_cluster_name()
@@ -75,7 +75,7 @@ class DeploymentContext:
             raise ValueError(f"File is not inside deployment directory: {file_path}")
 
         yaml = get_yaml()
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             yaml_data = yaml.load(f)
 
         modifier_func(yaml_data)

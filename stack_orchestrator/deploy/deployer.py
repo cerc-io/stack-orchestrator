@@ -15,7 +15,6 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional
 
 
 class Deployer(ABC):
@@ -59,14 +58,14 @@ class Deployer(ABC):
         user=None,
         volumes=None,
         entrypoint=None,
-        env={},
-        ports=[],
+        env=None,
+        ports=None,
         detach=False,
     ):
         pass
 
     @abstractmethod
-    def run_job(self, job_name: str, release_name: Optional[str] = None):
+    def run_job(self, job_name: str, release_name: str | None = None):
         pass
 
     def prepare(self, skip_cluster_management):
@@ -74,9 +73,7 @@ class Deployer(ABC):
 
         Only supported for k8s deployers. Compose deployers raise an error.
         """
-        raise DeployerException(
-            "prepare is only supported for k8s deployments"
-        )
+        raise DeployerException("prepare is only supported for k8s deployments")
 
 
 class DeployerException(Exception):

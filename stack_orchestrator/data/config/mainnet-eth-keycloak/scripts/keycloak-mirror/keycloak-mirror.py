@@ -2,12 +2,11 @@
 
 import argparse
 import os
+import random
 import sys
+from subprocess import Popen
 
 import psycopg
-import random
-
-from subprocess import Popen
 from fabric import Connection
 
 
@@ -27,27 +26,19 @@ def dump_src_db_to_file(db_host, db_port, db_user, db_password, db_name, file_na
 def establish_ssh_tunnel(ssh_host, ssh_port, ssh_user, db_host, db_port):
     local_port = random.randint(11000, 12000)
     conn = Connection(host=ssh_host, port=ssh_port, user=ssh_user)
-    fw = conn.forward_local(
-        local_port=local_port, remote_port=db_port, remote_host=db_host
-    )
+    fw = conn.forward_local(local_port=local_port, remote_port=db_port, remote_host=db_host)
     return conn, fw, local_port
 
 
 def load_db_from_file(db_host, db_port, db_user, db_password, db_name, file_name):
-    connstr = "host=%s port=%s user=%s password=%s sslmode=disable dbname=%s" % (
-        db_host,
-        db_port,
-        db_user,
-        db_password,
-        db_name,
-    )
+    connstr = f"host={db_host} port={db_port} user={db_user} password={db_password} sslmode=disable dbname={db_name}"
     with psycopg.connect(connstr) as conn:
         with conn.cursor() as cur:
             print(
                 f"Importing from {file_name} to {db_host}:{db_port}/{db_name}... ",
                 end="",
             )
-            cur.execute(open(file_name, "rt").read())
+            cur.execute(open(file_name).read())
             print("DONE")
 
 
@@ -60,9 +51,7 @@ if __name__ == "__main__":
     parser.add_argument("--src-dbpw", help="DB password", required=True)
     parser.add_argument("--src-dbname", help="dbname", default="keycloak")
 
-    parser.add_argument(
-        "--dst-file", help="Destination filename", default="keycloak-mirror.sql"
-    )
+    parser.add_argument("--dst-file", help="Destination filename", default="keycloak-mirror.sql")
 
     parser.add_argument("--live-import", help="run the import", action="store_true")
 

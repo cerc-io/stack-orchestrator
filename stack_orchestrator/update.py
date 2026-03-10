@@ -13,16 +13,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-import click
 import datetime
 import filecmp
 import os
-from pathlib import Path
-import requests
-import sys
-import stat
 import shutil
+import stat
+import sys
+from pathlib import Path
+
+import click
+import requests
 import validators
+
 from stack_orchestrator.util import get_yaml
 
 
@@ -40,9 +42,7 @@ def _error_exit(s: str):
 
 # Note at present this probably won't work on non-Unix based OSes like Windows
 @click.command()
-@click.option(
-    "--check-only", is_flag=True, default=False, help="only check, don't update"
-)
+@click.option("--check-only", is_flag=True, default=False, help="only check, don't update")
 @click.pass_context
 def command(ctx, check_only):
     """update shiv binary from a distribution url"""
@@ -52,7 +52,7 @@ def command(ctx, check_only):
     if not config_file_path.exists():
         _error_exit(f"Error: Config file: {config_file_path} not found")
     yaml = get_yaml()
-    config = yaml.load(open(config_file_path, "r"))
+    config = yaml.load(open(config_file_path))
     if "distribution-url" not in config:
         _error_exit(f"Error: {config_key} not defined in {config_file_path}")
     distribution_url = config[config_key]
@@ -61,9 +61,7 @@ def command(ctx, check_only):
         _error_exit(f"ERROR: distribution url: {distribution_url} is not valid")
     # Figure out the filename for ourselves
     shiv_binary_path = Path(sys.argv[0])
-    timestamp_filename = (
-        f"laconic-so-download-{datetime.datetime.now().strftime('%y%m%d-%H%M%S')}"
-    )
+    timestamp_filename = f"laconic-so-download-{datetime.datetime.now().strftime('%y%m%d-%H%M%S')}"
     temp_download_path = shiv_binary_path.parent.joinpath(timestamp_filename)
     # Download the file to a temp filename
     if ctx.obj.verbose:

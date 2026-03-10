@@ -13,28 +13,24 @@
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
 import base64
-import click
 import sys
-import yaml
-
 from urllib.parse import urlparse
+
+import click
+import yaml
 
 from stack_orchestrator.deploy.webapp.util import LaconicRegistryClient
 
 
 @click.command()
-@click.option(
-    "--laconic-config", help="Provide a config file for laconicd", required=True
-)
+@click.option("--laconic-config", help="Provide a config file for laconicd", required=True)
 @click.option("--api-url", help="The API URL of the deployer.", required=True)
 @click.option(
     "--public-key-file",
     help="The public key to use.  This should be a binary file.",
     required=True,
 )
-@click.option(
-    "--lrn", help="eg, lrn://laconic/deployers/my.deployer.name", required=True
-)
+@click.option("--lrn", help="eg, lrn://laconic/deployers/my.deployer.name", required=True)
 @click.option(
     "--payment-address",
     help="The address to which payments should be made.  "
@@ -84,9 +80,7 @@ def command(  # noqa: C901
     }
 
     if min_required_payment:
-        webapp_deployer_record["record"][
-            "minimumPayment"
-        ] = f"{min_required_payment}alnt"
+        webapp_deployer_record["record"]["minimumPayment"] = f"{min_required_payment}alnt"
 
     if dry_run:
         yaml.dump(webapp_deployer_record, sys.stdout)

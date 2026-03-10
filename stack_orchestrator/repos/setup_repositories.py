@@ -16,20 +16,22 @@
 # env vars:
 # CERC_REPO_BASE_DIR defaults to ~/cerc
 
+import importlib.resources
 import os
 import sys
-from decouple import config
-import git
-from git.exc import GitCommandError, InvalidGitRepositoryError
 from typing import Any
-from tqdm import tqdm
+
 import click
-import importlib.resources
+import git
+from decouple import config
+from git.exc import GitCommandError, InvalidGitRepositoryError
+from tqdm import tqdm
+
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (
+    error_exit,
     get_parsed_stack_config,
     include_exclude_check,
-    error_exit,
     warn_exit,
 )
 
@@ -86,48 +88,38 @@ def _get_repo_current_branch_or_tag(full_filesystem_repo_path):
     current_repo_branch_or_tag = "***UNDETERMINED***"
     is_branch = False
     try:
-        current_repo_branch_or_tag = git.Repo(
-            full_filesystem_repo_path
-        ).active_branch.name
+        current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).active_branch.name
         is_branch = True
     except TypeError:
         # This means that the current ref is not a branch, so possibly a tag
         # Let's try to get the tag
         try:
-            current_repo_branch_or_tag = git.Repo(
-                full_filesystem_repo_path
-            ).git.describe("--tags", "--exact-match")
+            current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).git.describe(
+                "--tags", "--exact-match"
+            )
             # Note that git is asymmetric -- the tag you told it to check out
             # may not be the one you get back here (if there are multiple tags
             # associated with the same commit)
         except GitCommandError:
             # If there is no matching branch or tag checked out, just use the current
             # SHA
-            current_repo_branch_or_tag = (
-                git.Repo(full_filesystem_repo_path).commit("HEAD").hexsha
-            )
+            current_repo_branch_or_tag = git.Repo(full_filesystem_repo_path).commit("HEAD").hexsha
     return current_repo_branch_or_tag, is_branch
 
 
 # TODO: fix the messy arg list here
-def process_repo(
-    pull, check_only, git_ssh, dev_root_path, branches_array, fully_qualified_repo
-):
+def process_repo(pull, check_only, git_ssh, dev_root_path, branches_array, fully_qualified_repo):
     if opts.o.verbose:
         print(f"Processing repo: {fully_qualified_repo}")
     repo_host, repo_path, repo_branch = host_and_path_for_repo(fully_qualified_repo)
     git_ssh_prefix = f"git@{repo_host}:"
     git_http_prefix = f"https://{repo_host}/"
-    full_github_repo_path = (
-        f"{git_ssh_prefix if git_ssh else git_http_prefix}{repo_path}"
-    )
+    full_github_repo_path = f"{git_ssh_prefix if git_ssh else git_http_prefix}{repo_path}"
     repoName = repo_path.split("/")[-1]
     full_filesystem_repo_path = os.path.join(dev_root_path, repoName)
     is_present = os.path.isdir(full_filesystem_repo_path)
     (current_repo_branch_or_tag, is_branch) = (
-        _get_repo_current_branch_or_tag(full_filesystem_repo_path)
-        if is_present
-        else (None, None)
+        _get_repo_current_branch_or_tag(full_filesystem_repo_path) if is_present else (None, None)
     )
     if not opts.o.quiet:
         present_text = (
@@ -140,10 +132,7 @@ def process_repo(
     # Quick check that it's actually a repo
     if is_present:
         if not is_git_repo(full_filesystem_repo_path):
-            print(
-                f"Error: {full_filesystem_repo_path} does not contain "
-                "a valid git repository"
-            )
+            print(f"Error: {full_filesystem_repo_path} does not contain " "a valid git repository")
             sys.exit(1)
         else:
             if pull:
@@ -190,8 +179,7 @@ def process_repo(
 
     if branch_to_checkout:
         if current_repo_branch_or_tag is None or (
-            current_repo_branch_or_tag
-            and (current_repo_branch_or_tag != branch_to_checkout)
+            current_repo_branch_or_tag and (current_repo_branch_or_tag != branch_to_checkout)
         ):
             if not opts.o.quiet:
                 print(f"switching to branch {branch_to_checkout} in repo {repo_path}")
@@ -245,14 +233,9 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches):
 
     if local_stack:
         dev_root_path = os.getcwd()[0 : os.getcwd().rindex("stack-orchestrator")]
-        print(
-            f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: "
-            f"{dev_root_path}"
-        )
+        print(f"Local stack dev_root_path (CERC_REPO_BASE_DIR) overridden to: " f"{dev_root_path}")
     else:
-        dev_root_path = os.path.expanduser(
-            str(config("CERC_REPO_BASE_DIR", default="~/cerc"))
-        )
+        dev_root_path = os.path.expanduser(str(config("CERC_REPO_BASE_DIR", default="~/cerc")))
 
     if not quiet:
         print(f"Dev Root is: {dev_root_path}")
@@ -265,9 +248,7 @@ def command(ctx, include, exclude, git_ssh, check_only, pull, branches):
     # See: https://stackoverflow.com/a/20885799/1701505
     from stack_orchestrator import data
 
-    with importlib.resources.open_text(
-        data, "repository-list.txt"
-    ) as repository_list_file:
+    with importlib.resources.open_text(data, "repository-list.txt") as repository_list_file:
         all_repos = repository_list_file.read().splitlines()
 
     repos_in_scope = []

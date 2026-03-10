@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
-from pathlib import Path
 import typing
+from pathlib import Path
+
 from stack_orchestrator.util import get_yaml
 
 
@@ -26,4 +27,4 @@ class Stack:
         self.name = name
 
     def init_from_file(self, file_path: Path):
-        self.obj = get_yaml().load(open(file_path, "r"))
+        self.obj = get_yaml().load(open(file_path))

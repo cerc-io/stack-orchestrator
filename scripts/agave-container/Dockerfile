@@ -62,7 +62,7 @@ RUN useradd -m -s /bin/bash agave \
 COPY --from=builder /solana-release/bin/ /usr/local/bin/
 
 # Copy entrypoint and support scripts
-COPY entrypoint.py snapshot_download.py /usr/local/bin/
+COPY entrypoint.py snapshot_download.py ip_echo_preflight.py /usr/local/bin/
 COPY start-test.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.py /usr/local/bin/start-test.sh
 

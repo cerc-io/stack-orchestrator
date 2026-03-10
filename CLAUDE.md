@@ -1,221 +1,121 @@
-# Biscayne Agave Runbook
+# CLAUDE.md
 
-## Deployment Layers
+This file provides guidance to Claude Code when working with the stack-orchestrator project.
 
-Operations on biscayne follow a strict layering. Each layer assumes the layers
-below it are correct. Playbooks belong to exactly one layer.
+## Some rules to follow
+NEVER speculate about the cause of something
+NEVER assume your hypotheses are true without evidence
 
-| Layer | What | Playbooks |
-|-------|------|-----------|
-| 1. Base system | Docker, ZFS, packages | Out of scope (manual/PXE) |
-| 2. Prepare kind | `/srv/kind` exists (ZFS dataset) | None needed (ZFS handles it) |
-| 3. Install kind | `laconic-so deployment start` creates kind cluster, mounts `/srv/kind` → `/mnt` in kind node | `biscayne-redeploy.yml` (deploy tags) |
-| 4. Prepare agave | Host storage for agave: ZFS dataset, ramdisk | `biscayne-prepare-agave.yml` |
-| 5. Deploy agave | Deploy agave-stack into kind, snapshot download, scale up | `biscayne-redeploy.yml` (snapshot/verify tags), `biscayne-recover.yml` |
+ALWAYS clearly state when something is a hypothesis
+ALWAYS use evidence from the systems your interacting with to support your claims and hypotheses
+ALWAYS run `pre-commit run --all-files` before committing changes
 
-**Layer 4 invariants** (asserted by `biscayne-prepare-agave.yml`):
-- `/srv/kind/solana` is a ZFS dataset (`biscayne/DATA/srv/kind/solana`), child of the `/srv/kind` dataset
-- `/srv/kind/solana/ramdisk` is tmpfs (1TB) — accounts must be in RAM
-- `/srv/solana` is NOT the data path — it's a directory on the parent ZFS dataset. All data paths use `/srv/kind/solana`
+## Key Principles
 
-These invariants are checked at runtime and persisted to fstab/systemd so they
-survive reboot.
+### Development Guidelines
+- **Single responsibility** - Each component has one clear purpose
+- **Fail fast** - Let errors propagate, don't hide failures
+- **DRY/KISS** - Minimize duplication and complexity
 
-**Cross-cutting**: `health-check.yml` (read-only diagnostics), `biscayne-stop.yml`
-(layer 5 — graceful shutdown), `fix-pv-mounts.yml` (layer 5 — PV repair).
+## Development Philosophy: Conversational Literate Programming
 
-## Cluster Operations
+### Approach
+This project follows principles inspired by literate programming, where development happens through explanatory conversation rather than code-first implementation.
 
-### Shutdown Order
+### Core Principles
+- **Documentation-First**: All changes begin with discussion of intent and reasoning
+- **Narrative-Driven**: Complex systems are explained through conversational exploration
+- **Justification Required**: Every coding task must have a corresponding TODO.md item explaining the "why"
+- **Iterative Understanding**: Architecture and implementation evolve through dialogue
 
-The agave validator runs inside a kind-based k8s cluster managed by `laconic-so`.
-The kind node is a Docker container. **Never restart or kill the kind node container
-while the validator is running.** Use `agave-validator exit --force` via the admin
-RPC socket for graceful shutdown, or scale the deployment to 0 and wait.
+### Working Method
+1. **Explore and Understand**: Read existing code to understand current state
+2. **Discuss Architecture**: Workshop complex design decisions through conversation
+3. **Document Intent**: Update TODO.md with clear justification before coding
+4. **Explain Changes**: Each modification includes reasoning and context
+5. **Maintain Narrative**: Conversations serve as living documentation of design evolution
 
-Correct shutdown sequence:
+### Implementation Guidelines
+- Treat conversations as primary documentation
+- Explain architectural decisions before implementing
+- Use TODO.md as the "literate document" that justifies all work
+- Maintain clear narrative threads across sessions
+- Workshop complex ideas before coding
 
-1. Scale the deployment to 0 and wait for the pod to terminate:
-   ```
-   kubectl scale deployment laconic-70ce4c4b47e23b85-deployment \
-     -n laconic-laconic-70ce4c4b47e23b85 --replicas=0
-   kubectl wait --for=delete pod -l app=laconic-70ce4c4b47e23b85-deployment \
-     -n laconic-laconic-70ce4c4b47e23b85 --timeout=120s
-   ```
-2. Only then restart the kind node if needed:
-   ```
-   docker restart laconic-70ce4c4b47e23b85-control-plane
-   ```
-3. Scale back up:
-   ```
-   kubectl scale deployment laconic-70ce4c4b47e23b85-deployment \
-     -n laconic-laconic-70ce4c4b47e23b85 --replicas=1
-   ```
+This approach treats the human-AI collaboration as a form of **conversational literate programming** where understanding emerges through dialogue before code implementation.
 
-### Ramdisk
+## External Stacks Preferred
 
-The accounts directory must be in RAM for performance. tmpfs is used instead of
-`/dev/ram0` — simpler (no format-on-boot service needed), resizable on the fly
-with `mount -o remount,size=<new>`, and what most Solana operators use.
+When creating new stacks for any reason, **use the external stack pattern** rather than adding stacks directly to this repository.
 
-**Boot ordering**: `/srv/kind/solana` is a ZFS dataset mounted automatically by
-`zfs-mount.service`. The tmpfs ramdisk fstab entry uses
-`x-systemd.requires=zfs-mount.service` to ensure the dataset is mounted first.
-**No manual intervention after reboot.**
+External stacks follow this structure:
 
-**Mount propagation**: The kind node bind-mounts `/srv/kind` → `/mnt` at container
-start. laconic-so sets `propagation: HostToContainer` on all kind extraMounts
-(commit `a11d40f2` in stack-orchestrator), so host submounts propagate into the
-kind node automatically. A kind restart is required to pick up the new config
-after updating laconic-so.
-
-### KUBECONFIG
-
-kubectl must be told where the kubeconfig is when running as root or via ansible:
 ```
-KUBECONFIG=/home/rix/.kube/config kubectl ...
+my-stack/
+└── stack-orchestrator/
+    ├── stacks/
+    │   └── my-stack/
+    │       ├── stack.yml
+    │       └── README.md
+    ├── compose/
+    │   └── docker-compose-my-stack.yml
+    └── config/
+        └── my-stack/
+            └── (config files)
 ```
 
-The ansible playbooks set `environment: KUBECONFIG: /home/rix/.kube/config`.
+### Usage
 
-### SSH Agent
+```bash
+# Fetch external stack
+laconic-so fetch-stack github.com/org/my-stack
 
-SSH to biscayne goes through a ProxyCommand jump host (abernathy.ch2.vaasl.io).
-The SSH agent socket rotates when the user reconnects. Find the current one:
-```
-ls -t /tmp/ssh-*/agent.* | head -1
-```
-Then export it:
-```
-export SSH_AUTH_SOCK=/tmp/ssh-XXXX/agent.NNNN
-```
-
-### io_uring/ZFS Deadlock — Historical Note
-
-Agave uses io_uring for async I/O. Killing agave ungracefully while it has
-outstanding I/O against ZFS can produce unkillable D-state kernel threads
-(`io_wq_put_and_exit` blocked on ZFS transactions), deadlocking the container.
-
-**Prevention**: Use graceful shutdown (`agave-validator exit --force` via admin
-RPC, or scale to 0 and wait). The `biscayne-stop.yml` playbook enforces this.
-With graceful shutdown, io_uring contexts are closed cleanly and ZFS storage
-is safe to use directly (no zvol/XFS workaround needed).
-
-**ZFS fix**: The underlying io_uring bug is fixed in ZFS 2.2.8+ (PR #17298).
-Biscayne currently runs ZFS 2.2.2. Upgrading ZFS will eliminate the deadlock
-risk entirely, even for ungraceful shutdowns.
-
-### laconic-so Architecture
-
-`laconic-so` manages kind clusters atomically — `deployment start` creates the
-kind cluster, namespace, PVs, PVCs, and deployment in one shot. There is no way
-to create the cluster without deploying the pod.
-
-Key code paths in stack-orchestrator:
-- `deploy_k8s.py:up()` — creates everything atomically
-- `cluster_info.py:get_pvs()` — translates host paths using `kind-mount-root`
-- `helpers_k8s.py:get_kind_pv_bind_mount_path()` — strips `kind-mount-root`
-  prefix and prepends `/mnt/`
-- `helpers_k8s.py:_generate_kind_mounts()` — when `kind-mount-root` is set,
-  emits a single `/srv/kind` → `/mnt` mount instead of individual mounts
-
-The `kind-mount-root: /srv/kind` setting in `spec.yml` means all data volumes
-whose host paths start with `/srv/kind` get translated to `/mnt/...` inside the
-kind node via a single bind mount.
-
-### Key Identifiers
-
-- Kind cluster: `laconic-70ce4c4b47e23b85`
-- Namespace: `laconic-laconic-70ce4c4b47e23b85`
-- Deployment: `laconic-70ce4c4b47e23b85-deployment`
-- Kind node container: `laconic-70ce4c4b47e23b85-control-plane`
-- Deployment dir: `/srv/deployments/agave`
-- Snapshot dir: `/srv/kind/solana/snapshots` (ZFS dataset, visible to kind at `/mnt/validator-snapshots`)
-- Ledger dir: `/srv/kind/solana/ledger` (ZFS dataset, visible to kind at `/mnt/validator-ledger`)
-- Accounts dir: `/srv/kind/solana/ramdisk/accounts` (tmpfs ramdisk, visible to kind at `/mnt/validator-accounts`)
-- Log dir: `/srv/kind/solana/log` (ZFS dataset, visible to kind at `/mnt/validator-log`)
-- **WARNING**: `/srv/solana` is a different ZFS dataset directory. All data paths use `/srv/kind/solana`.
-- Host bind mount root: `/srv/kind` -> kind node `/mnt`
-- laconic-so: `/home/rix/.local/bin/laconic-so` (editable install)
-
-### PV Mount Paths (inside kind node)
-
-| PV Name              | hostPath                      |
-|----------------------|-------------------------------|
-| validator-snapshots  | /mnt/validator-snapshots      |
-| validator-ledger     | /mnt/validator-ledger         |
-| validator-accounts   | /mnt/validator-accounts       |
-| validator-log        | /mnt/validator-log            |
-
-### Snapshot Freshness
-
-If the snapshot is more than **20,000 slots behind** the current mainnet tip, it is
-too old. Stop the validator, download a fresh snapshot, and restart. Do NOT let it
-try to catch up from an old snapshot — it will take too long and may never converge.
-
-Check with:
-```
-# Snapshot slot (from filename)
-ls /srv/kind/solana/snapshots/snapshot-*.tar.*
-
-# Current mainnet slot
-curl -s -X POST -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"getSlot","params":[{"commitment":"finalized"}]}' \
-  https://api.mainnet-beta.solana.com
+# Use external stack
+STACK_PATH=~/cerc/my-stack/stack-orchestrator/stacks/my-stack
+laconic-so --stack $STACK_PATH deploy init --output spec.yml
+laconic-so --stack $STACK_PATH deploy create --spec-file spec.yml --deployment-dir deployment
+laconic-so deployment --dir deployment start
 ```
 
-### Snapshot Leapfrog Recovery
+### Examples
 
-When the validator is stuck in a repair-dependent gap (incomplete shreds from a
-relay outage or insufficient turbine coverage), "grinding through" doesn't work.
-At 0.4 slots/sec replay through incomplete blocks vs 2.5 slots/sec chain
-production, the gap grows faster than it shrinks.
+- `zenith-karma-stack` - Karma watcher deployment
+- `urbit-stack` - Fake Urbit ship for testing
+- `zenith-desk-stack` - Desk deployment stack
 
-**Strategy**: Download a fresh snapshot whose slot lands *past* the incomplete zone,
-into the range where turbine+relay shreds are accumulating in the blockstore.
-**Keep the existing ledger** — it has those shreds. The validator replays from
-local blockstore data instead of waiting on repair.
+## Architecture: k8s-kind Deployments
 
-**Steps**:
-1. Let the validator run — turbine+relay accumulate shreds at the tip
-2. Monitor shred completeness at the tip:
-   `scripts/check-shred-completeness.sh 500`
-3. When there's a contiguous run of complete blocks (>100 slots), note the
-   starting slot of that run
-4. Scale to 0, wipe accounts (ramdisk), wipe old snapshots
-5. **Do NOT wipe ledger** — it has the turbine shreds
-6. Download a fresh snapshot (its slot should be within the complete run)
-7. Scale to 1 — validator replays from local blockstore at 3-5 slots/sec
+### One Cluster Per Host
+One Kind cluster per host by design. Never request or expect separate clusters.
 
-**Why this works**: Turbine delivers ~60% of shreds in real-time. Repair fills
-the rest for recent slots quickly (peers prioritize recent data). The only
-problem is repair for *old* slots (minutes/hours behind) which peers deprioritize.
-By snapshotting past the gap, we skip the old-slot repair bottleneck entirely.
+- `create_cluster()` in `helpers.py` reuses any existing cluster
+- `cluster-id` in deployment.yml is an identifier, not a cluster request
+- All deployments share: ingress controller, etcd, certificates
 
-### Shred Relay (Ashburn)
+### Stack Resolution
+- External stacks detected via `Path(stack).exists()` in `util.py`
+- Config/compose resolution: external path first, then internal fallback
+- External path structure: `stack_orchestrator/data/stacks/<name>/stack.yml`
 
-The TVU shred relay from laconic-was-sw01 provides ~4,000 additional shreds/sec.
-Without it, turbine alone delivers ~60% of blocks. With it, completeness improves
-but still requires repair for full coverage.
+### Secret Generation Implementation
+- `GENERATE_TOKEN_PATTERN` in `deployment_create.py` matches `$generate:type:length$`
+- `_generate_and_store_secrets()` creates K8s Secret
+- `cluster_info.py` adds `envFrom` with `secretRef` to containers
+- Non-secret config written to `config.env`
 
-**Current state**: Old pipeline (monitor session + socat + shred-unwrap.py).
-The traffic-policy redirect was never committed (auto-revert after 5 min timer).
-See `docs/tvu-shred-relay.md` for the traffic-policy config that needs to be
-properly applied.
+### Repository Cloning
+`setup-repositories --git-ssh` clones repos defined in stack.yml's `repos:` field. Requires SSH agent.
 
-**Boot dependency**: `shred-unwrap.py` must be running on biscayne for the old
-pipeline to work. It is NOT persistent across reboots. The iptables DNAT rule
-for the new pipeline IS persistent (iptables-persistent installed).
+### Key Files (for codebase navigation)
+- `repos/setup_repositories.py`: `setup-repositories` command (git clone)
+- `deployment_create.py`: `deploy create` command, secret generation
+- `deployment.py`: `deployment start/stop/restart` commands
+- `deploy_k8s.py`: K8s deployer, cluster management calls
+- `helpers.py`: `create_cluster()`, etcd cleanup, kind operations
+- `cluster_info.py`: K8s resource generation (Deployment, Service, Ingress)
 
-### Redeploy Flow
+## Insights and Observations
 
-See `playbooks/biscayne-redeploy.yml`. The scale-to-0 pattern is required because
-`laconic-so` creates the cluster and deploys the pod atomically:
-
-1. Delete namespace (teardown)
-2. Optionally wipe data
-3. `laconic-so deployment start` (creates cluster + pod)
-4. Immediately scale to 0
-5. Download snapshot via aria2c
-6. Scale to 1
-7. Verify
+### Design Principles
+- **When something times out that doesn't mean it needs a longer timeout it means something that was expected never happened, not that we need to wait longer for it.**
+- **NEVER change a timeout because you believe something truncated, you don't understand timeouts, don't edit them unless told to explicitly by user.**

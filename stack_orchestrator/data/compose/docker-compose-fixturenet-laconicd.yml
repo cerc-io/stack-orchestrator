@@ -1,0 +1,33 @@
+services:
+  laconicd:
+    restart: unless-stopped
+    image: cerc/laconicd:local
+    command: ["bash", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
+    environment:
+      TEST_AUCTION_ENABLED: ${TEST_AUCTION_ENABLED:-false}
+      TEST_REGISTRY_EXPIRY: ${TEST_REGISTRY_EXPIRY:-false}
+      ONBOARDING_ENABLED: ${ONBOARDING_ENABLED:-false}
+    volumes:
+      # The cosmos-sdk node's database directory:
+      - laconicd-data:/root/.laconicd
+      # TODO: look at folding these scripts into the container
+      - ../config/fixturenet-laconicd/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
+      - ../config/fixturenet-laconicd/export-mykey.sh:/docker-entrypoint-scripts.d/export-mykey.sh
+      - ../config/fixturenet-laconicd/export-myaddress.sh:/docker-entrypoint-scripts.d/export-myaddress.sh
+    # TODO: determine which of the ports below is really needed
+    ports:
+      - "6060"
+      - "26657"
+      - "26656"
+      - "9473"
+      - "9090"
+      - "1317"
+
+  cli:
+    image: cerc/laconic-registry-cli:local
+    volumes:
+      - ../config/fixturenet-laconicd/registry-cli-config-template.yml:/registry-cli-config-template.yml
+      - ${BASE_DIR:-~/cerc}/laconic-registry-cli:/laconic-registry-cli
+
+volumes:
+  laconicd-data:

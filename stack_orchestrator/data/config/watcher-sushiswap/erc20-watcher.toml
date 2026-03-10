@@ -1,0 +1,39 @@
+[server]
+  host = "0.0.0.0"
+  port = 3001
+  mode = "eth_call"
+  kind = "lazy"
+
+[metrics]
+  host = "127.0.0.1"
+  port = 9000
+    [metrics.gql]
+    port = 9001
+
+[database]
+  type = "postgres"
+  host = "sushiswap-watcher-db"
+  port = 5432
+  database = "erc20-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+  maxQueryExecutionTime = 100
+
+[upstream]
+  [upstream.ethServer]
+    rpcProviderEndpoint = "http://lotus-node-1:1234/rpc/v1"
+    rpcClient = true
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@sushiswap-watcher-db:5432/erc20-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 100
+  eventsInBatch = 50
+  blockDelayInMilliSecs = 2000

@@ -1,0 +1,24 @@
+version: "3.2"
+
+# See: https://docs.ipfs.tech/install/run-ipfs-inside-docker/#set-up
+services:
+  ipfs:
+    image: ipfs/kubo:v0.24.0
+    restart: always
+    volumes:
+      - ipfs-import:/import
+      - ipfs-data:/data/ipfs
+    ports:
+      - "4001"
+      - "8080"
+      - "0.0.0.0:5001:5001"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5001"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+volumes:
+  ipfs-import:
+  ipfs-data:

@@ -1,0 +1,18 @@
+version: "3.2"
+services:
+  pocket:
+    restart: unless-stopped
+    image: cerc/pocket:local
+    # command: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
+    entrypoint: ["sh", "/docker-entrypoint-scripts.d/create-fixturenet.sh"]
+    volumes:
+      # TODO: look at folding these scripts into the container
+      - ../config/fixturenet-pocket/create-fixturenet.sh:/docker-entrypoint-scripts.d/create-fixturenet.sh
+      - ../config/fixturenet-pocket/chains.json:/home/app/pocket-configs/chains.json
+      - ../config/fixturenet-pocket/genesis.json:/home/app/pocket-configs/genesis.json
+    ports:
+      - "8081:8081" # pocket relay rpc
+networks:
+  net1:
+    name: fixturenet-eth_default
+    external: true

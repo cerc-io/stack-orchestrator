@@ -1,0 +1,41 @@
+[server]
+  host = "0.0.0.0"
+  port = 3003
+  kind = "active"
+
+[metrics]
+  host = "0.0.0.0"
+  port = 9000
+  [metrics.gql]
+    port = 9001
+
+[database]
+  type = "postgres"
+  host = "uniswap-watcher-db"
+  port = 5432
+  database = "uni-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+  maxQueryExecutionTime = 100
+
+[upstream]
+  [upstream.ethServer]
+    gqlApiEndpoint = "http://ipld-eth-server.example.com:8083/graphql"
+    rpcProviderEndpoint = "http://ipld-eth-server.example.com:8082"
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@uniswap-watcher-db:5432/uni-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 0
+  eventsInBatch = 50
+  lazyUpdateBlockProgress = true
+  blockDelayInMilliSecs = 2000
+  prefetchBlocksInMem = true
+  prefetchBlockCount = 10

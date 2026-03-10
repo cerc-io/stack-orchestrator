@@ -1,0 +1,14 @@
+# https://www.clever-cloud.com/blog/features/2021/12/03/slack-alerts-for-grafana/
+
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: SlackNotifier
+    receivers:
+      - uid: a71b06e3-58b6-41fe-af65-fbbb29653951
+        type: slack
+        settings:
+          # Slack hook URL (see https://api.slack.com/messaging/webhooks)
+          url: <YOUR_SLACK_HOOK_URL>
+        disableResolveMessage: false

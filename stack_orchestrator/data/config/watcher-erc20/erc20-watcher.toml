@@ -1,0 +1,41 @@
+[server]
+  host = "0.0.0.0"
+  port = 3001
+  mode = "storage"
+  kind = "lazy"
+
+[metrics]
+  host = "127.0.0.1"
+  port = 9000
+  [metrics.gql]
+    port = 9001
+
+[database]
+  type = "postgres"
+  host = "erc20-watcher-db"
+  port = 5432
+  database = "erc20-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+  maxQueryExecutionTime = 100
+
+[upstream]
+  [upstream.ethServer]
+    gqlApiEndpoint = "http://ipld-eth-server:8082/graphql"
+    rpcProviderEndpoint = "http://ipld-eth-server:8081"
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@erc20-watcher-db:5432/erc20-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 100
+  eventsInBatch = 50
+  blockDelayInMilliSecs = 2000
+  prefetchBlocksInMem = true
+  prefetchBlockCount = 10

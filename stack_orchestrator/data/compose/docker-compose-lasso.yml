@@ -1,0 +1,8 @@
+version: "3.2"
+
+services:
+  lasso:
+    image: cerc/lasso:local
+    restart: always
+    ports:
+      - "0.0.0.0:3000:3000"

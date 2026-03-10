@@ -1,0 +1,64 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: subgraph
+    folder: SubgraphAlerts
+    interval: 30s
+    rules:
+      - uid: b2a9144b-6104-46fc-92b5-352f4e643c4c
+        title: subgraph_head_tracking
+        condition: condition
+        data:
+          - refId: diff
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              datasource:
+                  type: prometheus
+                  uid: PBFA97CFB590B2093
+              editorMode: code
+              expr: ethereum_chain_head_number - on(network) group_right deployment_head{deployment=~"REPLACE_WITH_SUBGRAPH_IDS"}
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: diff
+          - refId: condition
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                  - evaluator:
+                      params:
+                          - 15
+                          - 0
+                      type: gt
+                    operator:
+                      type: and
+                    query:
+                      params: []
+                    reducer:
+                      params: []
+                      type: avg
+                    type: query
+              datasource:
+                  name: Expression
+                  type: __expr__
+                  uid: __expr__
+              expression: diff
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: condition
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: Subgraph deployment {{ index $labels "deployment" }} is falling behind head by {{ index $values "diff" }}
+        labels: {}
+        isPaused: false

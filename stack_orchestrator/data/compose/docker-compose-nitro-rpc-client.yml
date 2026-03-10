@@ -1,0 +1,7 @@
+version: '3.7'
+services:
+    nitro-rpc-client:
+      image: cerc/nitro-rpc-client:local
+      hostname: nitro-rpc-client
+      restart: on-failure
+      command: ["bash", "-c", "tail -f /dev/null"]

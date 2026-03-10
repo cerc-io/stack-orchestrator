@@ -1,0 +1,16 @@
+version: "1.0"
+name: sushiswap-subgraph
+description: "SushiSwap Subgraph stack"
+repos:
+  # graph-node repo
+  - github.com/graphprotocol/graph-node
+  # sushiswap subgraph repo
+  - github.com/sushiswap/subgraphs
+containers:
+  # graph-node image
+  - cerc/graph-node
+  # sushiswap subgraphs image
+  - cerc/sushiswap-subgraphs
+pods:
+  - graph-node
+  - sushiswap-subgraph-v3

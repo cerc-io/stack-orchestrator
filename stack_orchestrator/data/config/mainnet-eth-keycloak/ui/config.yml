@@ -1,0 +1,4 @@
+web:
+  path: ''
+api:
+  url: 'http://keycloak-reg-api:9292'

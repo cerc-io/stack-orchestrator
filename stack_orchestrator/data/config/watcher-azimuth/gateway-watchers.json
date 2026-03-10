@@ -1,0 +1,34 @@
+[
+  {
+    "endpoint": "http://azimuth-watcher-server:3001/graphql",
+    "prefix": "azimuth"
+  },
+  {
+    "endpoint": "http://censures-watcher-server:3002/graphql",
+    "prefix": "censures"
+  },
+  {
+    "endpoint": "http://claims-watcher-server:3003/graphql",
+    "prefix": "claims"
+  },
+  {
+    "endpoint": "http://conditional-star-release-watcher-server:3004/graphql",
+    "prefix": "conditionalStarRelease"
+  },
+  {
+    "endpoint": "http://delegated-sending-watcher-server:3005/graphql",
+    "prefix": "delegatedSending"
+  },
+  {
+    "endpoint": "http://ecliptic-watcher-server:3006/graphql",
+    "prefix": "ecliptic"
+  },
+  {
+    "endpoint": "http://linear-star-release-watcher-server:3007/graphql",
+    "prefix": "linearStarRelease"
+  },
+  {
+    "endpoint": "http://polls-watcher-server:3008/graphql",
+    "prefix": "polls"
+  }
+]

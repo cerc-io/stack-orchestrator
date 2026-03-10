@@ -1,0 +1,27 @@
+version: "1.0"
+name: fixturenet-eth-loaded
+description: "Loaded Ethereum Fixturenet"
+repos:
+  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
+  - git.vdb.to/cerc-io/tx-spammer
+  - git.vdb.to/cerc-io/ipld-eth-server@v1.11.6-statediff-v5
+  - git.vdb.to/cerc-io/ipld-eth-db@v5
+  - git.vdb.to/cerc-io/lighthouse
+containers:
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/fixturenet-eth-genesis
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/ipld-eth-server
+  - cerc/ipld-eth-db
+  - cerc/keycloak
+  - cerc/tx-spammer
+pods:
+  - fixturenet-eth
+  - tx-spammer
+  - fixturenet-eth-metrics
+  - keycloak
+  - ipld-eth-server
+  - ipld-eth-db

@@ -1,0 +1,21 @@
+version: '3.2'
+
+services:
+  # Deploys the sushiswap v3 subgraph
+  sushiswap-subgraph-v3:
+    image: cerc/sushiswap-subgraphs:local
+    restart: on-failure
+    depends_on:
+      graph-node:
+        condition: service_healthy
+    environment:
+      - APP=v3
+      - NETWORK=filecoin
+    command: ["bash", "-c", "./blocks/run-blocks.sh && ./v3/run-v3.sh"]
+    working_dir: /app/subgraphs
+    volumes:
+      - ../config/sushiswap-subgraph-v3/filecoin.js:/app/config/filecoin.js
+      - ../config/sushiswap-subgraph-v3/run-blocks.sh:/app/subgraphs/blocks/run-blocks.sh
+      - ../config/sushiswap-subgraph-v3/run-v3.sh:/app/subgraphs/v3/run-v3.sh
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -1,0 +1,29 @@
+version: "1.2"
+name: mainnet-eth
+description: "Ethereum Mainnet"
+repos:
+  - git.vdb.to/cerc-io/plugeth@statediff
+  - git.vdb.to/cerc-io/plugeth-statediff
+  - git.vdb.to/cerc-io/lighthouse
+  - git.vdb.to/cerc-io/ipld-eth-db@v5
+  - git.vdb.to/cerc-io/ipld-eth-server@v5
+  - git.vdb.to/cerc-io/keycloak-reg-api
+  - git.vdb.to/cerc-io/keycloak-reg-ui
+containers:
+  - cerc/plugeth-statediff
+  - cerc/plugeth
+  - cerc/plugeth-with-plugins
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/ipld-eth-db
+  - cerc/ipld-eth-server
+  - cerc/keycloak
+  - cerc/webapp-base
+  - cerc/keycloak-reg-api
+  - cerc/keycloak-reg-ui
+pods:
+  - mainnet-eth-plugeth
+  - mainnet-eth-ipld-eth-db
+  - mainnet-eth-ipld-eth-server
+  - mainnet-eth-keycloak
+  - mainnet-eth-metrics

@@ -1,0 +1,31 @@
+version: "3.2"
+
+services:
+  migrations:
+    restart: on-failure
+    depends_on:
+      ipld-eth-db:
+        condition: service_healthy
+    image: cerc/ipld-eth-db:local
+    environment:
+      DATABASE_USER: "vdbm"
+      DATABASE_NAME: "cerc_testing"
+      DATABASE_PASSWORD: "password"
+      DATABASE_HOSTNAME: "ipld-eth-db"
+      DATABASE_PORT: 5432
+
+  ipld-eth-db:
+    image: timescale/timescaledb:2.8.1-pg14
+    restart: always
+    environment:
+      POSTGRES_USER: "vdbm"
+      POSTGRES_DB: "cerc_testing"
+      POSTGRES_PASSWORD: "password"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+    ports:
+      - "127.0.0.1:8077:5432"

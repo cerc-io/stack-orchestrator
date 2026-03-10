@@ -1,0 +1,2 @@
+[profile.default]
+eth-rpc-url = "http://fixturenet-eth-geth-1:8545"

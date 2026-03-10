@@ -1,0 +1,187 @@
+version: '3.2'
+
+services:
+  sushiswap-watcher-db:
+    restart: unless-stopped
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=vdbm
+      - POSTGRES_MULTIPLE_DATABASES=erc20-watcher,sushi-watcher,sushi-info-watcher,erc20-watcher-job-queue,sushi-watcher-job-queue,sushi-info-watcher-job-queue
+      - POSTGRES_EXTENSION=erc20-watcher-job-queue:pgcrypto,sushi-watcher-job-queue:pgcrypto,sushi-info-watcher-job-queue:pgcrypto
+      - POSTGRES_PASSWORD=password
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "pg_stat_statements.track=all", "-c", "work_mem=2GB"]
+    volumes:
+      - ../config/postgresql/multiple-postgressql-databases.sh:/docker-entrypoint-initdb.d/multiple-postgressql-databases.sh
+      - ../config/postgresql/create-pg-stat-statements.sql:/docker-entrypoint-initdb.d/create-pg-stat-statements.sql
+      - sushiswap_watcher_db_data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:15435:5432"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "5432"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    shm_size: '8GB'
+
+  erc20-watcher-server:
+    restart: unless-stopped
+    depends_on:
+      sushiswap-watcher-db:
+        condition: service_healthy
+    image: cerc/watcher-sushiswap:local
+    working_dir: /app/packages/erc20-watcher
+    environment:
+      - DEBUG=vulcanize:*
+    command: ["node", "--enable-source-maps", "dist/server.js"]
+    volumes:
+      - ../config/watcher-sushiswap/erc20-watcher.toml:/app/packages/erc20-watcher/environments/local.toml
+    ports:
+      - "0.0.0.0:3005:3001"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3001"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  sushi-watcher-job-runner:
+    restart: unless-stopped
+    depends_on:
+      sushiswap-watcher-db:
+        condition: service_healthy
+      lotus-node-1:
+        condition: service_healthy
+    image: cerc/watcher-sushiswap:local
+    working_dir: /app/packages/uni-watcher
+    environment:
+      - DEBUG=vulcanize:*
+    command: ["node", "--enable-source-maps", "dist/job-runner.js"]
+    volumes:
+      - ../config/watcher-sushiswap/sushi-watcher.toml:/app/packages/uni-watcher/environments/local.toml
+      - ../config/watcher-sushiswap/sushi-watcher-test.toml:/app/packages/uni-watcher/environments/test.toml
+    ports:
+      - "0.0.0.0:9004:9000"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "9000"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  sushi-watcher-server:
+    restart: unless-stopped
+    depends_on:
+      sushiswap-watcher-db:
+        condition: service_healthy
+      sushi-watcher-job-runner:
+        condition: service_healthy
+    image: cerc/watcher-sushiswap:local
+    env_file:
+      - ../config/watcher-sushiswap/lotus-params.env
+    environment:
+      - DEBUG=vulcanize:*
+    working_dir: /app/packages/uni-watcher
+    command: ["node", "--enable-source-maps", "dist/server.js"]
+    volumes:
+      - ../config/watcher-sushiswap/sushi-watcher.toml:/app/packages/uni-watcher/environments/local.toml
+      - ../config/watcher-sushiswap/sushi-watcher-test.toml:/app/packages/uni-watcher/environments/test.toml
+    ports:
+      - "0.0.0.0:3003:3003"
+      - "0.0.0.0:9005:9001"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3003"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  sushi-info-watcher-job-runner:
+    restart: unless-stopped
+    depends_on:
+      sushiswap-watcher-db:
+        condition: service_healthy
+      erc20-watcher-server:
+        condition: service_healthy
+      lotus-node-1:
+        condition: service_healthy
+      sushi-watcher-server:
+        condition: service_healthy
+    image: cerc/watcher-sushiswap:local
+    working_dir: /app/packages/uni-info-watcher
+    environment:
+      - DEBUG=vulcanize:*
+    command: ["node", "--enable-source-maps", "dist/job-runner.js"]
+    volumes:
+      - ../config/watcher-sushiswap/sushi-info-watcher.toml:/app/packages/uni-info-watcher/environments/local.toml
+      - ../config/watcher-sushiswap/sushi-info-watcher-test.toml:/app/packages/uni-info-watcher/environments/test.toml
+    ports:
+      - "0.0.0.0:9006:9002"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "9002"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  sushi-info-watcher-server:
+    restart: unless-stopped
+    depends_on:
+      sushiswap-watcher-db:
+        condition: service_healthy
+      erc20-watcher-server:
+        condition: service_healthy
+      sushi-watcher-server:
+        condition: service_healthy
+      sushi-info-watcher-job-runner:
+        condition: service_healthy
+    image: cerc/watcher-sushiswap:local
+    env_file:
+      - ../config/watcher-sushiswap/lotus-params.env
+    working_dir: /app/packages/uni-info-watcher
+    command: ["node", "--enable-source-maps", "dist/server.js"]
+    volumes:
+      - ../config/watcher-sushiswap/sushi-info-watcher.toml:/app/packages/uni-info-watcher/environments/local.toml
+      - ../config/watcher-sushiswap/sushi-info-watcher-test.toml:/app/packages/uni-info-watcher/environments/test.toml
+    ports:
+      - "0.0.0.0:3004:3004"
+      - "0.0.0.0:9007:9003"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "3004"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  sushiswap-v3-info:
+    depends_on:
+      sushi-info-watcher-server:
+        condition: service_healthy
+    image: cerc/uniswap-v3-info:local
+    ports:
+      - "0.0.0.0:3006:3000"
+
+  # Deploys the core (UniswapV3Factory) contract
+  sushiswap-v3-core:
+    image: cerc/sushiswap-v3-core:local
+    env_file:
+      - ../config/watcher-sushiswap/lotus-params.env
+
+  # Deploys the periphery (NFPM, token, etc.) contracts
+  sushiswap-v3-periphery:
+    image: cerc/sushiswap-v3-periphery:local
+    env_file:
+      - ../config/watcher-sushiswap/lotus-params.env
+
+volumes:
+  sushiswap_watcher_db_data:

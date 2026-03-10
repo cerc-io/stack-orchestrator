@@ -1,0 +1,8 @@
+version: "0.1"
+name: mars-v2
+repos:
+  - github.com/mars-protocol/mars-v2-frontend
+containers:
+  - cerc/mars-v2
+pods:
+  - mars-v2

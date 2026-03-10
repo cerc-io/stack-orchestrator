@@ -1,0 +1,11 @@
+{
+  "peerId": {
+    "id": "12D3KooWSRH6ftgkAZsKZK7UX1Zr6Hx6YAsEepHqzopFszqfTxxi",
+    "privKey": "CAESQHBjlHxfVhZ2gXsBItrIEEgSGKcjMkFiGs3PPz9E3ace9qyWEkvR4oit5ve9SAROVoh20hoa42IC91NIafMaqws=",
+    "pubKey": "CAESIPaslhJL0eKIreb3vUgETlaIdtIaGuNiAvdTSGnzGqsL"
+  },
+  "consensus": {
+    "publicKey": "039160c244a7ad8be16a64bdb69e6dbacdcfe20b37076792a0d06032a8097468ca",
+    "privateKey": "8894685fe81001d75662b079905472699373967451d1255ee5fc669d0a09a9ca"
+  }
+}

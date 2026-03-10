@@ -1,0 +1,9 @@
+{
+  "pythonVersion": "3.9",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportUnusedImport": "error",
+  "include": ["stack_orchestrator/**/*.py", "tests/**/*.py"],
+  "exclude": ["**/build/**", "**/__pycache__/**"]
+}

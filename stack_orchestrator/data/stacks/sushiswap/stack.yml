@@ -1,0 +1,22 @@
+version: "1.0"
+name: sushiswap
+description: "End-to-end SushiSwap watcher stack"
+repos:
+  ## fixturenet-lotus repo
+  - github.com/filecoin-project/lotus
+  ## sushiswap repos
+  - github.com/cerc-io/sushiswap-v3-core@watcher-ts
+  - github.com/cerc-io/sushiswap-v3-periphery@watcher-ts
+  - github.com/vulcanize/uniswap-watcher-ts@sushiswap
+  - github.com/vulcanize/uniswap-v3-info
+containers:
+  ## fixturenet-lotus image
+  - cerc/lotus
+  ## sushiswap images
+  - cerc/sushiswap-v3-core
+  - cerc/sushiswap-v3-periphery
+  - cerc/watcher-sushiswap
+  - cerc/uniswap-v3-info
+pods:
+  - fixturenet-lotus
+  - watcher-sushiswap

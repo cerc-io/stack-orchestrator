@@ -1,0 +1,23 @@
+version: '3.7'
+
+services:
+  # Optionally deploys the Nitro contracts
+  nitro-contracts:
+    image: cerc/nitro-contracts:local
+    restart: on-failure
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_ETH_RPC_ENDPOINT: ${CERC_ETH_RPC_ENDPOINT:-http://fixturenet-eth-geth-1:8545}
+      CERC_PRIVATE_KEY_DEPLOYER: ${CERC_PRIVATE_KEY_DEPLOYER:-0x888814df89c4358d7ddb3fa4b0213e7331239a80e1f013eaa7b2deca2a41a218}
+      CERC_NA_ADDRESS: ${CERC_NA_ADDRESS}
+      CERC_VPA_ADDRESS: ${CERC_VPA_ADDRESS}
+      CERC_CA_ADDRESS: ${CERC_CA_ADDRESS}
+    volumes:
+      - ../config/nitro-contracts/deploy.sh:/app/deploy.sh
+      - nitro_deployment:/app/deployment
+    command: ["bash", "-c", "/app/deploy.sh"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  nitro_deployment:

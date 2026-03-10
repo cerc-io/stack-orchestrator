@@ -1,0 +1,7 @@
+record:
+  type: WebsiteRegistrationRecord
+  url: 'https://pwa-1-2-3.iglootools.xyz'
+  repo_registration_record_cid: QmVjYQ59z3fuKfYUV1aXhDR82JAKxdqB5JMPfUsHkJUkJq
+  build_artifact_cid: https://ipfs.io/ipfs/QmN2yevgjC92gzGi2BY6Q2yBWmR6JNWQ9yscoPPyy1V2Hv
+  tls_cert_cid: QmTAnmDMSnzqAN3yyXtFD4KpyATkeze62ZkbmXHjJ8xQW8
+  version: 1.2.3

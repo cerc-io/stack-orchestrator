@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # geth
+  - job_name: 'geth'
+    metrics_path: /debug/metrics/prometheus
+    scheme: http
+    static_configs:
+    - targets: ['mainnet-eth-geth-1:6060']
+
+  # lighthouse
+  - job_name: 'lighthouse'
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+    - targets: ['mainnet-eth-lighthouse-1:5054']
+
+  # keycloak
+  - job_name: 'keycloak'
+    scrape_interval: 5s
+    metrics_path: /auth/realms/cerc/metrics
+    scheme: http
+    static_configs:
+      - targets: ['keycloak:8080']

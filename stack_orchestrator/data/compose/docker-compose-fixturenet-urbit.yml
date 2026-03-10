@@ -1,0 +1,36 @@
+version: '3.7'
+
+services:
+  # Runs an Urbit fake ship and attempts an app installation using given data
+  # Uploads the app glob to given IPFS endpoint
+  # From urbit_app_builds volume:
+  # - takes app build from ${CERC_URBIT_APP}/build (waits for it to appear)
+  # - takes additional mark files from ${CERC_URBIT_APP}/mar
+  # - takes the docket file from ${CERC_URBIT_APP}/desk.docket-0
+  urbit-fake-ship:
+    restart: unless-stopped
+    image: tloncorp/vere
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_URBIT_APP: ${CERC_URBIT_APP}
+      CERC_ENABLE_APP_INSTALL: ${CERC_ENABLE_APP_INSTALL:-true}
+      CERC_IPFS_GLOB_HOST_ENDPOINT: ${CERC_IPFS_GLOB_HOST_ENDPOINT:-http://ipfs:5001}
+      CERC_IPFS_SERVER_ENDPOINT: ${CERC_IPFS_SERVER_ENDPOINT:-http://ipfs:8080}
+    entrypoint: ["bash", "-c", "./run-urbit-ship.sh && ./deploy-app.sh && tail -f /dev/null"]
+    volumes:
+      - urbit_data:/urbit
+      - urbit_app_builds:/app-builds
+      - ../config/urbit/run-urbit-ship.sh:/urbit/run-urbit-ship.sh
+      - ../config/urbit/deploy-app.sh:/urbit/deploy-app.sh
+    ports:
+      - "80"
+    healthcheck:
+      test: ["CMD", "nc", "-v", "localhost", "80"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+volumes:
+  urbit_data:
+  urbit_app_builds:

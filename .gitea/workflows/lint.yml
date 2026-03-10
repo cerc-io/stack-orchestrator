@@ -1,0 +1,37 @@
+name: Lint Checks
+
+on:
+  pull_request:
+    branches: '*'
+  push:
+    branches: '*'
+
+jobs:
+  test:
+    name: "Run linter"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      - name: "Install Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name : "Run flake8"
+        uses: py-actions/flake8@v2
+      - name: Notify Vulcanize Slack on CI failure
+        if: ${{ always() && github.ref_name == 'main' }}
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: 'failure'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.VULCANIZE_SLACK_CI_ALERTS }}
+      - name: Notify DeepStack Slack on CI failure
+        if: ${{ always() && github.ref_name == 'main' }}
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: 'failure'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.DEEPSTACK_SLACK_CI_ALERTS }}

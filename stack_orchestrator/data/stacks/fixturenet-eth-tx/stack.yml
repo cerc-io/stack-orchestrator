@@ -1,0 +1,21 @@
+version: "1.2"
+name: fixturenet-eth-tx
+description: "Ethereum Fixturenet w/ tx-spammer"
+repos:
+  - git.vdb.to/cerc-io/go-ethereum@v1.11.6-statediff-v5
+  - git.vdb.to/cerc-io/tx-spammer
+  - git.vdb.to/cerc-io/lighthouse
+  - github.com/dboreham/foundry
+containers:
+  - cerc/go-ethereum
+  - cerc/lighthouse
+  - cerc/lighthouse-cli
+  - cerc/fixturenet-eth-genesis
+  - cerc/fixturenet-eth-geth
+  - cerc/fixturenet-eth-lighthouse
+  - cerc/tx-spammer
+  - cerc/foundry
+pods:
+  - fixturenet-eth
+  - foundry
+  - tx-spammer

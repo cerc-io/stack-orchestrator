@@ -1,0 +1,7 @@
+record:
+  type: WebsiteRegistrationRecord
+  url: 'https://hello-urbit.laconic.com'
+  repo_registration_record_cid: QmTZQ8ZJS6mALjEM2wY71msFno6zzxFftVCiZELj9xREPx
+  build_artifact_cid: '~lostex-rabdur-labtul-moltev/hello-urbit'
+  tls_cert_cid: QmR1acEmQt7Tjmhp9cFtymie2eFcrHURQKt9kGto1TQTW1
+  version: 0.2.4

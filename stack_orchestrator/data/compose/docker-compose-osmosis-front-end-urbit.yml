@@ -1,0 +1,22 @@
+version: "3.2"
+
+services:
+  osmosis-front-end:
+    image: cerc/osmosis-front-end-urbit:local
+    restart: on-failure
+    environment:
+      - NEXT_PUBLIC_WEB_API_BASE_URL=${CERC_WEB_API_BASE_URL}
+      - ASSET_LIST_COMMIT_HASH=a326bcefc51372b4912be5a2a2fa84a5d142a438
+      - NEXT_PUBLIC_BASEPATH=/apps/osmosis
+      - NEXT_PUBLIC_URBIT_DEPLOYMENT=true
+    working_dir: /app/packages/web
+    command: ["./build-app-for-urbit.sh"]
+    volumes:
+      - ../config/osmosis/build-app-for-urbit.sh:/app/packages/web/build-app-for-urbit.sh
+      - ../config/osmosis/.env.production:/app/packages/web/.env.production
+      - urbit_app_builds:/app-builds
+      - ../config/osmosis/urbit-files/mar:/app/packages/web/mar
+      - ../config/osmosis/urbit-files/desk.docket-0:/app/packages/web/desk.docket-0
+
+volumes:
+  urbit_app_builds:

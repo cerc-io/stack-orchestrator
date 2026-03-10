@@ -1,0 +1,18 @@
+version: "3.2"
+
+services:
+  uniswap-interface:
+    image: cerc/uniswap-interface:local
+    restart: on-failure
+    environment:
+      - REACT_APP_INFURA_KEY=${CERC_INFURA_KEY}
+      - REACT_APP_AWS_API_ENDPOINT=${CERC_UNISWAP_GQL}
+    command: ["./build-app.sh"]
+    volumes:
+      - ../config/uniswap-interface/build-app.sh:/app/build-app.sh
+      - urbit_app_builds:/app-builds
+      - ../config/uniswap-interface/urbit-files/mar:/app/mar
+      - ../config/uniswap-interface/urbit-files/desk.docket-0:/app/desk.docket-0
+
+volumes:
+  urbit_app_builds:

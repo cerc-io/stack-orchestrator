@@ -1,0 +1,11 @@
+record:
+  type: DnsRecord
+  version: 0.0.1
+  name: "foo"
+  resource_type: "A"
+  value: "bar"
+  meta:
+    foo: bar
+  tags:
+    - a
+    - b

@@ -1,0 +1,34 @@
+[server]
+  host = "0.0.0.0"
+  port = 3003
+
+[database]
+  type = "postgres"
+  host = "sushiswap-watcher-db"
+  port = 5432
+  database = "sushi-watcher"
+  username = "vdbm"
+  password = "password"
+  synchronize = true
+  logging = false
+  maxQueryExecutionTime = 100
+
+[upstream]
+  [upstream.ethServer]
+    rpcProviderEndpoint = "http://lotus-node-1:1234/rpc/v1"
+    rpcClient = true
+
+  [upstream.cache]
+    name = "requests"
+    enabled = false
+    deleteOnStart = false
+
+[jobQueue]
+  dbConnectionString = "postgres://vdbm:password@sushiswap-watcher-db:5432/sushi-watcher-job-queue"
+  maxCompletionLagInSecs = 300
+  jobDelayInMilliSecs = 0
+  eventsInBatch = 50
+  lazyUpdateBlockProgress = true
+  blockDelayInMilliSecs = 2000
+  prefetchBlocksInMem = false
+  prefetchBlockCount = 10

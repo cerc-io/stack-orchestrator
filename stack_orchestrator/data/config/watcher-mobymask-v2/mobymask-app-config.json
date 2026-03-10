@@ -1,0 +1,7 @@
+{
+  "name": "MobyMask",
+  "relayNodes": [],
+  "peer": {
+    "enableDebugInfo": true
+  }
+}

@@ -1,0 +1,9 @@
+version: "1.0"
+name: test
+description: "A test database stack"
+repos:
+containers:
+  - cerc/test-database-container
+  - cerc/test-database-client
+pods:
+  - test-database

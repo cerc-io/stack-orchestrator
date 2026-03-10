@@ -1,0 +1,15 @@
+# https://grafana.com/docs/grafana/latest/alerting/alerting-rules/create-notification-policy/
+
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: grafana-default-email
+    group_by:
+      - grafana_folder
+      - alertname
+    routes:
+      - receiver: SlackNotifier
+        object_matchers:
+          # Add matchers below
+          # - ['grafana_folder', '=', 'MyAlerts']

@@ -1,0 +1,9 @@
+services:
+  registry:
+    rpcEndpoint: 'http://laconicd:26657'
+    gqlEndpoint: 'http://laconicd:9473/api'
+    userKey: REPLACE_WITH_MYKEY
+    bondId:
+    chainId: laconic_9000-1
+    gas: 350000
+    fees: 2000000alnt

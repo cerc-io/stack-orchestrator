@@ -1,0 +1,33 @@
+[database]
+    name     = "" # $DATABASE_NAME
+    hostname = "" # $DATABASE_HOSTNAME
+    port     = 5432 # $DATABASE_PORT
+    user     = "" # $DATABASE_USER
+    password = "" # $DATABASE_PASSWORD
+
+[log]
+    level = "info" # $LOG_LEVEL
+
+[server]
+    ipc = false
+    ipcPath = "" # $SERVER_IPC_PATH
+    ws = false
+    wsPath = "0.0.0.0:8080" # $SERVER_WS_PATH
+    http = true
+    httpPath = "0.0.0.0:8081" # $SERVER_HTTP_PATH
+    graphql = false # $SERVER_GRAPHQL
+    graphqlPath = "0.0.0.0:8082" # $SERVER_GRAPHQL_PATH
+
+[ethereum]
+    chainConfig = "" # ETH_CHAIN_CONFIG
+    chainID = "1" # $ETH_CHAIN_ID
+    rpcGasCap = "1000000000000" # $ETH_RPC_GAS_CAP
+    httpPath = "mainnet-eth-geth-1:8545" # $ETH_HTTP_PATH
+    supportsStateDiff = true # $ETH_SUPPORTS_STATEDIFF
+    stateDiffTimeout = "4m" # $ETH_STATEDIFF_TIMEOUT
+    forwardEthCalls = false # $ETH_FORWARD_ETH_CALLS
+    proxyOnError = true # $ETH_PROXY_ON_ERROR
+    nodeID = "" # $ETH_NODE_ID
+    clientName = "" # $ETH_CLIENT_NAME
+    genesisBlock = "" # $ETH_GENESIS_BLOCK
+    networkID = "1" # $ETH_NETWORK_ID

@@ -1,4 +1,11 @@
-.venv/
-sessions.duckdb
-sessions.duckdb.wal
+.idea
+venv
+.vscode
+laconic-so
+laconic_stack_orchestrator.egg-info
+__pycache__
+*~
+package
+stack_orchestrator/data/build_tag.txt
+/build
 .worktrees

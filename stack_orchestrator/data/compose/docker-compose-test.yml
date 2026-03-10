@@ -1,0 +1,22 @@
+services:
+  test:
+    image: cerc/test-container:local
+    restart: always
+    environment:
+      CERC_SCRIPT_DEBUG: ${CERC_SCRIPT_DEBUG}
+      CERC_TEST_PARAM_1: ${CERC_TEST_PARAM_1:-FAILED}
+      CERC_TEST_PARAM_2: "CERC_TEST_PARAM_2_VALUE"
+      CERC_TEST_PARAM_3: ${CERC_TEST_PARAM_3:-FAILED}
+    volumes:
+      - ../config/test/script.sh:/opt/run.sh
+      - ../config/test/settings.env:/opt/settings.env
+      - test-data-bind:/data
+      - test-data-auto:/data2
+      - test-config:/config:ro
+    ports:
+      - "80"
+
+volumes:
+  test-data-bind:
+  test-data-auto:
+  test-config:

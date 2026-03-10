@@ -1,0 +1,17 @@
+mnemonic: "viable ketchup woman library opinion copy rhythm attend rose knock penalty practice photo bundle budget dentist enter round bind holiday useful arch danger lobster"
+el_premine:
+  "m/44'/60'/0'/0/0": 10000000ETH
+  "m/44'/60'/0'/0/1": 10000000ETH
+  "m/44'/60'/0'/0/2": 10000000ETH
+  "m/44'/60'/0'/0/3": 10000000ETH
+  "m/44'/60'/0'/0/4": 10000000ETH
+  "m/44'/60'/0'/0/5": 10000000ETH
+el_premine_addrs: {}
+chain_id: 1212
+deposit_contract_address: "0x1212121212121212121212121212121212121212"
+genesis_timestamp: 0
+genesis_delay: 0
+deneb_fork_epoch: 0
+# note: only needed as workaround https://github.com/ethpandaops/ethereum-genesis-generator/pull/105
+electra_fork_epoch: 0
+slot_duration_in_seconds: 3

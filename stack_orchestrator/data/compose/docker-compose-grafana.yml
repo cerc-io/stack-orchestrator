@@ -1,0 +1,31 @@
+version: "3.7"
+
+services:
+  grafana:
+    image: grafana/grafana:10.2.3
+    restart: always
+    environment:
+      GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL}
+      CERC_GRAFANA_ALERTS_SUBGRAPH_IDS: ${CERC_GRAFANA_ALERTS_SUBGRAPH_IDS}
+    volumes:
+      - ../config/monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ../config/monitoring/grafana/dashboards:/etc/grafana/dashboards
+      - ../config/monitoring/update-grafana-alerts-config.sh:/update-grafana-alerts-config.sh
+      - grafana_storage:/var/lib/grafana
+    user: root
+    entrypoint: ["bash", "-c"]
+    command: |
+      "/update-grafana-alerts-config.sh && /run.sh"
+    ports:
+      - "3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "3000"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 3s
+
+volumes:
+  grafana_storage:

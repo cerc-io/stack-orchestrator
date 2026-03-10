@@ -1,0 +1,7 @@
+registry-sdk
+laconic-registry-cli
+laconic-console
+debug
+crypto
+sdk
+gem

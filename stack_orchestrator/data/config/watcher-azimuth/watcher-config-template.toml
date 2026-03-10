@@ -1,0 +1,22 @@
+[server]
+  host = "0.0.0.0"
+  [server.gql]
+    maxSimultaneousRequests = -1
+
+[metrics]
+  host = "0.0.0.0"
+
+[database]
+  host = "watcher-db"
+  port = 5432
+  username = "vdbm"
+  password = "password"
+
+[upstream]
+  [upstream.ethServer]
+    gqlApiEndpoint = "REPLACE_WITH_CERC_IPLD_ETH_GQL_ENDPOINT"
+    rpcProviderEndpoints = REPLACE_WITH_CERC_ETH_RPC_ENDPOINTS
+
+[jobQueue]
+  historicalLogsBlockRange = REPLACE_WITH_CERC_HISTORICAL_BLOCK_RANGE
+  blockDelayInMilliSecs = 12000

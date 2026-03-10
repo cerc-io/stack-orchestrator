@@ -1,0 +1,39 @@
+
+version: '3.7'
+
+services:
+  ponder-app-watcher:
+      hostname: ponder-app-watcher
+      depends_on:
+        - ponder-app-indexer-1
+      restart: unless-stopped
+      image: cerc/ponder:local
+      working_dir: /app/examples/token-erc20
+      environment:
+        CERC_PONDER_CHAIN_ID: ${PONDER_CHAIN_ID:-99}
+        CERC_PONDER_NITRO_PK: ${CERC_PONDER_WATCHER_NITRO_PK:-febb3b74b0b52d0976f6571d555f4ac8b91c308dfa25c7b58d1e6a7c3f50c781}
+        CERC_PONDER_NITRO_CHAIN_PK: ${CERC_PONDER_WATCHER_NITRO_CHAIN_PK:-be4aa664815ea3bc3d63118649a733f6c96b243744310806ecb6d96359ab62cf}
+        CERC_PONDER_NITRO_CHAIN_URL: ${CERC_PONDER_NITRO_CHAIN_URL:-http://fixturenet-eth-geth-1:8546}
+        CERC_RELAY_MULTIADDR: ${CERC_RELAY_MULTIADDR}
+        CERC_INDEXER_GQL_ENDPOINT: ${CERC_INDEXER_GQL_ENDPOINT:-http://ponder-app-indexer-2:42070/graphql}
+        CERC_INDEXER_NITRO_ADDRESS: ${CERC_INDEXER_NITRO_ADDRESS:-0xB2B22ec3889d11f2ddb1A1Db11e80D20EF367c01}
+        CERC_INDEXER_NITRO_PAY_AMOUNT: ${CERC_INDEXER_NITRO_PAY_AMOUNT:-50}
+      command: ["bash", "./ponder-start.sh"]
+      volumes:
+        - ../config/ponder/ponder-start.sh:/app/examples/token-erc20/ponder-start.sh
+        - ../config/ponder/ponder.watcher.config.ts:/app/examples/token-erc20/ponder.config.ts
+        - ../config/ponder/base-rates-config.json:/app/examples/token-erc20/base-rates-config.json
+        - peers_ids:/peers
+        - nitro_deployment:/nitro
+        - erc20_deployment:/erc20
+        - ponder_watcher_nitro_data:/app/examples/token-erc20/.ponder/nitro-db
+      ports:
+        - "127.0.0.1:42069:42069"
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
+
+volumes:
+  peers_ids:
+  nitro_deployment:
+  erc20_deployment:
+  ponder_watcher_nitro_data:

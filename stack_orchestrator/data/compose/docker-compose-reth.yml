@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  reth:
+    restart: unless-stopped
+    hostname: reth
+    image: cerc/reth:local
+    entrypoint: ["sh", "/docker-entrypoint-scripts.d/start-reth.sh"]
+    volumes:
+      - ../config/reth/start-reth.sh:/docker-entrypoint-scripts.d/start-reth.sh
+      - reth_data:/root/.local/share/reth
+      - shared_data:/root/.shared_data
+    ports:
+      - "8545:8545" # http rpc
+      - "8546:8546" # ws rpc
+      - "30303:30303" # network listening port
+      - "30303:30303/udp"
+      - "8551" # consensus auth
+
+  lighthouse:
+    restart: unless-stopped
+    hostname: lighthouse
+    image: cerc/lighthouse:local
+    entrypoint: ["sh", "/docker-entrypoint-scripts.d/start-lighthouse.sh"]
+    volumes:
+      - ../config/reth/start-lighthouse.sh:/docker-entrypoint-scripts.d/start-lighthouse.sh
+      - lighthouse_data:/root/.lighthouse/mainnet
+      - shared_data:/root/.shared_data
+    ports:
+      - "8001"
+
+volumes:
+  reth_data:
+  lighthouse_data:
+  shared_data:

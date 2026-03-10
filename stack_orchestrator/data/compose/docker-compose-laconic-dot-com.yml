@@ -1,0 +1,8 @@
+version: "3.2"
+
+services:
+  laconic-dot-com:
+    image: cerc/laconic-dot-com:local
+    restart: always
+    ports:
+      - "3000"

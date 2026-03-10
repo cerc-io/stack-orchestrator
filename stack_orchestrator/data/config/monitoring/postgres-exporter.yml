@@ -1,0 +1,8 @@
+auth_modules:
+  foo:
+    type: userpass
+    userpass:
+      username: username
+      password: password
+    options:
+      sslmode: disable

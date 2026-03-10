@@ -1,0 +1,36 @@
+version: "3.2"
+
+services:
+  osmosis-front-end:
+    image: cerc/osmosis-front-end:local
+    restart: on-failure
+    environment:
+      - NEXT_PUBLIC_WEB_API_BASE_URL=${CERC_WEB_API_BASE_URL}
+      - ASSET_LIST_COMMIT_HASH=a326bcefc51372b4912be5a2a2fa84a5d142a438
+    working_dir: /app/packages/web
+    command: ["./build-app.sh"]
+    volumes:
+      - ../config/osmosis/build-app.sh:/app/packages/web/build-app.sh
+      - ../config/osmosis/.env.production:/app/packages/web/.env.production
+      - app_builds:/app-builds
+
+  nginx:
+    image: nginx:1.23-alpine
+    restart: always
+    depends_on:
+      osmosis-front-end:
+        condition: service_completed_successfully
+    volumes:
+      - ../config/osmosis/nginx:/etc/nginx/conf.d
+      - app_builds:/usr/share/nginx
+    ports:
+      - "80"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "localhost", "80"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+volumes:
+  app_builds:

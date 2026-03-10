@@ -12,6 +12,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import time
 from datetime import datetime, timezone
 
 from pathlib import Path
@@ -153,10 +154,20 @@ class K8sDeployer(Deployer):
         self.custom_obj_api = client.CustomObjectsApi()
 
     def _ensure_namespace(self):
-        """Create the deployment namespace if it doesn't exist."""
+        """Create the deployment namespace if it doesn't exist.
+
+        If the namespace exists but is terminating (e.g., from a prior
+        down() call), wait for deletion to complete before creating a
+        fresh namespace.  K8s rejects resource creation in a terminating
+        namespace with 403 Forbidden, so proceeding without waiting
+        causes PVC/ConfigMap creation failures.
+        """
         if opts.o.dry_run:
             print(f"Dry run: would create namespace {self.k8s_namespace}")
             return
+
+        self._wait_for_namespace_deletion()
+
         try:
             self.core_api.read_namespace(name=self.k8s_namespace)
             if opts.o.debug:
@@ -175,6 +186,38 @@ class K8sDeployer(Deployer):
                     print(f"Created namespace {self.k8s_namespace}")
             else:
                 raise
+
+    def _wait_for_namespace_deletion(self):
+        """Block until the namespace is fully deleted, if it is terminating.
+
+        Polls every 2s for up to 120s.  If the namespace does not exist
+        (404) or is active, returns immediately.
+        """
+        deadline = time.monotonic() + 120
+        while True:
+            try:
+                ns = self.core_api.read_namespace(name=self.k8s_namespace)
+            except ApiException as e:
+                if e.status == 404:
+                    return  # Gone — ready to create
+                raise
+
+            phase = ns.status.phase if ns.status else None
+            if phase != "Terminating":
+                return  # Active or unknown — proceed
+
+            if time.monotonic() > deadline:
+                error_exit(
+                    f"Namespace {self.k8s_namespace} still terminating "
+                    f"after 120s — cannot proceed"
+                )
+
+            if opts.o.debug:
+                print(
+                    f"Namespace {self.k8s_namespace} is terminating, "
+                    f"waiting for deletion..."
+                )
+            time.sleep(2)
 
     def _delete_namespace(self):
         """Delete the deployment namespace and all resources within it."""
@@ -310,6 +353,36 @@ class K8sDeployer(Deployer):
             else:
                 raise
 
+    def _clear_released_pv_claim_refs(self):
+        """Patch any Released PVs for this deployment to clear stale claimRefs.
+
+        After a namespace is deleted, PVCs are cascade-deleted but
+        cluster-scoped PVs survive in Released state with claimRefs
+        pointing to the now-deleted PVC UIDs.  New PVCs cannot bind
+        to these PVs until the stale claimRef is removed.
+        """
+        try:
+            pvs = self.core_api.list_persistent_volume(
+                label_selector=f"app={self.cluster_info.app_name}"
+            )
+        except ApiException:
+            return
+
+        for pv in pvs.items:
+            phase = pv.status.phase if pv.status else None
+            if phase == "Released" and pv.spec and pv.spec.claim_ref:
+                pv_name = pv.metadata.name
+                if opts.o.debug:
+                    old_ref = pv.spec.claim_ref
+                    print(
+                        f"Clearing stale claimRef on PV {pv_name} "
+                        f"(was {old_ref.namespace}/{old_ref.name})"
+                    )
+                self.core_api.patch_persistent_volume(
+                    name=pv_name,
+                    body={"spec": {"claimRef": None}},
+                )
+
     def _create_volume_data(self):
         # Create the host-path-mounted PVs for this deployment
         pvs = self.cluster_info.get_pvs()
@@ -335,8 +408,14 @@ class K8sDeployer(Deployer):
                     print("PVs created:")
                     print(f"{pv_resp}")
 
+        # After PV creation/verification, clear stale claimRefs on any
+        # Released PVs so that new PVCs can bind to them.
+        if not opts.o.dry_run:
+            self._clear_released_pv_claim_refs()
+
         # Figure out the PVCs for this deployment
         pvcs = self.cluster_info.get_pvcs()
+        pvc_errors = []
         for pvc in pvcs:
             if opts.o.debug:
                 print(f"Sending this pvc: {pvc}")
@@ -355,12 +434,23 @@ class K8sDeployer(Deployer):
                     if e.status != 404:
                         raise
 
-                pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(
-                    body=pvc, namespace=self.k8s_namespace
-                )
-                if opts.o.debug:
-                    print("PVCs created:")
-                    print(f"{pvc_resp}")
+                try:
+                    pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(
+                        body=pvc, namespace=self.k8s_namespace
+                    )
+                    if opts.o.debug:
+                        print("PVCs created:")
+                        print(f"{pvc_resp}")
+                except ApiException as e:
+                    pvc_name = pvc.metadata.name
+                    print(f"Error creating PVC {pvc_name}: {e.reason}")
+                    pvc_errors.append(pvc_name)
+
+        if pvc_errors:
+            error_exit(
+                f"Failed to create PVCs: {', '.join(pvc_errors)}. "
+                f"Check namespace state and PV availability."
+            )
 
         # Figure out the ConfigMaps for this deployment
         config_maps = self.cluster_info.get_configmaps()
@@ -422,7 +512,10 @@ class K8sDeployer(Deployer):
         self._create_deployment()
 
     def _setup_cluster_and_namespace(self, skip_cluster_management):
-        """Create kind cluster (if needed) and namespace. Shared by up() and prepare()."""
+        """Create kind cluster (if needed) and namespace.
+
+        Shared by up() and prepare().
+        """
         self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:
             if self.is_kind() and not self.skip_cluster_management:

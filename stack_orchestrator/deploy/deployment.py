@@ -17,7 +17,7 @@ import click
 from pathlib import Path
 import subprocess
 import sys
-import time
+
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.images import push_images_operation
 from stack_orchestrator.deploy.deploy import (
@@ -412,8 +412,8 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
         ctx, delete_volumes=False, extra_args_list=[], skip_cluster_management=True
     )
 
-    # Brief pause to ensure clean shutdown
-    time.sleep(5)
+    # Namespace deletion wait is handled by _ensure_namespace() in
+    # the deployer — no fixed sleep needed here.
 
     # Start deployment
     up_operation(

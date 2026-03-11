@@ -19,7 +19,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from tempfile import NamedTemporaryFile
 
-from stack_orchestrator.util import error_exit, global_options2
+from stack_orchestrator.util import error_exit, global_options2, get_yaml
 from stack_orchestrator.deploy.deployment_create import init_operation, create_operation
 from stack_orchestrator.deploy.deploy import create_deploy_context
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
@@ -41,19 +41,23 @@ def _fixup_container_tag(deployment_dir: str, image: str):
 def _fixup_url_spec(spec_file_name: str, url: str):
     # url is like: https://example.com/path
     parsed_url = urlparse(url)
-    http_proxy_spec = f"""
-  http-proxy:
-    - host-name: {parsed_url.hostname}
-      routes:
-        - path: '{parsed_url.path if parsed_url.path else "/"}'
-          proxy-to: webapp:80
-    """
     spec_file_path = Path(spec_file_name)
+    yaml = get_yaml()
     with open(spec_file_path) as rfile:
-        contents = rfile.read()
-        contents = contents + http_proxy_spec
+        contents = yaml.load(rfile)
+    contents.setdefault("network", {})["http-proxy"] = [
+        {
+            "host-name": parsed_url.hostname,
+            "routes": [
+                {
+                    "path": parsed_url.path if parsed_url.path else "/",
+                    "proxy-to": "webapp:80",
+                }
+            ],
+        }
+    ]
     with open(spec_file_path, "w") as wfile:
-        wfile.write(contents)
+        yaml.dump(contents, wfile)
 
 
 def create_deployment(

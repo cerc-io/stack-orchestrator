@@ -72,15 +72,17 @@ def to_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequi
 
 class ClusterInfo:
     parsed_pod_yaml_map: Any
+    parsed_job_yaml_map: Any
     image_set: Set[str] = set()
     app_name: str
+    stack_name: str
     environment_variables: DeployEnvVars
     spec: Spec
 
     def __init__(self) -> None:
-        pass
+        self.parsed_job_yaml_map = {}
 
-    def int(self, pod_files: List[str], compose_env_file, deployment_name, spec: Spec):
+    def int(self, pod_files: List[str], compose_env_file, deployment_name, spec: Spec, stack_name=""):
         self.parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
         # Find the set of images in the pods
         self.image_set = images_for_deployment(pod_files)
@@ -90,9 +92,22 @@ class ClusterInfo:
         }
         self.environment_variables = DeployEnvVars(env_vars)
         self.app_name = deployment_name
+        self.stack_name = stack_name
         self.spec = spec
         if opts.o.debug:
             print(f"Env vars: {self.environment_variables.map}")
+
+    def init_jobs(self, job_files: List[str]):
+        """Initialize parsed job YAML map from job compose files."""
+        self.parsed_job_yaml_map = parsed_pod_files_map_from_file_names(job_files)
+        if opts.o.debug:
+            print(f"Parsed job yaml map: {self.parsed_job_yaml_map}")
+
+    def _all_named_volumes(self) -> list:
+        """Return named volumes from both pod and job compose files."""
+        volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        volumes.extend(named_volumes_from_pod_files(self.parsed_job_yaml_map))
+        return volumes
 
     def get_nodeports(self):
         nodeports = []
@@ -257,7 +272,7 @@ class ClusterInfo:
     def get_pvcs(self):
         result = []
         spec_volumes = self.spec.get_volumes()
-        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        named_volumes = self._all_named_volumes()
         resources = self.spec.get_volume_resources()
         if not resources:
             resources = DEFAULT_VOLUME_RESOURCES
@@ -301,7 +316,7 @@ class ClusterInfo:
     def get_configmaps(self):
         result = []
         spec_configmaps = self.spec.get_configmaps()
-        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        named_volumes = self._all_named_volumes()
         for cfg_map_name, cfg_map_path in spec_configmaps.items():
             if cfg_map_name not in named_volumes:
                 if opts.o.debug:
@@ -337,7 +352,7 @@ class ClusterInfo:
     def get_pvs(self):
         result = []
         spec_volumes = self.spec.get_volumes()
-        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        named_volumes = self._all_named_volumes()
         resources = self.spec.get_volume_resources()
         if not resources:
             resources = DEFAULT_VOLUME_RESOURCES
@@ -424,15 +439,25 @@ class ClusterInfo:
         # 3. Fall back to spec.yml global (already resolved with DEFAULT fallback)
         return global_resources
 
-    # TODO: put things like image pull policy into an object-scope struct
-    def get_deployment(self, image_pull_policy: Optional[str] = None):
+    def _build_containers(
+        self,
+        parsed_yaml_map: Any,
+        image_pull_policy: Optional[str] = None,
+    ) -> tuple:
+        """Build k8s container specs from parsed compose YAML.
+
+        Returns a tuple of (containers, services, volumes) where:
+        - containers: list of V1Container objects
+        - services: the last services dict processed (used for annotations/labels)
+        - volumes: list of V1Volume objects
+        """
         containers = []
         services = {}
         global_resources = self.spec.get_container_resources()
         if not global_resources:
             global_resources = DEFAULT_CONTAINER_RESOURCES
-        for pod_name in self.parsed_pod_yaml_map:
-            pod = self.parsed_pod_yaml_map[pod_name]
+        for pod_name in parsed_yaml_map:
+            pod = parsed_yaml_map[pod_name]
             services = pod["services"]
             for service_name in services:
                 container_name = service_name
@@ -489,7 +514,7 @@ class ClusterInfo:
                     else image
                 )
                 volume_mounts = volume_mounts_for_service(
-                    self.parsed_pod_yaml_map, service_name
+                    parsed_yaml_map, service_name
                 )
                 # Handle command/entrypoint from compose file
                 # In docker-compose: entrypoint -> k8s command, command -> k8s args
@@ -513,6 +538,16 @@ class ClusterInfo:
                         )
                     )
                 ]
+                # Mount user-declared secrets from spec.yml
+                for user_secret_name in self.spec.get_secrets():
+                    env_from.append(
+                        client.V1EnvFromSource(
+                            secret_ref=client.V1SecretEnvSource(
+                                name=user_secret_name,
+                                optional=True,
+                            )
+                        )
+                    )
                 container_resources = self._resolve_container_resources(
                     container_name, service_info, global_resources
                 )
@@ -538,7 +573,14 @@ class ClusterInfo:
                 )
                 containers.append(container)
         volumes = volumes_for_pod_files(
-            self.parsed_pod_yaml_map, self.spec, self.app_name
+            parsed_yaml_map, self.spec, self.app_name
+        )
+        return containers, services, volumes
+
+    # TODO: put things like image pull policy into an object-scope struct
+    def get_deployment(self, image_pull_policy: Optional[str] = None):
+        containers, services, volumes = self._build_containers(
+            self.parsed_pod_yaml_map, image_pull_policy
         )
         registry_config = self.spec.get_image_registry_config()
         if registry_config:
@@ -549,6 +591,8 @@ class ClusterInfo:
 
         annotations = None
         labels = {"app": self.app_name}
+        if self.stack_name:
+            labels["app.kubernetes.io/stack"] = self.stack_name
         affinity = None
         tolerations = None
 
@@ -628,3 +672,75 @@ class ClusterInfo:
             spec=spec,
         )
         return deployment
+
+    def get_jobs(self, image_pull_policy: Optional[str] = None) -> List[client.V1Job]:
+        """Build k8s Job objects from parsed job compose files.
+
+        Each job compose file produces a V1Job with:
+        - restartPolicy: Never
+        - backoffLimit: 0
+        - Name: {app_name}-job-{job_name}
+        """
+        if not self.parsed_job_yaml_map:
+            return []
+
+        jobs = []
+        registry_config = self.spec.get_image_registry_config()
+        if registry_config:
+            secret_name = f"{self.app_name}-registry"
+            image_pull_secrets = [client.V1LocalObjectReference(name=secret_name)]
+        else:
+            image_pull_secrets = []
+
+        for job_file in self.parsed_job_yaml_map:
+            # Build containers for this single job file
+            single_job_map = {job_file: self.parsed_job_yaml_map[job_file]}
+            containers, _services, volumes = self._build_containers(
+                single_job_map, image_pull_policy
+            )
+
+            # Derive job name from file path: docker-compose-<name>.yml -> <name>
+            base = os.path.basename(job_file)
+            # Strip docker-compose- prefix and .yml suffix
+            job_name = base
+            if job_name.startswith("docker-compose-"):
+                job_name = job_name[len("docker-compose-"):]
+            if job_name.endswith(".yml"):
+                job_name = job_name[: -len(".yml")]
+            elif job_name.endswith(".yaml"):
+                job_name = job_name[: -len(".yaml")]
+
+            # Use a distinct app label for job pods so they don't get
+            # picked up by pods_in_deployment() which queries app={app_name}.
+            pod_labels = {
+                "app": f"{self.app_name}-job",
+                **({"app.kubernetes.io/stack": self.stack_name} if self.stack_name else {}),
+            }
+            template = client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(
+                    labels=pod_labels
+                ),
+                spec=client.V1PodSpec(
+                    containers=containers,
+                    image_pull_secrets=image_pull_secrets,
+                    volumes=volumes,
+                    restart_policy="Never",
+                ),
+            )
+            job_spec = client.V1JobSpec(
+                template=template,
+                backoff_limit=0,
+            )
+            job_labels = {"app": self.app_name, **({"app.kubernetes.io/stack": self.stack_name} if self.stack_name else {})}
+            job = client.V1Job(
+                api_version="batch/v1",
+                kind="Job",
+                metadata=client.V1ObjectMeta(
+                    name=f"{self.app_name}-job-{job_name}",
+                    labels=job_labels,
+                ),
+                spec=job_spec,
+            )
+            jobs.append(job)
+
+        return jobs

@@ -34,7 +34,12 @@ def getDeployerConfigGenerator(type: str, deployment_context):
 
 
 def getDeployer(
-    type: str, deployment_context, compose_files, compose_project_name, compose_env_file
+    type: str,
+    deployment_context,
+    compose_files,
+    compose_project_name,
+    compose_env_file,
+    job_compose_files=None,
 ):
     if type == "compose" or type is None:
         return DockerDeployer(
@@ -54,6 +59,7 @@ def getDeployer(
             compose_files,
             compose_project_name,
             compose_env_file,
+            job_compose_files=job_compose_files,
         )
     else:
         print(f"ERROR: deploy-to {type} is not valid")

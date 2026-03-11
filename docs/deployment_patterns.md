@@ -30,7 +30,7 @@ git commit -m "Add my-stack deployment configuration"
 git push
 
 # On deployment server: deploy from git-tracked spec
-laconic-so deploy create \
+laconic-so --stack my-stack deploy create \
   --spec-file /path/to/operator-repo/spec.yml \
   --deployment-dir my-deployment
 

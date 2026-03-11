@@ -95,6 +95,7 @@ class K8sDeployer(Deployer):
     type: str
     core_api: client.CoreV1Api
     apps_api: client.AppsV1Api
+    batch_api: client.BatchV1Api
     networking_api: client.NetworkingV1Api
     k8s_namespace: str
     kind_cluster_name: str
@@ -110,6 +111,7 @@ class K8sDeployer(Deployer):
         compose_files,
         compose_project_name,
         compose_env_file,
+        job_compose_files=None,
     ) -> None:
         self.type = type
         self.skip_cluster_management = False
@@ -124,15 +126,24 @@ class K8sDeployer(Deployer):
         # Use deployment-specific namespace for resource isolation and easy cleanup
         self.k8s_namespace = f"laconic-{compose_project_name}"
         self.cluster_info = ClusterInfo()
+        # stack.name may be an absolute path (from spec "stack:" key after
+        # path resolution). Extract just the directory basename for labels.
+        raw_name = deployment_context.stack.name if deployment_context else ""
+        stack_name = Path(raw_name).name if raw_name else ""
         self.cluster_info.int(
             compose_files,
             compose_env_file,
             compose_project_name,
             deployment_context.spec,
+            stack_name=stack_name,
         )
+        # Initialize job compose files if provided
+        if job_compose_files:
+            self.cluster_info.init_jobs(job_compose_files)
         if opts.o.debug:
             print(f"Deployment dir: {deployment_context.deployment_dir}")
             print(f"Compose files: {compose_files}")
+            print(f"Job compose files: {job_compose_files}")
             print(f"Project name: {compose_project_name}")
             print(f"Env file: {compose_env_file}")
             print(f"Type: {type}")
@@ -150,6 +161,7 @@ class K8sDeployer(Deployer):
         self.core_api = client.CoreV1Api()
         self.networking_api = client.NetworkingV1Api()
         self.apps_api = client.AppsV1Api()
+        self.batch_api = client.BatchV1Api()
         self.custom_obj_api = client.CustomObjectsApi()
 
     def _ensure_namespace(self):
@@ -256,6 +268,11 @@ class K8sDeployer(Deployer):
                     print(f"{cfg_rsp}")
 
     def _create_deployment(self):
+        # Skip if there are no pods to deploy (e.g. jobs-only stacks)
+        if not self.cluster_info.parsed_pod_yaml_map:
+            if opts.o.debug:
+                print("No pods defined, skipping Deployment creation")
+            return
         # Process compose files into a Deployment
         deployment = self.cluster_info.get_deployment(
             image_pull_policy=None if self.is_kind() else "Always"
@@ -292,6 +309,26 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print("Service created:")
                 print(f"{service_resp}")
+
+    def _create_jobs(self):
+        # Process job compose files into k8s Jobs
+        jobs = self.cluster_info.get_jobs(
+            image_pull_policy=None if self.is_kind() else "Always"
+        )
+        for job in jobs:
+            if opts.o.debug:
+                print(f"Sending this job: {job}")
+            if not opts.o.dry_run:
+                job_resp = self.batch_api.create_namespaced_job(
+                    body=job, namespace=self.k8s_namespace
+                )
+                if opts.o.debug:
+                    print("Job created:")
+                    if job_resp.metadata:
+                        print(
+                            f"  {job_resp.metadata.namespace} "
+                            f"{job_resp.metadata.name}"
+                        )
 
     def _find_certificate_for_host_name(self, host_name):
         all_certificates = self.custom_obj_api.list_namespaced_custom_object(
@@ -384,6 +421,7 @@ class K8sDeployer(Deployer):
 
         self._create_volume_data()
         self._create_deployment()
+        self._create_jobs()
 
         http_proxy_info = self.cluster_info.spec.get_http_proxy()
         # Note: we don't support tls for kind (enabling tls causes errors)
@@ -425,6 +463,11 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print("NodePort created:")
                     print(f"{nodeport_resp}")
+
+        # Call start() hooks — stacks can create additional k8s resources
+        if self.deployment_context:
+            from stack_orchestrator.deploy.deployment_create import call_stack_deploy_start
+            call_stack_deploy_start(self.deployment_context)
 
     def down(self, timeout, volumes, skip_cluster_management):
         self.skip_cluster_management = skip_cluster_management
@@ -574,14 +617,14 @@ class K8sDeployer(Deployer):
 
     def logs(self, services, tail, follow, stream):
         self.connect_api()
-        pods = pods_in_deployment(self.core_api, self.cluster_info.app_name)
+        pods = pods_in_deployment(self.core_api, self.cluster_info.app_name, namespace=self.k8s_namespace)
         if len(pods) > 1:
             print("Warning: more than one pod in the deployment")
         if len(pods) == 0:
             log_data = "******* Pods not running ********\n"
         else:
             k8s_pod_name = pods[0]
-            containers = containers_in_pod(self.core_api, k8s_pod_name)
+            containers = containers_in_pod(self.core_api, k8s_pod_name, namespace=self.k8s_namespace)
             # If pod not started, logs request below will throw an exception
             try:
                 log_data = ""
@@ -599,6 +642,10 @@ class K8sDeployer(Deployer):
         return log_stream_from_string(log_data)
 
     def update(self):
+        if not self.cluster_info.parsed_pod_yaml_map:
+            if opts.o.debug:
+                print("No pods defined, skipping update")
+            return
         self.connect_api()
         ref_deployment = self.cluster_info.get_deployment()
         if not ref_deployment or not ref_deployment.metadata:
@@ -659,26 +706,43 @@ class K8sDeployer(Deployer):
 
     def run_job(self, job_name: str, helm_release: Optional[str] = None):
         if not opts.o.dry_run:
-            from stack_orchestrator.deploy.k8s.helm.job_runner import run_helm_job
-
             # Check if this is a helm-based deployment
             chart_dir = self.deployment_dir / "chart"
-            if not chart_dir.exists():
-                # TODO: Implement job support for compose-based K8s deployments
-                raise Exception(
-                    f"Job support is only available for helm-based "
-                    f"deployments. Chart directory not found: {chart_dir}"
-                )
+            if chart_dir.exists():
+                from stack_orchestrator.deploy.k8s.helm.job_runner import run_helm_job
 
-            # Run the job using the helm job runner
-            run_helm_job(
-                chart_dir=chart_dir,
-                job_name=job_name,
-                release=helm_release,
-                namespace=self.k8s_namespace,
-                timeout=600,
-                verbose=opts.o.verbose,
-            )
+                # Run the job using the helm job runner
+                run_helm_job(
+                    chart_dir=chart_dir,
+                    job_name=job_name,
+                    release=helm_release,
+                    namespace=self.k8s_namespace,
+                    timeout=600,
+                    verbose=opts.o.verbose,
+                )
+            else:
+                # Non-Helm path: create job from ClusterInfo
+                self.connect_api()
+                jobs = self.cluster_info.get_jobs(
+                    image_pull_policy=None if self.is_kind() else "Always"
+                )
+                # Find the matching job by name
+                target_name = f"{self.cluster_info.app_name}-job-{job_name}"
+                matched_job = None
+                for job in jobs:
+                    if job.metadata and job.metadata.name == target_name:
+                        matched_job = job
+                        break
+                if matched_job is None:
+                    raise Exception(
+                        f"Job '{job_name}' not found. Available jobs: "
+                        f"{[j.metadata.name for j in jobs if j.metadata]}"
+                    )
+                if opts.o.debug:
+                    print(f"Creating job: {target_name}")
+                self.batch_api.create_namespaced_job(
+                    body=matched_job, namespace=self.k8s_namespace
+                )
 
     def is_kind(self):
         return self.type == "k8s-kind"

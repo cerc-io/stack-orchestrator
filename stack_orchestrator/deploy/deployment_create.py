@@ -265,6 +265,25 @@ def call_stack_deploy_create(deployment_context, extra_args):
                 imported_stack.create(deployment_context, extra_args)
 
 
+def call_stack_deploy_start(deployment_context):
+    """Call start() hooks after k8s deployments and jobs are created.
+
+    The start() hook receives the DeploymentContext, allowing stacks to
+    create additional k8s resources (Services, etc.) in the deployment namespace.
+    The namespace can be derived as f"laconic-{deployment_context.id}".
+    """
+    python_file_paths = _commands_plugin_paths(deployment_context.stack.name)
+    for python_file_path in python_file_paths:
+        if python_file_path.exists():
+            spec = util.spec_from_file_location("commands", python_file_path)
+            if spec is None or spec.loader is None:
+                continue
+            imported_stack = util.module_from_spec(spec)
+            spec.loader.exec_module(imported_stack)
+            if _has_method(imported_stack, "start"):
+                imported_stack.start(deployment_context)
+
+
 # Inspect the pod yaml to find config files referenced in subdirectories
 # other than the one associated with the pod
 def _find_extra_config_dirs(parsed_pod_file, pod):
@@ -477,6 +496,9 @@ def init_operation(
             spec_file_content["volumes"] = {**volume_descriptors, **orig_volumes}
         if configmap_descriptors:
             spec_file_content["configmaps"] = configmap_descriptors
+        if "k8s" in deployer_type:
+            if "secrets" not in spec_file_content:
+                spec_file_content["secrets"] = {}
 
     if opts.o.debug:
         print(
@@ -982,17 +1004,7 @@ def _write_deployment_files(
             script_paths = get_pod_script_paths(parsed_stack, pod)
             _copy_files_to_directory(script_paths, destination_script_dir)
 
-        if parsed_spec.is_kubernetes_deployment():
-            for configmap in parsed_spec.get_configmaps():
-                source_config_dir = resolve_config_dir(stack_name, configmap)
-                if os.path.exists(source_config_dir):
-                    destination_config_dir = target_dir.joinpath(
-                        "configmaps", configmap
-                    )
-                    copytree(
-                        source_config_dir, destination_config_dir, dirs_exist_ok=True
-                    )
-        else:
+        if not parsed_spec.is_kubernetes_deployment():
             # TODO:
             # This is odd - looks up config dir that matches a volume name,
             # then copies as a mount dir?
@@ -1014,9 +1026,22 @@ def _write_deployment_files(
                             dirs_exist_ok=True,
                         )
 
-    # Copy the job files into the target dir (for Docker deployments)
+    # Copy configmap directories for k8s deployments (outside the pod loop
+    # so this works for jobs-only stacks too)
+    if parsed_spec.is_kubernetes_deployment():
+        for configmap in parsed_spec.get_configmaps():
+            source_config_dir = resolve_config_dir(stack_name, configmap)
+            if os.path.exists(source_config_dir):
+                destination_config_dir = target_dir.joinpath(
+                    "configmaps", configmap
+                )
+                copytree(
+                    source_config_dir, destination_config_dir, dirs_exist_ok=True
+                )
+
+    # Copy the job files into the target dir
     jobs = get_job_list(parsed_stack)
-    if jobs and not parsed_spec.is_kubernetes_deployment():
+    if jobs:
         destination_compose_jobs_dir = target_dir.joinpath("compose-jobs")
         os.makedirs(destination_compose_jobs_dir, exist_ok=True)
         for job in jobs:

@@ -393,10 +393,10 @@ def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
             raise DeployerException(f"kind load docker-image failed: {result}")
 
 
-def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
+def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str, namespace: str = "default"):
     pods = []
     pod_response = core_api.list_namespaced_pod(
-        namespace="default", label_selector=f"app={deployment_name}"
+        namespace=namespace, label_selector=f"app={deployment_name}"
     )
     if opts.o.debug:
         print(f"pod_response: {pod_response}")
@@ -406,10 +406,10 @@ def pods_in_deployment(core_api: client.CoreV1Api, deployment_name: str):
     return pods
 
 
-def containers_in_pod(core_api: client.CoreV1Api, pod_name: str) -> List[str]:
+def containers_in_pod(core_api: client.CoreV1Api, pod_name: str, namespace: str = "default") -> List[str]:
     containers: List[str] = []
     pod_response = cast(
-        client.V1Pod, core_api.read_namespaced_pod(pod_name, namespace="default")
+        client.V1Pod, core_api.read_namespaced_pod(pod_name, namespace=namespace)
     )
     if opts.o.debug:
         print(f"pod_response: {pod_response}")

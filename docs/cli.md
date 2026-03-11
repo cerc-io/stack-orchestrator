@@ -68,7 +68,7 @@ $ laconic-so build-npms --include <package-name> --force-rebuild
 
 ## deploy
 
-The `deploy` command group manages persistent deployments. The general workflow is `deploy init` to generate a spec file, then `deploy create` to create a deployment directory from the spec, then runtime commands like `deploy up` and `deploy down`.
+The `deploy` command group manages persistent deployments. The general workflow is `deploy init` to generate a spec file, then `deploy create` to create a deployment directory from the spec, then runtime commands like `deployment start` and `deployment stop`.
 
 ### deploy init
 
@@ -101,35 +101,91 @@ Options:
 - `--spec-file` (required): spec file to use
 - `--deployment-dir`: target directory for deployment files
 - `--update`: update an existing deployment directory, preserving data volumes and env file. Changed files are backed up with a `.bak` suffix. The deployment's `config.env` and `deployment.yml` are also preserved.
+- `--helm-chart`: generate Helm chart instead of deploying (k8s only)
 - `--network-dir`: network configuration supplied in this directory
 - `--initial-peers`: initial set of persistent peers
 
-### deploy up
+## deployment
 
-Start a deployment:
+Runtime commands for managing a created deployment. Use `--dir` to specify the deployment directory.
+
+### deployment start
+
+Start a deployment (`up` is a legacy alias):
 ```
-$ laconic-so deployment --dir <deployment-dir> up
+$ laconic-so deployment --dir <deployment-dir> start
 ```
 
-### deploy down
+Options:
+- `--stay-attached` / `--detatch-terminal`: attach to container stdout (default: detach)
+- `--skip-cluster-management` / `--perform-cluster-management`: skip kind cluster creation/teardown (default: perform management). Only affects k8s-kind deployments. Use this when multiple stacks share a single cluster.
 
-Stop a deployment:
-```
-$ laconic-so deployment --dir <deployment-dir> down
-```
-Use `--delete-volumes` to also remove data volumes.
+### deployment stop
 
-### deploy ps
+Stop a deployment (`down` is a legacy alias):
+```
+$ laconic-so deployment --dir <deployment-dir> stop
+```
+
+Options:
+- `--delete-volumes` / `--preserve-volumes`: delete data volumes on stop (default: preserve)
+- `--skip-cluster-management` / `--perform-cluster-management`: skip kind cluster teardown (default: perform management). Use this to stop a single deployment without destroying a shared cluster.
+
+### deployment restart
+
+Restart a deployment with GitOps-aware workflow. Pulls latest stack code, syncs the deployment directory from the git-tracked spec, and restarts services:
+```
+$ laconic-so deployment --dir <deployment-dir> restart
+```
+
+See [deployment_patterns.md](deployment_patterns.md) for the recommended GitOps workflow.
+
+### deployment ps
 
 Show running services:
 ```
 $ laconic-so deployment --dir <deployment-dir> ps
 ```
 
-### deploy logs
+### deployment logs
 
 View service logs:
 ```
 $ laconic-so deployment --dir <deployment-dir> logs
 ```
 Use `-f` to follow and `-n <count>` to tail.
+
+### deployment exec
+
+Execute a command in a running service container:
+```
+$ laconic-so deployment --dir <deployment-dir> exec <service-name> "<command>"
+```
+
+### deployment status
+
+Show deployment status:
+```
+$ laconic-so deployment --dir <deployment-dir> status
+```
+
+### deployment port
+
+Show mapped ports for a service:
+```
+$ laconic-so deployment --dir <deployment-dir> port <service-name> <port>
+```
+
+### deployment push-images
+
+Push deployment images to a registry:
+```
+$ laconic-so deployment --dir <deployment-dir> push-images
+```
+
+### deployment run-job
+
+Run a one-time job in the deployment:
+```
+$ laconic-so deployment --dir <deployment-dir> run-job <job-name>
+```

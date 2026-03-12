@@ -21,7 +21,7 @@ from stack_orchestrator.deploy.deploy_util import VolumeMapping, run_container_c
 from pathlib import Path
 
 default_spec_file_content = """config:
-    test-variable-1: test-value-1
+    test_variable_1: test-value-1
 """
 
 

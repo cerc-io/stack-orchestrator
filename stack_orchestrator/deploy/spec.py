@@ -149,8 +149,47 @@ class Spec:
             self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {})
         )
 
+    def get_volume_resources_for(self, volume_name: str) -> typing.Optional[Resources]:
+        """Look up per-volume resource overrides from spec.yml.
+
+        Supports two formats under resources.volumes:
+
+        Global (original):
+            resources:
+              volumes:
+                reservations:
+                  storage: 5Gi
+
+        Per-volume (new):
+            resources:
+              volumes:
+                my-volume:
+                  reservations:
+                    storage: 10Gi
+
+        Returns the per-volume Resources if found, otherwise None.
+        The caller should fall back to get_volume_resources() then the default.
+        """
+        vol_section = (
+            self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {})
+        )
+        if volume_name not in vol_section:
+            return None
+        entry = vol_section[volume_name]
+        if isinstance(entry, dict) and (
+            "reservations" in entry or "limits" in entry
+        ):
+            return Resources(entry)
+        return None
+
     def get_http_proxy(self):
         return self.obj.get(constants.network_key, {}).get(constants.http_proxy_key, [])
+
+    def get_namespace(self):
+        return self.obj.get("namespace")
+
+    def get_kind_cluster_name(self):
+        return self.obj.get("kind-cluster-name")
 
     def get_annotations(self):
         return self.obj.get(constants.annotations_key, {})

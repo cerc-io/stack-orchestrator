@@ -122,9 +122,9 @@ class K8sDeployer(Deployer):
             return
         self.deployment_dir = deployment_context.deployment_dir
         self.deployment_context = deployment_context
-        self.kind_cluster_name = compose_project_name
-        # Use deployment-specific namespace for resource isolation and easy cleanup
-        self.k8s_namespace = f"laconic-{compose_project_name}"
+        self.kind_cluster_name = deployment_context.spec.get_kind_cluster_name() or compose_project_name
+        # Use spec namespace if provided, otherwise derive from cluster-id
+        self.k8s_namespace = deployment_context.spec.get_namespace() or f"laconic-{compose_project_name}"
         self.cluster_info = ClusterInfo()
         # stack.name may be an absolute path (from spec "stack:" key after
         # path resolution). Extract just the directory basename for labels.
@@ -203,6 +203,93 @@ class K8sDeployer(Deployer):
                     print(f"Namespace {self.k8s_namespace} not found")
             else:
                 raise
+
+    def _delete_resources_by_label(self, label_selector: str, delete_volumes: bool):
+        """Delete only this stack's resources from a shared namespace."""
+        ns = self.k8s_namespace
+        if opts.o.dry_run:
+            print(f"Dry run: would delete resources with {label_selector} in {ns}")
+            return
+
+        # Deployments
+        try:
+            deps = self.apps_api.list_namespaced_deployment(
+                namespace=ns, label_selector=label_selector
+            )
+            for dep in deps.items:
+                print(f"Deleting Deployment {dep.metadata.name}")
+                self.apps_api.delete_namespaced_deployment(
+                    name=dep.metadata.name, namespace=ns
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # Jobs
+        try:
+            jobs = self.batch_api.list_namespaced_job(
+                namespace=ns, label_selector=label_selector
+            )
+            for job in jobs.items:
+                print(f"Deleting Job {job.metadata.name}")
+                self.batch_api.delete_namespaced_job(
+                    name=job.metadata.name, namespace=ns,
+                    body=client.V1DeleteOptions(propagation_policy="Background"),
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # Services (NodePorts created by SO)
+        try:
+            svcs = self.core_api.list_namespaced_service(
+                namespace=ns, label_selector=label_selector
+            )
+            for svc in svcs.items:
+                print(f"Deleting Service {svc.metadata.name}")
+                self.core_api.delete_namespaced_service(
+                    name=svc.metadata.name, namespace=ns
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # Ingresses
+        try:
+            ings = self.networking_api.list_namespaced_ingress(
+                namespace=ns, label_selector=label_selector
+            )
+            for ing in ings.items:
+                print(f"Deleting Ingress {ing.metadata.name}")
+                self.networking_api.delete_namespaced_ingress(
+                    name=ing.metadata.name, namespace=ns
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # ConfigMaps
+        try:
+            cms = self.core_api.list_namespaced_config_map(
+                namespace=ns, label_selector=label_selector
+            )
+            for cm in cms.items:
+                print(f"Deleting ConfigMap {cm.metadata.name}")
+                self.core_api.delete_namespaced_config_map(
+                    name=cm.metadata.name, namespace=ns
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # PVCs (only if --delete-volumes)
+        if delete_volumes:
+            try:
+                pvcs = self.core_api.list_namespaced_persistent_volume_claim(
+                    namespace=ns, label_selector=label_selector
+                )
+                for pvc in pvcs.items:
+                    print(f"Deleting PVC {pvc.metadata.name}")
+                    self.core_api.delete_namespaced_persistent_volume_claim(
+                        name=pvc.metadata.name, namespace=ns
+                    )
+            except ApiException as e:
+                _check_delete_exception(e)
 
     def _create_volume_data(self):
         # Create the host-path-mounted PVs for this deployment
@@ -473,11 +560,13 @@ class K8sDeployer(Deployer):
         self.skip_cluster_management = skip_cluster_management
         self.connect_api()
 
+        app_label = f"app={self.cluster_info.app_name}"
+
         # PersistentVolumes are cluster-scoped (not namespaced), so delete by label
         if volumes:
             try:
                 pvs = self.core_api.list_persistent_volume(
-                    label_selector=f"app={self.cluster_info.app_name}"
+                    label_selector=app_label
                 )
                 for pv in pvs.items:
                     if opts.o.debug:
@@ -490,9 +579,14 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print(f"Error listing PVs: {e}")
 
-        # Delete the deployment namespace - this cascades to all namespaced resources
-        # (PVCs, ConfigMaps, Deployments, Services, Ingresses, etc.)
-        self._delete_namespace()
+        # When namespace is explicitly set in the spec, it may be shared with
+        # other stacks — delete only this stack's resources by label.
+        # Otherwise the namespace is owned by this deployment, delete it entirely.
+        shared_namespace = self.deployment_context.spec.get_namespace() is not None
+        if shared_namespace:
+            self._delete_resources_by_label(app_label, volumes)
+        else:
+            self._delete_namespace()
 
         if self.is_kind() and not self.skip_cluster_management:
             # Destroy the kind cluster

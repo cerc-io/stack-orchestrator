@@ -273,18 +273,24 @@ class ClusterInfo:
         result = []
         spec_volumes = self.spec.get_volumes()
         named_volumes = self._all_named_volumes()
-        resources = self.spec.get_volume_resources()
-        if not resources:
-            resources = DEFAULT_VOLUME_RESOURCES
+        global_resources = self.spec.get_volume_resources()
+        if not global_resources:
+            global_resources = DEFAULT_VOLUME_RESOURCES
         if opts.o.debug:
             print(f"Spec Volumes: {spec_volumes}")
             print(f"Named Volumes: {named_volumes}")
-            print(f"Resources: {resources}")
+            print(f"Resources: {global_resources}")
         for volume_name, volume_path in spec_volumes.items():
             if volume_name not in named_volumes:
                 if opts.o.debug:
                     print(f"{volume_name} not in pod files")
                 continue
+
+            # Per-volume resources override global, which overrides default.
+            vol_resources = (
+                self.spec.get_volume_resources_for(volume_name)
+                or global_resources
+            )
 
             labels = {
                 "app": self.app_name,
@@ -301,7 +307,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=["ReadWriteOnce"],
                 storage_class_name=storage_class_name,
-                resources=to_k8s_resource_requirements(resources),
+                resources=to_k8s_resource_requirements(vol_resources),
                 volume_name=k8s_volume_name,
             )
             pvc = client.V1PersistentVolumeClaim(
@@ -353,9 +359,9 @@ class ClusterInfo:
         result = []
         spec_volumes = self.spec.get_volumes()
         named_volumes = self._all_named_volumes()
-        resources = self.spec.get_volume_resources()
-        if not resources:
-            resources = DEFAULT_VOLUME_RESOURCES
+        global_resources = self.spec.get_volume_resources()
+        if not global_resources:
+            global_resources = DEFAULT_VOLUME_RESOURCES
         for volume_name, volume_path in spec_volumes.items():
             # We only need to create a volume if it is fully qualified HostPath.
             # Otherwise, we create the PVC and expect the node to allocate the volume
@@ -384,6 +390,10 @@ class ClusterInfo:
                     )
                     continue
 
+            vol_resources = (
+                self.spec.get_volume_resources_for(volume_name)
+                or global_resources
+            )
             if self.spec.is_kind_deployment():
                 host_path = client.V1HostPathVolumeSource(
                     path=get_kind_pv_bind_mount_path(volume_name)
@@ -393,7 +403,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeSpec(
                 storage_class_name="manual",
                 access_modes=["ReadWriteOnce"],
-                capacity=to_k8s_resource_requirements(resources).requests,
+                capacity=to_k8s_resource_requirements(vol_resources).requests,
                 host_path=host_path,
             )
             pv = client.V1PersistentVolume(
@@ -446,12 +456,16 @@ class ClusterInfo:
     ) -> tuple:
         """Build k8s container specs from parsed compose YAML.
 
-        Returns a tuple of (containers, services, volumes) where:
+        Returns a tuple of (containers, init_containers, services, volumes)
+        where:
         - containers: list of V1Container objects
+        - init_containers: list of V1Container objects for init containers
+          (compose services with label ``laconic.init-container: "true"``)
         - services: the last services dict processed (used for annotations/labels)
         - volumes: list of V1Volume objects
         """
         containers = []
+        init_containers = []
         services = {}
         global_resources = self.spec.get_container_resources()
         if not global_resources:
@@ -563,6 +577,7 @@ class ClusterInfo:
                     volume_mounts=volume_mounts,
                     security_context=client.V1SecurityContext(
                         privileged=self.spec.get_privileged(),
+                        run_as_user=int(service_info["user"]) if "user" in service_info else None,
                         capabilities=client.V1Capabilities(
                             add=self.spec.get_capabilities()
                         )
@@ -571,15 +586,29 @@ class ClusterInfo:
                     ),
                     resources=to_k8s_resource_requirements(container_resources),
                 )
-                containers.append(container)
+                # Services with laconic.init-container label become
+                # k8s init containers instead of regular containers.
+                svc_labels = service_info.get("labels", {})
+                if isinstance(svc_labels, list):
+                    # docker-compose labels can be a list of "key=value"
+                    svc_labels = dict(
+                        item.split("=", 1) for item in svc_labels
+                    )
+                is_init = str(
+                    svc_labels.get("laconic.init-container", "")
+                ).lower() in ("true", "1", "yes")
+                if is_init:
+                    init_containers.append(container)
+                else:
+                    containers.append(container)
         volumes = volumes_for_pod_files(
             parsed_yaml_map, self.spec, self.app_name
         )
-        return containers, services, volumes
+        return containers, init_containers, services, volumes
 
     # TODO: put things like image pull policy into an object-scope struct
     def get_deployment(self, image_pull_policy: Optional[str] = None):
-        containers, services, volumes = self._build_containers(
+        containers, init_containers, services, volumes = self._build_containers(
             self.parsed_pod_yaml_map, image_pull_policy
         )
         registry_config = self.spec.get_image_registry_config()
@@ -650,6 +679,7 @@ class ClusterInfo:
             metadata=client.V1ObjectMeta(annotations=annotations, labels=labels),
             spec=client.V1PodSpec(
                 containers=containers,
+                init_containers=init_containers or None,
                 image_pull_secrets=image_pull_secrets,
                 volumes=volumes,
                 affinity=affinity,
@@ -668,7 +698,10 @@ class ClusterInfo:
         deployment = client.V1Deployment(
             api_version="apps/v1",
             kind="Deployment",
-            metadata=client.V1ObjectMeta(name=f"{self.app_name}-deployment"),
+            metadata=client.V1ObjectMeta(
+                name=f"{self.app_name}-deployment",
+                labels={"app": self.app_name, **({"app.kubernetes.io/stack": self.stack_name} if self.stack_name else {})},
+            ),
             spec=spec,
         )
         return deployment
@@ -695,8 +728,8 @@ class ClusterInfo:
         for job_file in self.parsed_job_yaml_map:
             # Build containers for this single job file
             single_job_map = {job_file: self.parsed_job_yaml_map[job_file]}
-            containers, _services, volumes = self._build_containers(
-                single_job_map, image_pull_policy
+            containers, init_containers, _services, volumes = (
+                self._build_containers(single_job_map, image_pull_policy)
             )
 
             # Derive job name from file path: docker-compose-<name>.yml -> <name>
@@ -722,6 +755,7 @@ class ClusterInfo:
                 ),
                 spec=client.V1PodSpec(
                     containers=containers,
+                    init_containers=init_containers or None,
                     image_pull_secrets=image_pull_secrets,
                     volumes=volumes,
                     restart_policy="Never",

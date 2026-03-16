@@ -122,14 +122,18 @@ class K8sDeployer(Deployer):
             return
         self.deployment_dir = deployment_context.deployment_dir
         self.deployment_context = deployment_context
-        self.kind_cluster_name = deployment_context.spec.get_kind_cluster_name() or compose_project_name
-        # Use spec namespace if provided, otherwise derive from cluster-id
-        self.k8s_namespace = deployment_context.spec.get_namespace() or f"laconic-{compose_project_name}"
-        self.cluster_info = ClusterInfo()
+        self.kind_cluster_name = (
+            deployment_context.spec.get_kind_cluster_name() or compose_project_name
+        )
         # stack.name may be an absolute path (from spec "stack:" key after
         # path resolution). Extract just the directory basename for labels.
         raw_name = deployment_context.stack.name if deployment_context else ""
         stack_name = Path(raw_name).name if raw_name else ""
+        # Use spec namespace if provided, otherwise derive from stack name
+        self.k8s_namespace = deployment_context.spec.get_namespace() or (
+            f"laconic-{stack_name}" if stack_name else f"laconic-{compose_project_name}"
+        )
+        self.cluster_info = ClusterInfo()
         self.cluster_info.int(
             compose_files,
             compose_env_file,
@@ -232,7 +236,8 @@ class K8sDeployer(Deployer):
             for job in jobs.items:
                 print(f"Deleting Job {job.metadata.name}")
                 self.batch_api.delete_namespaced_job(
-                    name=job.metadata.name, namespace=ns,
+                    name=job.metadata.name,
+                    namespace=ns,
                     body=client.V1DeleteOptions(propagation_policy="Background"),
                 )
         except ApiException as e:
@@ -555,7 +560,10 @@ class K8sDeployer(Deployer):
 
         # Call start() hooks — stacks can create additional k8s resources
         if self.deployment_context:
-            from stack_orchestrator.deploy.deployment_create import call_stack_deploy_start
+            from stack_orchestrator.deploy.deployment_create import (
+                call_stack_deploy_start,
+            )
+
             call_stack_deploy_start(self.deployment_context)
 
     def down(self, timeout, volumes, skip_cluster_management):
@@ -567,9 +575,7 @@ class K8sDeployer(Deployer):
         # PersistentVolumes are cluster-scoped (not namespaced), so delete by label
         if volumes:
             try:
-                pvs = self.core_api.list_persistent_volume(
-                    label_selector=app_label
-                )
+                pvs = self.core_api.list_persistent_volume(label_selector=app_label)
                 for pv in pvs.items:
                     if opts.o.debug:
                         print(f"Deleting PV: {pv.metadata.name}")
@@ -713,14 +719,18 @@ class K8sDeployer(Deployer):
 
     def logs(self, services, tail, follow, stream):
         self.connect_api()
-        pods = pods_in_deployment(self.core_api, self.cluster_info.app_name, namespace=self.k8s_namespace)
+        pods = pods_in_deployment(
+            self.core_api, self.cluster_info.app_name, namespace=self.k8s_namespace
+        )
         if len(pods) > 1:
             print("Warning: more than one pod in the deployment")
         if len(pods) == 0:
             log_data = "******* Pods not running ********\n"
         else:
             k8s_pod_name = pods[0]
-            containers = containers_in_pod(self.core_api, k8s_pod_name, namespace=self.k8s_namespace)
+            containers = containers_in_pod(
+                self.core_api, k8s_pod_name, namespace=self.k8s_namespace
+            )
             # If pod not started, logs request below will throw an exception
             try:
                 log_data = ""

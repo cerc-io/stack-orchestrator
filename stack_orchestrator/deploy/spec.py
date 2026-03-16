@@ -170,15 +170,13 @@ class Spec:
         Returns the per-volume Resources if found, otherwise None.
         The caller should fall back to get_volume_resources() then the default.
         """
-        vol_section = (
-            self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {})
+        vol_section = self.obj.get(constants.resources_key, {}).get(
+            constants.volumes_key, {}
         )
         if volume_name not in vol_section:
             return None
         entry = vol_section[volume_name]
-        if isinstance(entry, dict) and (
-            "reservations" in entry or "limits" in entry
-        ):
+        if isinstance(entry, dict) and ("reservations" in entry or "limits" in entry):
             return Resources(entry)
         return None
 

@@ -82,7 +82,14 @@ class ClusterInfo:
     def __init__(self) -> None:
         self.parsed_job_yaml_map = {}
 
-    def int(self, pod_files: List[str], compose_env_file, deployment_name, spec: Spec, stack_name=""):
+    def int(
+        self,
+        pod_files: List[str],
+        compose_env_file,
+        deployment_name,
+        spec: Spec,
+        stack_name="",
+    ):
         self.parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
         # Find the set of images in the pods
         self.image_set = images_for_deployment(pod_files)
@@ -292,8 +299,7 @@ class ClusterInfo:
 
             # Per-volume resources override global, which overrides default.
             vol_resources = (
-                self.spec.get_volume_resources_for(volume_name)
-                or global_resources
+                self.spec.get_volume_resources_for(volume_name) or global_resources
             )
 
             labels = {
@@ -395,8 +401,7 @@ class ClusterInfo:
                     continue
 
             vol_resources = (
-                self.spec.get_volume_resources_for(volume_name)
-                or global_resources
+                self.spec.get_volume_resources_for(volume_name) or global_resources
             )
             if self.spec.is_kind_deployment():
                 host_path = client.V1HostPathVolumeSource(
@@ -531,9 +536,7 @@ class ClusterInfo:
                     if self.spec.get_image_registry() is not None
                     else image
                 )
-                volume_mounts = volume_mounts_for_service(
-                    parsed_yaml_map, service_name
-                )
+                volume_mounts = volume_mounts_for_service(parsed_yaml_map, service_name)
                 # Handle command/entrypoint from compose file
                 # In docker-compose: entrypoint -> k8s command, command -> k8s args
                 container_command = None
@@ -581,7 +584,9 @@ class ClusterInfo:
                     volume_mounts=volume_mounts,
                     security_context=client.V1SecurityContext(
                         privileged=self.spec.get_privileged(),
-                        run_as_user=int(service_info["user"]) if "user" in service_info else None,
+                        run_as_user=int(service_info["user"])
+                        if "user" in service_info
+                        else None,
                         capabilities=client.V1Capabilities(
                             add=self.spec.get_capabilities()
                         )
@@ -595,19 +600,17 @@ class ClusterInfo:
                 svc_labels = service_info.get("labels", {})
                 if isinstance(svc_labels, list):
                     # docker-compose labels can be a list of "key=value"
-                    svc_labels = dict(
-                        item.split("=", 1) for item in svc_labels
-                    )
-                is_init = str(
-                    svc_labels.get("laconic.init-container", "")
-                ).lower() in ("true", "1", "yes")
+                    svc_labels = dict(item.split("=", 1) for item in svc_labels)
+                is_init = str(svc_labels.get("laconic.init-container", "")).lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                )
                 if is_init:
                     init_containers.append(container)
                 else:
                     containers.append(container)
-        volumes = volumes_for_pod_files(
-            parsed_yaml_map, self.spec, self.app_name
-        )
+        volumes = volumes_for_pod_files(parsed_yaml_map, self.spec, self.app_name)
         return containers, init_containers, services, volumes
 
     # TODO: put things like image pull policy into an object-scope struct
@@ -704,7 +707,14 @@ class ClusterInfo:
             kind="Deployment",
             metadata=client.V1ObjectMeta(
                 name=f"{self.app_name}-deployment",
-                labels={"app": self.app_name, **({"app.kubernetes.io/stack": self.stack_name} if self.stack_name else {})},
+                labels={
+                    "app": self.app_name,
+                    **(
+                        {"app.kubernetes.io/stack": self.stack_name}
+                        if self.stack_name
+                        else {}
+                    ),
+                },
             ),
             spec=spec,
         )
@@ -732,8 +742,8 @@ class ClusterInfo:
         for job_file in self.parsed_job_yaml_map:
             # Build containers for this single job file
             single_job_map = {job_file: self.parsed_job_yaml_map[job_file]}
-            containers, init_containers, _services, volumes = (
-                self._build_containers(single_job_map, image_pull_policy)
+            containers, init_containers, _services, volumes = self._build_containers(
+                single_job_map, image_pull_policy
             )
 
             # Derive job name from file path: docker-compose-<name>.yml -> <name>
@@ -741,7 +751,7 @@ class ClusterInfo:
             # Strip docker-compose- prefix and .yml suffix
             job_name = base
             if job_name.startswith("docker-compose-"):
-                job_name = job_name[len("docker-compose-"):]
+                job_name = job_name[len("docker-compose-") :]
             if job_name.endswith(".yml"):
                 job_name = job_name[: -len(".yml")]
             elif job_name.endswith(".yaml"):
@@ -751,12 +761,14 @@ class ClusterInfo:
             # picked up by pods_in_deployment() which queries app={app_name}.
             pod_labels = {
                 "app": f"{self.app_name}-job",
-                **({"app.kubernetes.io/stack": self.stack_name} if self.stack_name else {}),
+                **(
+                    {"app.kubernetes.io/stack": self.stack_name}
+                    if self.stack_name
+                    else {}
+                ),
             }
             template = client.V1PodTemplateSpec(
-                metadata=client.V1ObjectMeta(
-                    labels=pod_labels
-                ),
+                metadata=client.V1ObjectMeta(labels=pod_labels),
                 spec=client.V1PodSpec(
                     containers=containers,
                     init_containers=init_containers or None,
@@ -769,7 +781,14 @@ class ClusterInfo:
                 template=template,
                 backoff_limit=0,
             )
-            job_labels = {"app": self.app_name, **({"app.kubernetes.io/stack": self.stack_name} if self.stack_name else {})}
+            job_labels = {
+                "app": self.app_name,
+                **(
+                    {"app.kubernetes.io/stack": self.stack_name}
+                    if self.stack_name
+                    else {}
+                ),
+            }
             job = client.V1Job(
                 api_version="batch/v1",
                 kind="Job",

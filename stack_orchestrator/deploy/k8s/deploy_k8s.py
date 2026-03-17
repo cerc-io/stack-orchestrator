@@ -362,7 +362,7 @@ class K8sDeployer(Deployer):
             return
         # Process compose files into a Deployment
         deployment = self.cluster_info.get_deployment(
-            image_pull_policy=None if self.is_kind() else "Always"
+            image_pull_policy="Always"
         )
         # Create the k8s objects
         if opts.o.debug:
@@ -400,7 +400,7 @@ class K8sDeployer(Deployer):
     def _create_jobs(self):
         # Process job compose files into k8s Jobs
         jobs = self.cluster_info.get_jobs(
-            image_pull_policy=None if self.is_kind() else "Always"
+            image_pull_policy="Always"
         )
         for job in jobs:
             if opts.o.debug:
@@ -820,7 +820,7 @@ class K8sDeployer(Deployer):
                 # Non-Helm path: create job from ClusterInfo
                 self.connect_api()
                 jobs = self.cluster_info.get_jobs(
-                    image_pull_policy=None if self.is_kind() else "Always"
+                    image_pull_policy="Always"
                 )
                 # Find the matching job by name
                 target_name = f"{self.cluster_info.app_name}-job-{job_name}"

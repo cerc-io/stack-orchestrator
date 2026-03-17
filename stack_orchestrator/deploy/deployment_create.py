@@ -835,9 +835,7 @@ def create_operation(
             # Copy from temp to deployment dir, excluding data volumes
             # and backing up changed files.
             # Exclude data/* to avoid touching user data volumes.
-            # Exclude config file to preserve deployment settings
-            # (XXX breaks passing config vars from spec)
-            exclude_patterns = ["data", "data/*", constants.config_file_name]
+            exclude_patterns = ["data", "data/*"]
             _safe_copy_tree(
                 temp_dir, deployment_dir_path, exclude_patterns=exclude_patterns
             )

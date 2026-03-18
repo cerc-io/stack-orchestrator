@@ -581,14 +581,11 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print(f"Error listing PVs: {e}")
 
-        # When namespace is explicitly set in the spec, it may be shared with
-        # other stacks — delete only this stack's resources by label.
-        # Otherwise the namespace is owned by this deployment, delete it entirely.
-        shared_namespace = self.deployment_context.spec.get_namespace() is not None
-        if shared_namespace:
-            self._delete_resources_by_label(app_label, volumes)
-        else:
-            self._delete_namespace()
+        # Always delete resources by label, never delete the namespace itself.
+        # Namespace deletion causes a race condition on restart: up() tries to
+        # create resources in a namespace that's still terminating (403 Forbidden).
+        # The namespace is cheap to keep and required for immediate up() after down().
+        self._delete_resources_by_label(app_label, volumes)
 
         if self.is_kind() and not self.skip_cluster_management:
             # Destroy the kind cluster

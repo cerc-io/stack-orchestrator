@@ -620,7 +620,7 @@ def create_registry_secret(spec: Spec, deployment_name: str) -> Optional[str]:
     }
 
     # Secret name derived from deployment name
-    secret_name = f"{deployment_name}-registry"
+    secret_name = f"{deployment_name}-image-pull-secret"
 
     # Load kube config
     try:

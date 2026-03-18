@@ -617,7 +617,7 @@ class ClusterInfo:
         )
         registry_config = self.spec.get_image_registry_config()
         if registry_config:
-            secret_name = f"{self.app_name}-registry"
+            secret_name = f"{self.app_name}-image-pull-secret"
             image_pull_secrets = [client.V1LocalObjectReference(name=secret_name)]
         else:
             image_pull_secrets = []
@@ -724,7 +724,7 @@ class ClusterInfo:
         jobs = []
         registry_config = self.spec.get_image_registry_config()
         if registry_config:
-            secret_name = f"{self.app_name}-registry"
+            secret_name = f"{self.app_name}-image-pull-secret"
             image_pull_secrets = [client.V1LocalObjectReference(name=secret_name)]
         else:
             image_pull_secrets = []

@@ -541,7 +541,9 @@ class K8sDeployer(Deployer):
         # Create registry secret if configured
         from stack_orchestrator.deploy.deployment_create import create_registry_secret
 
-        create_registry_secret(self.cluster_info.spec, self.cluster_info.app_name)
+        create_registry_secret(
+            self.cluster_info.spec, self.cluster_info.app_name, self.k8s_namespace
+        )
 
         self._create_volume_data()
         self._create_deployment()

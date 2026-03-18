@@ -248,8 +248,13 @@ def run_job(ctx, job_name, helm_release):
     "--expected-ip",
     help="Expected IP for DNS verification (if different from egress)",
 )
+@click.option(
+    "--image",
+    multiple=True,
+    help="Override container image: container=image",
+)
 @click.pass_context
-def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
+def restart(ctx, stack_path, spec_file, config_file, force, expected_ip, image):
     """Pull latest code and restart deployment using git-tracked spec.
 
     GitOps workflow:
@@ -275,6 +280,17 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
     from stack_orchestrator.deploy.dns_probe import verify_dns_via_probe
 
     deployment_context: DeploymentContext = ctx.obj
+
+    # Parse --image flags into a dict of container_name -> image
+    image_overrides = {}
+    for entry in image:
+        if "=" not in entry:
+            raise click.BadParameter(
+                f"Invalid --image format '{entry}', expected container=image",
+                param_hint="'--image'",
+            )
+        container_name, image_ref = entry.split("=", 1)
+        image_overrides[container_name] = image_ref
 
     # Get current spec info (before git pull)
     current_spec = deployment_context.spec
@@ -389,7 +405,11 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
     print("\n[4/4] Applying deployment update...")
     ctx.obj = make_deploy_context(ctx)
     up_operation(
-        ctx, services_list=None, stay_attached=False, skip_cluster_management=True
+        ctx,
+        services_list=None,
+        stay_attached=False,
+        skip_cluster_management=True,
+        image_overrides=image_overrides or None,
     )
 
     print("\n=== Restart Complete ===")

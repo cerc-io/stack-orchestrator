@@ -115,6 +115,7 @@ class K8sDeployer(Deployer):
     ) -> None:
         self.type = type
         self.skip_cluster_management = False
+        self.image_overrides = None
         self.k8s_namespace = "default"  # Will be overridden below if context exists
         # TODO: workaround pending refactoring above to cope with being
         # created with a null deployment_context
@@ -412,6 +413,15 @@ class K8sDeployer(Deployer):
             return
         # Process compose files into a Deployment
         deployment = self.cluster_info.get_deployment(image_pull_policy="Always")
+        # Apply image overrides if provided
+        if self.image_overrides:
+            for container in deployment.spec.template.spec.containers:
+                if container.name in self.image_overrides:
+                    container.image = self.image_overrides[container.name]
+                    if opts.o.debug:
+                        print(
+                            f"Overriding image for {container.name}: {container.image}"
+                        )
         # Create or update the k8s Deployment
         if opts.o.debug:
             print(f"Sending this deployment: {deployment}")
@@ -525,7 +535,8 @@ class K8sDeployer(Deployer):
                                 return cert
         return None
 
-    def up(self, detach, skip_cluster_management, services):
+    def up(self, detach, skip_cluster_management, services, image_overrides=None):
+        self.image_overrides = image_overrides
         self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:
             if self.is_kind() and not self.skip_cluster_management:

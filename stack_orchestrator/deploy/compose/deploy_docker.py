@@ -48,7 +48,7 @@ class DockerDeployer(Deployer):
         self.compose_project_name = compose_project_name
         self.compose_env_file = compose_env_file
 
-    def up(self, detach, skip_cluster_management, services):
+    def up(self, detach, skip_cluster_management, services, image_overrides=None):
         if not opts.o.dry_run:
             try:
                 return self.docker.compose.up(detach=detach, services=services)

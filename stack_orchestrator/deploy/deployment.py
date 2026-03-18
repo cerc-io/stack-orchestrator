@@ -17,7 +17,7 @@ import click
 from pathlib import Path
 import subprocess
 import sys
-import time
+
 from stack_orchestrator import constants
 from stack_orchestrator.deploy.images import push_images_operation
 from stack_orchestrator.deploy.deploy import (
@@ -383,23 +383,17 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip):
     deployment_context.init(deployment_context.deployment_dir)
     ctx.obj = deployment_context
 
-    # Stop deployment
-    print("\n[4/4] Restarting deployment...")
+    # Apply updated deployment (create-or-update triggers rolling update).
+    # No down() — k8s rolling update keeps old pods serving traffic until
+    # new pods pass readiness checks.
+    print("\n[4/4] Applying deployment update...")
     ctx.obj = make_deploy_context(ctx)
-    down_operation(
-        ctx, delete_volumes=False, extra_args_list=[], skip_cluster_management=True
-    )
-
-    # Brief pause to ensure clean shutdown
-    time.sleep(5)
-
-    # Start deployment
     up_operation(
         ctx, services_list=None, stay_attached=False, skip_cluster_management=True
     )
 
     print("\n=== Restart Complete ===")
-    print("Deployment restarted with git-tracked configuration.")
+    print("Deployment updated via rolling update.")
     if new_hostname and new_hostname != current_hostname:
         print(f"\nNew hostname: {new_hostname}")
         print("Caddy will automatically provision TLS certificate.")

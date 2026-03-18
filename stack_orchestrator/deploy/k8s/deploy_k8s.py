@@ -384,12 +384,20 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print(f"Sending this ConfigMap: {cfg_map}")
             if not opts.o.dry_run:
-                cfg_rsp = self.core_api.create_namespaced_config_map(
-                    body=cfg_map, namespace=self.k8s_namespace
-                )
-                if opts.o.debug:
-                    print("ConfigMap created:")
-                    print(f"{cfg_rsp}")
+                cm_name = cfg_map.metadata.name
+                try:
+                    self.core_api.create_namespaced_config_map(
+                        body=cfg_map, namespace=self.k8s_namespace
+                    )
+                except ApiException as e:
+                    if e.status == 409:
+                        self.core_api.patch_namespaced_config_map(
+                            name=cm_name,
+                            namespace=self.k8s_namespace,
+                            body=cfg_map,
+                        )
+                    else:
+                        raise
 
     def _create_deployment(self):
         # Skip if there are no pods to deploy (e.g. jobs-only stacks)
@@ -401,38 +409,64 @@ class K8sDeployer(Deployer):
         deployment = self.cluster_info.get_deployment(
             image_pull_policy="Always"
         )
-        # Create the k8s objects
+        # Create or update the k8s Deployment
         if opts.o.debug:
             print(f"Sending this deployment: {deployment}")
         if not opts.o.dry_run:
-            deployment_resp = cast(
-                client.V1Deployment,
-                self.apps_api.create_namespaced_deployment(
-                    body=deployment, namespace=self.k8s_namespace
-                ),
-            )
+            name = deployment.metadata.name
+            try:
+                deployment_resp = cast(
+                    client.V1Deployment,
+                    self.apps_api.create_namespaced_deployment(
+                        body=deployment, namespace=self.k8s_namespace
+                    ),
+                )
+                print(f"Created Deployment {name}")
+            except ApiException as e:
+                if e.status == 409:
+                    # Already exists — patch to trigger rolling update
+                    deployment_resp = cast(
+                        client.V1Deployment,
+                        self.apps_api.patch_namespaced_deployment(
+                            name=name,
+                            namespace=self.k8s_namespace,
+                            body=deployment,
+                        ),
+                    )
+                    print(f"Updated Deployment {name} (rolling update)")
+                else:
+                    raise
             if opts.o.debug:
-                print("Deployment created:")
                 meta = deployment_resp.metadata
                 spec = deployment_resp.spec
                 if meta and spec and spec.template.spec:
-                    ns = meta.namespace
-                    name = meta.name
-                    gen = meta.generation
                     containers = spec.template.spec.containers
                     img = containers[0].image if containers else None
-                    print(f"{ns} {name} {gen} {img}")
+                    print(f"  {meta.namespace} {meta.name} gen={meta.generation} {img}")
 
         service = self.cluster_info.get_service()
         if opts.o.debug:
             print(f"Sending this service: {service}")
         if service and not opts.o.dry_run:
-            service_resp = self.core_api.create_namespaced_service(
-                namespace=self.k8s_namespace, body=service
-            )
+            svc_name = service.metadata.name
+            try:
+                service_resp = self.core_api.create_namespaced_service(
+                    namespace=self.k8s_namespace, body=service
+                )
+                print(f"Created Service {svc_name}")
+            except ApiException as e:
+                if e.status == 409:
+                    # Service exists — patch it (preserves clusterIP)
+                    service_resp = self.core_api.patch_namespaced_service(
+                        name=svc_name,
+                        namespace=self.k8s_namespace,
+                        body=service,
+                    )
+                    print(f"Updated Service {svc_name}")
+                else:
+                    raise
             if opts.o.debug:
-                print("Service created:")
-                print(f"{service_resp}")
+                print(f"  {service_resp}")
 
     def _create_jobs(self):
         # Process job compose files into k8s Jobs
@@ -570,12 +604,22 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print(f"Sending this ingress: {ingress}")
             if not opts.o.dry_run:
-                ingress_resp = self.networking_api.create_namespaced_ingress(
-                    namespace=self.k8s_namespace, body=ingress
-                )
-                if opts.o.debug:
-                    print("Ingress created:")
-                    print(f"{ingress_resp}")
+                ing_name = ingress.metadata.name
+                try:
+                    self.networking_api.create_namespaced_ingress(
+                        namespace=self.k8s_namespace, body=ingress
+                    )
+                    print(f"Created Ingress {ing_name}")
+                except ApiException as e:
+                    if e.status == 409:
+                        self.networking_api.patch_namespaced_ingress(
+                            name=ing_name,
+                            namespace=self.k8s_namespace,
+                            body=ingress,
+                        )
+                        print(f"Updated Ingress {ing_name}")
+                    else:
+                        raise
         else:
             if opts.o.debug:
                 print("No ingress configured")
@@ -585,12 +629,20 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print(f"Sending this nodeport: {nodeport}")
             if not opts.o.dry_run:
-                nodeport_resp = self.core_api.create_namespaced_service(
-                    namespace=self.k8s_namespace, body=nodeport
-                )
-                if opts.o.debug:
-                    print("NodePort created:")
-                    print(f"{nodeport_resp}")
+                np_name = nodeport.metadata.name
+                try:
+                    self.core_api.create_namespaced_service(
+                        namespace=self.k8s_namespace, body=nodeport
+                    )
+                except ApiException as e:
+                    if e.status == 409:
+                        self.core_api.patch_namespaced_service(
+                            name=np_name,
+                            namespace=self.k8s_namespace,
+                            body=nodeport,
+                        )
+                    else:
+                        raise
 
         # Call start() hooks — stacks can create additional k8s resources
         if self.deployment_context:

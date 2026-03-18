@@ -695,6 +695,19 @@ def _write_config_file(
                     continue
                 output_file.write(f"{variable_name}={variable_value}\n")
 
+        # Append contents of credentials files listed in spec
+        credentials_files = spec_content.get("credentials-files", []) or []
+        for cred_path_str in credentials_files:
+            cred_path = Path(cred_path_str).expanduser()
+            if not cred_path.exists():
+                print(f"Error: credentials file does not exist: {cred_path}")
+                sys.exit(1)
+            output_file.write(f"# From credentials file: {cred_path_str}\n")
+            contents = cred_path.read_text()
+            output_file.write(contents)
+            if not contents.endswith("\n"):
+                output_file.write("\n")
+
 
 def _write_kube_config_file(external_path: Path, internal_path: Path):
     if not external_path.exists():
@@ -1041,12 +1054,8 @@ def _write_deployment_files(
         for configmap in parsed_spec.get_configmaps():
             source_config_dir = resolve_config_dir(stack_name, configmap)
             if os.path.exists(source_config_dir):
-                destination_config_dir = target_dir.joinpath(
-                    "configmaps", configmap
-                )
-                copytree(
-                    source_config_dir, destination_config_dir, dirs_exist_ok=True
-                )
+                destination_config_dir = target_dir.joinpath("configmaps", configmap)
+                copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
 
     # Copy the job files into the target dir
     jobs = get_job_list(parsed_stack)

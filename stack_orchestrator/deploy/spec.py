@@ -98,6 +98,10 @@ class Spec:
     def get_image_registry(self):
         return self.obj.get(constants.image_registry_key)
 
+    def get_credentials_files(self) -> typing.List[str]:
+        """Returns list of credential file paths to append to config.env."""
+        return self.obj.get("credentials-files", [])
+
     def get_image_registry_config(self) -> typing.Optional[typing.Dict]:
         """Returns registry auth config: {server, username, token-env}.
 
@@ -167,15 +171,13 @@ class Spec:
         Returns the per-volume Resources if found, otherwise None.
         The caller should fall back to get_volume_resources() then the default.
         """
-        vol_section = (
-            self.obj.get(constants.resources_key, {}).get(constants.volumes_key, {})
+        vol_section = self.obj.get(constants.resources_key, {}).get(
+            constants.volumes_key, {}
         )
         if volume_name not in vol_section:
             return None
         entry = vol_section[volume_name]
-        if isinstance(entry, dict) and (
-            "reservations" in entry or "limits" in entry
-        ):
+        if isinstance(entry, dict) and ("reservations" in entry or "limits" in entry):
             return Resources(entry)
         return None
 

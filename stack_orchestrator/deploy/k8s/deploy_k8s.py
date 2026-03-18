@@ -204,6 +204,43 @@ class K8sDeployer(Deployer):
             else:
                 raise
 
+    def _wait_for_namespace_gone(self, timeout_seconds: int = 120):
+        """Wait for namespace to finish terminating."""
+        if opts.o.dry_run:
+            return
+        import time
+
+        deadline = time.monotonic() + timeout_seconds
+        while time.monotonic() < deadline:
+            try:
+                ns = self.core_api.read_namespace(name=self.k8s_namespace)
+                if ns.status and ns.status.phase == "Terminating":
+                    if opts.o.debug:
+                        print(
+                            f"Waiting for namespace {self.k8s_namespace}"
+                            " to finish terminating..."
+                        )
+                    time.sleep(2)
+                    continue
+                # Namespace exists and is Active — shouldn't happen after delete
+                break
+            except ApiException as e:
+                if e.status == 404:
+                    # Gone — success
+                    return
+                raise
+        # If we get here, namespace still exists after timeout
+        try:
+            self.core_api.read_namespace(name=self.k8s_namespace)
+            print(
+                f"Warning: namespace {self.k8s_namespace} still exists"
+                f" after {timeout_seconds}s"
+            )
+        except ApiException as e:
+            if e.status == 404:
+                return
+            raise
+
     def _delete_resources_by_label(self, label_selector: str, delete_volumes: bool):
         """Delete only this stack's resources from a shared namespace."""
         ns = self.k8s_namespace
@@ -581,11 +618,14 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print(f"Error listing PVs: {e}")
 
-        # Always delete resources by label, never delete the namespace itself.
-        # Namespace deletion causes a race condition on restart: up() tries to
-        # create resources in a namespace that's still terminating (403 Forbidden).
-        # The namespace is cheap to keep and required for immediate up() after down().
-        self._delete_resources_by_label(app_label, volumes)
+        # Delete the namespace to ensure clean slate.
+        # Resources created by older laconic-so versions lack labels, so
+        # label-based deletion can't find them. Namespace deletion is the
+        # only reliable cleanup.
+        self._delete_namespace()
+        # Wait for namespace to finish terminating before returning,
+        # so that up() can recreate it immediately.
+        self._wait_for_namespace_gone()
 
         if self.is_kind() and not self.skip_cluster_management:
             # Destroy the kind cluster

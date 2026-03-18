@@ -237,6 +237,28 @@ class ClusterInfo:
             )
         return ingress
 
+    def _get_readiness_probe_ports(self) -> dict:
+        """Map container names to TCP readiness probe ports.
+
+        Derives probe ports from http-proxy routes in the spec. If a container
+        has an http-proxy route (proxy-to: container:port), we probe that port.
+        This tells k8s when the container is ready to serve traffic, which is
+        required for safe rolling updates.
+        """
+        probe_ports: dict = {}
+        http_proxy_list = self.spec.get_http_proxy()
+        if http_proxy_list:
+            for http_proxy in http_proxy_list:
+                for route in http_proxy.get("routes", []):
+                    proxy_to = route.get("proxy-to", "")
+                    if ":" in proxy_to:
+                        container, port_str = proxy_to.rsplit(":", 1)
+                        port = int(port_str)
+                        # Use the first route's port for each container
+                        if container not in probe_ports:
+                            probe_ports[container] = port
+        return probe_ports
+
     # TODO: suppoprt multiple services
     def get_service(self):
         # Collect all ports from http-proxy routes
@@ -471,6 +493,7 @@ class ClusterInfo:
         containers = []
         init_containers = []
         services = {}
+        readiness_probe_ports = self._get_readiness_probe_ports()
         global_resources = self.spec.get_container_resources()
         if not global_resources:
             global_resources = DEFAULT_CONTAINER_RESOURCES
@@ -569,6 +592,16 @@ class ClusterInfo:
                 container_resources = self._resolve_container_resources(
                     container_name, service_info, global_resources
                 )
+                # Readiness probe from http-proxy routes
+                readiness_probe = None
+                probe_port = readiness_probe_ports.get(container_name)
+                if probe_port:
+                    readiness_probe = client.V1Probe(
+                        tcp_socket=client.V1TCPSocketAction(port=probe_port),
+                        initial_delay_seconds=5,
+                        period_seconds=10,
+                        failure_threshold=3,
+                    )
                 container = client.V1Container(
                     name=container_name,
                     image=image_to_use,
@@ -579,6 +612,7 @@ class ClusterInfo:
                     env_from=env_from,
                     ports=container_ports if container_ports else None,
                     volume_mounts=volume_mounts,
+                    readiness_probe=readiness_probe,
                     security_context=client.V1SecurityContext(
                         privileged=self.spec.get_privileged(),
                         run_as_user=int(service_info["user"]) if "user" in service_info else None,

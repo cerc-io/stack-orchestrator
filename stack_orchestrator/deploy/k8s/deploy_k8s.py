@@ -437,10 +437,18 @@ class K8sDeployer(Deployer):
                 print(f"Created Deployment {name}")
             except ApiException as e:
                 if e.status == 409:
-                    # Already exists — patch to trigger rolling update
+                    # Already exists — replace to ensure removed fields
+                    # (volumes, mounts, env vars) are actually deleted.
+                    # Patch uses strategic merge which preserves old fields.
+                    existing = self.apps_api.read_namespaced_deployment(
+                        name=name, namespace=self.k8s_namespace
+                    )
+                    deployment.metadata.resource_version = (
+                        existing.metadata.resource_version
+                    )
                     deployment_resp = cast(
                         client.V1Deployment,
-                        self.apps_api.patch_namespaced_deployment(
+                        self.apps_api.replace_namespaced_deployment(
                             name=name,
                             namespace=self.k8s_namespace,
                             body=deployment,
@@ -469,8 +477,16 @@ class K8sDeployer(Deployer):
                 print(f"Created Service {svc_name}")
             except ApiException as e:
                 if e.status == 409:
-                    # Service exists — patch it (preserves clusterIP)
-                    service_resp = self.core_api.patch_namespaced_service(
+                    # Replace to ensure removed ports are deleted.
+                    # Must preserve clusterIP (immutable) and resourceVersion.
+                    existing = self.core_api.read_namespaced_service(
+                        name=svc_name, namespace=self.k8s_namespace
+                    )
+                    service.metadata.resource_version = (
+                        existing.metadata.resource_version
+                    )
+                    service.spec.cluster_ip = existing.spec.cluster_ip
+                    service_resp = self.core_api.replace_namespaced_service(
                         name=svc_name,
                         namespace=self.k8s_namespace,
                         body=service,
@@ -624,7 +640,13 @@ class K8sDeployer(Deployer):
                     print(f"Created Ingress {ing_name}")
                 except ApiException as e:
                     if e.status == 409:
-                        self.networking_api.patch_namespaced_ingress(
+                        existing = self.networking_api.read_namespaced_ingress(
+                            name=ing_name, namespace=self.k8s_namespace
+                        )
+                        ingress.metadata.resource_version = (
+                            existing.metadata.resource_version
+                        )
+                        self.networking_api.replace_namespaced_ingress(
                             name=ing_name,
                             namespace=self.k8s_namespace,
                             body=ingress,
@@ -648,7 +670,14 @@ class K8sDeployer(Deployer):
                     )
                 except ApiException as e:
                     if e.status == 409:
-                        self.core_api.patch_namespaced_service(
+                        existing = self.core_api.read_namespaced_service(
+                            name=np_name, namespace=self.k8s_namespace
+                        )
+                        nodeport.metadata.resource_version = (
+                            existing.metadata.resource_version
+                        )
+                        nodeport.spec.cluster_ip = existing.spec.cluster_ip
+                        self.core_api.replace_namespaced_service(
                             name=np_name,
                             namespace=self.k8s_namespace,
                             body=nodeport,

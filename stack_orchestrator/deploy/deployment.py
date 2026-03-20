@@ -397,7 +397,14 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip, image):
         print("\n[2/4] Hostname unchanged, skipping DNS verification")
 
     # Step 3: Sync deployment directory with spec
+    # The spec's "stack:" value is often a relative path (e.g.
+    # "stack-orchestrator/stacks/dumpster") that must resolve from the
+    # repo root.  Change cwd so stack_is_external() sees it correctly.
     print("\n[3/4] Syncing deployment directory...")
+    import os
+
+    prev_cwd = os.getcwd()
+    os.chdir(repo_root)
     deploy_ctx = make_deploy_context(ctx)
     create_operation(
         deployment_command_context=deploy_ctx,
@@ -407,6 +414,7 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip, image):
         network_dir=None,
         initial_peers=None,
     )
+    os.chdir(prev_cwd)
 
     # Reload deployment context with updated spec
     deployment_context.init(deployment_context.deployment_dir)

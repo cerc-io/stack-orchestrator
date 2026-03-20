@@ -414,8 +414,6 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip, image):
         network_dir=None,
         initial_peers=None,
     )
-    os.chdir(prev_cwd)
-
     # Reload deployment context with updated spec
     deployment_context.init(deployment_context.deployment_dir)
     ctx.obj = deployment_context
@@ -442,6 +440,10 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip, image):
             skip_cluster_management=True,
             image_overrides=image_overrides or None,
         )
+
+    # Restore cwd after both create_operation and up_operation have run.
+    # Both need the relative stack path to resolve from repo_root.
+    os.chdir(prev_cwd)
 
     print("\n=== Restart Complete ===")
     print("Deployment updated via rolling update.")

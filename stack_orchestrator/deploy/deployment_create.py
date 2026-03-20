@@ -272,19 +272,7 @@ def call_stack_deploy_start(deployment_context):
     create additional k8s resources (Services, etc.) in the deployment namespace.
     The namespace can be derived as f"laconic-{deployment_context.id}".
     """
-    try:
-        python_file_paths = _commands_plugin_paths(deployment_context.stack.name)
-    except SystemExit:
-        # Stack path may not resolve from current cwd (e.g. during restart
-        # when cwd isn't the repo root). get_parsed_stack_config calls
-        # error_exit (sys.exit) when the stack directory doesn't exist.
-        # Most stacks don't have deploy hooks, so this is non-fatal.
-        if opts.o.debug:
-            print(
-                f"Could not resolve plugin paths for stack"
-                f" {deployment_context.stack.name}, skipping hooks"
-            )
-        return
+    python_file_paths = _commands_plugin_paths(deployment_context.stack.name)
     for python_file_path in python_file_paths:
         if python_file_path.exists():
             spec = util.spec_from_file_location("commands", python_file_path)

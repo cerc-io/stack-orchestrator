@@ -186,8 +186,8 @@ spec:
           operator: Equal
       containers:
         - name: caddy-ingress-controller
-          image: caddy/ingress:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/laconicnetwork/caddy-ingress:latest
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 80

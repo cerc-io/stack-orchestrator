@@ -696,9 +696,15 @@ class ClusterInfo:
         return name
 
     def _pod_has_pvcs(self, parsed_pod_file: Any) -> bool:
-        """Check if a parsed compose file declares named volumes (PVCs)."""
+        """Check if a parsed compose file declares volumes that become PVCs.
+
+        Excludes volumes that are ConfigMaps (declared in spec.configmaps),
+        since those don't require Recreate strategy.
+        """
         volumes = parsed_pod_file.get("volumes", {})
-        return len(volumes) > 0
+        configmaps = set(self.spec.get_configmaps().keys())
+        pvc_volumes = [v for v in volumes if v not in configmaps]
+        return len(pvc_volumes) > 0
 
     def _build_common_pod_metadata(self, services: dict) -> tuple:
         """Build shared annotations, labels, affinity, tolerations for pods.

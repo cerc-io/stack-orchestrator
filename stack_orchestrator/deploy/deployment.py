@@ -338,9 +338,22 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip, image):
 
     # Determine spec file location
     # Priority: --spec-file argument > repo's deployment/spec.yml > deployment dir
-    # Stack path is like: repo/stack_orchestrator/data/stacks/stack-name
-    # So repo root is 4 parents up
-    repo_root = stack_source.parent.parent.parent.parent
+    # Find repo root via git rather than assuming a fixed directory depth.
+    git_root_result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=stack_source,
+        capture_output=True,
+        text=True,
+    )
+    if git_root_result.returncode == 0:
+        repo_root = Path(git_root_result.stdout.strip())
+    else:
+        # Fallback: walk up from stack_source looking for .git
+        repo_root = stack_source
+        while repo_root != repo_root.parent:
+            if (repo_root / ".git").exists():
+                break
+            repo_root = repo_root.parent
     if spec_file:
         # Spec file relative to repo root
         spec_file_path = repo_root / spec_file

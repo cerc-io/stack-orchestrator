@@ -141,25 +141,32 @@ echo "$test_config_file_changed_content" > "$test_config_file"
 test_unchanged_config="$test_deployment_dir/config/test/script.sh"
 
 # Modify spec file to simulate an update
-sed -i.bak 's/CERC_TEST_PARAM_3:/CERC_TEST_PARAM_3: FASTER/' $test_deployment_spec
+sed -i.bak 's/CERC_TEST_PARAM_3: FAST/CERC_TEST_PARAM_3: FASTER/' $test_deployment_spec
 
-# Create/modify config.env to test it isn't overwritten during sync
+# Save config.env before update (to verify it gets backed up)
 config_env_file="$test_deployment_dir/config.env"
-config_env_persistent_content="PERSISTENT_VALUE=should-not-be-overwritten-$(date +%s)"
-echo "$config_env_persistent_content" >> "$config_env_file"
 original_config_env_content=$(<$config_env_file)
 
 # Run sync to update deployment files without destroying data
 $TEST_TARGET_SO --stack test deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir --update
 
-# Verify config.env was not overwritten
+# Verify config.env was regenerated from spec (reflects the FASTER change)
 synced_config_env_content=$(<$config_env_file)
-if [ "$synced_config_env_content" == "$original_config_env_content" ]; then
-    echo "deployment update test: config.env preserved - passed"
+if [[ "$synced_config_env_content" == *"CERC_TEST_PARAM_3=FASTER"* ]]; then
+    echo "deployment update test: config.env regenerated from spec - passed"
 else
-    echo "deployment update test: config.env was overwritten - FAILED"
-    echo "Expected: $original_config_env_content"
+    echo "deployment update test: config.env not regenerated - FAILED"
+    echo "Expected CERC_TEST_PARAM_3=FASTER in config.env"
     echo "Got: $synced_config_env_content"
+    exit 1
+fi
+
+# Verify old config.env was backed up
+config_env_backup="${config_env_file}.bak"
+if [ -f "$config_env_backup" ]; then
+    echo "deployment update test: config.env backed up - passed"
+else
+    echo "deployment update test: config.env backup not created - FAILED"
     exit 1
 fi
 

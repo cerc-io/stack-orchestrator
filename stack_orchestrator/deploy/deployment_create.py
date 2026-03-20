@@ -602,16 +602,29 @@ def create_registry_secret(
     server = registry_config.get("server")
     username = registry_config.get("username")
     token_env = registry_config.get("token-env")
+    token_file = registry_config.get("token-file")
 
-    if not all([server, username, token_env]):
+    if not server or not username:
+        return None
+    if not token_env and not token_file:
         return None
 
-    # Type narrowing for pyright - we've validated these aren't None above
-    assert token_env is not None
-    token = os.environ.get(token_env)
+    # Resolve token: file takes precedence over env var
+    token = None
+    if token_file:
+        token_path = os.path.expanduser(token_file)
+        if os.path.exists(token_path):
+            with open(token_path) as f:
+                token = f.read().strip()
+        else:
+            print(f"Warning: Registry token file '{token_path}' not found")
+    if not token and token_env:
+        token = os.environ.get(token_env)
+
     if not token:
+        source = token_file or token_env
         print(
-            f"Warning: Registry token env var '{token_env}' not set, "
+            f"Warning: Registry token not available from '{source}', "
             "skipping registry secret"
         )
         return None

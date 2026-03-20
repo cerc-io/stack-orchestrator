@@ -264,6 +264,17 @@ class Spec:
     def is_kind_deployment(self):
         return self.get_deployment_type() in [constants.k8s_kind_deploy_type]
 
+    def get_kind_mount_root(self) -> typing.Optional[str]:
+        """Return kind-mount-root path or None.
+
+        When set, laconic-so emits a single Kind extraMount mapping this
+        host path to /mnt inside the Kind node. Volumes with host paths
+        under this root resolve to /mnt/{relative_path} and don't need
+        individual extraMounts. This allows adding new volumes without
+        recreating the Kind cluster.
+        """
+        return self.obj.get(constants.kind_mount_root_key)
+
     def get_maintenance_service(self) -> typing.Optional[str]:
         """Return maintenance-service value (e.g. 'dumpster-maintenance:8000') or None.
 

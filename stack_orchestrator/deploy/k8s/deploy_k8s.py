@@ -411,91 +411,102 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print("No pods defined, skipping Deployment creation")
             return
-        # Process compose files into a Deployment
-        deployment = self.cluster_info.get_deployment(image_pull_policy="Always")
-        # Apply image overrides if provided
-        if self.image_overrides:
-            for container in deployment.spec.template.spec.containers:
-                if container.name in self.image_overrides:
-                    container.image = self.image_overrides[container.name]
-                    if opts.o.debug:
-                        print(
-                            f"Overriding image for {container.name}: {container.image}"
-                        )
-        # Create or update the k8s Deployment
-        if opts.o.debug:
-            print(f"Sending this deployment: {deployment}")
-        if not opts.o.dry_run:
-            name = deployment.metadata.name
-            try:
-                deployment_resp = cast(
-                    client.V1Deployment,
-                    self.apps_api.create_namespaced_deployment(
-                        body=deployment, namespace=self.k8s_namespace
-                    ),
-                )
-                print(f"Created Deployment {name}")
-            except ApiException as e:
-                if e.status == 409:
-                    # Already exists — replace to ensure removed fields
-                    # (volumes, mounts, env vars) are actually deleted.
-                    # Patch uses strategic merge which preserves old fields.
-                    existing = self.apps_api.read_namespaced_deployment(
-                        name=name, namespace=self.k8s_namespace
-                    )
-                    deployment.metadata.resource_version = (
-                        existing.metadata.resource_version
-                    )
+        # Process compose files into Deployments (one per pod file)
+        deployments = self.cluster_info.get_deployments(image_pull_policy="Always")
+        for deployment in deployments:
+            # Apply image overrides if provided
+            if self.image_overrides:
+                for container in deployment.spec.template.spec.containers:
+                    if container.name in self.image_overrides:
+                        container.image = self.image_overrides[container.name]
+                        if opts.o.debug:
+                            print(
+                                f"Overriding image for {container.name}:"
+                                f" {container.image}"
+                            )
+            # Create or update the k8s Deployment
+            if opts.o.debug:
+                print(f"Sending this deployment: {deployment}")
+            if not opts.o.dry_run:
+                name = deployment.metadata.name
+                try:
                     deployment_resp = cast(
                         client.V1Deployment,
-                        self.apps_api.replace_namespaced_deployment(
-                            name=name,
-                            namespace=self.k8s_namespace,
-                            body=deployment,
+                        self.apps_api.create_namespaced_deployment(
+                            body=deployment, namespace=self.k8s_namespace
                         ),
                     )
-                    print(f"Updated Deployment {name} (rolling update)")
-                else:
-                    raise
-            if opts.o.debug:
-                meta = deployment_resp.metadata
-                spec = deployment_resp.spec
-                if meta and spec and spec.template.spec:
-                    containers = spec.template.spec.containers
-                    img = containers[0].image if containers else None
-                    print(f"  {meta.namespace} {meta.name} gen={meta.generation} {img}")
+                    strategy = (
+                        deployment.spec.strategy.type
+                        if deployment.spec.strategy
+                        else "default"
+                    )
+                    print(f"Created Deployment {name} (strategy: {strategy})")
+                except ApiException as e:
+                    if e.status == 409:
+                        # Already exists — replace to ensure removed fields
+                        # (volumes, mounts, env vars) are actually deleted.
+                        existing = self.apps_api.read_namespaced_deployment(
+                            name=name, namespace=self.k8s_namespace
+                        )
+                        deployment.metadata.resource_version = (
+                            existing.metadata.resource_version
+                        )
+                        deployment_resp = cast(
+                            client.V1Deployment,
+                            self.apps_api.replace_namespaced_deployment(
+                                name=name,
+                                namespace=self.k8s_namespace,
+                                body=deployment,
+                            ),
+                        )
+                        print(f"Updated Deployment {name} (rolling update)")
+                    else:
+                        raise
+                if opts.o.debug:
+                    meta = deployment_resp.metadata
+                    spec = deployment_resp.spec
+                    if meta and spec and spec.template.spec:
+                        containers = spec.template.spec.containers
+                        img = containers[0].image if containers else None
+                        print(
+                            f"  {meta.namespace} {meta.name}"
+                            f" gen={meta.generation} {img}"
+                        )
 
-        service = self.cluster_info.get_service()
-        if opts.o.debug:
-            print(f"Sending this service: {service}")
-        if service and not opts.o.dry_run:
-            svc_name = service.metadata.name
-            try:
-                service_resp = self.core_api.create_namespaced_service(
-                    namespace=self.k8s_namespace, body=service
-                )
-                print(f"Created Service {svc_name}")
-            except ApiException as e:
-                if e.status == 409:
-                    # Replace to ensure removed ports are deleted.
-                    # Must preserve clusterIP (immutable) and resourceVersion.
-                    existing = self.core_api.read_namespaced_service(
-                        name=svc_name, namespace=self.k8s_namespace
-                    )
-                    service.metadata.resource_version = (
-                        existing.metadata.resource_version
-                    )
-                    service.spec.cluster_ip = existing.spec.cluster_ip
-                    service_resp = self.core_api.replace_namespaced_service(
-                        name=svc_name,
-                        namespace=self.k8s_namespace,
-                        body=service,
-                    )
-                    print(f"Updated Service {svc_name}")
-                else:
-                    raise
+        # Create Services (one per pod for multi-pod, or one for single-pod)
+        services = self.cluster_info.get_services()
+        for service in services:
             if opts.o.debug:
-                print(f"  {service_resp}")
+                print(f"Sending this service: {service}")
+            if service and not opts.o.dry_run:
+                svc_name = service.metadata.name
+                try:
+                    service_resp = self.core_api.create_namespaced_service(
+                        namespace=self.k8s_namespace, body=service
+                    )
+                    print(f"Created Service {svc_name}")
+                except ApiException as e:
+                    if e.status == 409:
+                        # Replace to ensure removed ports are deleted.
+                        # Must preserve clusterIP (immutable) and resourceVersion.
+                        existing = self.core_api.read_namespaced_service(
+                            name=svc_name, namespace=self.k8s_namespace
+                        )
+                        service.metadata.resource_version = (
+                            existing.metadata.resource_version
+                        )
+                        service.spec.cluster_ip = existing.spec.cluster_ip
+                        service_resp = self.core_api.replace_namespaced_service(
+                            name=svc_name,
+                            namespace=self.k8s_namespace,
+                            body=service,
+                        )
+                        print(f"Updated Service {svc_name}")
+                    else:
+                        raise
+                if opts.o.debug:
+                    print(f"  {service_resp}")
 
     def _create_jobs(self):
         # Process job compose files into k8s Jobs
@@ -880,48 +891,49 @@ class K8sDeployer(Deployer):
                 print("No pods defined, skipping update")
             return
         self.connect_api()
-        ref_deployment = self.cluster_info.get_deployment()
-        if not ref_deployment or not ref_deployment.metadata:
-            return
-        ref_name = ref_deployment.metadata.name
-        if not ref_name:
-            return
+        ref_deployments = self.cluster_info.get_deployments()
+        for ref_deployment in ref_deployments:
+            if not ref_deployment or not ref_deployment.metadata:
+                continue
+            ref_name = ref_deployment.metadata.name
+            if not ref_name:
+                continue
 
-        deployment = cast(
-            client.V1Deployment,
-            self.apps_api.read_namespaced_deployment(
-                name=ref_name, namespace=self.k8s_namespace
-            ),
-        )
-        if not deployment.spec or not deployment.spec.template:
-            return
-        template_spec = deployment.spec.template.spec
-        if not template_spec or not template_spec.containers:
-            return
+            deployment = cast(
+                client.V1Deployment,
+                self.apps_api.read_namespaced_deployment(
+                    name=ref_name, namespace=self.k8s_namespace
+                ),
+            )
+            if not deployment.spec or not deployment.spec.template:
+                continue
+            template_spec = deployment.spec.template.spec
+            if not template_spec or not template_spec.containers:
+                continue
 
-        ref_spec = ref_deployment.spec
-        if ref_spec and ref_spec.template and ref_spec.template.spec:
-            ref_containers = ref_spec.template.spec.containers
-            if ref_containers:
-                new_env = ref_containers[0].env
-                for container in template_spec.containers:
-                    old_env = container.env
-                    if old_env != new_env:
-                        container.env = new_env
+            ref_spec = ref_deployment.spec
+            if ref_spec and ref_spec.template and ref_spec.template.spec:
+                ref_containers = ref_spec.template.spec.containers
+                if ref_containers:
+                    new_env = ref_containers[0].env
+                    for container in template_spec.containers:
+                        old_env = container.env
+                        if old_env != new_env:
+                            container.env = new_env
 
-        template_meta = deployment.spec.template.metadata
-        if template_meta:
-            template_meta.annotations = {
-                "kubectl.kubernetes.io/restartedAt": datetime.utcnow()
-                .replace(tzinfo=timezone.utc)
-                .isoformat()
-            }
+            template_meta = deployment.spec.template.metadata
+            if template_meta:
+                template_meta.annotations = {
+                    "kubectl.kubernetes.io/restartedAt": datetime.utcnow()
+                    .replace(tzinfo=timezone.utc)
+                    .isoformat()
+                }
 
-        self.apps_api.patch_namespaced_deployment(
-            name=ref_name,
-            namespace=self.k8s_namespace,
-            body=deployment,
-        )
+            self.apps_api.patch_namespaced_deployment(
+                name=ref_name,
+                namespace=self.k8s_namespace,
+                body=deployment,
+            )
 
     def run(
         self,

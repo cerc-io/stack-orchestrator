@@ -264,5 +264,14 @@ class Spec:
     def is_kind_deployment(self):
         return self.get_deployment_type() in [constants.k8s_kind_deploy_type]
 
+    def get_maintenance_service(self) -> typing.Optional[str]:
+        """Return maintenance-service value (e.g. 'dumpster-maintenance:8000') or None.
+
+        When set, the restart command swaps Ingress backends to this service
+        during the main pod Recreate, so users see a branded maintenance page
+        instead of a bare 502.
+        """
+        return self.obj.get("maintenance-service")
+
     def is_docker_deployment(self):
         return self.get_deployment_type() in [constants.compose_deploy_type]

@@ -399,11 +399,60 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip, image):
     deployment_context.init(deployment_context.deployment_dir)
     ctx.obj = deployment_context
 
-    # Apply updated deployment (create-or-update triggers rolling update).
-    # No down() — k8s rolling update keeps old pods serving traffic until
-    # new pods pass readiness checks.
+    # Apply updated deployment.
+    # If maintenance-service is configured, swap Ingress to maintenance
+    # backend during the Recreate window so users see a branded page
+    # instead of bare 502s.
     print("\n[4/4] Applying deployment update...")
     ctx.obj = make_deploy_context(ctx)
+
+    # Check for maintenance service in the (reloaded) spec
+    maintenance_svc = deployment_context.spec.get_maintenance_service()
+    if maintenance_svc:
+        print(f"Maintenance service configured: {maintenance_svc}")
+        _restart_with_maintenance(
+            ctx, deployment_context, maintenance_svc, image_overrides
+        )
+    else:
+        up_operation(
+            ctx,
+            services_list=None,
+            stay_attached=False,
+            skip_cluster_management=True,
+            image_overrides=image_overrides or None,
+        )
+
+    print("\n=== Restart Complete ===")
+    print("Deployment updated via rolling update.")
+    if new_hostname and new_hostname != current_hostname:
+        print(f"\nNew hostname: {new_hostname}")
+        print("Caddy will automatically provision TLS certificate.")
+
+
+def _restart_with_maintenance(
+    ctx, deployment_context, maintenance_svc, image_overrides
+):
+    """Restart with Ingress swap to maintenance service during Recreate.
+
+    Flow:
+    1. Deploy all pods (including maintenance pod) with up_operation
+    2. Patch Ingress: swap all route backends to maintenance service
+    3. Scale main (non-maintenance) Deployments to 0
+    4. Scale main Deployments back up (triggers Recreate with new spec)
+    5. Wait for readiness
+    6. Patch Ingress: restore original backends
+
+    This ensures the maintenance pod is already running before we touch
+    the Ingress, and the main pods get a clean Recreate.
+    """
+    import time
+
+    from kubernetes.client.exceptions import ApiException
+
+    from stack_orchestrator.deploy.deploy import up_operation
+
+    # Step 1: Apply the full deployment (creates/updates all pods + services)
+    # This ensures maintenance pod exists before we swap Ingress to it.
     up_operation(
         ctx,
         services_list=None,
@@ -412,8 +461,146 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip, image):
         image_overrides=image_overrides or None,
     )
 
-    print("\n=== Restart Complete ===")
-    print("Deployment updated via rolling update.")
-    if new_hostname and new_hostname != current_hostname:
-        print(f"\nNew hostname: {new_hostname}")
-        print("Caddy will automatically provision TLS certificate.")
+    # Parse maintenance service spec: "container-name:port"
+    maint_container = maintenance_svc.split(":")[0]
+    maint_port = int(maintenance_svc.split(":")[1])
+
+    # Connect to k8s API
+    deploy_ctx = ctx.obj
+    deployer = deploy_ctx.deployer
+    deployer.connect_api()
+    namespace = deployer.k8s_namespace
+    app_name = deployer.cluster_info.app_name
+    networking_api = deployer.networking_api
+    apps_api = deployer.apps_api
+
+    ingress_name = f"{app_name}-ingress"
+
+    # Step 2: Read current Ingress and save original backends
+    try:
+        ingress = networking_api.read_namespaced_ingress(
+            name=ingress_name, namespace=namespace
+        )
+    except ApiException:
+        print("Warning: No Ingress found, skipping maintenance swap")
+        return
+
+    # Resolve which service the maintenance container belongs to
+    maint_service_name = deployer.cluster_info._resolve_service_name_for_container(
+        maint_container
+    )
+
+    # Save original backends for restoration
+    original_backends = []
+    for rule in ingress.spec.rules:
+        rule_backends = []
+        for path in rule.http.paths:
+            rule_backends.append(
+                {
+                    "name": path.backend.service.name,
+                    "port": path.backend.service.port.number,
+                }
+            )
+        original_backends.append(rule_backends)
+
+    # Patch all Ingress backends to point to maintenance service
+    print("Swapping Ingress to maintenance service...")
+    for rule in ingress.spec.rules:
+        for path in rule.http.paths:
+            path.backend.service.name = maint_service_name
+            path.backend.service.port.number = maint_port
+
+    networking_api.replace_namespaced_ingress(
+        name=ingress_name, namespace=namespace, body=ingress
+    )
+    print("Ingress now points to maintenance service")
+
+    # Step 3: Find main (non-maintenance) Deployments and scale to 0
+    # then back up to trigger a clean Recreate
+    deployments_resp = apps_api.list_namespaced_deployment(
+        namespace=namespace, label_selector=f"app={app_name}"
+    )
+    main_deployments = []
+    for dep in deployments_resp.items:
+        dep_name = dep.metadata.name
+        # Skip maintenance deployments
+        component = (dep.metadata.labels or {}).get("app.kubernetes.io/component", "")
+        is_maintenance = maint_container in component
+        if not is_maintenance:
+            main_deployments.append(dep_name)
+
+    if main_deployments:
+        # Scale down main deployments
+        for dep_name in main_deployments:
+            print(f"Scaling down {dep_name}...")
+            apps_api.patch_namespaced_deployment_scale(
+                name=dep_name,
+                namespace=namespace,
+                body={"spec": {"replicas": 0}},
+            )
+
+        # Wait for pods to terminate
+        print("Waiting for main pods to terminate...")
+        deadline = time.monotonic() + 120
+        while time.monotonic() < deadline:
+            pods = deployer.core_api.list_namespaced_pod(
+                namespace=namespace,
+                label_selector=f"app={app_name}",
+            )
+            # Count non-maintenance pods
+            active = sum(
+                1
+                for p in pods.items
+                if p.metadata
+                and p.metadata.deletion_timestamp is None
+                and not any(
+                    maint_container in (c.name or "") for c in (p.spec.containers or [])
+                )
+            )
+            if active == 0:
+                break
+            time.sleep(2)
+
+        # Scale back up
+        replicas = deployment_context.spec.get_replicas()
+        for dep_name in main_deployments:
+            print(f"Scaling up {dep_name} to {replicas} replicas...")
+            apps_api.patch_namespaced_deployment_scale(
+                name=dep_name,
+                namespace=namespace,
+                body={"spec": {"replicas": replicas}},
+            )
+
+        # Step 5: Wait for readiness
+        print("Waiting for main pods to become ready...")
+        deadline = time.monotonic() + 300
+        while time.monotonic() < deadline:
+            all_ready = True
+            for dep_name in main_deployments:
+                dep = apps_api.read_namespaced_deployment(
+                    name=dep_name, namespace=namespace
+                )
+                ready = dep.status.ready_replicas or 0
+                desired = dep.spec.replicas or 1
+                if ready < desired:
+                    all_ready = False
+                    break
+            if all_ready:
+                break
+            time.sleep(5)
+
+    # Step 6: Restore original Ingress backends
+    print("Restoring original Ingress backends...")
+    ingress = networking_api.read_namespaced_ingress(
+        name=ingress_name, namespace=namespace
+    )
+    for i, rule in enumerate(ingress.spec.rules):
+        for j, path in enumerate(rule.http.paths):
+            if i < len(original_backends) and j < len(original_backends[i]):
+                path.backend.service.name = original_backends[i][j]["name"]
+                path.backend.service.port.number = original_backends[i][j]["port"]
+
+    networking_api.replace_namespaced_ingress(
+        name=ingress_name, namespace=namespace, body=ingress
+    )
+    print("Ingress restored to original backends")

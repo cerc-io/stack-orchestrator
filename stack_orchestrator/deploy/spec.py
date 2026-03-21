@@ -284,5 +284,26 @@ class Spec:
         """
         return self.obj.get("maintenance-service")
 
+    def get_external_services(self) -> typing.Dict[str, typing.Dict]:
+        """Return external-services config from spec.
+
+        Each entry maps a service name to its routing config:
+        - host mode: {host: "example.com", port: 443}
+          → ExternalName k8s Service (DNS CNAME)
+        - selector mode: {selector: {app: "foo"}, namespace: "ns", port: 443}
+          → Headless Service + Endpoints (cross-namespace routing to mock pod)
+        """
+        return self.obj.get(constants.external_services_key, {})
+
+    def get_ca_certificates(self) -> typing.List[str]:
+        """Return list of CA certificate file paths to trust.
+
+        Used in testing specs to inject mkcert root CAs so containers
+        trust TLS certs on mock services. Files are mounted into all
+        containers at /etc/ssl/certs/ and NODE_EXTRA_CA_CERTS is set.
+        Production specs omit this key entirely.
+        """
+        return self.obj.get(constants.ca_certificates_key, [])
+
     def is_docker_deployment(self):
         return self.get_deployment_type() in [constants.compose_deploy_type]

@@ -845,6 +845,20 @@ class ClusterInfo:
             if multi_pod:
                 selector_labels["app.kubernetes.io/component"] = pod_name
 
+            # Add CA certificate volume and env vars if configured
+            _ca_secret, ca_volume, ca_mount, ca_envs = (
+                self.get_ca_certificate_resources()
+            )
+            if ca_volume:
+                volumes.append(ca_volume)
+                for container in containers:
+                    if container.volume_mounts is None:
+                        container.volume_mounts = []
+                    container.volume_mounts.append(ca_mount)
+                    if container.env is None:
+                        container.env = []
+                    container.env.extend(ca_envs)
+
             template = client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(annotations=annotations, labels=labels),
                 spec=client.V1PodSpec(
@@ -1055,3 +1069,121 @@ class ClusterInfo:
             jobs.append(job)
 
         return jobs
+
+    def get_external_service_resources(self) -> List:
+        """Build k8s Services (and Endpoints) for external-services in spec.
+
+        Two modes:
+        - host mode: ExternalName Service (DNS CNAME to external host)
+        - selector mode: headless Service + Endpoints (cross-namespace
+          routing to a mock pod, IP discovered at deploy time)
+
+        Returns a flat list of k8s resource objects (Services + Endpoints).
+        """
+        ext_services = self.spec.get_external_services()
+        if not ext_services:
+            return []
+
+        resources = []
+        for name, config in ext_services.items():
+            port = config.get("port", 443)
+
+            if "host" in config:
+                # ExternalName: DNS CNAME to external host
+                svc = client.V1Service(
+                    metadata=client.V1ObjectMeta(
+                        name=name,
+                        labels={"app": self.app_name},
+                    ),
+                    spec=client.V1ServiceSpec(
+                        type="ExternalName",
+                        external_name=config["host"],
+                        ports=[
+                            client.V1ServicePort(port=port, name=f"port-{port}")
+                        ],
+                    ),
+                )
+                resources.append(svc)
+
+            elif "selector" in config and "namespace" in config:
+                # Cross-namespace headless Service + Endpoints.
+                # The Endpoints IP is populated in deploy_k8s.py at deploy
+                # time by querying the target namespace for matching pods.
+                svc = client.V1Service(
+                    metadata=client.V1ObjectMeta(
+                        name=name,
+                        labels={"app": self.app_name},
+                    ),
+                    spec=client.V1ServiceSpec(
+                        cluster_ip="None",
+                        ports=[
+                            client.V1ServicePort(port=port, name=f"port-{port}")
+                        ],
+                    ),
+                )
+                resources.append(svc)
+                # Endpoints object is created in deploy_k8s.py after pod
+                # IP discovery — we just return the Service here.
+
+        return resources
+
+    def get_ca_certificate_resources(self) -> tuple:
+        """Build k8s Secret and volume mount config for CA certificates.
+
+        Returns (secret, volume, volume_mount, env_vars) or (None, ...) if
+        no CA certificates are configured. The caller must add the volume
+        and mount to all containers, and the env vars to all containers.
+        """
+        ca_files = self.spec.get_ca_certificates()
+        if not ca_files:
+            return None, None, None, []
+
+        # Concatenate all CA files into one Secret
+        secret_data = {}
+        for i, ca_path in enumerate(ca_files):
+            expanded = os.path.expanduser(ca_path)
+            if not os.path.exists(expanded):
+                print(f"Warning: CA certificate file not found: {expanded}")
+                continue
+            with open(expanded, "rb") as f:
+                ca_bytes = f.read()
+            key = f"laconic-extra-ca-{i}.pem"
+            secret_data[key] = base64.b64encode(ca_bytes).decode()
+
+        if not secret_data:
+            return None, None, None, []
+
+        secret_name = f"{self.app_name}-ca-certificates"
+        secret = client.V1Secret(
+            metadata=client.V1ObjectMeta(
+                name=secret_name,
+                labels={"app": self.app_name},
+            ),
+            data=secret_data,
+        )
+
+        volume = client.V1Volume(
+            name="laconic-ca-certs",
+            secret=client.V1SecretVolumeSource(
+                secret_name=secret_name,
+            ),
+        )
+
+        # Mount each CA file into /etc/ssl/certs/ (Go reads this dir)
+        volume_mount = client.V1VolumeMount(
+            name="laconic-ca-certs",
+            mount_path="/etc/ssl/certs/laconic-extra-ca",
+            read_only=True,
+        )
+
+        # Set NODE_EXTRA_CA_CERTS for Node/Bun containers.
+        # Point at the first CA file (most common: single mkcert root CA).
+        first_key = list(secret_data.keys())[0]
+        env_vars = [
+            client.V1EnvVar(
+                name="NODE_EXTRA_CA_CERTS",
+                value=f"/etc/ssl/certs/laconic-extra-ca/{first_key}",
+            ),
+        ]
+
+        return secret, volume, volume_mount, env_vars

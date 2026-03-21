@@ -420,6 +420,134 @@ class K8sDeployer(Deployer):
                     else:
                         raise
 
+    def _create_external_services(self):
+        """Create k8s Services for external-services declared in the spec.
+
+        For host mode: ExternalName Service (DNS CNAME).
+        For selector mode: headless Service + Endpoints with pod IPs
+        discovered from the target namespace.
+        """
+        resources = self.cluster_info.get_external_service_resources()
+        ext_services = self.cluster_info.spec.get_external_services()
+
+        for resource in resources:
+            if opts.o.dry_run:
+                print(f"Dry run: would create external service: {resource.metadata.name}")
+                continue
+
+            svc_name = resource.metadata.name
+            try:
+                self.core_api.create_namespaced_service(
+                    body=resource, namespace=self.k8s_namespace
+                )
+                print(f"Created external service '{svc_name}'")
+            except ApiException as e:
+                if e.status == 409:
+                    self.core_api.replace_namespaced_service(
+                        name=svc_name,
+                        namespace=self.k8s_namespace,
+                        body=resource,
+                    )
+                    print(f"Updated external service '{svc_name}'")
+                else:
+                    raise
+
+        # Create Endpoints for selector-mode services
+        for name, config in ext_services.items():
+            if "selector" not in config or "namespace" not in config:
+                continue
+            if opts.o.dry_run:
+                continue
+
+            target_ns = config["namespace"]
+            selector = config["selector"]
+            port = config.get("port", 443)
+
+            # Build label selector string from dict
+            label_selector = ",".join(f"{k}={v}" for k, v in selector.items())
+
+            # Discover pod IPs in target namespace
+            pods = self.core_api.list_namespaced_pod(
+                namespace=target_ns, label_selector=label_selector
+            )
+            pod_ips = [
+                p.status.pod_ip
+                for p in pods.items
+                if p.status and p.status.pod_ip
+            ]
+
+            if not pod_ips:
+                print(
+                    f"Warning: no pods found in {target_ns} matching "
+                    f"{label_selector} for external service '{name}'"
+                )
+                continue
+
+            endpoints = client.V1Endpoints(
+                metadata=client.V1ObjectMeta(
+                    name=name,
+                    labels={"app": self.cluster_info.app_name},
+                ),
+                subsets=[
+                    client.V1EndpointSubset(
+                        addresses=[
+                            client.V1EndpointAddress(ip=ip) for ip in pod_ips
+                        ],
+                        ports=[
+                            client.CoreV1EndpointPort(
+                                port=port, name=f"port-{port}"
+                            )
+                        ],
+                    )
+                ],
+            )
+
+            try:
+                self.core_api.create_namespaced_endpoints(
+                    body=endpoints, namespace=self.k8s_namespace
+                )
+                print(f"Created endpoints for '{name}' → {pod_ips}")
+            except ApiException as e:
+                if e.status == 409:
+                    self.core_api.replace_namespaced_endpoints(
+                        name=name,
+                        namespace=self.k8s_namespace,
+                        body=endpoints,
+                    )
+                    print(f"Updated endpoints for '{name}' → {pod_ips}")
+                else:
+                    raise
+
+    def _create_ca_certificates(self):
+        """Create k8s Secret for CA certificates declared in the spec.
+
+        The Secret is mounted into containers by get_deployments() in
+        cluster_info.py. This method just ensures the Secret exists.
+        """
+        ca_secret, _, _, _ = self.cluster_info.get_ca_certificate_resources()
+        if not ca_secret:
+            return
+        if opts.o.dry_run:
+            print(f"Dry run: would create CA certificate secret")
+            return
+
+        secret_name = ca_secret.metadata.name
+        try:
+            self.core_api.create_namespaced_secret(
+                body=ca_secret, namespace=self.k8s_namespace
+            )
+            print(f"Created CA certificate secret '{secret_name}'")
+        except ApiException as e:
+            if e.status == 409:
+                self.core_api.replace_namespaced_secret(
+                    name=secret_name,
+                    namespace=self.k8s_namespace,
+                    body=ca_secret,
+                )
+                print(f"Updated CA certificate secret '{secret_name}'")
+            else:
+                raise
+
     def _create_deployment(self):
         # Skip if there are no pods to deploy (e.g. jobs-only stacks)
         if not self.cluster_info.parsed_pod_yaml_map:
@@ -701,6 +829,8 @@ class K8sDeployer(Deployer):
         )
 
         self._create_volume_data()
+        self._create_external_services()
+        self._create_ca_certificates()
         self._create_deployment()
         self._create_jobs()
         self._create_ingress()

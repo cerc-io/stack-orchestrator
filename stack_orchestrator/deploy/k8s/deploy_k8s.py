@@ -555,7 +555,10 @@ class K8sDeployer(Deployer):
                 print("No pods defined, skipping Deployment creation")
             return
         # Process compose files into Deployments (one per pod file)
-        deployments = self.cluster_info.get_deployments(image_pull_policy="Always")
+        # image-pull-policy from spec, default Always (production).
+        # Testing specs use IfNotPresent so kind-loaded local images are used.
+        pull_policy = self.cluster_info.spec.get("image-pull-policy", "Always")
+        deployments = self.cluster_info.get_deployments(image_pull_policy=pull_policy)
         for deployment in deployments:
             # Apply image overrides if provided
             if self.image_overrides:

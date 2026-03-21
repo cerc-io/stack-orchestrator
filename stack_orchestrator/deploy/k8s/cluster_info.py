@@ -389,6 +389,7 @@ class ClusterInfo:
                     print(f"{cfg_map_name} not in pod files")
                 continue
 
+            cfg_map_path = os.path.expanduser(cfg_map_path)
             if not cfg_map_path.startswith("/") and self.spec.file_path is not None:
                 cfg_map_path = os.path.join(
                     os.path.dirname(str(self.spec.file_path)), cfg_map_path
@@ -846,7 +847,7 @@ class ClusterInfo:
                 selector_labels["app.kubernetes.io/component"] = pod_name
 
             # Add CA certificate volume and env vars if configured
-            _ca_secret, ca_volume, ca_mount, ca_envs = (
+            _ca_secret, ca_volume, ca_mounts, ca_envs = (
                 self.get_ca_certificate_resources()
             )
             if ca_volume:
@@ -854,7 +855,7 @@ class ClusterInfo:
                 for container in containers:
                     if container.volume_mounts is None:
                         container.volume_mounts = []
-                    container.volume_mounts.append(ca_mount)
+                    container.volume_mounts.extend(ca_mounts)
                     if container.env is None:
                         container.env = []
                     container.env.extend(ca_envs)
@@ -1170,20 +1171,29 @@ class ClusterInfo:
         )
 
         # Mount each CA file into /etc/ssl/certs/ (Go reads this dir)
-        volume_mount = client.V1VolumeMount(
-            name="laconic-ca-certs",
-            mount_path="/etc/ssl/certs/laconic-extra-ca",
-            read_only=True,
-        )
+        # Mount each CA file directly into /etc/ssl/certs/ using subPath
+        # so Go's x509 package picks them up (it reads *.pem from that dir).
+        # Also return env vars for Node/Bun containers.
+        volume_mounts = []
+        first_mount_path = None
+        for key in secret_data.keys():
+            mount_path = f"/etc/ssl/certs/{key}"
+            if first_mount_path is None:
+                first_mount_path = mount_path
+            volume_mounts.append(
+                client.V1VolumeMount(
+                    name="laconic-ca-certs",
+                    mount_path=mount_path,
+                    sub_path=key,
+                    read_only=True,
+                )
+            )
 
-        # Set NODE_EXTRA_CA_CERTS for Node/Bun containers.
-        # Point at the first CA file (most common: single mkcert root CA).
-        first_key = list(secret_data.keys())[0]
         env_vars = [
             client.V1EnvVar(
                 name="NODE_EXTRA_CA_CERTS",
-                value=f"/etc/ssl/certs/laconic-extra-ca/{first_key}",
+                value=first_mount_path,
             ),
         ]
 
-        return secret, volume, volume_mount, env_vars
+        return secret, volume, volume_mounts, env_vars

@@ -346,7 +346,22 @@ class K8sDeployer(Deployer):
                         name=pv.metadata.name
                     )
                     if pv_resp:
-                        if opts.o.debug:
+                        # If PV is in Released state (stale claimRef from a
+                        # previous deployment), clear the claimRef so a new
+                        # PVC can bind to it. This happens after stop+start
+                        # because stop deletes the namespace (and PVCs) but
+                        # preserves PVs by default.
+                        if pv_resp.status and pv_resp.status.phase == "Released":
+                            print(
+                                f"PV {pv.metadata.name} is Released, "
+                                "clearing claimRef for rebinding"
+                            )
+                            pv_resp.spec.claim_ref = None
+                            self.core_api.patch_persistent_volume(
+                                name=pv.metadata.name,
+                                body={"spec": {"claimRef": None}},
+                            )
+                        elif opts.o.debug:
                             print("PVs already present:")
                             print(f"{pv_resp}")
                         continue

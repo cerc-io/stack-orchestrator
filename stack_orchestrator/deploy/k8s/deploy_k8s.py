@@ -817,6 +817,12 @@ class K8sDeployer(Deployer):
                         raise
 
     def up(self, detach, skip_cluster_management, services, image_overrides=None):
+        # Merge spec-level image overrides with CLI overrides
+        spec_overrides = self.cluster_info.spec.get("image-overrides", {})
+        if spec_overrides:
+            if image_overrides:
+                spec_overrides.update(image_overrides)  # CLI wins
+            image_overrides = spec_overrides
         self.image_overrides = image_overrides
         self.skip_cluster_management = skip_cluster_management
         if not opts.o.dry_run:

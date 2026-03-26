@@ -577,7 +577,7 @@ def _generate_and_store_secrets(config_vars: dict, deployment_name: str):
     return secrets
 
 
-def create_registry_secret(spec: Spec, deployment_name: str) -> Optional[str]:
+def create_registry_secret(spec: Spec, deployment_name: str, namespace: str = "default") -> Optional[str]:
     """Create K8s docker-registry secret from spec + environment.
 
     Reads registry configuration from spec.yml and creates a Kubernetes
@@ -586,6 +586,7 @@ def create_registry_secret(spec: Spec, deployment_name: str) -> Optional[str]:
     Args:
         spec: The deployment spec containing image-registry config
         deployment_name: Name of the deployment (used for secret naming)
+        namespace: Kubernetes namespace to create the secret in
 
     Returns:
         The secret name if created, None if no registry config
@@ -633,7 +634,6 @@ def create_registry_secret(spec: Spec, deployment_name: str) -> Optional[str]:
             return None
 
     v1 = client.CoreV1Api()
-    namespace = "default"
 
     k8s_secret = client.V1Secret(
         metadata=client.V1ObjectMeta(name=secret_name),

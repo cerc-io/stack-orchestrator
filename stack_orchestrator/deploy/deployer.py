@@ -28,7 +28,7 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def update(self):
+    def update_envs(self):
         pass
 
     @abstractmethod
@@ -68,6 +68,15 @@ class Deployer(ABC):
     @abstractmethod
     def run_job(self, job_name: str, release_name: Optional[str] = None):
         pass
+
+    def prepare(self, skip_cluster_management):
+        """Create cluster infrastructure (namespace, PVs, services) without starting pods.
+
+        Only supported for k8s deployers. Compose deployers raise an error.
+        """
+        raise DeployerException(
+            "prepare is only supported for k8s deployments"
+        )
 
 
 class DeployerException(Exception):

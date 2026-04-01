@@ -23,6 +23,7 @@ from stack_orchestrator.deploy.images import push_images_operation
 from stack_orchestrator.deploy.deploy import (
     up_operation,
     down_operation,
+    prepare_operation,
     ps_operation,
     port_operation,
     status_operation,
@@ -31,7 +32,7 @@ from stack_orchestrator.deploy.deploy import (
     exec_operation,
     logs_operation,
     create_deploy_context,
-    update_operation,
+    update_envs_operation,
 )
 from stack_orchestrator.deploy.deploy_types import DeployCommandContext
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
@@ -114,7 +115,7 @@ def up(ctx, stay_attached, skip_cluster_management, extra_args):
 )
 @click.option(
     "--skip-cluster-management/--perform-cluster-management",
-    default=False,
+    default=True,
     help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
 )
 @click.argument("extra_args", nargs=-1)  # help: command: up <service1> <service2>
@@ -125,6 +126,27 @@ def start(ctx, stay_attached, skip_cluster_management, extra_args):
     up_operation(ctx, services_list, stay_attached, skip_cluster_management)
 
 
+@command.command()
+@click.option(
+    "--skip-cluster-management/--perform-cluster-management",
+    default=False,
+    help="Skip cluster initialization (only for kind-k8s deployments)",
+)
+@click.pass_context
+def prepare(ctx, skip_cluster_management):
+    """Create cluster infrastructure without starting pods.
+
+    Sets up the kind cluster, namespace, PVs, PVCs, ConfigMaps, Services,
+    and Ingresses — everything that 'start' does EXCEPT creating the
+    Deployment resource. No pods will be scheduled.
+
+    Use 'start --skip-cluster-management' afterward to create the Deployment
+    and start pods when ready.
+    """
+    ctx.obj = make_deploy_context(ctx)
+    prepare_operation(ctx, skip_cluster_management)
+
+
 # TODO: remove legacy up command since it's an alias for stop
 @command.command()
 @click.option(
@@ -132,7 +154,7 @@ def start(ctx, stay_attached, skip_cluster_management, extra_args):
 )
 @click.option(
     "--skip-cluster-management/--perform-cluster-management",
-    default=False,
+    default=True,
     help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
 )
 @click.argument("extra_args", nargs=-1)  # help: command: down <service1> <service2>
@@ -151,7 +173,7 @@ def down(ctx, delete_volumes, skip_cluster_management, extra_args):
 )
 @click.option(
     "--skip-cluster-management/--perform-cluster-management",
-    default=False,
+    default=True,
     help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
 )
 @click.argument("extra_args", nargs=-1)  # help: command: down <service1> <service2>
@@ -210,11 +232,11 @@ def status(ctx):
     status_operation(ctx)
 
 
-@command.command()
+@command.command(name="update-envs")
 @click.pass_context
-def update(ctx):
+def update_envs(ctx):
     ctx.obj = make_deploy_context(ctx)
-    update_operation(ctx)
+    update_envs_operation(ctx)
 
 
 @command.command()

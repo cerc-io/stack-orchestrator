@@ -135,6 +135,11 @@ class K8sDeployer(Deployer):
         # path resolution). Extract just the directory basename for labels.
         raw_name = deployment_context.stack.name if deployment_context else ""
         stack_name = Path(raw_name).name if raw_name else ""
+        # Use spec namespace if provided, otherwise derive from stack name
+        self.k8s_namespace = deployment_context.spec.get_namespace() or (
+            f"laconic-{stack_name}" if stack_name else f"laconic-{compose_project_name}"
+        )
+        self.cluster_info = ClusterInfo()
         self.cluster_info.int(
             compose_files,
             compose_env_file,
@@ -365,8 +370,9 @@ class K8sDeployer(Deployer):
                             print("PVs already present:")
                             print(f"{pv_resp}")
                         continue
-                except:  # noqa: E722
-                    pass
+                except ApiException as e:
+                    if e.status != 404:
+                        raise
 
                 pv_resp = self.core_api.create_persistent_volume(body=pv)
                 if opts.o.debug:
@@ -389,8 +395,9 @@ class K8sDeployer(Deployer):
                             print("PVCs already present:")
                             print(f"{pvc_resp}")
                         continue
-                except:  # noqa: E722
-                    pass
+                except ApiException as e:
+                    if e.status != 404:
+                        raise
 
                 pvc_resp = self.core_api.create_namespaced_persistent_volume_claim(
                     body=pvc, namespace=self.k8s_namespace
@@ -549,6 +556,7 @@ class K8sDeployer(Deployer):
                 raise
 
     def _create_deployment(self):
+        """Create the k8s Deployment resource (which starts pods)."""
         # Skip if there are no pods to deploy (e.g. jobs-only stacks)
         if not self.cluster_info.parsed_pod_yaml_map:
             if opts.o.debug:
@@ -1035,7 +1043,7 @@ class K8sDeployer(Deployer):
                 log_data = "******* No logs available ********\n"
         return log_stream_from_string(log_data)
 
-    def update(self):
+    def update_envs(self):
         if not self.cluster_info.parsed_pod_yaml_map:
             if opts.o.debug:
                 print("No pods defined, skipping update")

@@ -24,11 +24,13 @@ from typing import List, Optional
 import random
 from shutil import copy, copyfile, copytree, rmtree
 from secrets import token_hex
+import subprocess
 import sys
 import filecmp
 import tempfile
 
 from stack_orchestrator import constants
+from stack_orchestrator.ids import generate_id
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import (
     get_stack_path,
@@ -513,7 +515,9 @@ def init_operation(
 GENERATE_TOKEN_PATTERN = re.compile(r"\$generate:(\w+):(\d+)\$")
 
 
-def _generate_and_store_secrets(config_vars: dict, deployment_name: str):
+def _generate_and_store_secrets(
+    config_vars: dict, deployment_name: str, namespace: str = "default"
+):
     """Generate secrets for $generate:...$ tokens and store in K8s Secret.
 
     Called by `deploy create` - generates fresh secrets and stores them.
@@ -555,7 +559,6 @@ def _generate_and_store_secrets(config_vars: dict, deployment_name: str):
 
     v1 = client.CoreV1Api()
     secret_name = f"{deployment_name}-generated-secrets"
-    namespace = "default"
 
     secret_data = {k: base64.b64encode(v.encode()).decode() for k, v in secrets.items()}
     k8s_secret = client.V1Secret(
@@ -676,8 +679,23 @@ def create_registry_secret(spec: Spec, deployment_name: str, namespace: str = "d
 
 
 def _write_config_file(
-    spec_file: Path, config_env_file: Path, deployment_name: Optional[str] = None
+    spec_file: Path,
+    config_env_file: Path,
+    deployment_name: Optional[str] = None,
+    namespace: str = "default",
 ):
+    """Write spec.yml config: entries to config.env.
+
+    The config: section in spec.yml should contain only deployment-specific
+    overrides — values that differ between deployments (hostnames, endpoints,
+    credentials, secrets via $generate:...$).
+
+    Application defaults (ports, log levels, feature flags, tuning params)
+    belong in the compose file's environment section. The compose file is
+    the single source of truth for what env vars a service accepts and
+    their default values. spec.yml overrides those defaults for a specific
+    deployment.
+    """
     spec_content = get_parsed_deployment_spec(spec_file)
     config_vars = spec_content.get("config", {}) or {}
 
@@ -688,7 +706,7 @@ def _write_config_file(
             for v in config_vars.values()
         )
         if has_generate_tokens:
-            _generate_and_store_secrets(config_vars, deployment_name)
+            _generate_and_store_secrets(config_vars, deployment_name, namespace)
 
     # Write non-secret config to config.env (exclude $generate:...$ tokens)
     with open(config_env_file, "w") as output_file:
@@ -736,9 +754,31 @@ def _copy_files_to_directory(file_paths: List[Path], directory: Path):
         copy(path, os.path.join(directory, os.path.basename(path)))
 
 
+def _get_existing_kind_cluster() -> Optional[str]:
+    """Return the name of an existing Kind cluster, or None."""
+    try:
+        result = subprocess.run(
+            ["kind", "get", "clusters"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            clusters = [
+                c.strip() for c in result.stdout.strip().splitlines() if c.strip()
+            ]
+            if clusters:
+                return clusters[0]
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
 def _create_deployment_file(deployment_dir: Path, stack_source: Optional[Path] = None):
     deployment_file_path = deployment_dir.joinpath(constants.deployment_file_name)
-    cluster = f"{constants.cluster_name_prefix}{token_hex(8)}"
+    # Reuse existing Kind cluster if one exists, otherwise generate a timestamp-based ID
+    existing = _get_existing_kind_cluster()
+    cluster = existing if existing else generate_id("laconic")
     deployment_content = {constants.cluster_id_key: cluster}
     if stack_source:
         deployment_content["stack-source"] = str(stack_source)
@@ -990,8 +1030,13 @@ def _write_deployment_files(
     # Use stack_name as deployment_name for K8s secret naming
     # Extract just the name part if stack_name is a path ("path/to/stack" -> "stack")
     deployment_name = Path(stack_name).name.replace("_", "-")
+    # Derive namespace from spec or stack name, matching deploy_k8s logic
+    namespace = parsed_spec.get_namespace() or f"laconic-{deployment_name}"
     _write_config_file(
-        spec_file, target_dir.joinpath(constants.config_file_name), deployment_name
+        spec_file,
+        target_dir.joinpath(constants.config_file_name),
+        deployment_name,
+        namespace=namespace,
     )
 
     # Copy any k8s config file into the target dir

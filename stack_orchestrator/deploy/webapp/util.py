@@ -696,7 +696,7 @@ def deploy_to_k8s(deploy_record, deployment_dir, recreate, logger):
         if not deploy_record:
             commands_to_run = ["start"]
         else:
-            commands_to_run = ["update"]
+            commands_to_run = ["update-envs"]
 
     for command in commands_to_run:
         logger.log(f"Running {command} command on deployment dir: {deployment_dir}")

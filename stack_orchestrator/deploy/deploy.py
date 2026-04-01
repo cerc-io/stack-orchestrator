@@ -189,8 +189,14 @@ def status_operation(ctx):
     ctx.obj.deployer.status()
 
 
-def update_operation(ctx):
-    ctx.obj.deployer.update()
+def prepare_operation(ctx, skip_cluster_management=False):
+    ctx.obj.deployer.prepare(
+        skip_cluster_management=skip_cluster_management,
+    )
+
+
+def update_envs_operation(ctx):
+    ctx.obj.deployer.update_envs()
 
 
 def ps_operation(ctx):

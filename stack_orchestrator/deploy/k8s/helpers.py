@@ -148,8 +148,16 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
     etcd_image = "gcr.io/etcd-development/etcd:v3.5.9"
     temp_dir = "/tmp/laconic-etcd-cleanup"
 
-    # Whitelist: prefixes to KEEP - everything else gets deleted
-    keep_prefixes = "/registry/secrets/caddy-system"
+    # Whitelist: prefixes to KEEP - everything else gets deleted.
+    # Must include core cluster resources (kubernetes service, kube-system
+    # secrets) or kindnet panics on restart — KUBERNETES_SERVICE_HOST is
+    # injected from the kubernetes ClusterIP service in default namespace.
+    keep_prefixes = [
+        "/registry/secrets/caddy-system",
+        "/registry/services/specs/default/kubernetes",
+        "/registry/services/endpoints/default/kubernetes",
+    ]
+    keep_prefixes_str = " ".join(keep_prefixes)
 
     # The etcd image is distroless (no shell). We extract the statically-linked
     # etcdctl binary and run it from alpine which has shell + jq support.
@@ -195,13 +203,21 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
         sleep 3
 
         # Use alpine with extracted etcdctl to run commands (alpine has shell + jq)
-        # Export caddy secrets
+        # Export whitelisted keys (caddy TLS certs + core cluster services)
         docker run --rm \
             -v {temp_dir}:/backup \
             --network container:laconic-etcd-cleanup \
-            $ALPINE_IMAGE sh -c \
-            '/backup/etcdctl get --prefix "{keep_prefixes}" -w json \
-                > /backup/kept.json 2>/dev/null || echo "{{}}" > /backup/kept.json'
+            $ALPINE_IMAGE sh -c '
+                apk add --no-cache jq >/dev/null 2>&1
+                echo "[]" > /backup/all-kvs.json
+                for prefix in {keep_prefixes_str}; do
+                    /backup/etcdctl get --prefix "$prefix" -w json 2>/dev/null \
+                        | jq ".kvs // []" >> /backup/all-kvs.json || true
+                done
+                jq -s "add" /backup/all-kvs.json \
+                    | jq "{{kvs: .}}" > /backup/kept.json 2>/dev/null \
+                    || echo "{{}}" > /backup/kept.json
+            '
 
         # Delete ALL registry keys
         docker run --rm \
@@ -591,14 +607,18 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
         Path(f"./data/{backup_subdir}/etcd"), deployment_dir
     )
     volume_definitions.append(
-        f"  - hostPath: {etcd_host_path}\n" f"    containerPath: /var/lib/etcd\n"
+        f"  - hostPath: {etcd_host_path}\n"
+        f"    containerPath: /var/lib/etcd\n"
+        f"    propagation: HostToContainer\n"
     )
 
     pki_host_path = _make_absolute_host_path(
         Path(f"./data/{backup_subdir}/pki"), deployment_dir
     )
     volume_definitions.append(
-        f"  - hostPath: {pki_host_path}\n" f"    containerPath: /etc/kubernetes/pki\n"
+        f"  - hostPath: {pki_host_path}\n"
+        f"    containerPath: /etc/kubernetes/pki\n"
+        f"    propagation: HostToContainer\n"
     )
 
     # When kind-mount-root is set, emit a single extraMount for the root.
@@ -607,7 +627,9 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     mount_root_emitted = False
     if kind_mount_root:
         volume_definitions.append(
-            f"  - hostPath: {kind_mount_root}\n" f"    containerPath: /mnt\n"
+            f"  - hostPath: {kind_mount_root}\n"
+            f"    containerPath: /mnt\n"
+            f"    propagation: HostToContainer\n"
         )
         mount_root_emitted = True
 
@@ -649,6 +671,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                                 volume_definitions.append(
                                     f"  - hostPath: {host_path}\n"
                                     f"    containerPath: {container_path}\n"
+                                    f"    propagation: HostToContainer\n"
                                 )
                                 if opts.o.debug:
                                     print(f"Added host path mount: {host_path}")
@@ -682,6 +705,7 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                                     volume_definitions.append(
                                         f"  - hostPath: {host_path}\n"
                                         f"    containerPath: {container_path}\n"
+                                        f"    propagation: HostToContainer\n"
                                     )
     return (
         ""
@@ -717,11 +741,35 @@ def _generate_kind_port_mappings_from_services(parsed_pod_files):
 
 def _generate_kind_port_mappings(parsed_pod_files):
     port_definitions = []
+    seen = set()
     # Map port 80 and 443 for the Caddy ingress controller (HTTPS support)
     for port_string in ["80", "443"]:
         port_definitions.append(
             f"  - containerPort: {port_string}\n    hostPort: {port_string}\n"
         )
+        seen.add((port_string, "TCP"))
+    # Map ports declared in compose services
+    for pod in parsed_pod_files:
+        parsed_pod_file = parsed_pod_files[pod]
+        if "services" in parsed_pod_file:
+            for service_name in parsed_pod_file["services"]:
+                service_obj = parsed_pod_file["services"][service_name]
+                for port_entry in service_obj.get("ports", []):
+                    port_str = str(port_entry)
+                    protocol = "TCP"
+                    if "/" in port_str:
+                        port_str, proto = port_str.split("/", 1)
+                        protocol = proto.upper()
+                    if ":" in port_str:
+                        port_str = port_str.split(":")[-1]
+                    port_num = port_str.strip("'\"")
+                    if (port_num, protocol) not in seen:
+                        seen.add((port_num, protocol))
+                        port_definitions.append(
+                            f"  - containerPort: {port_num}\n"
+                            f"    hostPort: {port_num}\n"
+                            f"    protocol: {protocol}\n"
+                        )
     return (
         ""
         if len(port_definitions) == 0
@@ -737,7 +785,11 @@ def _generate_high_memlock_spec_mount(deployment_dir: Path):
     references an absolute path.
     """
     spec_path = deployment_dir.joinpath(constants.high_memlock_spec_filename).resolve()
-    return f"  - hostPath: {spec_path}\n" f"    containerPath: {spec_path}\n"
+    return (
+        f"  - hostPath: {spec_path}\n"
+        f"    containerPath: {spec_path}\n"
+        f"    propagation: HostToContainer\n"
+    )
 
 
 def generate_high_memlock_spec_json():

@@ -29,6 +29,7 @@ class ClusterContext:
     post_start_commands: List[str]
     config: Optional[str]
     env_file: Optional[str]
+    job_compose_files: Optional[List[str]] = None
 
 
 @dataclass

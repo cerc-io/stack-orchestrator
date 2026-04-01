@@ -1,0 +1,5 @@
+services:
+  test-job:
+    image: cerc/test-container:local
+    entrypoint: /bin/sh
+    command: ["-c", "echo 'Job completed successfully'"]

@@ -105,6 +105,15 @@ fi
 # Add a config file to be picked up by the ConfigMap before starting.
 echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/configmaps/test-config/test_config
 
+# Add secrets to the deployment spec (references a pre-existing k8s Secret by name).
+# deploy init already writes an empty 'secrets: {}' key, so we replace it
+# rather than appending (ruamel.yaml rejects duplicate keys).
+deployment_spec_file=${test_deployment_dir}/spec.yml
+sed -i 's/^secrets: {}$/secrets:\n  test-secret:\n    - TEST_SECRET_KEY/' ${deployment_spec_file}
+
+# Get the deployment ID for kubectl queries
+deployment_id=$(cat ${test_deployment_dir}/deployment.yml | cut -d ' ' -f 2)
+
 echo "deploy create output file test: passed"
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start
@@ -166,12 +175,71 @@ else
     delete_cluster_exit
 fi
 
-# Stop then start again and check the volume was preserved
-$TEST_TARGET_SO deployment --dir $test_deployment_dir stop
-# Sleep a bit just in case
-# sleep for longer to check if that's why the subsequent create cluster fails
-sleep 20
-$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+# --- New feature tests: namespace, labels, jobs, secrets ---
+
+# Check that the pod is in the deployment-specific namespace (not default)
+ns_pod_count=$(kubectl get pods -n laconic-${deployment_id} -l app=${deployment_id} --no-headers 2>/dev/null | wc -l)
+if [ "$ns_pod_count" -gt 0 ]; then
+    echo "namespace isolation test: passed"
+else
+    echo "namespace isolation test: FAILED"
+    echo "Expected pod in namespace laconic-${deployment_id}"
+    delete_cluster_exit
+fi
+
+# Check that the stack label is set on the pod
+stack_label_count=$(kubectl get pods -n laconic-${deployment_id} -l app.kubernetes.io/stack=test --no-headers 2>/dev/null | wc -l)
+if [ "$stack_label_count" -gt 0 ]; then
+    echo "stack label test: passed"
+else
+    echo "stack label test: FAILED"
+    delete_cluster_exit
+fi
+
+# Check that the job completed successfully
+for i in {1..30}; do
+    job_status=$(kubectl get job ${deployment_id}-job-test-job -n laconic-${deployment_id} -o jsonpath='{.status.succeeded}' 2>/dev/null || true)
+    if [ "$job_status" == "1" ]; then
+        break
+    fi
+    sleep 2
+done
+if [ "$job_status" == "1" ]; then
+    echo "job completion test: passed"
+else
+    echo "job completion test: FAILED"
+    echo "Job status.succeeded: ${job_status}"
+    delete_cluster_exit
+fi
+
+# Check that the secrets spec results in an envFrom secretRef on the pod
+secret_ref=$(kubectl get pod -n laconic-${deployment_id} -l app=${deployment_id} \
+    -o jsonpath='{.items[0].spec.containers[0].envFrom[?(@.secretRef.name=="test-secret")].secretRef.name}' 2>/dev/null || true)
+if [ "$secret_ref" == "test-secret" ]; then
+    echo "secrets envFrom test: passed"
+else
+    echo "secrets envFrom test: FAILED"
+    echo "Expected secretRef 'test-secret', got: ${secret_ref}"
+    delete_cluster_exit
+fi
+
+# Stop then start again and check the volume was preserved.
+# Use --skip-cluster-management to reuse the existing kind cluster instead of
+# destroying and recreating it (which fails on CI runners due to stale etcd/certs
+# and cgroup detection issues).
+# Use --delete-volumes to clear PVs so fresh PVCs can bind on restart.
+# Bind-mount data survives on the host filesystem; provisioner volumes are recreated fresh.
+$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --skip-cluster-management
+# Wait for the namespace to be fully terminated before restarting.
+# Without this, 'start' fails with 403 Forbidden because the namespace
+# is still in Terminating state.
+for i in {1..60}; do
+    if ! kubectl get namespace laconic-${deployment_id} 2>/dev/null | grep -q .; then
+        break
+    fi
+    sleep 2
+done
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start --skip-cluster-management
 wait_for_pods_started
 wait_for_log_output
 sleep 1
@@ -184,8 +252,9 @@ else
     delete_cluster_exit
 fi
 
-# These volumes will be completely destroyed by the kind delete/create, because they lived inside
-# the kind container.  So, unlike the bind-mount case, they will appear fresh after the restart.
+# Provisioner volumes are destroyed when PVs are deleted (--delete-volumes on stop).
+# Unlike bind-mount volumes whose data persists on the host, provisioner storage
+# is gone, so the volume appears fresh after restart.
 log_output_11=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
 if [[ "$log_output_11" == *"/data2 filesystem is fresh"* ]]; then
     echo "Fresh provisioner volumes test: passed"

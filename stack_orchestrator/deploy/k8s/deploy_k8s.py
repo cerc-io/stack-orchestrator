@@ -95,6 +95,7 @@ class K8sDeployer(Deployer):
     type: str
     core_api: client.CoreV1Api
     apps_api: client.AppsV1Api
+    batch_api: client.BatchV1Api
     networking_api: client.NetworkingV1Api
     k8s_namespace: str
     kind_cluster_name: str
@@ -110,6 +111,7 @@ class K8sDeployer(Deployer):
         compose_files,
         compose_project_name,
         compose_env_file,
+        job_compose_files=None,
     ) -> None:
         self.type = type
         self.skip_cluster_management = False
@@ -120,19 +122,32 @@ class K8sDeployer(Deployer):
             return
         self.deployment_dir = deployment_context.deployment_dir
         self.deployment_context = deployment_context
-        self.kind_cluster_name = compose_project_name
-        # Use deployment-specific namespace for resource isolation and easy cleanup
-        self.k8s_namespace = f"laconic-{compose_project_name}"
+        self.kind_cluster_name = (
+            deployment_context.spec.get_kind_cluster_name() or compose_project_name
+        )
+        # stack.name may be an absolute path (from spec "stack:" key after
+        # path resolution). Extract just the directory basename for labels.
+        raw_name = deployment_context.stack.name if deployment_context else ""
+        stack_name = Path(raw_name).name if raw_name else ""
+        # Use spec namespace if provided, otherwise derive from stack name
+        self.k8s_namespace = deployment_context.spec.get_namespace() or (
+            f"laconic-{stack_name}" if stack_name else f"laconic-{compose_project_name}"
+        )
         self.cluster_info = ClusterInfo()
         self.cluster_info.int(
             compose_files,
             compose_env_file,
             compose_project_name,
             deployment_context.spec,
+            stack_name=stack_name,
         )
+        # Initialize job compose files if provided
+        if job_compose_files:
+            self.cluster_info.init_jobs(job_compose_files)
         if opts.o.debug:
             print(f"Deployment dir: {deployment_context.deployment_dir}")
             print(f"Compose files: {compose_files}")
+            print(f"Job compose files: {job_compose_files}")
             print(f"Project name: {compose_project_name}")
             print(f"Env file: {compose_env_file}")
             print(f"Type: {type}")
@@ -150,6 +165,7 @@ class K8sDeployer(Deployer):
         self.core_api = client.CoreV1Api()
         self.networking_api = client.NetworkingV1Api()
         self.apps_api = client.AppsV1Api()
+        self.batch_api = client.BatchV1Api()
         self.custom_obj_api = client.CustomObjectsApi()
 
     def _ensure_namespace(self):
@@ -310,6 +326,94 @@ class K8sDeployer(Deployer):
             else:
                 raise
 
+    def _delete_resources_by_label(self, label_selector: str, delete_volumes: bool):
+        """Delete only this stack's resources from a shared namespace."""
+        ns = self.k8s_namespace
+        if opts.o.dry_run:
+            print(f"Dry run: would delete resources with {label_selector} in {ns}")
+            return
+
+        # Deployments
+        try:
+            deps = self.apps_api.list_namespaced_deployment(
+                namespace=ns, label_selector=label_selector
+            )
+            for dep in deps.items:
+                print(f"Deleting Deployment {dep.metadata.name}")
+                self.apps_api.delete_namespaced_deployment(
+                    name=dep.metadata.name, namespace=ns
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # Jobs
+        try:
+            jobs = self.batch_api.list_namespaced_job(
+                namespace=ns, label_selector=label_selector
+            )
+            for job in jobs.items:
+                print(f"Deleting Job {job.metadata.name}")
+                self.batch_api.delete_namespaced_job(
+                    name=job.metadata.name,
+                    namespace=ns,
+                    body=client.V1DeleteOptions(propagation_policy="Background"),
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # Services (NodePorts created by SO)
+        try:
+            svcs = self.core_api.list_namespaced_service(
+                namespace=ns, label_selector=label_selector
+            )
+            for svc in svcs.items:
+                print(f"Deleting Service {svc.metadata.name}")
+                self.core_api.delete_namespaced_service(
+                    name=svc.metadata.name, namespace=ns
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # Ingresses
+        try:
+            ings = self.networking_api.list_namespaced_ingress(
+                namespace=ns, label_selector=label_selector
+            )
+            for ing in ings.items:
+                print(f"Deleting Ingress {ing.metadata.name}")
+                self.networking_api.delete_namespaced_ingress(
+                    name=ing.metadata.name, namespace=ns
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # ConfigMaps
+        try:
+            cms = self.core_api.list_namespaced_config_map(
+                namespace=ns, label_selector=label_selector
+            )
+            for cm in cms.items:
+                print(f"Deleting ConfigMap {cm.metadata.name}")
+                self.core_api.delete_namespaced_config_map(
+                    name=cm.metadata.name, namespace=ns
+                )
+        except ApiException as e:
+            _check_delete_exception(e)
+
+        # PVCs (only if --delete-volumes)
+        if delete_volumes:
+            try:
+                pvcs = self.core_api.list_namespaced_persistent_volume_claim(
+                    namespace=ns, label_selector=label_selector
+                )
+                for pvc in pvcs.items:
+                    print(f"Deleting PVC {pvc.metadata.name}")
+                    self.core_api.delete_namespaced_persistent_volume_claim(
+                        name=pvc.metadata.name, namespace=ns
+                    )
+            except ApiException as e:
+                _check_delete_exception(e)
+
     def _create_volume_data(self):
         # Create the host-path-mounted PVs for this deployment
         pvs = self.cluster_info.get_pvs()
@@ -372,6 +476,11 @@ class K8sDeployer(Deployer):
 
     def _create_deployment(self):
         """Create the k8s Deployment resource (which starts pods)."""
+        # Skip if there are no pods to deploy (e.g. jobs-only stacks)
+        if not self.cluster_info.parsed_pod_yaml_map:
+            if opts.o.debug:
+                print("No pods defined, skipping Deployment creation")
+            return
         deployment = self.cluster_info.get_deployment(
             image_pull_policy=None if self.is_kind() else "Always"
         )
@@ -379,6 +488,26 @@ class K8sDeployer(Deployer):
             print(f"Sending this deployment: {deployment}")
         if not opts.o.dry_run:
             self._ensure_deployment(deployment)
+
+    def _create_jobs(self):
+        # Process job compose files into k8s Jobs
+        jobs = self.cluster_info.get_jobs(
+            image_pull_policy=None if self.is_kind() else "Always"
+        )
+        for job in jobs:
+            if opts.o.debug:
+                print(f"Sending this job: {job}")
+            if not opts.o.dry_run:
+                job_resp = self.batch_api.create_namespaced_job(
+                    body=job, namespace=self.k8s_namespace
+                )
+                if opts.o.debug:
+                    print("Job created:")
+                    if job_resp.metadata:
+                        print(
+                            f"  {job_resp.metadata.namespace} "
+                            f"{job_resp.metadata.name}"
+                        )
 
     def _find_certificate_for_host_name(self, host_name):
         all_certificates = self.custom_obj_api.list_namespaced_custom_object(
@@ -478,16 +607,19 @@ class K8sDeployer(Deployer):
 
         http_proxy_info = self.cluster_info.spec.get_http_proxy()
         use_tls = http_proxy_info and not self.is_kind()
-        certificate = (
-            self._find_certificate_for_host_name(http_proxy_info[0]["host-name"])
-            if use_tls
-            else None
-        )
-        if opts.o.debug and certificate:
-            print(f"Using existing certificate: {certificate}")
+        certificates = None
+        if use_tls:
+            certificates = {}
+            for proxy in http_proxy_info:
+                host_name = proxy["host-name"]
+                cert = self._find_certificate_for_host_name(host_name)
+                if cert:
+                    certificates[host_name] = cert
+                    if opts.o.debug:
+                        print(f"Using existing certificate for {host_name}: {cert}")
 
         ingress = self.cluster_info.get_ingress(
-            use_tls=use_tls, certificate=certificate
+            use_tls=use_tls, certificates=certificates
         )
         if ingress:
             if opts.o.debug:
@@ -515,16 +647,24 @@ class K8sDeployer(Deployer):
         self._create_infrastructure()
         print("Cluster infrastructure prepared (no pods started).")
 
+        # Call start() hooks — stacks can create additional k8s resources
+        if self.deployment_context:
+            from stack_orchestrator.deploy.deployment_create import (
+                call_stack_deploy_start,
+            )
+
+            call_stack_deploy_start(self.deployment_context)
+
     def down(self, timeout, volumes, skip_cluster_management):
         self.skip_cluster_management = skip_cluster_management
         self.connect_api()
 
+        app_label = f"app={self.cluster_info.app_name}"
+
         # PersistentVolumes are cluster-scoped (not namespaced), so delete by label
         if volumes:
             try:
-                pvs = self.core_api.list_persistent_volume(
-                    label_selector=f"app={self.cluster_info.app_name}"
-                )
+                pvs = self.core_api.list_persistent_volume(label_selector=app_label)
                 for pv in pvs.items:
                     if opts.o.debug:
                         print(f"Deleting PV: {pv.metadata.name}")
@@ -536,9 +676,14 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print(f"Error listing PVs: {e}")
 
-        # Delete the deployment namespace - this cascades to all namespaced resources
-        # (PVCs, ConfigMaps, Deployments, Services, Ingresses, etc.)
-        self._delete_namespace()
+        # When namespace is explicitly set in the spec, it may be shared with
+        # other stacks — delete only this stack's resources by label.
+        # Otherwise the namespace is owned by this deployment, delete it entirely.
+        shared_namespace = self.deployment_context.spec.get_namespace() is not None
+        if shared_namespace:
+            self._delete_resources_by_label(app_label, volumes)
+        else:
+            self._delete_namespace()
 
         if self.is_kind() and not self.skip_cluster_management:
             # Destroy the kind cluster
@@ -663,14 +808,18 @@ class K8sDeployer(Deployer):
 
     def logs(self, services, tail, follow, stream):
         self.connect_api()
-        pods = pods_in_deployment(self.core_api, self.cluster_info.app_name, namespace=self.k8s_namespace)
+        pods = pods_in_deployment(
+            self.core_api, self.cluster_info.app_name, namespace=self.k8s_namespace
+        )
         if len(pods) > 1:
             print("Warning: more than one pod in the deployment")
         if len(pods) == 0:
             log_data = "******* Pods not running ********\n"
         else:
             k8s_pod_name = pods[0]
-            containers = containers_in_pod(self.core_api, k8s_pod_name, namespace=self.k8s_namespace)
+            containers = containers_in_pod(
+                self.core_api, k8s_pod_name, namespace=self.k8s_namespace
+            )
             # If pod not started, logs request below will throw an exception
             try:
                 log_data = ""
@@ -688,6 +837,10 @@ class K8sDeployer(Deployer):
         return log_stream_from_string(log_data)
 
     def update_envs(self):
+        if not self.cluster_info.parsed_pod_yaml_map:
+            if opts.o.debug:
+                print("No pods defined, skipping update")
+            return
         self.connect_api()
         ref_deployment = self.cluster_info.get_deployment()
         if not ref_deployment or not ref_deployment.metadata:
@@ -748,26 +901,43 @@ class K8sDeployer(Deployer):
 
     def run_job(self, job_name: str, helm_release: Optional[str] = None):
         if not opts.o.dry_run:
-            from stack_orchestrator.deploy.k8s.helm.job_runner import run_helm_job
-
             # Check if this is a helm-based deployment
             chart_dir = self.deployment_dir / "chart"
-            if not chart_dir.exists():
-                # TODO: Implement job support for compose-based K8s deployments
-                raise Exception(
-                    f"Job support is only available for helm-based "
-                    f"deployments. Chart directory not found: {chart_dir}"
-                )
+            if chart_dir.exists():
+                from stack_orchestrator.deploy.k8s.helm.job_runner import run_helm_job
 
-            # Run the job using the helm job runner
-            run_helm_job(
-                chart_dir=chart_dir,
-                job_name=job_name,
-                release=helm_release,
-                namespace=self.k8s_namespace,
-                timeout=600,
-                verbose=opts.o.verbose,
-            )
+                # Run the job using the helm job runner
+                run_helm_job(
+                    chart_dir=chart_dir,
+                    job_name=job_name,
+                    release=helm_release,
+                    namespace=self.k8s_namespace,
+                    timeout=600,
+                    verbose=opts.o.verbose,
+                )
+            else:
+                # Non-Helm path: create job from ClusterInfo
+                self.connect_api()
+                jobs = self.cluster_info.get_jobs(
+                    image_pull_policy=None if self.is_kind() else "Always"
+                )
+                # Find the matching job by name
+                target_name = f"{self.cluster_info.app_name}-job-{job_name}"
+                matched_job = None
+                for job in jobs:
+                    if job.metadata and job.metadata.name == target_name:
+                        matched_job = job
+                        break
+                if matched_job is None:
+                    raise Exception(
+                        f"Job '{job_name}' not found. Available jobs: "
+                        f"{[j.metadata.name for j in jobs if j.metadata]}"
+                    )
+                if opts.o.debug:
+                    print(f"Creating job: {target_name}")
+                self.batch_api.create_namespaced_job(
+                    body=matched_job, namespace=self.k8s_namespace
+                )
 
     def is_kind(self):
         return self.type == "k8s-kind"

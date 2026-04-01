@@ -7,3 +7,5 @@ containers:
   - cerc/test-container
 pods:
   - test
+jobs:
+  - test-job

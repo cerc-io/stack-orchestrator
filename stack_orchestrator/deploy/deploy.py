@@ -35,6 +35,7 @@ from stack_orchestrator.util import (
     get_dev_root_path,
     stack_is_in_deployment,
     resolve_compose_file,
+    get_job_list,
 )
 from stack_orchestrator.deploy.deployer import DeployerException
 from stack_orchestrator.deploy.deployer_factory import getDeployer
@@ -130,6 +131,7 @@ def create_deploy_context(
         compose_files=cluster_context.compose_files,
         compose_project_name=cluster_context.cluster,
         compose_env_file=cluster_context.env_file,
+        job_compose_files=cluster_context.job_compose_files,
     )
     return DeployCommandContext(stack, cluster_context, deployer)
 
@@ -409,7 +411,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         stack_config = get_parsed_stack_config(stack)
         if stack_config is not None:
             # TODO: syntax check the input here
-            pods_in_scope = stack_config["pods"]
+            pods_in_scope = stack_config.get("pods") or []
             cluster_config = (
                 stack_config["config"] if "config" in stack_config else None
             )
@@ -483,6 +485,22 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
     if ctx.verbose:
         print(f"files: {compose_files}")
 
+    # Gather job compose files (from compose-jobs/ directory in deployment)
+    job_compose_files = []
+    if deployment and stack:
+        stack_config = get_parsed_stack_config(stack)
+        if stack_config:
+            jobs = get_job_list(stack_config)
+            compose_jobs_dir = stack.joinpath("compose-jobs")
+            for job in jobs:
+                job_file_name = os.path.join(
+                    compose_jobs_dir, f"docker-compose-{job}.yml"
+                )
+                if os.path.exists(job_file_name):
+                    job_compose_files.append(job_file_name)
+            if ctx.verbose:
+                print(f"job files: {job_compose_files}")
+
     return ClusterContext(
         ctx,
         cluster,
@@ -491,6 +509,7 @@ def _make_cluster_context(ctx, stack, include, exclude, cluster, env_file):
         post_start_commands,
         cluster_config,
         env_file,
+        job_compose_files=job_compose_files if job_compose_files else None,
     )
 
 

@@ -72,15 +72,24 @@ def to_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequi
 
 class ClusterInfo:
     parsed_pod_yaml_map: Any
+    parsed_job_yaml_map: Any
     image_set: Set[str] = set()
     app_name: str
+    stack_name: str
     environment_variables: DeployEnvVars
     spec: Spec
 
     def __init__(self) -> None:
-        pass
+        self.parsed_job_yaml_map = {}
 
-    def int(self, pod_files: List[str], compose_env_file, deployment_name, spec: Spec):
+    def int(
+        self,
+        pod_files: List[str],
+        compose_env_file,
+        deployment_name,
+        spec: Spec,
+        stack_name="",
+    ):
         self.parsed_pod_yaml_map = parsed_pod_files_map_from_file_names(pod_files)
         # Find the set of images in the pods
         self.image_set = images_for_deployment(pod_files)
@@ -90,9 +99,22 @@ class ClusterInfo:
         }
         self.environment_variables = DeployEnvVars(env_vars)
         self.app_name = deployment_name
+        self.stack_name = stack_name
         self.spec = spec
         if opts.o.debug:
             print(f"Env vars: {self.environment_variables.map}")
+
+    def init_jobs(self, job_files: List[str]):
+        """Initialize parsed job YAML map from job compose files."""
+        self.parsed_job_yaml_map = parsed_pod_files_map_from_file_names(job_files)
+        if opts.o.debug:
+            print(f"Parsed job yaml map: {self.parsed_job_yaml_map}")
+
+    def _all_named_volumes(self) -> list:
+        """Return named volumes from both pod and job compose files."""
+        volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        volumes.extend(named_volumes_from_pod_files(self.parsed_job_yaml_map))
+        return volumes
 
     def get_nodeports(self):
         nodeports = []
@@ -146,66 +168,70 @@ class ClusterInfo:
         return nodeports
 
     def get_ingress(
-        self, use_tls=False, certificate=None, cluster_issuer="letsencrypt-prod"
+        self, use_tls=False, certificates=None, cluster_issuer="letsencrypt-prod"
     ):
         # No ingress for a deployment that has no http-proxy defined, for now
         http_proxy_info_list = self.spec.get_http_proxy()
         ingress = None
         if http_proxy_info_list:
-            # TODO: handle multiple definitions
-            http_proxy_info = http_proxy_info_list[0]
-            if opts.o.debug:
-                print(f"http-proxy: {http_proxy_info}")
-            # TODO: good enough parsing for webapp deployment for now
-            host_name = http_proxy_info["host-name"]
             rules = []
-            tls = (
-                [
-                    client.V1IngressTLS(
-                        hosts=certificate["spec"]["dnsNames"]
-                        if certificate
-                        else [host_name],
-                        secret_name=certificate["spec"]["secretName"]
-                        if certificate
-                        else f"{self.app_name}-tls",
-                    )
-                ]
-                if use_tls
-                else None
-            )
-            paths = []
-            for route in http_proxy_info["routes"]:
-                path = route["path"]
-                proxy_to = route["proxy-to"]
+            tls = [] if use_tls else None
+
+            for http_proxy_info in http_proxy_info_list:
                 if opts.o.debug:
-                    print(f"proxy config: {path} -> {proxy_to}")
-                # proxy_to has the form <service>:<port>
-                proxy_to_port = int(proxy_to.split(":")[1])
-                paths.append(
-                    client.V1HTTPIngressPath(
-                        path_type="Prefix",
-                        path=path,
-                        backend=client.V1IngressBackend(
-                            service=client.V1IngressServiceBackend(
-                                # TODO: this looks wrong
-                                name=f"{self.app_name}-service",
-                                # TODO: pull port number from the service
-                                port=client.V1ServiceBackendPort(number=proxy_to_port),
-                            )
-                        ),
+                    print(f"http-proxy: {http_proxy_info}")
+                host_name = http_proxy_info["host-name"]
+                certificate = (certificates or {}).get(host_name)
+
+                if use_tls:
+                    tls.append(
+                        client.V1IngressTLS(
+                            hosts=certificate["spec"]["dnsNames"]
+                            if certificate
+                            else [host_name],
+                            secret_name=certificate["spec"]["secretName"]
+                            if certificate
+                            else f"{self.app_name}-{host_name}-tls",
+                        )
+                    )
+
+                paths = []
+                for route in http_proxy_info["routes"]:
+                    path = route["path"]
+                    proxy_to = route["proxy-to"]
+                    if opts.o.debug:
+                        print(f"proxy config: {path} -> {proxy_to}")
+                    # proxy_to has the form <service>:<port>
+                    proxy_to_port = int(proxy_to.split(":")[1])
+                    paths.append(
+                        client.V1HTTPIngressPath(
+                            path_type="Prefix",
+                            path=path,
+                            backend=client.V1IngressBackend(
+                                service=client.V1IngressServiceBackend(
+                                    # TODO: this looks wrong
+                                    name=f"{self.app_name}-service",
+                                    # TODO: pull port number from the service
+                                    port=client.V1ServiceBackendPort(
+                                        number=proxy_to_port
+                                    ),
+                                )
+                            ),
+                        )
+                    )
+                rules.append(
+                    client.V1IngressRule(
+                        host=host_name,
+                        http=client.V1HTTPIngressRuleValue(paths=paths),
                     )
                 )
-            rules.append(
-                client.V1IngressRule(
-                    host=host_name, http=client.V1HTTPIngressRuleValue(paths=paths)
-                )
-            )
+
             spec = client.V1IngressSpec(tls=tls, rules=rules)
 
             ingress_annotations = {
                 "kubernetes.io/ingress.class": "caddy",
             }
-            if not certificate:
+            if not certificates:
                 ingress_annotations["cert-manager.io/cluster-issuer"] = cluster_issuer
 
             ingress = client.V1Ingress(
@@ -257,19 +283,24 @@ class ClusterInfo:
     def get_pvcs(self):
         result = []
         spec_volumes = self.spec.get_volumes()
-        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
-        resources = self.spec.get_volume_resources()
-        if not resources:
-            resources = DEFAULT_VOLUME_RESOURCES
+        named_volumes = self._all_named_volumes()
+        global_resources = self.spec.get_volume_resources()
+        if not global_resources:
+            global_resources = DEFAULT_VOLUME_RESOURCES
         if opts.o.debug:
             print(f"Spec Volumes: {spec_volumes}")
             print(f"Named Volumes: {named_volumes}")
-            print(f"Resources: {resources}")
+            print(f"Resources: {global_resources}")
         for volume_name, volume_path in spec_volumes.items():
             if volume_name not in named_volumes:
                 if opts.o.debug:
                     print(f"{volume_name} not in pod files")
                 continue
+
+            # Per-volume resources override global, which overrides default.
+            vol_resources = (
+                self.spec.get_volume_resources_for(volume_name) or global_resources
+            )
 
             labels = {
                 "app": self.app_name,
@@ -286,7 +317,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeClaimSpec(
                 access_modes=["ReadWriteOnce"],
                 storage_class_name=storage_class_name,
-                resources=to_k8s_resource_requirements(resources),
+                resources=to_k8s_resource_requirements(vol_resources),
                 volume_name=k8s_volume_name,
             )
             pvc = client.V1PersistentVolumeClaim(
@@ -301,7 +332,7 @@ class ClusterInfo:
     def get_configmaps(self):
         result = []
         spec_configmaps = self.spec.get_configmaps()
-        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
+        named_volumes = self._all_named_volumes()
         for cfg_map_name, cfg_map_path in spec_configmaps.items():
             if cfg_map_name not in named_volumes:
                 if opts.o.debug:
@@ -337,10 +368,10 @@ class ClusterInfo:
     def get_pvs(self):
         result = []
         spec_volumes = self.spec.get_volumes()
-        named_volumes = named_volumes_from_pod_files(self.parsed_pod_yaml_map)
-        resources = self.spec.get_volume_resources()
-        if not resources:
-            resources = DEFAULT_VOLUME_RESOURCES
+        named_volumes = self._all_named_volumes()
+        global_resources = self.spec.get_volume_resources()
+        if not global_resources:
+            global_resources = DEFAULT_VOLUME_RESOURCES
         for volume_name, volume_path in spec_volumes.items():
             # We only need to create a volume if it is fully qualified HostPath.
             # Otherwise, we create the PVC and expect the node to allocate the volume
@@ -369,6 +400,9 @@ class ClusterInfo:
                     )
                     continue
 
+            vol_resources = (
+                self.spec.get_volume_resources_for(volume_name) or global_resources
+            )
             if self.spec.is_kind_deployment():
                 host_path = client.V1HostPathVolumeSource(
                     path=get_kind_pv_bind_mount_path(
@@ -382,7 +416,7 @@ class ClusterInfo:
             spec = client.V1PersistentVolumeSpec(
                 storage_class_name="manual",
                 access_modes=["ReadWriteOnce"],
-                capacity=to_k8s_resource_requirements(resources).requests,
+                capacity=to_k8s_resource_requirements(vol_resources).requests,
                 host_path=host_path,
             )
             pv = client.V1PersistentVolume(
@@ -428,15 +462,29 @@ class ClusterInfo:
         # 3. Fall back to spec.yml global (already resolved with DEFAULT fallback)
         return global_resources
 
-    # TODO: put things like image pull policy into an object-scope struct
-    def get_deployment(self, image_pull_policy: Optional[str] = None):
+    def _build_containers(
+        self,
+        parsed_yaml_map: Any,
+        image_pull_policy: Optional[str] = None,
+    ) -> tuple:
+        """Build k8s container specs from parsed compose YAML.
+
+        Returns a tuple of (containers, init_containers, services, volumes)
+        where:
+        - containers: list of V1Container objects
+        - init_containers: list of V1Container objects for init containers
+          (compose services with label ``laconic.init-container: "true"``)
+        - services: the last services dict processed (used for annotations/labels)
+        - volumes: list of V1Volume objects
+        """
         containers = []
+        init_containers = []
         services = {}
         global_resources = self.spec.get_container_resources()
         if not global_resources:
             global_resources = DEFAULT_CONTAINER_RESOURCES
-        for pod_name in self.parsed_pod_yaml_map:
-            pod = self.parsed_pod_yaml_map[pod_name]
+        for pod_name in parsed_yaml_map:
+            pod = parsed_yaml_map[pod_name]
             services = pod["services"]
             for service_name in services:
                 container_name = service_name
@@ -492,9 +540,7 @@ class ClusterInfo:
                     if self.spec.get_image_registry() is not None
                     else image
                 )
-                volume_mounts = volume_mounts_for_service(
-                    self.parsed_pod_yaml_map, service_name
-                )
+                volume_mounts = volume_mounts_for_service(parsed_yaml_map, service_name)
                 # Handle command/entrypoint from compose file
                 # In docker-compose: entrypoint -> k8s command, command -> k8s args
                 container_command = None
@@ -517,6 +563,16 @@ class ClusterInfo:
                         )
                     )
                 ]
+                # Mount user-declared secrets from spec.yml
+                for user_secret_name in self.spec.get_secrets():
+                    env_from.append(
+                        client.V1EnvFromSource(
+                            secret_ref=client.V1SecretEnvSource(
+                                name=user_secret_name,
+                                optional=True,
+                            )
+                        )
+                    )
                 container_resources = self._resolve_container_resources(
                     container_name, service_info, global_resources
                 )
@@ -532,6 +588,9 @@ class ClusterInfo:
                     volume_mounts=volume_mounts,
                     security_context=client.V1SecurityContext(
                         privileged=self.spec.get_privileged(),
+                        run_as_user=int(service_info["user"])
+                        if "user" in service_info
+                        else None,
                         capabilities=client.V1Capabilities(
                             add=self.spec.get_capabilities()
                         )
@@ -540,9 +599,28 @@ class ClusterInfo:
                     ),
                     resources=to_k8s_resource_requirements(container_resources),
                 )
-                containers.append(container)
-        volumes = volumes_for_pod_files(
-            self.parsed_pod_yaml_map, self.spec, self.app_name
+                # Services with laconic.init-container label become
+                # k8s init containers instead of regular containers.
+                svc_labels = service_info.get("labels", {})
+                if isinstance(svc_labels, list):
+                    # docker-compose labels can be a list of "key=value"
+                    svc_labels = dict(item.split("=", 1) for item in svc_labels)
+                is_init = str(svc_labels.get("laconic.init-container", "")).lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                )
+                if is_init:
+                    init_containers.append(container)
+                else:
+                    containers.append(container)
+        volumes = volumes_for_pod_files(parsed_yaml_map, self.spec, self.app_name)
+        return containers, init_containers, services, volumes
+
+    # TODO: put things like image pull policy into an object-scope struct
+    def get_deployment(self, image_pull_policy: Optional[str] = None):
+        containers, init_containers, services, volumes = self._build_containers(
+            self.parsed_pod_yaml_map, image_pull_policy
         )
         registry_config = self.spec.get_image_registry_config()
         if registry_config:
@@ -553,6 +631,8 @@ class ClusterInfo:
 
         annotations = None
         labels = {"app": self.app_name}
+        if self.stack_name:
+            labels["app.kubernetes.io/stack"] = self.stack_name
         affinity = None
         tolerations = None
 
@@ -610,6 +690,7 @@ class ClusterInfo:
             metadata=client.V1ObjectMeta(annotations=annotations, labels=labels),
             spec=client.V1PodSpec(
                 containers=containers,
+                init_containers=init_containers or None,
                 image_pull_secrets=image_pull_secrets,
                 volumes=volumes,
                 affinity=affinity,
@@ -628,7 +709,99 @@ class ClusterInfo:
         deployment = client.V1Deployment(
             api_version="apps/v1",
             kind="Deployment",
-            metadata=client.V1ObjectMeta(name=f"{self.app_name}-deployment"),
+            metadata=client.V1ObjectMeta(
+                name=f"{self.app_name}-deployment",
+                labels={
+                    "app": self.app_name,
+                    **(
+                        {"app.kubernetes.io/stack": self.stack_name}
+                        if self.stack_name
+                        else {}
+                    ),
+                },
+            ),
             spec=spec,
         )
         return deployment
+
+    def get_jobs(self, image_pull_policy: Optional[str] = None) -> List[client.V1Job]:
+        """Build k8s Job objects from parsed job compose files.
+
+        Each job compose file produces a V1Job with:
+        - restartPolicy: Never
+        - backoffLimit: 0
+        - Name: {app_name}-job-{job_name}
+        """
+        if not self.parsed_job_yaml_map:
+            return []
+
+        jobs = []
+        registry_config = self.spec.get_image_registry_config()
+        if registry_config:
+            secret_name = f"{self.app_name}-registry"
+            image_pull_secrets = [client.V1LocalObjectReference(name=secret_name)]
+        else:
+            image_pull_secrets = []
+
+        for job_file in self.parsed_job_yaml_map:
+            # Build containers for this single job file
+            single_job_map = {job_file: self.parsed_job_yaml_map[job_file]}
+            containers, init_containers, _services, volumes = self._build_containers(
+                single_job_map, image_pull_policy
+            )
+
+            # Derive job name from file path: docker-compose-<name>.yml -> <name>
+            base = os.path.basename(job_file)
+            # Strip docker-compose- prefix and .yml suffix
+            job_name = base
+            if job_name.startswith("docker-compose-"):
+                job_name = job_name[len("docker-compose-") :]
+            if job_name.endswith(".yml"):
+                job_name = job_name[: -len(".yml")]
+            elif job_name.endswith(".yaml"):
+                job_name = job_name[: -len(".yaml")]
+
+            # Use a distinct app label for job pods so they don't get
+            # picked up by pods_in_deployment() which queries app={app_name}.
+            pod_labels = {
+                "app": f"{self.app_name}-job",
+                **(
+                    {"app.kubernetes.io/stack": self.stack_name}
+                    if self.stack_name
+                    else {}
+                ),
+            }
+            template = client.V1PodTemplateSpec(
+                metadata=client.V1ObjectMeta(labels=pod_labels),
+                spec=client.V1PodSpec(
+                    containers=containers,
+                    init_containers=init_containers or None,
+                    image_pull_secrets=image_pull_secrets,
+                    volumes=volumes,
+                    restart_policy="Never",
+                ),
+            )
+            job_spec = client.V1JobSpec(
+                template=template,
+                backoff_limit=0,
+            )
+            job_labels = {
+                "app": self.app_name,
+                **(
+                    {"app.kubernetes.io/stack": self.stack_name}
+                    if self.stack_name
+                    else {}
+                ),
+            }
+            job = client.V1Job(
+                api_version="batch/v1",
+                kind="Job",
+                metadata=client.V1ObjectMeta(
+                    name=f"{self.app_name}-job-{job_name}",
+                    labels=job_labels,
+                ),
+                spec=job_spec,
+            )
+            jobs.append(job)
+
+        return jobs

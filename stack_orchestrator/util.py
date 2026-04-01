@@ -75,6 +75,8 @@ def get_parsed_stack_config(stack):
 
 def get_pod_list(parsed_stack):
     # Handle both old and new format
+    if "pods" not in parsed_stack or not parsed_stack["pods"]:
+        return []
     pods = parsed_stack["pods"]
     if type(pods[0]) is str:
         result = pods
@@ -103,7 +105,7 @@ def get_job_list(parsed_stack):
 
 def get_plugin_code_paths(stack) -> List[Path]:
     parsed_stack = get_parsed_stack_config(stack)
-    pods = parsed_stack["pods"]
+    pods = parsed_stack.get("pods") or []
     result: Set[Path] = set()
     for pod in pods:
         if type(pod) is str:
@@ -153,15 +155,16 @@ def resolve_job_compose_file(stack, job_name: str):
         if proposed_file.exists():
             return proposed_file
         # If we don't find it fall through to the internal case
-    # TODO: Add internal compose-jobs directory support if needed
-    # For now, jobs are expected to be in external stacks only
-    compose_jobs_base = Path(stack).parent.parent.joinpath("compose-jobs")
+    data_dir = Path(__file__).absolute().parent.joinpath("data")
+    compose_jobs_base = data_dir.joinpath("compose-jobs")
     return compose_jobs_base.joinpath(f"docker-compose-{job_name}.yml")
 
 
 def get_pod_file_path(stack, parsed_stack, pod_name: str):
-    pods = parsed_stack["pods"]
+    pods = parsed_stack.get("pods") or []
     result = None
+    if not pods:
+        return result
     if type(pods[0]) is str:
         result = resolve_compose_file(stack, pod_name)
     else:
@@ -189,9 +192,9 @@ def get_job_file_path(stack, parsed_stack, job_name: str):
 
 
 def get_pod_script_paths(parsed_stack, pod_name: str):
-    pods = parsed_stack["pods"]
+    pods = parsed_stack.get("pods") or []
     result = []
-    if not type(pods[0]) is str:
+    if not pods or not type(pods[0]) is str:
         for pod in pods:
             if pod["name"] == pod_name:
                 pod_root_dir = os.path.join(
@@ -207,9 +210,9 @@ def get_pod_script_paths(parsed_stack, pod_name: str):
 
 
 def pod_has_scripts(parsed_stack, pod_name: str):
-    pods = parsed_stack["pods"]
+    pods = parsed_stack.get("pods") or []
     result = False
-    if type(pods[0]) is str:
+    if not pods or type(pods[0]) is str:
         result = False
     else:
         for pod in pods:

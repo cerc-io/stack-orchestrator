@@ -580,6 +580,7 @@ def _generate_and_store_secrets(config_vars: dict, deployment_name: str):
 def create_registry_secret(
     spec: Spec, deployment_name: str, namespace: str = "default"
 ) -> Optional[str]:
+def create_registry_secret(spec: Spec, deployment_name: str, namespace: str = "default") -> Optional[str]:
     """Create K8s docker-registry secret from spec + environment.
 
     Reads registry configuration from spec.yml and creates a Kubernetes
@@ -589,6 +590,7 @@ def create_registry_secret(
         spec: The deployment spec containing image-registry config
         deployment_name: Name of the deployment (used for secret naming)
         namespace: K8s namespace to create the secret in
+        namespace: Kubernetes namespace to create the secret in
 
     Returns:
         The secret name if created, None if no registry config

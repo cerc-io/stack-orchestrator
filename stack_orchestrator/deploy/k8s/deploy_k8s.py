@@ -836,6 +836,7 @@ class K8sDeployer(Deployer):
         create_registry_secret(
             self.cluster_info.spec, self.cluster_info.app_name, self.k8s_namespace
         )
+        create_registry_secret(self.cluster_info.spec, self.cluster_info.app_name, self.k8s_namespace)
 
         self._create_volume_data()
         self._create_external_services()

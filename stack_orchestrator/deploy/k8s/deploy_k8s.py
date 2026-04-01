@@ -339,7 +339,7 @@ class K8sDeployer(Deployer):
             except ApiException as e:
                 _check_delete_exception(e)
 
-    def _create_volume_data(self):
+    def _create_volume_data(self):  # noqa: C901
         # Create the host-path-mounted PVs for this deployment
         pvs = self.cluster_info.get_pvs()
         for pv in pvs:
@@ -460,15 +460,15 @@ class K8sDeployer(Deployer):
                     raise
 
         # Create Endpoints for selector-mode services
-        for name, config in ext_services.items():
-            if "selector" not in config or "namespace" not in config:
+        for name, svc_config in ext_services.items():
+            if "selector" not in svc_config or "namespace" not in svc_config:
                 continue
             if opts.o.dry_run:
                 continue
 
-            target_ns = config["namespace"]
-            selector = config["selector"]
-            port = config.get("port", 443)
+            target_ns = svc_config["namespace"]
+            selector = svc_config["selector"]
+            port = svc_config.get("port", 443)
 
             # Build label selector string from dict
             label_selector = ",".join(f"{k}={v}" for k, v in selector.items())
@@ -535,7 +535,7 @@ class K8sDeployer(Deployer):
         if not ca_secret:
             return
         if opts.o.dry_run:
-            print(f"Dry run: would create CA certificate secret")
+            print("Dry run: would create CA certificate secret")
             return
 
         secret_name = ca_secret.metadata.name

@@ -639,6 +639,18 @@ def create_registry_secret(spec: Spec, deployment_name: str) -> Optional[str]:
 def _write_config_file(
     spec_file: Path, config_env_file: Path, deployment_name: Optional[str] = None
 ):
+    """Write spec.yml config: entries to config.env.
+
+    The config: section in spec.yml should contain only deployment-specific
+    overrides — values that differ between deployments (hostnames, endpoints,
+    credentials, secrets via $generate:...$).
+
+    Application defaults (ports, log levels, feature flags, tuning params)
+    belong in the compose file's environment section. The compose file is
+    the single source of truth for what env vars a service accepts and
+    their default values. spec.yml overrides those defaults for a specific
+    deployment.
+    """
     spec_content = get_parsed_deployment_spec(spec_file)
     config_vars = spec_content.get("config", {}) or {}
 

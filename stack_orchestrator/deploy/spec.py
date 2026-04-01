@@ -73,6 +73,35 @@ class Resources:
 
 
 class Spec:
+    """Deployment spec (spec.yml) — describes WHERE and HOW to deploy a stack.
+
+    A spec.yml contains deployment-specific infrastructure configuration:
+      - stack: path to the stack definition
+      - deploy-to: target platform (k8s-kind, k8s, compose)
+      - network: ports, http-proxy, acme-email
+      - resources: CPU/memory limits and reservations
+      - security: privileged, capabilities, memlock
+      - volumes: host path mappings for persistent data
+      - configmaps: directories mounted as k8s ConfigMaps
+      - config: deployment-specific env var OVERRIDES (see below)
+
+    The config: section is for deployment-specific values only — things
+    that differ between deployments (hostnames, endpoints, secrets).
+    Application defaults belong in the compose file's environment section,
+    not here. If a value would be the same across all deployments of this
+    stack, it belongs in the compose file, not in spec.yml.
+
+    Good config: entries (deployment-specific):
+      VALIDATOR_ENTRYPOINT: my-cluster.example.com:8001
+      PUBLIC_RPC_ADDRESS: my-node.example.com:8899
+      GOSSIP_HOST: 10.0.0.1
+
+    Bad config: entries (these are application defaults):
+      RPC_PORT: '8899'          # same everywhere, belongs in compose
+      LIMIT_LEDGER_SIZE: '50000000'  # same everywhere, belongs in compose
+      RUST_LOG: info             # same everywhere, belongs in compose
+    """
+
     obj: typing.Any
     file_path: Optional[Path]
 

@@ -111,8 +111,10 @@ echo "dbfc7a4d-44a7-416d-b5f3-29842cc47650" > $test_deployment_dir/configmaps/te
 deployment_spec_file=${test_deployment_dir}/spec.yml
 sed -i 's/^secrets: {}$/secrets:\n  test-secret:\n    - TEST_SECRET_KEY/' ${deployment_spec_file}
 
-# Get the deployment ID for kubectl queries
+# Get the deployment ID and namespace for kubectl queries
 deployment_id=$(cat ${test_deployment_dir}/deployment.yml | cut -d ' ' -f 2)
+# Namespace is derived from stack name: laconic-{stack_name}
+deployment_ns="laconic-test"
 
 echo "deploy create output file test: passed"
 # Try to start the deployment (--perform-cluster-management needed on first start
@@ -179,17 +181,17 @@ fi
 # --- New feature tests: namespace, labels, jobs, secrets ---
 
 # Check that the pod is in the deployment-specific namespace (not default)
-ns_pod_count=$(kubectl get pods -n laconic-${deployment_id} -l app=${deployment_id} --no-headers 2>/dev/null | wc -l)
+ns_pod_count=$(kubectl get pods -n ${deployment_ns} -l app=${deployment_id} --no-headers 2>/dev/null | wc -l)
 if [ "$ns_pod_count" -gt 0 ]; then
     echo "namespace isolation test: passed"
 else
     echo "namespace isolation test: FAILED"
-    echo "Expected pod in namespace laconic-${deployment_id}"
+    echo "Expected pod in namespace ${deployment_ns}"
     delete_cluster_exit
 fi
 
 # Check that the stack label is set on the pod
-stack_label_count=$(kubectl get pods -n laconic-${deployment_id} -l app.kubernetes.io/stack=test --no-headers 2>/dev/null | wc -l)
+stack_label_count=$(kubectl get pods -n ${deployment_ns} -l app.kubernetes.io/stack=test --no-headers 2>/dev/null | wc -l)
 if [ "$stack_label_count" -gt 0 ]; then
     echo "stack label test: passed"
 else
@@ -199,7 +201,7 @@ fi
 
 # Check that the job completed successfully
 for i in {1..30}; do
-    job_status=$(kubectl get job ${deployment_id}-job-test-job -n laconic-${deployment_id} -o jsonpath='{.status.succeeded}' 2>/dev/null || true)
+    job_status=$(kubectl get job ${deployment_id}-job-test-job -n ${deployment_ns} -o jsonpath='{.status.succeeded}' 2>/dev/null || true)
     if [ "$job_status" == "1" ]; then
         break
     fi
@@ -214,7 +216,7 @@ else
 fi
 
 # Check that the secrets spec results in an envFrom secretRef on the pod
-secret_ref=$(kubectl get pod -n laconic-${deployment_id} -l app=${deployment_id} \
+secret_ref=$(kubectl get pod -n ${deployment_ns} -l app=${deployment_id} \
     -o jsonpath='{.items[0].spec.containers[0].envFrom[?(@.secretRef.name=="test-secret")].secretRef.name}' 2>/dev/null || true)
 if [ "$secret_ref" == "test-secret" ]; then
     echo "secrets envFrom test: passed"
@@ -235,7 +237,7 @@ $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --sk
 # Without this, 'start' fails with 403 Forbidden because the namespace
 # is still in Terminating state.
 for i in {1..60}; do
-    if ! kubectl get namespace laconic-${deployment_id} 2>/dev/null | grep -q .; then
+    if ! kubectl get namespace ${deployment_ns} 2>/dev/null | grep -q .; then
         break
     fi
     sleep 2

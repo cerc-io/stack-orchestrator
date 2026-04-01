@@ -563,9 +563,10 @@ class K8sDeployer(Deployer):
                 print("No pods defined, skipping Deployment creation")
             return
         # Process compose files into Deployments (one per pod file)
-        # image-pull-policy from spec, default Always (production).
-        # Testing specs use IfNotPresent so kind-loaded local images are used.
-        pull_policy = self.cluster_info.spec.get("image-pull-policy", "Always")
+        # image-pull-policy from spec. Default IfNotPresent for kind (local
+        # images are loaded via `kind load`), Always for production k8s.
+        default_policy = "IfNotPresent" if self.is_kind() else "Always"
+        pull_policy = self.cluster_info.spec.get("image-pull-policy", default_policy)
         deployments = self.cluster_info.get_deployments(image_pull_policy=pull_policy)
         for deployment in deployments:
             # Apply image overrides if provided
@@ -664,7 +665,8 @@ class K8sDeployer(Deployer):
 
     def _create_jobs(self):
         # Process job compose files into k8s Jobs
-        jobs = self.cluster_info.get_jobs(image_pull_policy="Always")
+        job_pull_policy = "IfNotPresent" if self.is_kind() else "Always"
+        jobs = self.cluster_info.get_jobs(image_pull_policy=job_pull_policy)
         for job in jobs:
             if opts.o.debug:
                 print(f"Sending this job: {job}")
@@ -844,7 +846,6 @@ class K8sDeployer(Deployer):
         create_registry_secret(
             self.cluster_info.spec, self.cluster_info.app_name, self.k8s_namespace
         )
-        create_registry_secret(self.cluster_info.spec, self.cluster_info.app_name, self.k8s_namespace)
 
         self._create_volume_data()
         self._create_external_services()
@@ -1126,7 +1127,8 @@ class K8sDeployer(Deployer):
             else:
                 # Non-Helm path: create job from ClusterInfo
                 self.connect_api()
-                jobs = self.cluster_info.get_jobs(image_pull_policy="Always")
+                job_pull_policy = "IfNotPresent" if self.is_kind() else "Always"
+                jobs = self.cluster_info.get_jobs(image_pull_policy=job_pull_policy)
                 # Find the matching job by name
                 target_name = f"{self.cluster_info.app_name}-job-{job_name}"
                 matched_job = None

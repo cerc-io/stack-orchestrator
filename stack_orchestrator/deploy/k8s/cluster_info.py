@@ -107,6 +107,8 @@ class ClusterInfo:
     def init_jobs(self, job_files: List[str]):
         """Initialize parsed job YAML map from job compose files."""
         self.parsed_job_yaml_map = parsed_pod_files_map_from_file_names(job_files)
+        # Add job images to the image set so they're loaded into kind
+        self.image_set.update(images_for_deployment(job_files))
         if opts.o.debug:
             print(f"Parsed job yaml map: {self.parsed_job_yaml_map}")
 

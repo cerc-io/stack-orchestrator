@@ -115,8 +115,9 @@ sed -i 's/^secrets: {}$/secrets:\n  test-secret:\n    - TEST_SECRET_KEY/' ${depl
 deployment_id=$(cat ${test_deployment_dir}/deployment.yml | cut -d ' ' -f 2)
 
 echo "deploy create output file test: passed"
-# Try to start the deployment
-$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+# Try to start the deployment (--perform-cluster-management needed on first start
+# because 'start' defaults to --skip-cluster-management)
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start --perform-cluster-management
 wait_for_pods_started
 # Check logs command works
 wait_for_log_output

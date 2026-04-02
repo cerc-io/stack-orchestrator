@@ -135,7 +135,7 @@ original_marker_content=$(<$test_data_marker)
 # Verify deployment file exists and preserve its cluster ID
 original_cluster_id=$(grep "cluster-id:" "$test_deployment_dir/deployment.yml" 2>/dev/null || echo "")
 # Modify spec file to simulate an update
-sed -i.bak 's/CERC_TEST_PARAM_1=PASSED/CERC_TEST_PARAM_1=UPDATED/' $test_deployment_spec
+sed -i.bak 's/CERC_TEST_PARAM_1: PASSED/CERC_TEST_PARAM_1: UPDATED/' $test_deployment_spec
 # Run sync to update deployment files without destroying data
 $TEST_TARGET_SO_STACK deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir --update
 # Verify the spec file was updated in deployment dir
@@ -179,7 +179,7 @@ else
     exit 1
 fi
 # Check the config variable CERC_TEST_PARAM_1 was passed correctly
-if [[ "$log_output_3" == *"Test-param-1: PASSED"* ]]; then
+if [[ "$log_output_3" == *"Test-param-1: UPDATED"* ]]; then
     echo "deployment config test: passed"
 else
     echo "deployment config test: FAILED"

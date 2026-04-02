@@ -431,6 +431,7 @@ class K8sDeployer(Deployer):
         """Create k8s Services for external-services declared in the spec.
 
         For host mode: ExternalName Service (DNS CNAME).
+        For ip mode: headless Service + Endpoints with static IP.
         For selector mode: headless Service + Endpoints with pod IPs
         discovered from the target namespace.
         """
@@ -458,6 +459,47 @@ class K8sDeployer(Deployer):
                         body=resource,
                     )
                     print(f"Updated external service '{svc_name}'")
+                else:
+                    raise
+
+        # Create Endpoints for ip-mode services (static IP)
+        for name, svc_config in ext_services.items():
+            if "ip" not in svc_config:
+                continue
+            if opts.o.dry_run:
+                continue
+
+            ip = svc_config["ip"]
+            port = svc_config.get("port", 443)
+
+            endpoints = client.V1Endpoints(
+                metadata=client.V1ObjectMeta(
+                    name=name,
+                    labels={"app": self.cluster_info.app_name},
+                ),
+                subsets=[
+                    client.V1EndpointSubset(
+                        addresses=[client.V1EndpointAddress(ip=ip)],
+                        ports=[
+                            client.CoreV1EndpointPort(port=port, name=f"port-{port}")
+                        ],
+                    )
+                ],
+            )
+
+            try:
+                self.core_api.create_namespaced_endpoints(
+                    body=endpoints, namespace=self.k8s_namespace
+                )
+                print(f"Created endpoints for '{name}' → {ip}:{port}")
+            except ApiException as e:
+                if e.status == 409:
+                    self.core_api.replace_namespaced_endpoints(
+                        name=name,
+                        namespace=self.k8s_namespace,
+                        body=endpoints,
+                    )
+                    print(f"Updated endpoints for '{name}' → {ip}:{port}")
                 else:
                     raise
 

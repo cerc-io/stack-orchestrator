@@ -38,7 +38,7 @@ wait_for_log_output () {
 
         local log_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
 
-        if [[ ! -z "$log_output" ]]; then
+        if [[ ! -z "$log_output" ]] && [[ "$log_output" != *"No logs available"* ]] && [[ "$log_output" != *"Pods not running"* ]]; then
             # if ready, return
             return
         else
@@ -52,7 +52,7 @@ wait_for_log_output () {
 }
 
 delete_cluster_exit () {
-    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --perform-cluster-management
     exit 1
 }
 
@@ -189,7 +189,7 @@ EOF
 deployment_id=$(cat ${test_deployment_dir}/deployment.yml | cut -d ' ' -f 2)
 
 # Try to start the deployment
-$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start --perform-cluster-management
 wait_for_pods_started
 # Check logs command works
 wait_for_log_output
@@ -199,14 +199,15 @@ if [[ "$log_output_1" == *"filesystem is fresh"* ]]; then
     echo "deployment of pod test: passed"
 else
     echo "deployment pod test: FAILED"
-    echo $log_output_1
+    echo "$log_output_1"
     delete_cluster_exit
 fi
 
 # The deployment's pod should be scheduled onto node: worker3
 # Check that's what happened
 # Get get the node onto which the stack pod has been deployed
-deployment_node=$(kubectl get pods -n laconic-${deployment_id} -l app=${deployment_id} -o=jsonpath='{.items..spec.nodeName}')
+# Namespace is now derived from stack name, not cluster-id
+deployment_node=$(kubectl get pods -n laconic-test -l app=${deployment_id} -o=jsonpath='{.items..spec.nodeName}')
 expected_node=${deployment_id}-worker3
 echo "Stack pod deployed to node: ${deployment_node}"
 if [[ ${deployment_node} == ${expected_node} ]]; then
@@ -218,5 +219,5 @@ else
 fi
 
 # Stop and clean up
-$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --perform-cluster-management
 echo "Test passed"

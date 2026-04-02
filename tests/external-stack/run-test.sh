@@ -31,6 +31,11 @@ rm -rf $CERC_REPO_BASE_DIR
 mkdir -p $CERC_REPO_BASE_DIR
 # Clone the external test stack
 $TEST_TARGET_SO fetch-stack git.vdb.to/cerc-io/test-external-stack
+# Workaround: fix hyphenated variable name in external stack's init() defaults
+# (docker compose v2 rejects hyphens in env var names)
+# TODO: remove once upstream test-external-stack repo is fixed
+stack_commands="$CERC_REPO_BASE_DIR/test-external-stack/stack-orchestrator/stacks/test-external-stack/deploy/commands.py"
+sed -i 's/test-variable-1/test_variable_1/g' "$stack_commands"
 stack_name="$CERC_REPO_BASE_DIR/test-external-stack/stack-orchestrator/stacks/test-external-stack"
 TEST_TARGET_SO_STACK="$TEST_TARGET_SO --stack ${stack_name}"
 # Test bringing the test container up and down
@@ -135,7 +140,7 @@ original_marker_content=$(<$test_data_marker)
 # Verify deployment file exists and preserve its cluster ID
 original_cluster_id=$(grep "cluster-id:" "$test_deployment_dir/deployment.yml" 2>/dev/null || echo "")
 # Modify spec file to simulate an update
-sed -i.bak 's/CERC_TEST_PARAM_1=PASSED/CERC_TEST_PARAM_1=UPDATED/' $test_deployment_spec
+sed -i.bak 's/CERC_TEST_PARAM_1: PASSED/CERC_TEST_PARAM_1: UPDATED/' $test_deployment_spec
 # Run sync to update deployment files without destroying data
 $TEST_TARGET_SO_STACK deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir --update
 # Verify the spec file was updated in deployment dir
@@ -179,7 +184,7 @@ else
     exit 1
 fi
 # Check the config variable CERC_TEST_PARAM_1 was passed correctly
-if [[ "$log_output_3" == *"Test-param-1: PASSED"* ]]; then
+if [[ "$log_output_3" == *"Test-param-1: UPDATED"* ]]; then
     echo "deployment config test: passed"
 else
     echo "deployment config test: FAILED"

@@ -25,7 +25,7 @@ jobs:
       - name: "Print Python version"
         run: python3 --version
       - name: "Install shiv"
-        run: pip install shiv
+        run: pip install shiv==1.0.8
       - name: "Build local shiv package"
         id: build
         run: |

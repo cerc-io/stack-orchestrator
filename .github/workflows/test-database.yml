@@ -1,0 +1,41 @@
+name: Database Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '!**'
+      - '.github/workflows/triggers/test-database'
+      - '.github/workflows/test-database.yml'
+      - 'tests/database/run-test.sh'
+  schedule:
+    - cron: '5 18 * * *'
+
+jobs:
+  test:
+    name: "Run database hosting test on kind/k8s"
+    runs-on: ubuntu-22.04
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      - name: "Install Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: "Print Python version"
+        run: python3 --version
+      - name: "Install shiv"
+        run: pip install shiv==1.0.8
+      - name: "Generate build version file"
+        run: ./scripts/create_build_tag_file.sh
+      - name: "Build local shiv package"
+        run: ./scripts/build_shiv_package.sh
+      - name: "Check cgroups version"
+        run: mount | grep cgroup
+      - name: "Install kind"
+        run: ./tests/scripts/install-kind.sh
+      - name: "Install Kubectl"
+        run: ./tests/scripts/install-kubectl.sh
+      - name: "Run database deployment test"
+        run: ./tests/database/run-test.sh

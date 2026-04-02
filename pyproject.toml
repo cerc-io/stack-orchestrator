@@ -49,7 +49,7 @@ dev = [
 laconic-so = "stack_orchestrator.main:cli"
 
 [project.urls]
-Homepage = "https://git.vdb.to/cerc-io/stack-orchestrator"
+Homepage = "https://github.com/cerc-io/stack-orchestrator"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -1,0 +1,39 @@
+name: K8s Deploy Test
+
+on:
+  pull_request:
+    branches: '*'
+  push:
+    branches: '*'
+
+jobs:
+  test:
+    name: "Run k8s deploy e2e test suite"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      - name: "Install Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: "Install kind"
+        run: |
+          [ -f /usr/local/bin/kind ] && exit 0
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+      - name: "Install kubectl"
+        run: |
+          [ -f /usr/local/bin/kubectl ] && exit 0
+          curl -Lo ./kubectl "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+      - name: "Install shiv"
+        run: pip install shiv
+      - name: "Generate build version file"
+        run: ./scripts/create_build_tag_file.sh
+      - name: "Build local shiv package"
+        run: ./scripts/build_shiv_package.sh
+      - name: "Run k8s deploy e2e tests"
+        run: ./tests/k8s-deploy/run-deploy-test.sh

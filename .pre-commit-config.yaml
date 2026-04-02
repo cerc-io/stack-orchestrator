@@ -32,3 +32,14 @@ repos:
     hooks:
       - id: yamllint
         args: [-d, relaxed]
+
+  # Pre-push: run the full k8s e2e test suite (~3 min).
+  # Same script used by CI and release validation.
+  - repo: local
+    hooks:
+      - id: k8s-deploy-test
+        name: k8s deploy e2e test
+        entry: tests/k8s-deploy/run-deploy-test.sh
+        language: system
+        stages: [pre-push]
+        pass_filenames: false

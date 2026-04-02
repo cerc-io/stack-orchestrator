@@ -13,7 +13,7 @@ on:
       - '.github/workflows/test-k8s-deployment-control.yml'
       - 'tests/k8s-deployment-control/run-test.sh'
   schedule:
-    - cron: '3 30 * * *'
+    - cron: '30 3 * * *'
 
 jobs:
   test:

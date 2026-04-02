@@ -206,7 +206,8 @@ fi
 # The deployment's pod should be scheduled onto node: worker3
 # Check that's what happened
 # Get get the node onto which the stack pod has been deployed
-deployment_node=$(kubectl get pods -n laconic-${deployment_id} -l app=${deployment_id} -o=jsonpath='{.items..spec.nodeName}')
+# Namespace is now derived from stack name, not cluster-id
+deployment_node=$(kubectl get pods -n laconic-test -l app=${deployment_id} -o=jsonpath='{.items..spec.nodeName}')
 expected_node=${deployment_id}-worker3
 echo "Stack pod deployed to node: ${deployment_node}"
 if [[ ${deployment_node} == ${expected_node} ]]; then

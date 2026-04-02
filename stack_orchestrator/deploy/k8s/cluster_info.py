@@ -1094,8 +1094,9 @@ class ClusterInfo:
     def get_external_service_resources(self) -> List:
         """Build k8s Services (and Endpoints) for external-services in spec.
 
-        Two modes:
+        Three modes:
         - host mode: ExternalName Service (DNS CNAME to external host)
+        - ip mode: headless Service + Endpoints with a static IP
         - selector mode: headless Service + Endpoints (cross-namespace
           routing to a mock pod, IP discovered at deploy time)
 
@@ -1123,6 +1124,24 @@ class ClusterInfo:
                     ),
                 )
                 resources.append(svc)
+
+            elif "ip" in config:
+                # Static IP: headless Service + Endpoints with fixed address.
+                # Useful for routing to host-network services (e.g. Kind
+                # host gateway) or any endpoint reachable by raw IP.
+                svc = client.V1Service(
+                    metadata=client.V1ObjectMeta(
+                        name=name,
+                        labels={"app": self.app_name},
+                    ),
+                    spec=client.V1ServiceSpec(
+                        cluster_ip="None",
+                        ports=[client.V1ServicePort(port=port, name=f"port-{port}")],
+                    ),
+                )
+                resources.append(svc)
+                # Endpoints are created in deploy_k8s.py using the
+                # static IP — no pod discovery needed.
 
             elif "selector" in config and "namespace" in config:
                 # Cross-namespace headless Service + Endpoints.

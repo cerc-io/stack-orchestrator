@@ -319,6 +319,8 @@ class Spec:
         Each entry maps a service name to its routing config:
         - host mode: {host: "example.com", port: 443}
           → ExternalName k8s Service (DNS CNAME)
+        - ip mode: {ip: "172.18.0.1", port: 8899}
+          → Headless Service + Endpoints with static IP address
         - selector mode: {selector: {app: "foo"}, namespace: "ns", port: 443}
           → Headless Service + Endpoints (cross-namespace routing to mock pod)
         """

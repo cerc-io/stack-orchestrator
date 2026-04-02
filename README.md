@@ -32,7 +32,7 @@ a "user" binary directory such as `~/bin` or perhaps `/usr/local/laconic` or pos
 Now, having selected that directory, download the latest release from [this page](https://github.com/cerc-io/stack-orchestrator/tags) into it (we're using `~/bin` below for concreteness but edit to suit if you selected a different directory). Also be sure that the destination directory exists and is writable:
 
 ```bash
-curl -L -o ~/bin/laconic-so https://github.com/cerc-io/stack-orchestrator/releases/download/latest/laconic-so
+curl -L -o ~/bin/laconic-so https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so
 ```
 
 Give it execute permissions:
@@ -52,7 +52,7 @@ Version: 1.1.0-7a607c2-202304260513
 Save the distribution url to `~/.laconic-so/config.yml`:
 ```bash
 mkdir ~/.laconic-so
-echo "distribution-url: https://github.com/cerc-io/stack-orchestrator/releases/download/latest/laconic-so" >  ~/.laconic-so/config.yml
+echo "distribution-url: https://github.com/cerc-io/stack-orchestrator/releases/latest/download/laconic-so" >  ~/.laconic-so/config.yml
 ```
 
 ### Update

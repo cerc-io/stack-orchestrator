@@ -208,6 +208,7 @@ class ClusterInfo:
                 certificate = (certificates or {}).get(host_name)
 
                 if use_tls:
+                    assert tls is not None
                     tls.append(
                         client.V1IngressTLS(
                             hosts=(
@@ -835,9 +836,12 @@ class ClusterInfo:
             containers, init_containers, services, volumes = self._build_containers(
                 single_pod_map, image_pull_policy
             )
-            annotations, labels, affinity, tolerations = (
-                self._build_common_pod_metadata(services)
-            )
+            (
+                annotations,
+                labels,
+                affinity,
+                tolerations,
+            ) = self._build_common_pod_metadata(services)
 
             # Add pod-name label so Services can target specific pods
             if multi_pod:
@@ -860,9 +864,12 @@ class ClusterInfo:
                 selector_labels["app.kubernetes.io/component"] = pod_name
 
             # Add CA certificate volume and env vars if configured
-            _ca_secret, ca_volume, ca_mounts, ca_envs = (
-                self.get_ca_certificate_resources()
-            )
+            (
+                _ca_secret,
+                ca_volume,
+                ca_mounts,
+                ca_envs,
+            ) = self.get_ca_certificate_resources()
             if ca_volume:
                 volumes.append(ca_volume)
                 for container in containers:
@@ -1112,9 +1119,7 @@ class ClusterInfo:
                     spec=client.V1ServiceSpec(
                         type="ExternalName",
                         external_name=config["host"],
-                        ports=[
-                            client.V1ServicePort(port=port, name=f"port-{port}")
-                        ],
+                        ports=[client.V1ServicePort(port=port, name=f"port-{port}")],
                     ),
                 )
                 resources.append(svc)
@@ -1130,9 +1135,7 @@ class ClusterInfo:
                     ),
                     spec=client.V1ServiceSpec(
                         cluster_ip="None",
-                        ports=[
-                            client.V1ServicePort(port=port, name=f"port-{port}")
-                        ],
+                        ports=[client.V1ServicePort(port=port, name=f"port-{port}")],
                     ),
                 )
                 resources.append(svc)

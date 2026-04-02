@@ -37,7 +37,7 @@ def _random_suffix(length: int = 2) -> str:
 
 
 def _timestamp_id() -> str:
-    """Generate a sortable timestamp ID (100ms resolution, 2024 epoch) with random suffix."""
+    """Generate sortable timestamp ID with random suffix."""
     now_ms = int(time.time() * 1000)
     offset = (now_ms - EPOCH_2024) // 100  # 100ms resolution
     return f"{_base36(offset)}{_random_suffix()}"

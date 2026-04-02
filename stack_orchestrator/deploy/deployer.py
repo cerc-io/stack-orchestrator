@@ -70,13 +70,11 @@ class Deployer(ABC):
         pass
 
     def prepare(self, skip_cluster_management):
-        """Create cluster infrastructure (namespace, PVs, services) without starting pods.
+        """Create cluster infra (namespace, PVs, services) without pods.
 
         Only supported for k8s deployers. Compose deployers raise an error.
         """
-        raise DeployerException(
-            "prepare is only supported for k8s deployments"
-        )
+        raise DeployerException("prepare is only supported for k8s deployments")
 
 
 class DeployerException(Exception):

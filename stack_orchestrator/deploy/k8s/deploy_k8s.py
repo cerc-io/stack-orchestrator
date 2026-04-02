@@ -439,7 +439,9 @@ class K8sDeployer(Deployer):
 
         for resource in resources:
             if opts.o.dry_run:
-                print(f"Dry run: would create external service: {resource.metadata.name}")
+                print(
+                    f"Dry run: would create external service: {resource.metadata.name}"
+                )
                 continue
 
             svc_name = resource.metadata.name
@@ -478,9 +480,7 @@ class K8sDeployer(Deployer):
                 namespace=target_ns, label_selector=label_selector
             )
             pod_ips = [
-                p.status.pod_ip
-                for p in pods.items
-                if p.status and p.status.pod_ip
+                p.status.pod_ip for p in pods.items if p.status and p.status.pod_ip
             ]
 
             if not pod_ips:
@@ -497,13 +497,9 @@ class K8sDeployer(Deployer):
                 ),
                 subsets=[
                     client.V1EndpointSubset(
-                        addresses=[
-                            client.V1EndpointAddress(ip=ip) for ip in pod_ips
-                        ],
+                        addresses=[client.V1EndpointAddress(ip=ip) for ip in pod_ips],
                         ports=[
-                            client.CoreV1EndpointPort(
-                                port=port, name=f"port-{port}"
-                            )
+                            client.CoreV1EndpointPort(port=port, name=f"port-{port}")
                         ],
                     )
                 ],

@@ -1,27 +1,20 @@
-name: K8s Deploy Test
+name: Database Test
 
 on:
-  # Manual trigger for ad-hoc validation
-  workflow_dispatch:
-  # Called by publish workflow to gate releases
-  workflow_call:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
     paths:
       - '!**'
-      - '.github/workflows/triggers/test-k8s-deploy'
-      - '.github/workflows/test-k8s-deploy.yml'
-      - 'tests/k8s-deploy/run-deploy-test.sh'
+      - '.github/workflows/triggers/test-database'
+      - '.github/workflows/test-database.yml'
+      - 'tests/database/run-test.sh'
   schedule:
-    - cron: '3 15 * * *'
+    - cron: '5 18 * * *'
 
 jobs:
   test:
-    name: "Run deploy test suite on kind/k8s"
+    name: "Run database hosting test on kind/k8s"
     runs-on: ubuntu-22.04
     steps:
       - name: "Clone project repository"
@@ -44,5 +37,5 @@ jobs:
         run: ./tests/scripts/install-kind.sh
       - name: "Install Kubectl"
         run: ./tests/scripts/install-kubectl.sh
-      - name: "Run k8s deployment test"
-        run: ./tests/k8s-deploy/run-deploy-test.sh
+      - name: "Run database deployment test"
+        run: ./tests/database/run-test.sh

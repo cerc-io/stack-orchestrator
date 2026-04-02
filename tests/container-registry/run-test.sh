@@ -135,7 +135,7 @@ docker push localhost:80/hello-world
 # Wait for the catalog to reflect the pushed image
 registry_ok=false
 for i in {1..10}; do
-    registry_response=$(curl -s -X GET http://localhost:80/v2/_catalog)
+    registry_response=$(curl -s -k -X GET https://localhost/v2/_catalog)
     if [[ "$registry_response" == *"hello-world"* ]]; then
         registry_ok=true
         break

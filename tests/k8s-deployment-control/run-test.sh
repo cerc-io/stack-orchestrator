@@ -199,7 +199,7 @@ if [[ "$log_output_1" == *"filesystem is fresh"* ]]; then
     echo "deployment of pod test: passed"
 else
     echo "deployment pod test: FAILED"
-    echo $log_output_1
+    echo "$log_output_1"
     delete_cluster_exit
 fi
 

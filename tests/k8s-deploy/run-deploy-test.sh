@@ -32,7 +32,7 @@ wait_for_log_output () {
 
         local log_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
 
-        if [[ ! -z "$log_output" ]]; then
+        if [[ ! -z "$log_output" ]] && [[ "$log_output" != *"No logs available"* ]] && [[ "$log_output" != *"Pods not running"* ]]; then
             # if ready, return
             return
         else
@@ -129,7 +129,7 @@ if [[ "$log_output_3" == *"filesystem is fresh"* ]]; then
     echo "deployment logs test: passed"
 else
     echo "deployment logs test: FAILED"
-    echo $log_output_3
+    echo "$log_output_3"
     delete_cluster_exit
 fi
 
@@ -164,7 +164,7 @@ if [[ "$log_output_5" == *"/data: MOUNTED"* ]]; then
     echo "deployment bind volumes test: passed"
 else
     echo "deployment bind volumes test: FAILED"
-    echo $log_output_5
+    echo "$log_output_5"
     delete_cluster_exit
 fi
 
@@ -174,7 +174,7 @@ if [[ "$log_output_6" == *"/data2: MOUNTED"* ]]; then
     echo "deployment provisioner volumes test: passed"
 else
     echo "deployment provisioner volumes test: FAILED"
-    echo $log_output_6
+    echo "$log_output_6"
     delete_cluster_exit
 fi
 

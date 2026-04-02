@@ -563,6 +563,17 @@ class ClusterInfo:
                                 container_port=port, protocol=protocol
                             )
                         )
+                    # Deduplicate by (port, protocol) — compose files with
+                    # both "8001" and "8001/udp" produce separate entries
+                    # that k8s rejects as duplicates.
+                    seen = set()
+                    deduped = []
+                    for cp in container_ports:
+                        key = (cp.container_port, cp.protocol)
+                        if key not in seen:
+                            seen.add(key)
+                            deduped.append(cp)
+                    container_ports = deduped
                     if opts.o.debug:
                         print(f"image: {image}")
                         print(f"service ports: {container_ports}")

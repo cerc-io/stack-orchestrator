@@ -7,8 +7,13 @@ on:
       - publish-test
 
 jobs:
+  e2e:
+    name: "Gate: k8s deploy e2e"
+    uses: ./.github/workflows/test-k8s-deploy.yml
+
   publish:
     name: "Build and publish"
+    needs: e2e
     runs-on: ubuntu-latest
     steps:
       - name: "Clone project repository"

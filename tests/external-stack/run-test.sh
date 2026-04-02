@@ -31,6 +31,11 @@ rm -rf $CERC_REPO_BASE_DIR
 mkdir -p $CERC_REPO_BASE_DIR
 # Clone the external test stack
 $TEST_TARGET_SO fetch-stack git.vdb.to/cerc-io/test-external-stack
+# Workaround: fix hyphenated variable name in external stack's init() defaults
+# (docker compose v2 rejects hyphens in env var names)
+# TODO: remove once upstream test-external-stack repo is fixed
+stack_commands="$CERC_REPO_BASE_DIR/test-external-stack/stack-orchestrator/stacks/test-external-stack/deploy/commands.py"
+sed -i 's/test-variable-1/test_variable_1/g' "$stack_commands"
 stack_name="$CERC_REPO_BASE_DIR/test-external-stack/stack-orchestrator/stacks/test-external-stack"
 TEST_TARGET_SO_STACK="$TEST_TARGET_SO --stack ${stack_name}"
 # Test bringing the test container up and down

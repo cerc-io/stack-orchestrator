@@ -34,7 +34,7 @@ wait_for_log_output () {
 
         local log_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
 
-        if [[ ! -z "$log_output" ]]; then
+        if [[ ! -z "$log_output" ]] && [[ "$log_output" != *"No logs available"* ]] && [[ "$log_output" != *"Pods not running"* ]]; then
             # if ready, return
             return
         else
@@ -121,7 +121,7 @@ if [[ "$log_output_3" == *"listening on"* ]]; then
     echo "deployment logs test: passed"
 else
     echo "deployment logs test: FAILED"
-    echo $log_output_3
+    echo "$log_output_3"
     delete_cluster_exit
 fi
 

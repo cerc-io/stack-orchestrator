@@ -38,7 +38,7 @@ wait_for_log_output () {
 
         local log_output=$( $TEST_TARGET_SO deployment --dir $test_deployment_dir logs )
 
-        if [[ ! -z "$log_output" ]]; then
+        if [[ ! -z "$log_output" ]] && [[ "$log_output" != *"No logs available"* ]] && [[ "$log_output" != *"Pods not running"* ]]; then
             # if ready, return
             return
         else

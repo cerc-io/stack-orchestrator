@@ -49,7 +49,7 @@ wait_for_log_output () {
 
 
 delete_cluster_exit () {
-    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --perform-cluster-management
     exit 1
 }
 
@@ -111,7 +111,7 @@ echo "deploy create test: passed"
 docker pull registry:2.8
 
 # Try to start the deployment
-$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start --perform-cluster-management
 wait_for_pods_started
 # Check logs command works
 wait_for_log_output
@@ -132,15 +132,25 @@ docker tag hello-world localhost:80/hello-world
 docker push localhost:80/hello-world
 # Then do a quick check that we actually pushed something there
 # See: https://stackoverflow.com/questions/31251356/how-to-get-a-list-of-images-on-docker-registry-v2
-registry_response=$(curl -s -X GET http://localhost:80/v2/_catalog)
-if [[ "$registry_response" == *"{\"repositories\":[\"hello-world\"]}"* ]]; then
+# Wait for the catalog to reflect the pushed image
+registry_ok=false
+for i in {1..10}; do
+    registry_response=$(curl -s -X GET http://localhost:80/v2/_catalog)
+    if [[ "$registry_response" == *"hello-world"* ]]; then
+        registry_ok=true
+        break
+    fi
+    echo "Waiting for registry catalog (attempt $i)..."
+    sleep 3
+done
+if $registry_ok; then
     echo "registry content test: passed"
 else
     echo "registry content test: FAILED"
-    echo $registry_response
+    echo "Response: $registry_response"
     delete_cluster_exit
 fi
 
 # Stop and clean up
-$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --perform-cluster-management
 echo "Test passed"

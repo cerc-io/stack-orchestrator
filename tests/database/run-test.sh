@@ -57,7 +57,7 @@ wait_for_test_complete () {
 
 
 delete_cluster_exit () {
-    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --perform-cluster-management
     exit 1
 }
 
@@ -98,7 +98,7 @@ fi
 echo "deploy create test: passed"
 
 # Try to start the deployment
-$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start --perform-cluster-management
 wait_for_pods_started
 # Check logs command works
 wait_for_test_complete
@@ -111,10 +111,10 @@ else
 fi
 
 # Stop then start again and check the volume was preserved
-$TEST_TARGET_SO deployment --dir $test_deployment_dir stop
+$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --skip-cluster-management
 # Sleep a bit just in case
 sleep 20
-$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start --skip-cluster-management
 wait_for_pods_started
 wait_for_test_complete
 
@@ -127,5 +127,5 @@ else
 fi
 
 # Stop and clean up
-$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --perform-cluster-management
 echo "Test passed"

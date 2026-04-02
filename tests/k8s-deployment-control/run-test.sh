@@ -52,7 +52,7 @@ wait_for_log_output () {
 }
 
 delete_cluster_exit () {
-    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --perform-cluster-management
     exit 1
 }
 
@@ -189,7 +189,7 @@ EOF
 deployment_id=$(cat ${test_deployment_dir}/deployment.yml | cut -d ' ' -f 2)
 
 # Try to start the deployment
-$TEST_TARGET_SO deployment --dir $test_deployment_dir start
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start --perform-cluster-management
 wait_for_pods_started
 # Check logs command works
 wait_for_log_output
@@ -218,5 +218,5 @@ else
 fi
 
 # Stop and clean up
-$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --perform-cluster-management
 echo "Test passed"

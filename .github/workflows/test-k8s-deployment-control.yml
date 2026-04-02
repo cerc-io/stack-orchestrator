@@ -1,4 +1,4 @@
-name: K8s Deploy Test
+name: K8s Deployment Control Test
 
 on:
   pull_request:
@@ -9,15 +9,15 @@ on:
       - main
     paths:
       - '!**'
-      - '.github/workflows/triggers/test-k8s-deploy'
-      - '.github/workflows/test-k8s-deploy.yml'
-      - 'tests/k8s-deploy/run-deploy-test.sh'
+      - '.github/workflows/triggers/test-k8s-deployment-control'
+      - '.github/workflows/test-k8s-deployment-control.yml'
+      - 'tests/k8s-deployment-control/run-test.sh'
   schedule:
-    - cron: '3 15 * * *'
+    - cron: '3 30 * * *'
 
 jobs:
   test:
-    name: "Run deploy test suite on kind/k8s"
+    name: "Run deployment control suite on kind/k8s"
     runs-on: ubuntu-22.04
     steps:
       - name: "Clone project repository"
@@ -40,5 +40,5 @@ jobs:
         run: ./tests/scripts/install-kind.sh
       - name: "Install Kubectl"
         run: ./tests/scripts/install-kubectl.sh
-      - name: "Run k8s deployment test"
-        run: ./tests/k8s-deploy/run-deploy-test.sh
+      - name: "Run k8s deployment control test"
+        run: ./tests/k8s-deployment-control/run-test.sh

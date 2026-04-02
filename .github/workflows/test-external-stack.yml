@@ -1,0 +1,35 @@
+name: External Stack Test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '!**'
+      - '.github/workflows/triggers/test-external-stack'
+      - '.github/workflows/test-external-stack.yml'
+      - 'tests/external-stack/run-test.sh'
+  schedule:
+    - cron: '8 19 * * *'
+
+jobs:
+  test:
+    name: "Run external stack test suite"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      - name: "Install Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: "Print Python version"
+        run: python3 --version
+      - name: "Install shiv"
+        run: pip install shiv==1.0.8
+      - name: "Generate build version file"
+        run: ./scripts/create_build_tag_file.sh
+      - name: "Build local shiv package"
+        run: ./scripts/build_shiv_package.sh
+      - name: "Run external stack tests"
+        run: ./tests/external-stack/run-test.sh

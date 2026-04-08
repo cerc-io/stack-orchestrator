@@ -9,3 +9,4 @@ package
 stack_orchestrator/data/build_tag.txt
 /build
 .worktrees
+.pebbles/pebbles.db

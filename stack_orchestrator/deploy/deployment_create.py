@@ -1118,12 +1118,11 @@ def _write_deployment_files(
             # (user-defined in spec.yml). Fall back to the config/ dir
             # convention if no value is provided.
             if configmap_path and not str(configmap_path).startswith("./"):
-                # configmap_path is relative to the repo root (cwd during
-                # restart). get_stack_path gives us a path like
-                # "stack-orchestrator/stacks/dumpster" — also relative to
-                # repo root. The configmap_path is already repo-relative,
-                # so use it directly (cwd is repo root during restart).
-                source_config_dir = Path(configmap_path)
+                # User-defined source path. Can be:
+                # - repo-relative: "stack-orchestrator/compose/maintenance"
+                # - home-relative: "~/.credentials/local-certs/s3"
+                # - absolute: "/path/to/dir"
+                source_config_dir = Path(os.path.expanduser(configmap_path))
             else:
                 source_config_dir = resolve_config_dir(stack_name, configmap_name)
             if os.path.exists(source_config_dir):

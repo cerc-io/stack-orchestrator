@@ -392,11 +392,17 @@ class ClusterInfo:
                     print(f"{cfg_map_name} not in pod files")
                 continue
 
-            cfg_map_path = os.path.expanduser(cfg_map_path)
-            if not cfg_map_path.startswith("/") and self.spec.file_path is not None:
+            # ConfigMap files live in {deployment_dir}/configmaps/{name}/,
+            # copied there by deploy create / restart from the source path
+            # specified in the spec.
+            if self.spec.file_path is not None:
                 cfg_map_path = os.path.join(
-                    os.path.dirname(str(self.spec.file_path)), cfg_map_path
+                    os.path.dirname(str(self.spec.file_path)),
+                    "configmaps",
+                    cfg_map_name,
                 )
+            else:
+                cfg_map_path = os.path.expanduser(cfg_map_path)
 
             # Read in all the files at a single-level of the directory.
             # This mimics the behavior of

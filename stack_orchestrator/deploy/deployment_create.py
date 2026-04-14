@@ -1110,10 +1110,20 @@ def _write_deployment_files(
     # Copy configmap directories for k8s deployments (outside the pod loop
     # so this works for jobs-only stacks too)
     if parsed_spec.is_kubernetes_deployment():
-        for configmap in parsed_spec.get_configmaps():
-            source_config_dir = resolve_config_dir(stack_name, configmap)
+        configmaps = parsed_spec.get_configmaps()
+        for configmap_name, configmap_path in configmaps.items():
+            # Spec values starting with ./ are deployment-dir destination
+            # paths (written by deploy init for auto-discovered configmaps).
+            # Other values are source paths relative to the stack root
+            # (user-defined in spec.yml). Fall back to the config/ dir
+            # convention if no value is provided.
+            if configmap_path and not str(configmap_path).startswith("./"):
+                stack_root = Path(get_stack_path(stack_name)).parent.parent
+                source_config_dir = stack_root / configmap_path
+            else:
+                source_config_dir = resolve_config_dir(stack_name, configmap_name)
             if os.path.exists(source_config_dir):
-                destination_config_dir = target_dir.joinpath("configmaps", configmap)
+                destination_config_dir = target_dir.joinpath("configmaps", configmap_name)
                 copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
 
     # Copy the job files into the target dir

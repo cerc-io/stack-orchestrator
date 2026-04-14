@@ -128,7 +128,7 @@ def _get_named_volumes(stack):
 # so the deployment will start
 # Also warn if the path is absolute and doesn't exist
 def _create_bind_dir_if_relative(volume, path_string, compose_dir):
-    path = Path(path_string)
+    path = Path(os.path.expanduser(path_string))
     if not path.is_absolute():
         absolute_path = Path(compose_dir).parent.joinpath(path)
         absolute_path.mkdir(parents=True, exist_ok=True)

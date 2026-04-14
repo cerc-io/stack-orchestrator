@@ -748,12 +748,18 @@ def _generate_kind_port_mappings(parsed_pod_files):
             f"  - containerPort: {port_string}\n    hostPort: {port_string}\n"
         )
         seen.add((port_string, "TCP"))
-    # Map ports declared in compose services
+    # Map ports only for services with network_mode: host.
+    # Other service ports are internal — they go through the Ingress on
+    # 80/443 and don't need host port mappings. Mapping all compose ports
+    # unconditionally (the previous behavior) caused conflicts with local
+    # services like postgres (5432) and redis (6379).
     for pod in parsed_pod_files:
         parsed_pod_file = parsed_pod_files[pod]
         if "services" in parsed_pod_file:
             for service_name in parsed_pod_file["services"]:
                 service_obj = parsed_pod_file["services"][service_name]
+                if service_obj.get("network_mode") != "host":
+                    continue
                 for port_entry in service_obj.get("ports", []):
                     port_str = str(port_entry)
                     protocol = "TCP"

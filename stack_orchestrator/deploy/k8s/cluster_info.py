@@ -118,6 +118,17 @@ class ClusterInfo:
         volumes.extend(named_volumes_from_pod_files(self.parsed_job_yaml_map))
         return volumes
 
+    def _stack_labels(self, extra: Optional[dict] = None) -> dict:
+        """Standard resource labels. Use on every k8s resource SO creates so
+        label-based cleanup (down by stack) can find them all.
+        """
+        labels = {"app": self.app_name}
+        if self.stack_name:
+            labels["app.kubernetes.io/stack"] = self.stack_name
+        if extra:
+            labels.update(extra)
+        return labels
+
     def get_nodeports(self):
         nodeports = []
         for pod_name in self.parsed_pod_yaml_map:
@@ -151,7 +162,7 @@ class ClusterInfo:
                                     f"{self.app_name}-nodeport-"
                                     f"{pod_port}-{protocol.lower()}"
                                 ),
-                                labels={"app": self.app_name},
+                                labels=self._stack_labels(),
                             ),
                             spec=client.V1ServiceSpec(
                                 type="NodePort",
@@ -268,7 +279,7 @@ class ClusterInfo:
             ingress = client.V1Ingress(
                 metadata=client.V1ObjectMeta(
                     name=f"{self.app_name}-ingress",
-                    labels={"app": self.app_name},
+                    labels=self._stack_labels(),
                     annotations=ingress_annotations,
                 ),
                 spec=spec,
@@ -323,7 +334,7 @@ class ClusterInfo:
         service = client.V1Service(
             metadata=client.V1ObjectMeta(
                 name=f"{self.app_name}-service",
-                labels={"app": self.app_name},
+                labels=self._stack_labels(),
             ),
             spec=client.V1ServiceSpec(
                 type="ClusterIP",
@@ -355,10 +366,9 @@ class ClusterInfo:
                 self.spec.get_volume_resources_for(volume_name) or global_resources
             )
 
-            labels = {
-                "app": self.app_name,
-                "volume-label": f"{self.app_name}-{volume_name}",
-            }
+            labels = self._stack_labels(
+                {"volume-label": f"{self.app_name}-{volume_name}"}
+            )
             if volume_path:
                 storage_class_name = "manual"
                 k8s_volume_name = f"{self.app_name}-{volume_name}"
@@ -418,7 +428,7 @@ class ClusterInfo:
             spec = client.V1ConfigMap(
                 metadata=client.V1ObjectMeta(
                     name=f"{self.app_name}-{cfg_map_name}",
-                    labels={"app": self.app_name, "configmap-label": cfg_map_name},
+                    labels=self._stack_labels({"configmap-label": cfg_map_name}),
                 ),
                 binary_data=data,
             )
@@ -482,10 +492,9 @@ class ClusterInfo:
             pv = client.V1PersistentVolume(
                 metadata=client.V1ObjectMeta(
                     name=f"{self.app_name}-{volume_name}",
-                    labels={
-                        "app": self.app_name,
-                        "volume-label": f"{self.app_name}-{volume_name}",
-                    },
+                    labels=self._stack_labels(
+                        {"volume-label": f"{self.app_name}-{volume_name}"}
+                    ),
                 ),
                 spec=spec,
             )
@@ -737,9 +746,7 @@ class ClusterInfo:
         Returns (annotations, labels, affinity, tolerations).
         """
         annotations = None
-        labels = {"app": self.app_name}
-        if self.stack_name:
-            labels["app.kubernetes.io/stack"] = self.stack_name
+        labels = self._stack_labels()
         affinity = None
         tolerations = None
 
@@ -920,21 +927,11 @@ class ClusterInfo:
                 kind="Deployment",
                 metadata=client.V1ObjectMeta(
                     name=deployment_name,
-                    labels={
-                        "app": self.app_name,
-                        **(
-                            {
-                                "app.kubernetes.io/stack": self.stack_name,
-                            }
-                            if self.stack_name
-                            else {}
-                        ),
-                        **(
-                            {"app.kubernetes.io/component": pod_name}
-                            if multi_pod
-                            else {}
-                        ),
-                    },
+                    labels=self._stack_labels(
+                        {"app.kubernetes.io/component": pod_name}
+                        if multi_pod
+                        else None
+                    ),
                 ),
                 spec=spec,
             )
@@ -1001,7 +998,7 @@ class ClusterInfo:
             service = client.V1Service(
                 metadata=client.V1ObjectMeta(
                     name=f"{self.app_name}-{pod_name}-service",
-                    labels={"app": self.app_name},
+                    labels=self._stack_labels(),
                 ),
                 spec=client.V1ServiceSpec(
                     type="ClusterIP",
@@ -1054,14 +1051,9 @@ class ClusterInfo:
 
             # Use a distinct app label for job pods so they don't get
             # picked up by pods_in_deployment() which queries app={app_name}.
-            pod_labels = {
-                "app": f"{self.app_name}-job",
-                **(
-                    {"app.kubernetes.io/stack": self.stack_name}
-                    if self.stack_name
-                    else {}
-                ),
-            }
+            # Use a distinct app label for job pods (see comment above) so we
+            # still build via _stack_labels then override.
+            pod_labels = self._stack_labels({"app": f"{self.app_name}-job"})
             template = client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(labels=pod_labels),
                 spec=client.V1PodSpec(
@@ -1076,14 +1068,7 @@ class ClusterInfo:
                 template=template,
                 backoff_limit=0,
             )
-            job_labels = {
-                "app": self.app_name,
-                **(
-                    {"app.kubernetes.io/stack": self.stack_name}
-                    if self.stack_name
-                    else {}
-                ),
-            }
+            job_labels = self._stack_labels()
             job = client.V1Job(
                 api_version="batch/v1",
                 kind="Job",
@@ -1121,7 +1106,7 @@ class ClusterInfo:
                 svc = client.V1Service(
                     metadata=client.V1ObjectMeta(
                         name=name,
-                        labels={"app": self.app_name},
+                        labels=self._stack_labels(),
                     ),
                     spec=client.V1ServiceSpec(
                         type="ExternalName",
@@ -1138,7 +1123,7 @@ class ClusterInfo:
                 svc = client.V1Service(
                     metadata=client.V1ObjectMeta(
                         name=name,
-                        labels={"app": self.app_name},
+                        labels=self._stack_labels(),
                     ),
                     spec=client.V1ServiceSpec(
                         cluster_ip="None",
@@ -1156,7 +1141,7 @@ class ClusterInfo:
                 svc = client.V1Service(
                     metadata=client.V1ObjectMeta(
                         name=name,
-                        labels={"app": self.app_name},
+                        labels=self._stack_labels(),
                     ),
                     spec=client.V1ServiceSpec(
                         cluster_ip="None",
@@ -1199,7 +1184,7 @@ class ClusterInfo:
         secret = client.V1Secret(
             metadata=client.V1ObjectMeta(
                 name=secret_name,
-                labels={"app": self.app_name},
+                labels=self._stack_labels(),
             ),
             data=secret_data,
         )

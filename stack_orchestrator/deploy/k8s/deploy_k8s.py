@@ -709,16 +709,27 @@ class K8sDeployer(Deployer):
             if opts.o.debug:
                 print(f"Sending this job: {job}")
             if not opts.o.dry_run:
-                job_resp = self.batch_api.create_namespaced_job(
-                    body=job, namespace=self.k8s_namespace
-                )
-                if opts.o.debug:
-                    print("Job created:")
-                    if job_resp.metadata:
-                        print(
-                            f"  {job_resp.metadata.namespace} "
-                            f"{job_resp.metadata.name}"
-                        )
+                job_name = job.metadata.name
+                try:
+                    job_resp = self.batch_api.create_namespaced_job(
+                        body=job, namespace=self.k8s_namespace
+                    )
+                    if opts.o.debug:
+                        print("Job created:")
+                        if job_resp.metadata:
+                            print(
+                                f"  {job_resp.metadata.namespace} "
+                                f"{job_resp.metadata.name}"
+                            )
+                except ApiException as e:
+                    if e.status == 409:
+                        # Job already exists from a prior run. Jobs are one-
+                        # shot — don't recreate on restart. Delete the Job
+                        # explicitly to re-run (stop --delete-volumes also
+                        # clears them via label-based cleanup).
+                        print(f"Job {job_name} already exists, skipping")
+                    else:
+                        raise
 
     def _find_certificate_for_host_name(self, host_name):
         all_certificates = self.custom_obj_api.list_namespaced_custom_object(

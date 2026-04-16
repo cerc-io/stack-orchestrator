@@ -912,181 +912,170 @@ class K8sDeployer(Deployer):
 
             call_stack_deploy_start(self.deployment_context)
 
-    def down(self, timeout, volumes, skip_cluster_management, delete_namespace=False):
+    def down(
+        self, timeout, volumes, skip_cluster_management, delete_namespace=False
+    ):
+        """Tear down stack-labeled resources. Phases:
+
+        1. Delete namespaced resources (if namespace still exists).
+        2. Delete cluster-scoped PVs (if --delete-volumes, regardless of (1)).
+        3. Wait for everything we triggered to actually be gone.
+        4. Optionally delete the namespace itself (--delete-namespace).
+        5. Optionally destroy the kind cluster (--perform-cluster-management).
+
+        Steps 1-3 scope cleanup to a single stack via app.kubernetes.io/stack,
+        so multiple stacks sharing a namespace tear down independently.
+        """
         self.skip_cluster_management = skip_cluster_management
         self.connect_api()
 
-        # Delete by stack label so multiple stacks sharing a namespace are
-        # cleaned up independently. Fall back to the app label for stacks
-        # that predate the stack label.
-        stack_name = self.cluster_info.stack_name
-        if stack_name:
-            label_selector = f"app.kubernetes.io/stack={stack_name}"
-        else:
-            label_selector = f"app={self.cluster_info.app_name}"
-
+        selector = self._stack_label_selector()
         ns = self.k8s_namespace
-        # Check whether the namespace exists. If it's already gone, skip the
-        # namespaced cleanup (nothing to do, list/delete calls would 404),
-        # but cluster-scoped PVs may still be labeled with this stack — so
-        # fall through to the cluster-scoped half of _delete_labeled_resources.
-        try:
-            self.core_api.read_namespace(name=ns)
-            namespace_present = True
-        except ApiException as e:
-            if e.status == 404:
-                namespace_present = False
-                if opts.o.debug:
-                    print(f"Namespace {ns} not found; cleaning cluster-scoped only")
-            else:
-                raise
+        ns_exists = self._namespace_exists(ns)
 
-        self._delete_labeled_resources(
-            ns,
-            label_selector,
-            delete_volumes=volumes,
-            namespace_present=namespace_present,
+        if ns_exists:
+            self._delete_namespaced_labeled_resources(ns, selector, volumes)
+        if volumes:
+            self._delete_labeled_pvs(selector)
+        self._wait_for_labeled_gone(
+            ns, selector, delete_volumes=volumes, namespace_present=ns_exists
         )
 
-        # Full teardown: nuke the namespace and wait for termination so that a
-        # subsequent up() can recreate it cleanly. No-op if already missing.
-        if delete_namespace and namespace_present:
+        if delete_namespace and ns_exists:
             self._delete_namespace()
             self._wait_for_namespace_gone()
 
         if self.is_kind() and not self.skip_cluster_management:
             destroy_cluster(self.kind_cluster_name)
 
-    def _delete_labeled_resources(
-        self,
-        namespace: str,
-        label_selector: str,
-        delete_volumes: bool,
-        namespace_present: bool = True,
+    def _stack_label_selector(self) -> str:
+        """Selector used for stack-scoped cleanup.
+
+        Prefer app.kubernetes.io/stack (per-stack) and fall back to the
+        legacy app= label (cluster-id scoped) for deployments that predate
+        the stack label.
+        """
+        stack_name = self.cluster_info.stack_name
+        if stack_name:
+            return f"app.kubernetes.io/stack={stack_name}"
+        return f"app={self.cluster_info.app_name}"
+
+    def _namespace_exists(self, namespace: str) -> bool:
+        try:
+            self.core_api.read_namespace(name=namespace)
+            return True
+        except ApiException as e:
+            if e.status == 404:
+                if opts.o.debug:
+                    print(f"Namespace {namespace} not found")
+                return False
+            raise
+
+    def _delete_namespaced_labeled_resources(
+        self, namespace: str, selector: str, delete_volumes: bool
     ):
-        """Delete all stack-labeled resources.
-
-        Namespaced resources (Deployments, Services, ConfigMaps, Secrets,
-        PVCs, Pods, Endpoints, Ingresses, Jobs) are only touched when the
-        namespace still exists. Cluster-scoped PVs are always candidates
-        for deletion if delete_volumes is set — they can outlive a deleted
-        namespace (e.g. after an earlier stop --delete-namespace).
-
-        Keeps the namespace Active so that a subsequent up() can recreate
-        resources without racing against k8s namespace termination.
+        """Delete Ingresses, Deployments, Jobs, Services, ConfigMaps,
+        Secrets, Endpoints, Pods, and (if delete_volumes) PVCs in the
+        namespace. Order matters: Ingresses first so external traffic
+        stops, then workloads, then support objects, then Pods, then PVCs.
         """
         if opts.o.dry_run:
             print(
-                f"Dry run: would delete resources in {namespace} "
-                f"matching {label_selector}"
+                f"Dry run: would delete namespaced resources in {namespace} "
+                f"matching {selector}"
             )
             return
 
-        def _swallow_404(fn):
+        def swallow_404(fn):
             try:
                 fn()
             except ApiException as e:
                 if e.status not in (404, 405):
                     raise
 
-        if not namespace_present:
-            # Jump straight to cluster-scoped cleanup.
-            if delete_volumes:
-                self._delete_labeled_pvs(label_selector)
-            self._wait_for_labeled_deletions(
-                namespace, label_selector, delete_volumes=delete_volumes
-            )
-            return
-
         # Ingresses first so external traffic stops before pods disappear.
-        _swallow_404(
+        swallow_404(
             lambda: self.networking_api.delete_collection_namespaced_ingress(
-                namespace=namespace, label_selector=label_selector
+                namespace=namespace, label_selector=selector
             )
         )
-        # Deployments (owns ReplicaSets + Pods via garbage collection).
-        _swallow_404(
+        # Deployments (owns ReplicaSets + Pods via GC).
+        swallow_404(
             lambda: self.apps_api.delete_collection_namespaced_deployment(
-                namespace=namespace, label_selector=label_selector
+                namespace=namespace, label_selector=selector
             )
         )
-        # Jobs (propagation_policy=Background deletes child pods).
-        _swallow_404(
+        # Jobs — propagation=Background cascades to child pods.
+        swallow_404(
             lambda: self.batch_api.delete_collection_namespaced_job(
                 namespace=namespace,
-                label_selector=label_selector,
+                label_selector=selector,
                 propagation_policy="Background",
             )
         )
-        # Services — no delete_collection on core_api for services;
-        # list + delete individually.
-        try:
-            svcs = self.core_api.list_namespaced_service(
-                namespace=namespace, label_selector=label_selector
-            )
-            for svc in svcs.items:
-                _swallow_404(
-                    lambda n=svc.metadata.name: self.core_api.delete_namespaced_service(
-                        name=n, namespace=namespace
-                    )
-                )
-        except ApiException as e:
-            if e.status != 404:
-                raise
-        # ConfigMaps, Secrets, Endpoints.
-        _swallow_404(
-            lambda: self.core_api.delete_collection_namespaced_config_map(
-                namespace=namespace, label_selector=label_selector
-            )
-        )
-        _swallow_404(
-            lambda: self.core_api.delete_collection_namespaced_secret(
-                namespace=namespace, label_selector=label_selector
-            )
-        )
-        # Endpoints usually GC with Services, but delete explicitly for
-        # external-services Endpoints we create directly.
-        try:
-            eps = self.core_api.list_namespaced_endpoints(
-                namespace=namespace, label_selector=label_selector
-            )
-            for ep in eps.items:
-                _swallow_404(
-                    lambda n=ep.metadata.name: self.core_api.delete_namespaced_endpoints(
-                        name=n, namespace=namespace
-                    )
-                )
-        except ApiException as e:
-            if e.status != 404:
-                raise
-        # Lingering Pods (shouldn't exist after Deployment/Job deletion,
-        # but handles standalone pods if any were created).
-        _swallow_404(
-            lambda: self.core_api.delete_collection_namespaced_pod(
-                namespace=namespace, label_selector=label_selector
-            )
-        )
-
-        if delete_volumes:
-            # Namespaced PVCs.
-            _swallow_404(
-                lambda: self.core_api.delete_collection_namespaced_persistent_volume_claim(
-                    namespace=namespace, label_selector=label_selector
-                )
-            )
-            self._delete_labeled_pvs(label_selector)
-
-        self._wait_for_labeled_deletions(
+        # Services have no delete_collection on core_api; list + delete.
+        self._list_delete_namespaced(
             namespace,
-            label_selector,
-            delete_volumes=delete_volumes,
-            namespace_present=True,
+            selector,
+            list_fn=self.core_api.list_namespaced_service,
+            delete_fn=self.core_api.delete_namespaced_service,
         )
+        # ConfigMaps, Secrets.
+        swallow_404(
+            lambda: self.core_api.delete_collection_namespaced_config_map(
+                namespace=namespace, label_selector=selector
+            )
+        )
+        swallow_404(
+            lambda: self.core_api.delete_collection_namespaced_secret(
+                namespace=namespace, label_selector=selector
+            )
+        )
+        # Endpoints usually GC with Services, but we create a few directly
+        # (external-services) that aren't owned by a Service — clean those.
+        self._list_delete_namespaced(
+            namespace,
+            selector,
+            list_fn=self.core_api.list_namespaced_endpoints,
+            delete_fn=self.core_api.delete_namespaced_endpoints,
+        )
+        # Stray pods (owned pods are GC'd with their Deployment/Job).
+        swallow_404(
+            lambda: self.core_api.delete_collection_namespaced_pod(
+                namespace=namespace, label_selector=selector
+            )
+        )
+        if delete_volumes:
+            swallow_404(
+                lambda: self.core_api.delete_collection_namespaced_persistent_volume_claim(  # noqa: E501
+                    namespace=namespace, label_selector=selector
+                )
+            )
 
-    def _delete_labeled_pvs(self, label_selector: str):
-        """Delete cluster-scoped PVs matching the stack label."""
+    def _list_delete_namespaced(self, namespace, selector, list_fn, delete_fn):
+        """List by selector and delete each item. Use for resources where
+        the k8s python client lacks delete_collection (Services, Endpoints).
+        """
         try:
-            pvs = self.core_api.list_persistent_volume(label_selector=label_selector)
+            items = list_fn(namespace=namespace, label_selector=selector).items
+        except ApiException as e:
+            if e.status == 404:
+                return
+            raise
+        for item in items:
+            try:
+                delete_fn(name=item.metadata.name, namespace=namespace)
+            except ApiException as e:
+                if e.status not in (404, 405):
+                    raise
+
+    def _delete_labeled_pvs(self, selector: str):
+        """Delete cluster-scoped PVs matching the stack label."""
+        if opts.o.dry_run:
+            print(f"Dry run: would delete PVs matching {selector}")
+            return
+        try:
+            pvs = self.core_api.list_persistent_volume(label_selector=selector)
         except ApiException as e:
             if opts.o.debug:
                 print(f"Error listing PVs: {e}")
@@ -1099,95 +1088,58 @@ class K8sDeployer(Deployer):
             except ApiException as e:
                 _check_delete_exception(e)
 
-    def _wait_for_labeled_deletions(
+    def _wait_for_labeled_gone(
         self,
         namespace: str,
-        label_selector: str,
+        selector: str,
         delete_volumes: bool,
-        namespace_present: bool = True,
+        namespace_present: bool,
         timeout_seconds: int = 120,
     ):
-        """Block until stack-labeled resources finish terminating.
+        """Poll until every kind we triggered a delete for is gone.
 
-        delete_collection returns before the apiserver has actually removed
-        the objects — finalizers (PVs waiting for PVCs, PVCs waiting for
-        VolumeAttachment, pods waiting for graceful shutdown) propagate
-        async. Poll until everything we triggered a delete for is gone,
-        so callers can assume a synchronous tear-down.
+        delete_collection/delete are async — finalizers (PV bound-by-PVC,
+        PVC bound-by-VolumeAttachment, pod graceful shutdown) propagate
+        after the API call returns. Blocking here makes down() a
+        synchronous contract for callers (tests, ansible, cryovial).
         """
         import time
 
-        # (kind name, lister callable) — lister returns an object with .items.
-        # Namespaced kinds are skipped when the namespace is already gone
-        # (there's nothing to list).
-        listers = [] if not namespace_present else [
-            (
-                "deployment",
-                lambda: self.apps_api.list_namespaced_deployment(
-                    namespace=namespace, label_selector=label_selector
-                ),
-            ),
-            (
-                "ingress",
-                lambda: self.networking_api.list_namespaced_ingress(
-                    namespace=namespace, label_selector=label_selector
-                ),
-            ),
-            (
-                "job",
-                lambda: self.batch_api.list_namespaced_job(
-                    namespace=namespace, label_selector=label_selector
-                ),
-            ),
-            (
-                "service",
-                lambda: self.core_api.list_namespaced_service(
-                    namespace=namespace, label_selector=label_selector
-                ),
-            ),
-            (
-                "configmap",
-                lambda: self.core_api.list_namespaced_config_map(
-                    namespace=namespace, label_selector=label_selector
-                ),
-            ),
-            (
-                "secret",
-                lambda: self.core_api.list_namespaced_secret(
-                    namespace=namespace, label_selector=label_selector
-                ),
-            ),
-            (
-                "pod",
-                lambda: self.core_api.list_namespaced_pod(
-                    namespace=namespace, label_selector=label_selector
-                ),
-            ),
-        ]
-        if delete_volumes:
-            if namespace_present:
+        listers = []
+        if namespace_present:
+            listers += [
+                ("deployment", lambda: self.apps_api.list_namespaced_deployment(
+                    namespace=namespace, label_selector=selector)),
+                ("ingress", lambda: self.networking_api.list_namespaced_ingress(
+                    namespace=namespace, label_selector=selector)),
+                ("job", lambda: self.batch_api.list_namespaced_job(
+                    namespace=namespace, label_selector=selector)),
+                ("service", lambda: self.core_api.list_namespaced_service(
+                    namespace=namespace, label_selector=selector)),
+                ("configmap", lambda: self.core_api.list_namespaced_config_map(
+                    namespace=namespace, label_selector=selector)),
+                ("secret", lambda: self.core_api.list_namespaced_secret(
+                    namespace=namespace, label_selector=selector)),
+                ("pod", lambda: self.core_api.list_namespaced_pod(
+                    namespace=namespace, label_selector=selector)),
+            ]
+            if delete_volumes:
                 listers.append(
-                    (
-                        "persistentvolumeclaim",
-                        lambda: self.core_api.list_namespaced_persistent_volume_claim(
-                            namespace=namespace, label_selector=label_selector
-                        ),
-                    )
+                    ("persistentvolumeclaim",
+                     lambda: self.core_api.list_namespaced_persistent_volume_claim(
+                         namespace=namespace, label_selector=selector))
                 )
-            # PVs are cluster-scoped — wait for them even when the namespace
-            # is already gone (orphaned from a prior --delete-namespace).
+        # PVs are cluster-scoped — wait for them even when the namespace
+        # is already gone (orphaned from a prior --delete-namespace).
+        if delete_volumes:
             listers.append(
-                (
-                    "persistentvolume",
-                    lambda: self.core_api.list_persistent_volume(
-                        label_selector=label_selector
-                    ),
-                )
+                ("persistentvolume",
+                 lambda: self.core_api.list_persistent_volume(
+                     label_selector=selector))
             )
 
-        deadline = time.monotonic() + timeout_seconds
-        while time.monotonic() < deadline:
-            remaining = []
+        def remaining():
+            out = []
             for kind, lister in listers:
                 try:
                     items = lister().items
@@ -1196,27 +1148,23 @@ class K8sDeployer(Deployer):
                         continue
                     raise
                 if items:
-                    remaining.append((kind, len(items)))
-            if not remaining:
+                    out.append((kind, len(items)))
+            return out
+
+        deadline = time.monotonic() + timeout_seconds
+        while time.monotonic() < deadline:
+            left = remaining()
+            if not left:
                 return
             if opts.o.debug:
-                print(f"Waiting for deletions: {remaining}")
+                print(f"Waiting for deletions: {left}")
             time.sleep(2)
 
-        # Timed out — warn but don't raise. Caller may still have the
-        # cluster in a sensible state.
-        still_present = []
-        for kind, lister in listers:
-            try:
-                items = lister().items
-            except ApiException:
-                continue
-            if items:
-                still_present.append((kind, len(items)))
-        if still_present:
+        left = remaining()
+        if left:
             print(
                 f"Warning: resources still present after {timeout_seconds}s: "
-                f"{still_present}"
+                f"{left}"
             )
 
     def status(self):

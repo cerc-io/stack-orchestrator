@@ -23,7 +23,7 @@ wait_for_pods_started () {
     done
     # Timed out, error exit
     echo "waiting for pods to start: FAILED"
-    delete_cluster_exit
+    cleanup_and_exit
 }
 
 wait_for_log_output () {
@@ -42,13 +42,40 @@ wait_for_log_output () {
     done
     # Timed out, error exit
     echo "waiting for pods log content: FAILED"
-    delete_cluster_exit
+    cleanup_and_exit
 }
 
 
-delete_cluster_exit () {
-    $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+cleanup_and_exit () {
+    # Full teardown so CI runners don't leak namespaces/PVs between runs.
+    $TEST_TARGET_SO deployment --dir $test_deployment_dir \
+        stop --delete-volumes --delete-namespace --skip-cluster-management || true
     exit 1
+}
+
+assert_ns_phase () {
+    local expected=$1
+    local phase
+    phase=$(kubectl get namespace ${deployment_ns} -o jsonpath='{.status.phase}' 2>/dev/null || echo "Missing")
+    if [ "$phase" != "$expected" ]; then
+        echo "namespace phase test: FAILED (expected ${expected}, got ${phase})"
+        cleanup_and_exit
+    fi
+}
+
+# Count labeled resources in the deployment namespace. down() is
+# synchronous on its own cleanup (waits for PVCs/pods to terminate
+# before returning) so callers can assert immediately.
+# Usage: assert_no_labeled_resources <kind>
+assert_no_labeled_resources () {
+    local kind=$1
+    local count
+    count=$(kubectl get ${kind} -n ${deployment_ns} \
+        -l app.kubernetes.io/stack=test --no-headers 2>/dev/null | wc -l)
+    if [ "$count" -ne 0 ]; then
+        echo "labeled cleanup test: FAILED (${kind} still present: ${count})"
+        cleanup_and_exit
+    fi
 }
 
 # Note: eventually this test should be folded into ../deploy/
@@ -130,7 +157,7 @@ if [[ "$log_output_3" == *"filesystem is fresh"* ]]; then
 else
     echo "deployment logs test: FAILED"
     echo "$log_output_3"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
 # Check the config variable CERC_TEST_PARAM_1 was passed correctly
@@ -138,7 +165,7 @@ if [[ "$log_output_3" == *"Test-param-1: PASSED"* ]]; then
     echo "deployment config test: passed"
 else
     echo "deployment config test: FAILED"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
 # Check the config variable CERC_TEST_PARAM_2 was passed correctly from the compose file
@@ -155,7 +182,7 @@ if [[ "$log_output_4" == *"/config/test_config:"* ]] && [[ "$log_output_4" == *"
     echo "deployment ConfigMap test: passed"
 else
     echo "deployment ConfigMap test: FAILED"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
 # Check that the bind-mount volume is mounted.
@@ -165,7 +192,7 @@ if [[ "$log_output_5" == *"/data: MOUNTED"* ]]; then
 else
     echo "deployment bind volumes test: FAILED"
     echo "$log_output_5"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
 # Check that the provisioner managed volume is mounted.
@@ -175,7 +202,7 @@ if [[ "$log_output_6" == *"/data2: MOUNTED"* ]]; then
 else
     echo "deployment provisioner volumes test: FAILED"
     echo "$log_output_6"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
 # --- New feature tests: namespace, labels, jobs, secrets ---
@@ -187,7 +214,7 @@ if [ "$ns_pod_count" -gt 0 ]; then
 else
     echo "namespace isolation test: FAILED"
     echo "Expected pod in namespace ${deployment_ns}"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
 # Check that the stack label is set on the pod
@@ -196,7 +223,7 @@ if [ "$stack_label_count" -gt 0 ]; then
     echo "stack label test: passed"
 else
     echo "stack label test: FAILED"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
 # Check that the job completed successfully
@@ -212,7 +239,7 @@ if [ "$job_status" == "1" ]; then
 else
     echo "job completion test: FAILED"
     echo "Job status.succeeded: ${job_status}"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
 # Check that the secrets spec results in an envFrom secretRef on the pod
@@ -223,25 +250,24 @@ if [ "$secret_ref" == "test-secret" ]; then
 else
     echo "secrets envFrom test: FAILED"
     echo "Expected secretRef 'test-secret', got: ${secret_ref}"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
-# Stop then start again and check the volume was preserved.
-# Use --skip-cluster-management to reuse the existing kind cluster instead of
-# destroying and recreating it (which fails on CI runners due to stale etcd/certs
-# and cgroup detection issues).
-# Use --delete-volumes to clear PVs so fresh PVCs can bind on restart.
-# Bind-mount data survives on the host filesystem; provisioner volumes are recreated fresh.
+# Stop with --delete-volumes (but not --delete-namespace) and verify:
+#   - namespace stays Active (no termination race on restart)
+#   - stack-labeled workloads are gone
+#   - bind-mount data on the host survives; provisioner volumes are recreated
 $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --skip-cluster-management
-# Wait for the namespace to be fully terminated before restarting.
-# Without this, 'start' fails with 403 Forbidden because the namespace
-# is still in Terminating state.
-for i in {1..60}; do
-    if ! kubectl get namespace ${deployment_ns} 2>/dev/null | grep -q .; then
-        break
-    fi
-    sleep 2
+
+assert_ns_phase "Active"
+echo "stop preserves namespace test: passed"
+
+for kind in deployment job ingress service configmap secret pvc pod; do
+    assert_no_labeled_resources "$kind"
 done
+echo "stop cleans labeled resources test: passed"
+
+# Restart — no wait needed, the namespace is still Active.
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start --skip-cluster-management
 wait_for_pods_started
 wait_for_log_output
@@ -252,7 +278,7 @@ if [[ "$log_output_10" == *"/data filesystem is old"* ]]; then
     echo "Retain bind volumes test: passed"
 else
     echo "Retain bind volumes test: FAILED"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
 # Provisioner volumes are destroyed when PVs are deleted (--delete-volumes on stop).
@@ -263,9 +289,17 @@ if [[ "$log_output_11" == *"/data2 filesystem is fresh"* ]]; then
     echo "Fresh provisioner volumes test: passed"
 else
     echo "Fresh provisioner volumes test: FAILED"
-    delete_cluster_exit
+    cleanup_and_exit
 fi
 
-# Stop and clean up
-$TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes
+# Full teardown: --delete-namespace nukes the namespace after labeled cleanup.
+# Verify the namespace is actually gone.
+$TEST_TARGET_SO deployment --dir $test_deployment_dir \
+    stop --delete-volumes --delete-namespace --skip-cluster-management
+if kubectl get namespace ${deployment_ns} >/dev/null 2>&1; then
+    echo "delete-namespace test: FAILED (namespace still present)"
+    exit 1
+fi
+echo "delete-namespace test: passed"
+
 echo "Test passed"

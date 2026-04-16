@@ -55,7 +55,8 @@ class DockerDeployer(Deployer):
             except DockerException as e:
                 raise DeployerException(e)
 
-    def down(self, timeout, volumes, skip_cluster_management):
+    def down(self, timeout, volumes, skip_cluster_management, delete_namespace=False):
+        # delete_namespace is k8s-only; ignored in compose mode.
         if not opts.o.dry_run:
             try:
                 return self.docker.compose.down(timeout=timeout, volumes=volumes)

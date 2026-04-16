@@ -157,13 +157,21 @@ def prepare(ctx, skip_cluster_management):
     default=True,
     help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
 )
+@click.option(
+    "--delete-namespace",
+    is_flag=True,
+    default=False,
+    help="Also delete the k8s namespace (full teardown)",
+)
 @click.argument("extra_args", nargs=-1)  # help: command: down <service1> <service2>
 @click.pass_context
-def down(ctx, delete_volumes, skip_cluster_management, extra_args):
+def down(ctx, delete_volumes, skip_cluster_management, delete_namespace, extra_args):
     # Get the stack config file name
     # TODO: add cluster name and env file here
     ctx.obj = make_deploy_context(ctx)
-    down_operation(ctx, delete_volumes, extra_args, skip_cluster_management)
+    down_operation(
+        ctx, delete_volumes, extra_args, skip_cluster_management, delete_namespace
+    )
 
 
 # stop is the preferred alias for down
@@ -176,12 +184,20 @@ def down(ctx, delete_volumes, skip_cluster_management, extra_args):
     default=True,
     help="Skip cluster initialization/tear-down (only for kind-k8s deployments)",
 )
+@click.option(
+    "--delete-namespace",
+    is_flag=True,
+    default=False,
+    help="Also delete the k8s namespace (full teardown)",
+)
 @click.argument("extra_args", nargs=-1)  # help: command: down <service1> <service2>
 @click.pass_context
-def stop(ctx, delete_volumes, skip_cluster_management, extra_args):
+def stop(ctx, delete_volumes, skip_cluster_management, delete_namespace, extra_args):
     # TODO: add cluster name and env file here
     ctx.obj = make_deploy_context(ctx)
-    down_operation(ctx, delete_volumes, extra_args, skip_cluster_management)
+    down_operation(
+        ctx, delete_volumes, extra_args, skip_cluster_management, delete_namespace
+    )
 
 
 @command.command()

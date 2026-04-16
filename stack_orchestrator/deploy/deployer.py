@@ -24,7 +24,7 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def down(self, timeout, volumes, skip_cluster_management):
+    def down(self, timeout, volumes, skip_cluster_management, delete_namespace=False):
         pass
 
     @abstractmethod

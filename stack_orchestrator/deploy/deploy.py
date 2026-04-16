@@ -172,7 +172,13 @@ def up_operation(
     )
 
 
-def down_operation(ctx, delete_volumes, extra_args_list, skip_cluster_management=False):
+def down_operation(
+    ctx,
+    delete_volumes,
+    extra_args_list,
+    skip_cluster_management=False,
+    delete_namespace=False,
+):
     timeout_arg = None
     if extra_args_list:
         timeout_arg = extra_args_list[0]
@@ -182,6 +188,7 @@ def down_operation(ctx, delete_volumes, extra_args_list, skip_cluster_management
         timeout=timeout_arg,
         volumes=delete_volumes,
         skip_cluster_management=skip_cluster_management,
+        delete_namespace=delete_namespace,
     )
 
 

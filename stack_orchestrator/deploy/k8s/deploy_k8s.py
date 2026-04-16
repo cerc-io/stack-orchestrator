@@ -912,7 +912,7 @@ class K8sDeployer(Deployer):
 
             call_stack_deploy_start(self.deployment_context)
 
-    def down(self, timeout, volumes, skip_cluster_management):
+    def down(self, timeout, volumes, skip_cluster_management, delete_namespace=False):
         self.skip_cluster_management = skip_cluster_management
         self.connect_api()
 
@@ -939,6 +939,12 @@ class K8sDeployer(Deployer):
             raise
 
         self._delete_labeled_resources(ns, label_selector, delete_volumes=volumes)
+
+        # Full teardown: nuke the namespace and wait for termination so that a
+        # subsequent up() can recreate it cleanly.
+        if delete_namespace:
+            self._delete_namespace()
+            self._wait_for_namespace_gone()
 
         if self.is_kind() and not self.skip_cluster_management:
             destroy_cluster(self.kind_cluster_name)

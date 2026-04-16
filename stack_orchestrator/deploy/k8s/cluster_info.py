@@ -954,13 +954,18 @@ class ClusterInfo:
             svc = self.get_service()
             return [svc] if svc else []
 
-        # Multi-pod: one service per pod, only for pods that have
-        # ports referenced by http-proxy routes
-        http_proxy_list = self.spec.get_http_proxy()
-        if not http_proxy_list:
+        # Multi-pod: one service per pod, only for pods whose containers
+        # are referenced by http-proxy routes or by maintenance-service.
+        http_proxy_list = self.spec.get_http_proxy() or []
+        maintenance_svc = self.spec.get_maintenance_service()
+        if not http_proxy_list and not maintenance_svc:
             return []
 
-        # Build map: container_name -> port from http-proxy routes
+        # Build map: container_name -> set of ports. Sources:
+        # - http-proxy routes (normal traffic routing)
+        # - maintenance-service (so _restart_with_maintenance can swap
+        #   Ingress backends to a real Service during the maintenance
+        #   window; the maintenance pod has no http-proxy route by design)
         container_ports: dict = {}
         for http_proxy in http_proxy_list:
             for route in http_proxy.get("routes", []):
@@ -971,6 +976,11 @@ class ClusterInfo:
                     if container not in container_ports:
                         container_ports[container] = set()
                     container_ports[container].add(port)
+        if maintenance_svc and ":" in maintenance_svc:
+            maint_container, maint_port_str = maintenance_svc.split(":", 1)
+            container_ports.setdefault(maint_container, set()).add(
+                int(maint_port_str)
+            )
 
         # Build map: pod_file -> set of service names in that pod
         pod_services_map: dict = {}

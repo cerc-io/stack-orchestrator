@@ -1063,6 +1063,124 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print(f"Error listing PVs: {e}")
 
+        self._wait_for_labeled_deletions(
+            namespace, label_selector, delete_volumes=delete_volumes
+        )
+
+    def _wait_for_labeled_deletions(
+        self,
+        namespace: str,
+        label_selector: str,
+        delete_volumes: bool,
+        timeout_seconds: int = 120,
+    ):
+        """Block until stack-labeled resources finish terminating.
+
+        delete_collection returns before the apiserver has actually removed
+        the objects — finalizers (PVs waiting for PVCs, PVCs waiting for
+        VolumeAttachment, pods waiting for graceful shutdown) propagate
+        async. Poll until everything we triggered a delete for is gone,
+        so callers can assume a synchronous tear-down.
+        """
+        import time
+
+        # (kind name, lister callable) — lister returns an object with .items
+        listers = [
+            (
+                "deployment",
+                lambda: self.apps_api.list_namespaced_deployment(
+                    namespace=namespace, label_selector=label_selector
+                ),
+            ),
+            (
+                "ingress",
+                lambda: self.networking_api.list_namespaced_ingress(
+                    namespace=namespace, label_selector=label_selector
+                ),
+            ),
+            (
+                "job",
+                lambda: self.batch_api.list_namespaced_job(
+                    namespace=namespace, label_selector=label_selector
+                ),
+            ),
+            (
+                "service",
+                lambda: self.core_api.list_namespaced_service(
+                    namespace=namespace, label_selector=label_selector
+                ),
+            ),
+            (
+                "configmap",
+                lambda: self.core_api.list_namespaced_config_map(
+                    namespace=namespace, label_selector=label_selector
+                ),
+            ),
+            (
+                "secret",
+                lambda: self.core_api.list_namespaced_secret(
+                    namespace=namespace, label_selector=label_selector
+                ),
+            ),
+            (
+                "pod",
+                lambda: self.core_api.list_namespaced_pod(
+                    namespace=namespace, label_selector=label_selector
+                ),
+            ),
+        ]
+        if delete_volumes:
+            listers.append(
+                (
+                    "persistentvolumeclaim",
+                    lambda: self.core_api.list_namespaced_persistent_volume_claim(
+                        namespace=namespace, label_selector=label_selector
+                    ),
+                )
+            )
+            listers.append(
+                (
+                    "persistentvolume",
+                    lambda: self.core_api.list_persistent_volume(
+                        label_selector=label_selector
+                    ),
+                )
+            )
+
+        deadline = time.monotonic() + timeout_seconds
+        while time.monotonic() < deadline:
+            remaining = []
+            for kind, lister in listers:
+                try:
+                    items = lister().items
+                except ApiException as e:
+                    if e.status == 404:
+                        continue
+                    raise
+                if items:
+                    remaining.append((kind, len(items)))
+            if not remaining:
+                return
+            if opts.o.debug:
+                print(f"Waiting for deletions: {remaining}")
+            time.sleep(2)
+
+        # Timed out — warn but don't raise. Caller may still have the
+        # cluster in a sensible state.
+        still_present = []
+        for kind, lister in listers:
+            try:
+                items = lister().items
+            except ApiException:
+                continue
+            if items:
+                still_present.append((kind, len(items)))
+        if still_present:
+            print(
+                f"Warning: resources still present after {timeout_seconds}s: "
+                f"{still_present}"
+            )
+
     def status(self):
         self.connect_api()
         # Call whatever API we need to get the running container list

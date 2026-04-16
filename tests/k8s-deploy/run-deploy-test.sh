@@ -63,7 +63,9 @@ assert_ns_phase () {
     fi
 }
 
-# Count labeled resources in the deployment namespace. Exit 1 on mismatch.
+# Count labeled resources in the deployment namespace. down() is
+# synchronous on its own cleanup (waits for PVCs/pods to terminate
+# before returning) so callers can assert immediately.
 # Usage: assert_no_labeled_resources <kind>
 assert_no_labeled_resources () {
     local kind=$1
@@ -260,7 +262,7 @@ $TEST_TARGET_SO deployment --dir $test_deployment_dir stop --delete-volumes --sk
 assert_ns_phase "Active"
 echo "stop preserves namespace test: passed"
 
-for kind in deployment service configmap secret pvc; do
+for kind in deployment job ingress service configmap secret pvc pod; do
     assert_no_labeled_resources "$kind"
 done
 echo "stop cleans labeled resources test: passed"

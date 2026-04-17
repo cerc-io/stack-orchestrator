@@ -76,7 +76,7 @@ spec:
               operator: Equal
           containers:
             - name: backup
-              image: bitnami/kubectl:latest
+              image: alpine/kubectl:1.35.3
               command:
                 - sh
                 - -c

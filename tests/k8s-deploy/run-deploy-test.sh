@@ -322,17 +322,30 @@ kubectl label secret "$fake_cert_name" -n caddy-system manager=caddy
 # Trigger the CronJob immediately (it fires every 5min on its own).
 kubectl create job --from=cronjob/caddy-cert-backup \
     caddy-cert-backup-manual -n caddy-system
-kubectl wait --for=condition=complete \
-    job/caddy-cert-backup-manual -n caddy-system --timeout=60s
+if ! kubectl wait --for=condition=complete \
+    job/caddy-cert-backup-manual -n caddy-system --timeout=120s; then
+    echo "caddy cert backup job test: FAILED (job did not complete)"
+    echo "--- job description ---"
+    kubectl describe job/caddy-cert-backup-manual -n caddy-system || true
+    echo "--- pod list ---"
+    kubectl get pod -n caddy-system -l job-name=caddy-cert-backup-manual -o wide || true
+    echo "--- pod logs ---"
+    kubectl logs -n caddy-system -l job-name=caddy-cert-backup-manual --tail=200 || true
+    cleanup_and_exit
+fi
 
 # Backup file is root-owned (CronJob writes as root via kind bind mount).
+# The secret's data.value is base64-encoded in YAML output, so assert on
+# the secret name (which is plaintext in metadata). Value correctness is
+# verified in the restore phase after a round-trip decode.
 backup_file=$KIND_MOUNT_ROOT/caddy-cert-backup/caddy-secrets.yaml
 if ! sudo test -f "$backup_file"; then
     echo "caddy cert backup file test: FAILED (missing $backup_file)"
     cleanup_and_exit
 fi
-if ! sudo grep -q "$fake_cert_value" "$backup_file"; then
-    echo "caddy cert backup content test: FAILED (value not found in backup)"
+if ! sudo grep -q "$fake_cert_name" "$backup_file"; then
+    echo "caddy cert backup content test: FAILED (seeded secret not in backup)"
+    sudo head -50 "$backup_file" || true
     cleanup_and_exit
 fi
 echo "caddy cert backup write test: passed"

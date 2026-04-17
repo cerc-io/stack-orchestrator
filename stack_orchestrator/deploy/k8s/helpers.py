@@ -17,8 +17,10 @@ from kubernetes import client, utils, watch
 from kubernetes.client.exceptions import ApiException
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import re
+import time
 from typing import Set, Mapping, List, Optional, cast
 import yaml
 
@@ -117,6 +119,66 @@ def _get_etcd_host_path_from_kind_config(config_file: str) -> Optional[str]:
     return None
 
 
+def _etcd_image_ref_path(etcd_path: str) -> Path:
+    """Location of the persisted etcd image reference file."""
+    return Path(etcd_path).parent / "etcd-image.txt"
+
+
+def _capture_etcd_image(cluster_name: str, etcd_path: str) -> bool:
+    """Persist the etcd image ref from a running Kind cluster.
+
+    Kind runs etcd as a static pod via containerd inside the node container.
+    We query crictl to discover which etcd image the current Kind version
+    uses, then write it alongside the etcd backup so future
+    ``_clean_etcd_keeping_certs`` calls use a matching version (avoiding
+    on-disk format skew between etcd releases).
+    """
+    node_name = f"{cluster_name}-control-plane"
+    query_cmd = (
+        f"docker exec {node_name} crictl images 2>/dev/null "
+        "| awk '/etcd/ {print $1\":\"$2; exit}'"
+    )
+    image_ref = ""
+    for _ in range(15):
+        result = subprocess.run(query_cmd, shell=True, capture_output=True, text=True)
+        image_ref = result.stdout.strip()
+        if image_ref:
+            break
+        time.sleep(1)
+
+    if not image_ref:
+        print(f"Warning: could not capture etcd image ref from {node_name}")
+        return False
+
+    image_file = _etcd_image_ref_path(etcd_path)
+    write_cmd = (
+        f"docker run --rm -v {image_file.parent}:/work alpine:3.19 "
+        f"sh -c 'echo {shlex.quote(image_ref)} > /work/{image_file.name}'"
+    )
+    result = subprocess.run(write_cmd, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Warning: failed to write {image_file}: {result.stderr}")
+        return False
+
+    if opts.o.debug:
+        print(f"Captured etcd image: {image_ref} -> {image_file}")
+    return True
+
+
+def _read_etcd_image_ref(etcd_path: str) -> Optional[str]:
+    """Read etcd image ref persisted by a prior cluster create."""
+    image_file = _etcd_image_ref_path(etcd_path)
+    read_cmd = (
+        f"docker run --rm -v {image_file.parent}:/work:ro alpine:3.19 "
+        f"cat /work/{image_file.name}"
+    )
+    result = subprocess.run(read_cmd, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        return None
+    ref = result.stdout.strip()
+    return ref or None
+
+
 def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
     """Clean persisted etcd, keeping only TLS certificates.
 
@@ -142,10 +204,20 @@ def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
             print(f"No etcd snapshot at {db_path}, skipping cleanup")
         return False
 
-    if opts.o.debug:
-        print(f"Cleaning persisted etcd at {etcd_path}, keeping only TLS certs")
+    etcd_image = _read_etcd_image_ref(etcd_path)
+    if not etcd_image:
+        print(
+            f"Warning: etcd data at {etcd_path} but no image ref file "
+            f"({_etcd_image_ref_path(etcd_path)}); skipping cleanup"
+        )
+        return False
 
-    etcd_image = "gcr.io/etcd-development/etcd:v3.5.9"
+    if opts.o.debug:
+        print(
+            f"Cleaning persisted etcd at {etcd_path} using {etcd_image}, "
+            "keeping only TLS certs"
+        )
+
     temp_dir = "/tmp/laconic-etcd-cleanup"
 
     # Whitelist: prefixes to KEEP - everything else gets deleted.
@@ -306,6 +378,12 @@ def create_cluster(name: str, config_file: str):
     result = _run_command(f"kind create cluster --name {name} --config {config_file}")
     if result.returncode != 0:
         raise DeployerException(f"kind create cluster failed: {result}")
+
+    # Persist the etcd image ref so future _clean_etcd_keeping_certs calls
+    # use a version that matches the on-disk format kind is writing now.
+    if etcd_path:
+        _capture_etcd_image(name, etcd_path)
+
     return name
 
 

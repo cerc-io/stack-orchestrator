@@ -1,0 +1,96 @@
+# Caddy cert backup CronJob.
+# Periodically exports Secrets labeled manager=caddy (the Let's Encrypt
+# TLS certs issued by the Caddy ingress controller) to a hostPath under
+# {kind-mount-root}/caddy-cert-backup/ so they survive `kind delete`.
+# On subsequent cluster creates, SO restores this file before Caddy starts.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: caddy-cert-backup
+  namespace: caddy-system
+  labels:
+    app.kubernetes.io/name: caddy-cert-backup
+    app.kubernetes.io/instance: caddy-ingress
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: caddy-cert-backup
+  namespace: caddy-system
+  labels:
+    app.kubernetes.io/name: caddy-cert-backup
+    app.kubernetes.io/instance: caddy-ingress
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: caddy-cert-backup
+  namespace: caddy-system
+  labels:
+    app.kubernetes.io/name: caddy-cert-backup
+    app.kubernetes.io/instance: caddy-ingress
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: caddy-cert-backup
+subjects:
+  - kind: ServiceAccount
+    name: caddy-cert-backup
+    namespace: caddy-system
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: caddy-cert-backup
+  namespace: caddy-system
+  labels:
+    app.kubernetes.io/name: caddy-cert-backup
+    app.kubernetes.io/instance: caddy-ingress
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: caddy-cert-backup
+            app.kubernetes.io/instance: caddy-ingress
+        spec:
+          serviceAccountName: caddy-cert-backup
+          restartPolicy: OnFailure
+          nodeSelector:
+            ingress-ready: "true"
+          tolerations:
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/master
+              operator: Equal
+            - effect: NoSchedule
+              key: node-role.kubernetes.io/control-plane
+              operator: Equal
+          containers:
+            - name: backup
+              image: bitnami/kubectl:latest
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  kubectl get secret -n caddy-system -l manager=caddy -o yaml \
+                    > /backup/caddy-secrets.yaml.tmp
+                  mv /backup/caddy-secrets.yaml.tmp /backup/caddy-secrets.yaml
+                  echo "Wrote $(wc -l < /backup/caddy-secrets.yaml) lines to /backup/caddy-secrets.yaml"
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              hostPath:
+                path: /mnt/caddy-cert-backup
+                type: DirectoryOrCreate

@@ -17,10 +17,8 @@ from kubernetes import client, utils, watch
 from kubernetes.client.exceptions import ApiException
 import os
 from pathlib import Path
-import shlex
 import subprocess
 import re
-import time
 from typing import Set, Mapping, List, Optional, cast
 import yaml
 
@@ -100,255 +98,122 @@ def _run_command(command: str):
     return result
 
 
-def _get_etcd_host_path_from_kind_config(config_file: str) -> Optional[str]:
-    """Extract etcd host path from kind config extraMounts."""
-    import yaml
-
-    try:
-        with open(config_file, "r") as f:
-            config = yaml.safe_load(f)
-    except Exception:
-        return None
-
-    nodes = config.get("nodes", [])
-    for node in nodes:
-        extra_mounts = node.get("extraMounts", [])
-        for mount in extra_mounts:
-            if mount.get("containerPath") == "/var/lib/etcd":
-                return mount.get("hostPath")
-    return None
+def _caddy_cert_backup_file(kind_mount_root: str) -> Path:
+    """Host path of the serialized caddy-system Secrets backup."""
+    return Path(kind_mount_root) / "caddy-cert-backup" / "caddy-secrets.yaml"
 
 
-def _etcd_image_ref_path(etcd_path: str) -> Path:
-    """Location of the persisted etcd image reference file."""
-    return Path(etcd_path).parent / "etcd-image.txt"
+def _read_caddy_cert_backup(kind_mount_root: str) -> Optional[str]:
+    """Read the caddy cert backup file.
 
-
-def _capture_etcd_image(cluster_name: str, etcd_path: str) -> bool:
-    """Persist the etcd image ref from a running Kind cluster.
-
-    Kind runs etcd as a static pod via containerd inside the node container.
-    We query crictl to discover which etcd image the current Kind version
-    uses, then write it alongside the etcd backup so future
-    ``_clean_etcd_keeping_certs`` calls use a matching version (avoiding
-    on-disk format skew between etcd releases).
+    The file is written by the in-cluster backup CronJob running as root
+    (via kubectl image), so it lands on the host owned by root. Read it
+    through an alpine container to sidestep permissions.
     """
-    node_name = f"{cluster_name}-control-plane"
-    query_cmd = (
-        f"docker exec {node_name} crictl images 2>/dev/null "
-        "| awk '/etcd/ {print $1\":\"$2; exit}'"
-    )
-    image_ref = ""
-    for _ in range(15):
-        result = subprocess.run(query_cmd, shell=True, capture_output=True, text=True)
-        image_ref = result.stdout.strip()
-        if image_ref:
-            break
-        time.sleep(1)
-
-    if not image_ref:
-        print(f"Warning: could not capture etcd image ref from {node_name}")
-        return False
-
-    image_file = _etcd_image_ref_path(etcd_path)
-    write_cmd = (
-        f"docker run --rm -v {image_file.parent}:/work alpine:3.19 "
-        f"sh -c 'echo {shlex.quote(image_ref)} > /work/{image_file.name}'"
-    )
-    result = subprocess.run(write_cmd, shell=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"Warning: failed to write {image_file}: {result.stderr}")
-        return False
-
-    if opts.o.debug:
-        print(f"Captured etcd image: {image_ref} -> {image_file}")
-    return True
-
-
-def _read_etcd_image_ref(etcd_path: str) -> Optional[str]:
-    """Read etcd image ref persisted by a prior cluster create."""
-    image_file = _etcd_image_ref_path(etcd_path)
+    backup_file = _caddy_cert_backup_file(kind_mount_root)
     read_cmd = (
-        f"docker run --rm -v {image_file.parent}:/work:ro alpine:3.19 "
-        f"cat /work/{image_file.name}"
+        f"docker run --rm -v {backup_file.parent}:/work:ro alpine:3.19 "
+        f"sh -c 'test -f /work/{backup_file.name} && cat /work/{backup_file.name} "
+        "|| true'"
     )
     result = subprocess.run(read_cmd, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
+        print(f"Warning: could not read {backup_file}: {result.stderr.strip()}")
         return None
-    ref = result.stdout.strip()
-    return ref or None
+    content = result.stdout
+    return content if content.strip() else None
 
 
-def _clean_etcd_keeping_certs(etcd_path: str) -> bool:
-    """Clean persisted etcd, keeping only TLS certificates.
+def _restore_caddy_certs(kind_mount_root: Optional[str]) -> None:
+    """Restore manager=caddy Secrets from a prior cluster's backup.
 
-    When etcd is persisted and a cluster is recreated, kind tries to install
-    resources fresh but they already exist. Instead of trying to delete
-    specific stale resources (blacklist), we keep only the valuable data
-    (caddy TLS certs) and delete everything else (whitelist approach).
-
-    The etcd image is distroless (no shell), so we extract the statically-linked
-    etcdctl binary and run it from alpine which has shell support.
-
-    Returns True if cleanup succeeded, False if no action needed or failed.
+    Runs BEFORE the Caddy ingress controller Deployment is applied. Caddy's
+    secret_store driver reads existing certs at startup and skips ACME for
+    any domain whose cert is already present — so restoring here avoids
+    Let's Encrypt calls (and rate limits) on cluster recreate.
     """
-    db_path = Path(etcd_path) / "member" / "snap" / "db"
-    # Check existence using docker since etcd dir is root-owned
-    check_cmd = (
-        f"docker run --rm -v {etcd_path}:/etcd:ro alpine:3.19 "
-        "test -f /etcd/member/snap/db"
+    if not kind_mount_root:
+        return
+    content = _read_caddy_cert_backup(kind_mount_root)
+    if not content:
+        if opts.o.debug:
+            print(
+                f"No caddy cert backup at {_caddy_cert_backup_file(kind_mount_root)}, "
+                "skipping restore"
+            )
+        return
+
+    try:
+        backup = yaml.safe_load(content)
+    except yaml.YAMLError as e:
+        print(f"Warning: invalid caddy cert backup yaml: {e}")
+        return
+
+    # `kubectl get -o yaml` wraps results in a List kind.
+    items = backup.get("items", []) if isinstance(backup, dict) else []
+    if not items:
+        if opts.o.debug:
+            print("Caddy cert backup has no items, skipping restore")
+        return
+
+    # Strip server-managed metadata so the objects apply cleanly on a
+    # freshly-minted cluster.
+    stale_fields = (
+        "resourceVersion",
+        "uid",
+        "creationTimestamp",
+        "selfLink",
+        "generation",
+        "managedFields",
     )
-    check_result = subprocess.run(check_cmd, shell=True, capture_output=True)
-    if check_result.returncode != 0:
+    for item in items:
+        meta = item.get("metadata", {})
+        for field in stale_fields:
+            meta.pop(field, None)
+
+    core_api = client.CoreV1Api()
+    restored = 0
+    for item in items:
+        name = item.get("metadata", {}).get("name", "<unnamed>")
+        try:
+            core_api.create_namespaced_secret(namespace="caddy-system", body=item)
+            restored += 1
+            if opts.o.debug:
+                print(f"  Restored secret: {name}")
+        except ApiException as e:
+            if e.status == 409:
+                try:
+                    core_api.replace_namespaced_secret(
+                        name=name, namespace="caddy-system", body=item
+                    )
+                    restored += 1
+                    if opts.o.debug:
+                        print(f"  Updated secret: {name}")
+                except ApiException as e2:
+                    print(f"Warning: failed to replace caddy secret {name}: {e2}")
+            else:
+                print(f"Warning: failed to restore caddy secret {name}: {e}")
+    print(f"Restored {restored}/{len(items)} caddy cert secret(s)")
+
+
+def _install_caddy_cert_backup(
+    api_client: client.ApiClient, kind_mount_root: Optional[str]
+) -> None:
+    """Deploy the CronJob that snapshots manager=caddy secrets to disk."""
+    if not kind_mount_root:
         if opts.o.debug:
-            print(f"No etcd snapshot at {db_path}, skipping cleanup")
-        return False
-
-    etcd_image = _read_etcd_image_ref(etcd_path)
-    if not etcd_image:
-        print(
-            f"Warning: etcd data at {etcd_path} but no image ref file "
-            f"({_etcd_image_ref_path(etcd_path)}); skipping cleanup"
+            print("No kind-mount-root configured; caddy cert backup disabled")
+        return
+    manifest = os.path.abspath(
+        get_k8s_dir().joinpath(
+            "components", "ingress", "caddy-cert-backup.yaml"
         )
-        return False
-
+    )
+    with open(manifest) as f:
+        objects = list(yaml.safe_load_all(f))
+    utils.create_from_yaml(api_client, yaml_objects=objects)
     if opts.o.debug:
-        print(
-            f"Cleaning persisted etcd at {etcd_path} using {etcd_image}, "
-            "keeping only TLS certs"
-        )
-
-    temp_dir = "/tmp/laconic-etcd-cleanup"
-
-    # Whitelist: prefixes to KEEP - everything else gets deleted.
-    # Must include core cluster resources (kubernetes service, kube-system
-    # secrets) or kindnet panics on restart — KUBERNETES_SERVICE_HOST is
-    # injected from the kubernetes ClusterIP service in default namespace.
-    keep_prefixes = [
-        "/registry/secrets/caddy-system",
-        "/registry/services/specs/default/kubernetes",
-        "/registry/services/endpoints/default/kubernetes",
-    ]
-    keep_prefixes_str = " ".join(keep_prefixes)
-
-    # The etcd image is distroless (no shell). We extract the statically-linked
-    # etcdctl binary and run it from alpine which has shell + jq support.
-    cleanup_script = f"""
-        set -e
-        ALPINE_IMAGE="alpine:3.19"
-
-        # Cleanup previous runs
-        docker rm -f laconic-etcd-cleanup 2>/dev/null || true
-        docker rm -f etcd-extract 2>/dev/null || true
-        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE rm -rf {temp_dir}
-
-        # Create temp dir
-        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE mkdir -p {temp_dir}
-
-        # Extract etcdctl binary (it's statically linked)
-        docker create --name etcd-extract {etcd_image}
-        docker cp etcd-extract:/usr/local/bin/etcdctl /tmp/etcdctl-bin
-        docker rm etcd-extract
-        docker run --rm -v /tmp/etcdctl-bin:/src:ro -v {temp_dir}:/dst $ALPINE_IMAGE \
-            sh -c "cp /src /dst/etcdctl && chmod +x /dst/etcdctl"
-
-        # Copy db to temp location
-        docker run --rm \
-            -v {etcd_path}:/etcd:ro \
-            -v {temp_dir}:/tmp-work \
-            $ALPINE_IMAGE cp /etcd/member/snap/db /tmp-work/etcd-snapshot.db
-
-        # Restore snapshot
-        docker run --rm -v {temp_dir}:/work {etcd_image} \
-            etcdutl snapshot restore /work/etcd-snapshot.db \
-                --data-dir=/work/etcd-data --skip-hash-check 2>/dev/null
-
-        # Start temp etcd (runs the etcd binary, no shell needed)
-        docker run -d --name laconic-etcd-cleanup \
-            -v {temp_dir}/etcd-data:/etcd-data \
-            -v {temp_dir}:/backup \
-            {etcd_image} etcd \
-                --data-dir=/etcd-data \
-                --listen-client-urls=http://0.0.0.0:2379 \
-                --advertise-client-urls=http://localhost:2379
-
-        sleep 3
-
-        # Use alpine with extracted etcdctl to run commands (alpine has shell + jq)
-        # Export whitelisted keys (caddy TLS certs + core cluster services)
-        docker run --rm \
-            -v {temp_dir}:/backup \
-            --network container:laconic-etcd-cleanup \
-            $ALPINE_IMAGE sh -c '
-                apk add --no-cache jq >/dev/null 2>&1
-                echo "[]" > /backup/all-kvs.json
-                for prefix in {keep_prefixes_str}; do
-                    /backup/etcdctl get --prefix "$prefix" -w json 2>/dev/null \
-                        | jq ".kvs // []" >> /backup/all-kvs.json || true
-                done
-                jq -s "add" /backup/all-kvs.json \
-                    | jq "{{kvs: .}}" > /backup/kept.json 2>/dev/null \
-                    || echo "{{}}" > /backup/kept.json
-            '
-
-        # Delete ALL registry keys
-        docker run --rm \
-            -v {temp_dir}:/backup \
-            --network container:laconic-etcd-cleanup \
-            $ALPINE_IMAGE /backup/etcdctl del --prefix /registry
-
-        # Restore kept keys using jq
-        docker run --rm \
-            -v {temp_dir}:/backup \
-            --network container:laconic-etcd-cleanup \
-            $ALPINE_IMAGE sh -c '
-                apk add --no-cache jq >/dev/null 2>&1
-                jq -r ".kvs[] | @base64" /backup/kept.json 2>/dev/null | \
-                while read encoded; do
-                    key=$(echo $encoded | base64 -d | jq -r ".key" | base64 -d)
-                    val=$(echo $encoded | base64 -d | jq -r ".value" | base64 -d)
-                    echo "$val" | /backup/etcdctl put "$key"
-                done
-            ' || true
-
-        # Save cleaned snapshot
-        docker exec laconic-etcd-cleanup \
-            etcdctl snapshot save /etcd-data/cleaned-snapshot.db
-
-        docker stop laconic-etcd-cleanup
-        docker rm laconic-etcd-cleanup
-
-        # Restore to temp location first to verify it works
-        docker run --rm \
-            -v {temp_dir}/etcd-data/cleaned-snapshot.db:/data/db:ro \
-            -v {temp_dir}:/restore \
-            {etcd_image} \
-            etcdutl snapshot restore /data/db --data-dir=/restore/new-etcd \
-            --skip-hash-check 2>/dev/null
-
-        # Create timestamped backup of original (kept forever)
-        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-        docker run --rm -v {etcd_path}:/etcd $ALPINE_IMAGE \
-            cp -a /etcd/member /etcd/member.backup-$TIMESTAMP
-
-        # Replace original with cleaned version
-        docker run --rm -v {etcd_path}:/etcd -v {temp_dir}:/tmp-work $ALPINE_IMAGE \
-            sh -c "rm -rf /etcd/member && mv /tmp-work/new-etcd/member /etcd/member"
-
-        # Cleanup temp files (but NOT the timestamped backup in etcd_path)
-        docker run --rm -v /tmp:/tmp $ALPINE_IMAGE rm -rf {temp_dir}
-        rm -f /tmp/etcdctl-bin
-    """
-
-    result = subprocess.run(cleanup_script, shell=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        if opts.o.debug:
-            print(f"Warning: etcd cleanup failed: {result.stderr}")
-        return False
-
-    if opts.o.debug:
-        print("Cleaned etcd, kept only TLS certificates")
-    return True
+        print("Installed caddy cert backup CronJob")
 
 
 def create_cluster(name: str, config_file: str):
@@ -369,21 +234,10 @@ def create_cluster(name: str, config_file: str):
         print(f"Using existing cluster: {existing}")
         return existing
 
-    # Clean persisted etcd, keeping only TLS certificates
-    etcd_path = _get_etcd_host_path_from_kind_config(config_file)
-    if etcd_path:
-        _clean_etcd_keeping_certs(etcd_path)
-
     print(f"Creating new cluster: {name}")
     result = _run_command(f"kind create cluster --name {name} --config {config_file}")
     if result.returncode != 0:
         raise DeployerException(f"kind create cluster failed: {result}")
-
-    # Persist the etcd image ref so future _clean_etcd_keeping_certs calls
-    # use a version that matches the on-disk format kind is writing now.
-    if etcd_path:
-        _capture_etcd_image(name, etcd_path)
-
     return name
 
 
@@ -439,7 +293,9 @@ def wait_for_ingress_in_kind():
     error_exit("ERROR: Timed out waiting for Caddy ingress to become ready")
 
 
-def install_ingress_for_kind(acme_email: str = ""):
+def install_ingress_for_kind(
+    acme_email: str = "", kind_mount_root: Optional[str] = None
+):
     api_client = client.ApiClient()
     ingress_install = os.path.abspath(
         get_k8s_dir().joinpath(
@@ -458,9 +314,23 @@ def install_ingress_for_kind(acme_email: str = ""):
         if opts.o.debug:
             print(f"Configured Caddy with ACME email: {acme_email}")
 
-    # Apply templated YAML
     yaml_objects = list(yaml.safe_load_all(yaml_content))
-    utils.create_from_yaml(api_client, yaml_objects=yaml_objects)
+
+    # Split: apply everything except the Caddy controller Deployment first,
+    # so the namespace + secrets exist before the pod can start and read its
+    # secret_store. Race-free: Caddy has no way to see the cluster until
+    # its Deployment object is created in Phase 3.
+    def _is_caddy_deployment(o):
+        return (
+            o.get("kind") == "Deployment"
+            and o.get("metadata", {}).get("name") == "caddy-ingress-controller"
+        )
+
+    pre_deployment = [o for o in yaml_objects if not _is_caddy_deployment(o)]
+    caddy_deployment = [o for o in yaml_objects if _is_caddy_deployment(o)]
+
+    # Phase 1: namespace, SA, RBAC, ConfigMap, Service, IngressClass
+    utils.create_from_yaml(api_client, yaml_objects=pre_deployment)
 
     # Patch ConfigMap with ACME email if provided
     if acme_email:
@@ -476,6 +346,16 @@ def install_ingress_for_kind(acme_email: str = ""):
             namespace="caddy-system",
             body=configmap,
         )
+
+    # Phase 2: restore caddy cert secrets before Caddy can start
+    _restore_caddy_certs(kind_mount_root)
+
+    # Phase 3: start Caddy (reads restored secrets on startup)
+    utils.create_from_yaml(api_client, yaml_objects=caddy_deployment)
+
+    # Install the backup CronJob last — it targets the same namespace and
+    # depends on nothing in the Caddy Deployment.
+    _install_caddy_cert_backup(api_client, kind_mount_root)
 
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
@@ -675,29 +555,6 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_host_path_map = _get_host_paths_for_volumes(deployment_context)
     seen_host_path_mounts = set()  # Track to avoid duplicate mounts
     kind_mount_root = deployment_context.spec.get_kind_mount_root()
-
-    # Cluster state backup for offline data recovery (unique per deployment)
-    # etcd contains all k8s state; PKI certs needed to decrypt etcd offline
-    deployment_id = deployment_context.id
-    backup_subdir = f"cluster-backups/{deployment_id}"
-
-    etcd_host_path = _make_absolute_host_path(
-        Path(f"./data/{backup_subdir}/etcd"), deployment_dir
-    )
-    volume_definitions.append(
-        f"  - hostPath: {etcd_host_path}\n"
-        f"    containerPath: /var/lib/etcd\n"
-        f"    propagation: HostToContainer\n"
-    )
-
-    pki_host_path = _make_absolute_host_path(
-        Path(f"./data/{backup_subdir}/pki"), deployment_dir
-    )
-    volume_definitions.append(
-        f"  - hostPath: {pki_host_path}\n"
-        f"    containerPath: /etc/kubernetes/pki\n"
-        f"    propagation: HostToContainer\n"
-    )
 
     # When kind-mount-root is set, emit a single extraMount for the root.
     # Individual volumes whose host path starts with the root are covered

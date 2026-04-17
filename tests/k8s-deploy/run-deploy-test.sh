@@ -83,6 +83,9 @@ assert_no_labeled_resources () {
 TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
 # Set a non-default repo dir
 export CERC_REPO_BASE_DIR=~/stack-orchestrator-test/repo-base-dir
+# kind-mount-root is cluster-level infra, independent of any deployment dir.
+# Previous runs' CronJob wrote files here as root via the Kind bind mount.
+export KIND_MOUNT_ROOT=~/stack-orchestrator-test/kind-mount
 echo "Testing this package: $TEST_TARGET_SO"
 echo "Test version command"
 reported_version_string=$( $TEST_TARGET_SO version )
@@ -90,6 +93,8 @@ echo "Version reported is: ${reported_version_string}"
 echo "Cloning repositories into: $CERC_REPO_BASE_DIR"
 rm -rf $CERC_REPO_BASE_DIR
 mkdir -p $CERC_REPO_BASE_DIR
+sudo rm -rf $KIND_MOUNT_ROOT
+mkdir -p $KIND_MOUNT_ROOT
 $TEST_TARGET_SO --stack test setup-repositories
 $TEST_TARGET_SO --stack test build-containers
 # Test basic stack-orchestrator deploy to k8s
@@ -106,6 +111,9 @@ echo "deploy init test: passed"
 
 # Switch to a full path for bind mount.
 sed -i "s|^\(\s*test-data-bind:$\)$|\1 ${test_deployment_dir}/data/test-data-bind|" $test_deployment_spec
+
+# Enable caddy cert backup by setting kind-mount-root.
+echo "kind-mount-root: $KIND_MOUNT_ROOT" >> $test_deployment_spec
 
 $TEST_TARGET_SO --stack test deploy create --spec-file $test_deployment_spec --deployment-dir $test_deployment_dir
 # Check the deployment dir exists
@@ -148,6 +156,16 @@ echo "deploy create output file test: passed"
 # because 'start' defaults to --skip-cluster-management)
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start --perform-cluster-management
 wait_for_pods_started
+
+# Caddy cert backup install: CronJob + RBAC should exist in caddy-system
+for kind in serviceaccount role rolebinding cronjob; do
+    if ! kubectl get $kind caddy-cert-backup -n caddy-system >/dev/null 2>&1; then
+        echo "caddy-cert-backup $kind install test: FAILED"
+        cleanup_and_exit
+    fi
+done
+echo "caddy-cert-backup install test: passed"
+
 # Check logs command works
 wait_for_log_output
 sleep 1
@@ -292,7 +310,69 @@ else
     cleanup_and_exit
 fi
 
-# Full teardown: --delete-namespace nukes the namespace after labeled cleanup.
+# --- Caddy cert backup/restore E2E ---
+# Seed a fake cert secret in caddy-system (simulates an LE-issued cert).
+fake_cert_name="caddy.ingress--certificates.test-domain.test-domain.crt"
+fake_cert_value="fake-cert-$(date +%s)"
+kubectl create secret generic "$fake_cert_name" \
+    -n caddy-system \
+    --from-literal=value="$fake_cert_value"
+kubectl label secret "$fake_cert_name" -n caddy-system manager=caddy
+
+# Trigger the CronJob immediately (it fires every 5min on its own).
+kubectl create job --from=cronjob/caddy-cert-backup \
+    caddy-cert-backup-manual -n caddy-system
+if ! kubectl wait --for=condition=complete \
+    job/caddy-cert-backup-manual -n caddy-system --timeout=120s; then
+    echo "caddy cert backup job test: FAILED (job did not complete)"
+    echo "--- job description ---"
+    kubectl describe job/caddy-cert-backup-manual -n caddy-system || true
+    echo "--- pod list ---"
+    kubectl get pod -n caddy-system -l job-name=caddy-cert-backup-manual -o wide || true
+    echo "--- pod logs ---"
+    kubectl logs -n caddy-system -l job-name=caddy-cert-backup-manual --tail=200 || true
+    cleanup_and_exit
+fi
+
+# Backup file is root-owned (CronJob writes as root via kind bind mount).
+# The secret's data.value is base64-encoded in YAML output, so assert on
+# the secret name (which is plaintext in metadata). Value correctness is
+# verified in the restore phase after a round-trip decode.
+backup_file=$KIND_MOUNT_ROOT/caddy-cert-backup/caddy-secrets.yaml
+if ! sudo test -f "$backup_file"; then
+    echo "caddy cert backup file test: FAILED (missing $backup_file)"
+    cleanup_and_exit
+fi
+if ! sudo grep -q "$fake_cert_name" "$backup_file"; then
+    echo "caddy cert backup content test: FAILED (seeded secret not in backup)"
+    sudo head -50 "$backup_file" || true
+    cleanup_and_exit
+fi
+echo "caddy cert backup write test: passed"
+
+# Full teardown including Kind cluster — --perform-cluster-management on stop
+# destroys the cluster, simulating the "recreate from scratch" scenario.
+$TEST_TARGET_SO deployment --dir $test_deployment_dir \
+    stop --delete-volumes --delete-namespace --perform-cluster-management
+
+# Recreate: new Kind cluster, Caddy install should restore from backup BEFORE
+# the Caddy Deployment pod starts.
+$TEST_TARGET_SO deployment --dir $test_deployment_dir start --perform-cluster-management
+wait_for_pods_started
+
+if ! kubectl get secret "$fake_cert_name" -n caddy-system >/dev/null 2>&1; then
+    echo "caddy cert restore test: FAILED (secret missing from new cluster)"
+    cleanup_and_exit
+fi
+restored_value=$(kubectl get secret "$fake_cert_name" -n caddy-system \
+    -o jsonpath='{.data.value}' | base64 -d)
+if [ "$restored_value" != "$fake_cert_value" ]; then
+    echo "caddy cert restore test: FAILED (value mismatch: '$restored_value')"
+    cleanup_and_exit
+fi
+echo "caddy cert restore test: passed"
+
+# Final teardown: --delete-namespace nukes the namespace after labeled cleanup.
 # Verify the namespace is actually gone.
 $TEST_TARGET_SO deployment --dir $test_deployment_dir \
     stop --delete-volumes --delete-namespace --skip-cluster-management

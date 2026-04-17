@@ -790,7 +790,10 @@ class K8sDeployer(Deployer):
         self._ensure_namespace()
         if self.is_kind() and not self.skip_cluster_management:
             if not is_ingress_running():
-                install_ingress_for_kind(self.cluster_info.spec.get_acme_email())
+                install_ingress_for_kind(
+                    self.cluster_info.spec.get_acme_email(),
+                    self.cluster_info.spec.get_kind_mount_root(),
+                )
                 wait_for_ingress_in_kind()
             if self.cluster_info.spec.get_unlimited_memlock():
                 _create_runtime_class(

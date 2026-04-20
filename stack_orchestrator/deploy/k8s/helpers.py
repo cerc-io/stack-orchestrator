@@ -309,7 +309,7 @@ def check_mounts_compatible(cluster_name: str, config_file: str) -> None:
     if not mismatches:
         return
     lines = [
-        f"This deployment declares extraMounts that are not active on the "
+        f"This deployment declares extraMounts incompatible with the "
         f"running cluster '{cluster_name}':",
     ]
     for dest, want, have in mismatches:
@@ -317,21 +317,44 @@ def check_mounts_compatible(cluster_name: str, config_file: str) -> None:
             f"  - {dest}: expected host path '{want}', "
             f"actual '{have or 'NOT MOUNTED'}'"
         )
-    lines.extend(
-        [
-            "",
-            "Kind applies extraMounts only at cluster creation — neither "
-            "kind nor Docker supports adding bind mounts to a running "
-            "container. Without a recreate, any PV backed by one of the "
-            "missing mounts will silently fall through to the node's "
-            "overlay filesystem and lose data on cluster destroy.",
-            "",
-            "Fix: destroy and recreate the cluster with a kind-config that "
-            "includes an umbrella mount via 'kind-mount-root'. All stacks "
-            "sharing the cluster must agree on 'kind-mount-root' and place "
-            "their host paths under it. See docs/deployment_patterns.md.",
-        ]
-    )
+    lines.append("")
+
+    cluster_umbrella = live.get("/mnt")
+    if cluster_umbrella:
+        lines.extend(
+            [
+                f"The running cluster has an umbrella mount: "
+                f"'{cluster_umbrella}' -> /mnt.",
+                "",
+                f"Fix: set 'kind-mount-root: {cluster_umbrella}' in this "
+                "deployment's spec and place host paths for its volumes "
+                f"under '{cluster_umbrella}/'. Kind applies extraMounts "
+                "only at cluster creation, so new bind mounts cannot be "
+                "added to the running cluster without a recreate — but "
+                "the existing umbrella already covers any subdirectory "
+                "you create on the host.",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "The running cluster has no umbrella mount "
+                "(no extraMount with containerPath=/mnt).",
+                "",
+                "Kind applies extraMounts only at cluster creation — "
+                "neither kind nor Docker supports adding bind mounts to "
+                "a running container. Without a recreate, any PV backed "
+                "by one of the missing mounts will silently fall through "
+                "to the node's overlay filesystem and lose data on "
+                "cluster destroy.",
+                "",
+                "Fix: destroy and recreate the cluster with a kind-config "
+                "that sets 'kind-mount-root' so future stacks can share "
+                "an umbrella without recreating.",
+            ]
+        )
+    lines.append("")
+    lines.append("See docs/deployment_patterns.md.")
     raise DeployerException("\n".join(lines))
 
 

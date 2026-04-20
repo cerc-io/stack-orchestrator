@@ -26,6 +26,7 @@ from stack_orchestrator.deploy.deployer import (
     DeployerException,
 )
 from stack_orchestrator.deploy.k8s.helpers import (
+    check_mounts_compatible,
     create_cluster,
     destroy_cluster,
     get_kind_cluster,
@@ -818,6 +819,12 @@ class K8sDeployer(Deployer):
                     "fresh cluster (note: destroys the existing one if "
                     "names collide)."
                 )
+            # Mount topology applies regardless of who owns cluster
+            # lifecycle — validate here too.
+            kind_config = str(
+                self.deployment_dir.joinpath(constants.kind_config_filename)
+            )
+            check_mounts_compatible(existing, kind_config)
         self.connect_api()
         self._ensure_namespace()
         if self.is_kind() and not self.skip_cluster_management:

@@ -278,7 +278,7 @@ def _get_running_cluster_mounts(cluster_name: str) -> Dict[str, str]:
     }
 
 
-def _check_mounts_compatible(cluster_name: str, config_file: str) -> None:
+def check_mounts_compatible(cluster_name: str, config_file: str) -> None:
     """Fail if the new deployment's extraMounts aren't active on the cluster.
 
     Kind applies extraMounts only at cluster creation. When a deployment
@@ -370,7 +370,7 @@ def create_cluster(name: str, config_file: str):
     existing = get_kind_cluster()
     if existing:
         print(f"Using existing cluster: {existing}")
-        _check_mounts_compatible(existing, config_file)
+        check_mounts_compatible(existing, config_file)
         return existing
 
     _warn_if_no_umbrella(config_file)

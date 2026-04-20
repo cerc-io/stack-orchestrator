@@ -15,11 +15,13 @@
 
 from kubernetes import client, utils, watch
 from kubernetes.client.exceptions import ApiException
+import json
 import os
 from pathlib import Path
 import subprocess
 import re
-from typing import Set, Mapping, List, Optional, cast
+import sys
+from typing import Dict, Set, Mapping, List, Optional, cast
 import yaml
 
 from stack_orchestrator.util import get_k8s_dir, error_exit
@@ -216,6 +218,142 @@ def _install_caddy_cert_backup(
         print("Installed caddy cert backup CronJob")
 
 
+def _parse_kind_extra_mounts(config_file: str) -> List[Dict[str, str]]:
+    """Return the list of extraMounts declared in a kind config file."""
+    try:
+        with open(config_file) as f:
+            config = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError) as e:
+        if opts.o.debug:
+            print(f"Could not parse kind config {config_file}: {e}")
+        return []
+    mounts = []
+    for node in config.get("nodes", []) or []:
+        for m in node.get("extraMounts", []) or []:
+            host_path = m.get("hostPath")
+            container_path = m.get("containerPath")
+            if host_path and container_path:
+                mounts.append(
+                    {"hostPath": host_path, "containerPath": container_path}
+                )
+    return mounts
+
+
+def _get_control_plane_node(cluster_name: str) -> Optional[str]:
+    """Return the kind control-plane node container name for a cluster."""
+    result = subprocess.run(
+        ["kind", "get", "nodes", "--name", cluster_name],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.endswith("control-plane"):
+            return line
+    return None
+
+
+def _get_running_cluster_mounts(cluster_name: str) -> Dict[str, str]:
+    """Return {containerPath: hostPath} for bind mounts on the control-plane."""
+    node = _get_control_plane_node(cluster_name)
+    if not node:
+        return {}
+    result = subprocess.run(
+        ["docker", "inspect", node, "--format", "{{json .Mounts}}"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return {}
+    try:
+        mounts = json.loads(result.stdout or "[]")
+    except json.JSONDecodeError:
+        return {}
+    return {
+        m["Destination"]: m["Source"]
+        for m in mounts
+        if m.get("Type") == "bind" and m.get("Destination") and m.get("Source")
+    }
+
+
+def _check_mounts_compatible(cluster_name: str, config_file: str) -> None:
+    """Fail if the new deployment's extraMounts aren't active on the cluster.
+
+    Kind applies extraMounts only at cluster creation. When a deployment
+    joins an existing cluster, any extraMount its kind-config declares that
+    isn't already active on the running node will silently fall through to
+    the node's overlay filesystem — data looks persisted but is lost on
+    cluster destroy. Catch this up front.
+    """
+    required = _parse_kind_extra_mounts(config_file)
+    if not required:
+        return
+    live = _get_running_cluster_mounts(cluster_name)
+    if not live:
+        # Could not inspect — don't block deployment, but warn.
+        print(
+            f"WARNING: could not inspect mounts on cluster '{cluster_name}'; "
+            "skipping extraMount compatibility check",
+            file=sys.stderr,
+        )
+        return
+    mismatches = []
+    for m in required:
+        dest = m["containerPath"]
+        want = m["hostPath"]
+        have = live.get(dest)
+        if have != want:
+            mismatches.append((dest, want, have))
+    if not mismatches:
+        return
+    lines = [
+        f"This deployment declares extraMounts that are not active on the "
+        f"running cluster '{cluster_name}':",
+    ]
+    for dest, want, have in mismatches:
+        lines.append(
+            f"  - {dest}: expected host path '{want}', "
+            f"actual '{have or 'NOT MOUNTED'}'"
+        )
+    lines.extend(
+        [
+            "",
+            "Kind applies extraMounts only at cluster creation — neither "
+            "kind nor Docker supports adding bind mounts to a running "
+            "container. Without a recreate, any PV backed by one of the "
+            "missing mounts will silently fall through to the node's "
+            "overlay filesystem and lose data on cluster destroy.",
+            "",
+            "Fix: destroy and recreate the cluster with a kind-config that "
+            "includes an umbrella mount via 'kind-mount-root'. All stacks "
+            "sharing the cluster must agree on 'kind-mount-root' and place "
+            "their host paths under it. See docs/deployment_patterns.md.",
+        ]
+    )
+    raise DeployerException("\n".join(lines))
+
+
+def _warn_if_no_umbrella(config_file: str) -> None:
+    """Warn if creating a cluster without a '/mnt' umbrella mount.
+
+    Without an umbrella, future stacks joining this cluster that need new
+    host-path mounts will fail the compatibility check and require a full
+    cluster recreate to add them.
+    """
+    mounts = _parse_kind_extra_mounts(config_file)
+    if any(m.get("containerPath") == "/mnt" for m in mounts):
+        return
+    print(
+        "WARNING: creating kind cluster without an umbrella mount "
+        "('kind-mount-root' not set). Future stacks added to this cluster "
+        "that require new host-path mounts will not be able to without a "
+        "full cluster recreate. See docs/deployment_patterns.md.",
+        file=sys.stderr,
+    )
+
+
 def create_cluster(name: str, config_file: str):
     """Create or reuse the single kind cluster for this host.
 
@@ -232,8 +370,10 @@ def create_cluster(name: str, config_file: str):
     existing = get_kind_cluster()
     if existing:
         print(f"Using existing cluster: {existing}")
+        _check_mounts_compatible(existing, config_file)
         return existing
 
+    _warn_if_no_umbrella(config_file)
     print(f"Creating new cluster: {name}")
     result = _run_command(f"kind create cluster --name {name} --config {config_file}")
     if result.returncode != 0:

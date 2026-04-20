@@ -164,6 +164,9 @@ To stop a single deployment without affecting the cluster:
 laconic-so deployment --dir my-deployment stop --skip-cluster-management
 ```
 
+Stacks sharing a cluster must agree on mount topology. See
+[Volume Persistence in k8s-kind](#volume-persistence-in-k8s-kind).
+
 ## Volume Persistence in k8s-kind
 
 k8s-kind has 3 storage layers:
@@ -172,7 +175,9 @@ k8s-kind has 3 storage layers:
 - **Kind Node**: A Docker container simulating a k8s node
 - **Pod Container**: Your workload
 
-For k8s-kind, volumes with paths are mounted from Docker Host → Kind Node → Pod via extraMounts.
+Volumes with paths are mounted from Docker Host → Kind Node → Pod via kind
+`extraMounts`. Kind applies `extraMounts` only at cluster creation — they
+cannot be added to a running cluster.
 
 | spec.yml volume | Storage Location | Survives Pod Restart | Survives Cluster Restart |
 |-----------------|------------------|---------------------|-------------------------|
@@ -200,3 +205,51 @@ Empty-path volumes appear persistent because they survive pod restarts (data liv
 in Kind Node container). However, this data is lost when the kind cluster is
 recreated. This "false persistence" has caused data loss when operators assumed
 their data was safe.
+
+### Shared Clusters: Use `kind-mount-root`
+
+Because kind `extraMounts` can only be set at cluster creation, the first
+deployment to start locks in the mount topology. Later deployments that
+declare new `extraMounts` have them silently ignored — their PVs fall
+through to the kind node's overlay filesystem and lose data on cluster
+destroy.
+
+The fix is an umbrella mount. Set `kind-mount-root` in the spec, pointing
+at a host directory all stacks will share:
+
+```yaml
+# spec.yml
+kind-mount-root: /srv/kind
+
+volumes:
+  my-data: /srv/kind/my-stack/data   # visible at /mnt/my-stack/data in-node
+```
+
+SO emits a single `extraMount` (`<kind-mount-root>` → `/mnt`). Any new
+host subdirectory under the root is visible in the node immediately — no
+cluster recreate needed to add stacks.
+
+**All stacks sharing a cluster must agree on `kind-mount-root`** and keep
+their host paths under it.
+
+### Mount Compatibility Enforcement
+
+`laconic-so deployment start` validates mount topology:
+
+- **On first cluster creation** without an umbrella mount: prints a
+  warning (future stacks may require a full recreate to add mounts).
+- **On cluster reuse**: compares the new deployment's `extraMounts`
+  against the live mounts on the control-plane container. Any mismatch
+  (wrong host path, or mount missing) fails the deploy.
+
+### Migrating an Existing Cluster
+
+If a cluster was created without an umbrella mount and you need to add a
+stack that requires new host-path mounts, the cluster must be recreated:
+
+1. Back up ephemeral state (DBs, caches) from PVs that lack host mounts —
+   these are in the kind node overlay FS and do not survive `kind delete`.
+2. Update every stack's spec to set a shared `kind-mount-root` and place
+   host paths under it.
+3. Stop all deployments, destroy the cluster, recreate it by starting any
+   stack (umbrella now active), and restore state.

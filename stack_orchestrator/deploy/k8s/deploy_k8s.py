@@ -20,10 +20,15 @@ from kubernetes.client.exceptions import ApiException
 from typing import Any, Dict, List, Optional, cast
 
 from stack_orchestrator import constants
-from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
+from stack_orchestrator.deploy.deployer import (
+    Deployer,
+    DeployerConfigGenerator,
+    DeployerException,
+)
 from stack_orchestrator.deploy.k8s.helpers import (
     create_cluster,
     destroy_cluster,
+    get_kind_cluster,
     load_images_into_kind,
 )
 from stack_orchestrator.deploy.k8s.helpers import (
@@ -786,6 +791,33 @@ class K8sDeployer(Deployer):
                 }
                 if local_images:
                     load_images_into_kind(self.kind_cluster_name, local_images)
+        elif self.is_kind():
+            # --skip-cluster-management (default): cluster must already exist.
+            # Without this check, connect_api() below raises a cryptic
+            # kubernetes.config.ConfigException when the context is missing.
+            existing = get_kind_cluster()
+            if existing is None:
+                raise DeployerException(
+                    f"No kind cluster is running. This deployment expects "
+                    f"cluster '{self.kind_cluster_name}' to exist.\n"
+                    "\n"
+                    "--skip-cluster-management is the default; pass "
+                    "--perform-cluster-management to have laconic-so "
+                    "create the cluster, or start it manually first."
+                )
+            if existing != self.kind_cluster_name:
+                raise DeployerException(
+                    f"Running kind cluster '{existing}' does not match the "
+                    f"cluster-id '{self.kind_cluster_name}' in "
+                    f"{self.deployment_dir}/deployment.yml.\n"
+                    "\n"
+                    "Fix by either:\n"
+                    "  - editing deployment.yml to set "
+                    f"cluster-id: {existing}, or\n"
+                    "  - passing --perform-cluster-management to create a "
+                    "fresh cluster (note: destroys the existing one if "
+                    "names collide)."
+                )
         self.connect_api()
         self._ensure_namespace()
         if self.is_kind() and not self.skip_cluster_management:

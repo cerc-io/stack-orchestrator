@@ -15,6 +15,7 @@
 
 import os
 import base64
+from pathlib import Path
 
 from kubernetes import client
 from typing import Any, List, Optional, Set
@@ -22,7 +23,10 @@ from typing import Any, List, Optional, Set
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import env_var_map_from_file
 from stack_orchestrator.deploy.k8s.helpers import (
+    is_host_path_mount,
     named_volumes_from_pod_files,
+    resolve_host_path_for_kind,
+    sanitize_host_path_to_volume_name,
     volume_mounts_for_service,
     volumes_for_pod_files,
 )
@@ -433,7 +437,90 @@ class ClusterInfo:
                 binary_data=data,
             )
             result.append(spec)
+
+        # Auto-generated ConfigMaps for file-level and flat-dir host-path
+        # compose volumes. Avoids the aliasing failure mode where two
+        # deployments sharing a cluster would collide at the same kind
+        # node path — each deployment gets its own namespace-scoped
+        # ConfigMap instead. See docs/deployment_patterns.md.
+        result.extend(self._host_path_bind_configmaps())
         return result
+
+    def _host_path_bind_configmaps(self) -> List[client.V1ConfigMap]:
+        """Build V1ConfigMap objects for host-path compose volumes.
+
+        Walks every service in every parsed pod/job compose file. For each
+        volume whose source is a host path (starts with /, ., or ~),
+        reads the resolved file or flat directory from the deployment
+        directory and packages it as a V1ConfigMap.
+
+        Dedupes by sanitized name across pods and services — a source
+        referenced from N places yields one ConfigMap.
+        """
+        if self.spec.file_path is None:
+            return []
+        deployment_dir = Path(self.spec.file_path).parent
+        seen: Set[str] = set()
+        result: List[client.V1ConfigMap] = []
+
+        all_pod_maps = [self.parsed_pod_yaml_map, self.parsed_job_yaml_map]
+        for pod_map in all_pod_maps:
+            for _pod_key, pod in pod_map.items():
+                services = pod.get("services") or {}
+                for _svc_name, svc in services.items():
+                    for mount_string in svc.get("volumes") or []:
+                        parts = mount_string.split(":")
+                        if len(parts) < 2:
+                            continue
+                        src = parts[0]
+                        if not is_host_path_mount(src):
+                            continue
+                        sanitized = sanitize_host_path_to_volume_name(src)
+                        if sanitized in seen:
+                            continue
+                        seen.add(sanitized)
+                        abs_src = resolve_host_path_for_kind(
+                            src, deployment_dir
+                        )
+                        data = self._read_host_path_source(abs_src, mount_string)
+                        cm = client.V1ConfigMap(
+                            metadata=client.V1ObjectMeta(
+                                name=f"{self.app_name}-{sanitized}",
+                                labels=self._stack_labels(
+                                    {"configmap-label": sanitized}
+                                ),
+                            ),
+                            binary_data=data,
+                        )
+                        result.append(cm)
+        return result
+
+    def _read_host_path_source(
+        self, abs_src: Path, mount_string: str
+    ) -> dict:
+        """Read file or flat-directory content for a host-path ConfigMap.
+
+        Validates shape at read time as a defensive second check — the
+        same rules are enforced earlier at `deploy create`, but deploy-
+        dir content may have been edited since then.
+        """
+        if not abs_src.exists():
+            raise RuntimeError(
+                f"Source for host-path compose volume does not exist: "
+                f"{abs_src} (volume: '{mount_string}')"
+            )
+        data = {}
+        if abs_src.is_file():
+            with open(abs_src, "rb") as f:
+                data[abs_src.name] = base64.b64encode(f.read()).decode("ASCII")
+        elif abs_src.is_dir():
+            for entry in abs_src.iterdir():
+                if entry.is_file():
+                    with open(entry, "rb") as f:
+                        data[entry.name] = base64.b64encode(f.read()).decode(
+                            "ASCII"
+                        )
+        return data
 
     def get_pvs(self):
         result = []
@@ -621,7 +708,13 @@ class ClusterInfo:
                     if self.spec.get_image_registry() is not None
                     else image
                 )
-                volume_mounts = volume_mounts_for_service(parsed_yaml_map, service_name)
+                volume_mounts = volume_mounts_for_service(
+                    parsed_yaml_map,
+                    service_name,
+                    Path(self.spec.file_path).parent
+                    if self.spec.file_path
+                    else None,
+                )
                 # Handle command/entrypoint from compose file
                 # In docker-compose: entrypoint -> k8s command, command -> k8s args
                 container_command = None

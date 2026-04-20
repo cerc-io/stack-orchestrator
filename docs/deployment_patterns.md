@@ -242,6 +242,55 @@ their host paths under it.
   against the live mounts on the control-plane container. Any mismatch
   (wrong host path, or mount missing) fails the deploy.
 
+### Static files in compose volumes → auto-ConfigMap
+
+Compose volumes that bind a host file or flat directory into a container
+(e.g. `../config/test/script.sh:/opt/run.sh`) are used to inject static
+content that ships with the stack. k8s doesn't have a native notion of
+this — the canonical way to inject static content is a ConfigMap.
+
+At `deploy start`, laconic-so auto-generates a namespace-scoped
+ConfigMap per host-path compose volume (deduped by source) and mounts
+it into the pod instead of routing the bind through the kind node:
+
+| Source shape | Behavior |
+|---|---|
+| Single file | ConfigMap with one key (the filename); pod mount uses `subPath` so the single key lands at the compose target path |
+| Flat directory (no subdirs, ≤ ~700 KiB) | ConfigMap with one key per file; pod mount exposes all keys at the target path |
+| Directory with subdirs, or over budget | Rejected at `deploy create` — embed in the container image, split into multiple ConfigMaps, or use an initContainer |
+| `:rw` on any host-path bind | Rejected at `deploy create` — use a named volume with a spec-configured host path for writable data |
+
+The deployment dir layout is unchanged: compose files stay verbatim and
+`spec.yml` is not rewritten. Source files remain under
+`{deployment_dir}/config/{pod}/` (as copied by `deploy create`); the
+ConfigMap is built from them at deploy start and no kind extraMount is
+emitted for these paths.
+
+This works identically on kind and real k8s (ConfigMaps are
+cluster-native; no node-side landing pad required), and two deployments
+of the same stack sharing a cluster get their own per-namespace
+ConfigMaps — no aliasing.
+
+### Writable / generated data → named volume + host path
+
+For volumes the workload *writes to* (databases, ledgers, caches, logs),
+use a named volume backed by a spec-configured host path under
+`kind-mount-root`:
+
+```yaml
+# compose
+volumes:
+  - my-data:/var/lib/foo
+
+# spec.yml
+kind-mount-root: /srv/kind
+volumes:
+  my-data: /srv/kind/my-stack/data
+```
+
+Works on both kind (via the umbrella mount) and real k8s (operator
+provisions `/srv/kind/my-stack/data` on each node).
+
 ### Migrating an Existing Cluster
 
 If a cluster was created without an umbrella mount and you need to add a

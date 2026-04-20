@@ -51,8 +51,10 @@ from stack_orchestrator.util import (
 )
 from stack_orchestrator.deploy.spec import Spec
 from stack_orchestrator.deploy.deploy_types import LaconicStackSetupCommand
+from stack_orchestrator.deploy.deployer import DeployerException
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
+from stack_orchestrator.deploy.k8s.helpers import is_host_path_mount
 
 
 def _make_default_deployment_dir():
@@ -287,6 +289,113 @@ def call_stack_deploy_start(deployment_context):
 
 
 # Inspect the pod yaml to find config files referenced in subdirectories
+# Safety margin under the k8s ConfigMap 1 MiB hard limit. Accounts for
+# base64 expansion (~33%) and ConfigMap metadata overhead.
+_HOST_PATH_CONFIGMAP_BUDGET_BYTES = 700 * 1024
+
+
+def _validate_host_path_mounts(parsed_pod_file, pod_name, pod_file_path):
+    """Fail fast at deploy create on unsupported host-path compose volumes.
+
+    Host-path compose volumes (`<src>:<dst>[:opts]` with src starting
+    with /, ., or ~) flow through auto-generated ConfigMaps at deploy
+    start. ConfigMaps can't represent:
+      - directories with subdirectories (flat key space)
+      - content exceeding ~700 KiB (k8s 1 MiB limit minus base64/overhead)
+      - writable mounts (ConfigMap mounts are read-only)
+
+    Reject those shapes up front with a clear error so users don't hit
+    the failure later at start time.
+
+    Source resolution: compose paths like `../config/foo.sh` are
+    relative to the compose file location in the stack source tree at
+    deploy create time. At deploy start, the file is read from the
+    matching copy under `{deployment_dir}/config/{pod}/` that deploy
+    create lays down.
+    """
+    compose_stack_dir = Path(pod_file_path).resolve().parent
+    services = parsed_pod_file.get("services") or {}
+    for service_name, service_info in services.items():
+        for volume_str in service_info.get("volumes") or []:
+            parts = volume_str.split(":")
+            if len(parts) < 2:
+                continue
+            src = parts[0]
+            if not is_host_path_mount(src):
+                continue
+            mount_opts = parts[2] if len(parts) > 2 else None
+            opt_tokens = (
+                [t.strip() for t in mount_opts.split(",") if t.strip()]
+                if mount_opts
+                else []
+            )
+            if "rw" in opt_tokens:
+                raise DeployerException(
+                    f"Writable host-path bind not supported: "
+                    f"'{volume_str}' in {pod_name}/{service_name}.\n"
+                    "Host-path binds from the deployment directory are "
+                    "static content injected as ConfigMaps (read-only). "
+                    "Use a named volume with a spec-configured host path "
+                    "under 'kind-mount-root' for writable data. See "
+                    "docs/deployment_patterns.md."
+                )
+
+            abs_src = (compose_stack_dir / src).resolve()
+            if not abs_src.exists():
+                # Preserve existing behavior — compose-level binds with
+                # missing sources fail later; don't introduce a new
+                # early failure mode here.
+                continue
+            if abs_src.is_file():
+                # Single files are always fine — one-key ConfigMap with
+                # subPath. Budget check here too in case of huge single
+                # files.
+                size = abs_src.stat().st_size
+                if size > _HOST_PATH_CONFIGMAP_BUDGET_BYTES:
+                    raise DeployerException(
+                        f"Host-path bind '{volume_str}' in "
+                        f"{pod_name}/{service_name} points at a file of "
+                        f"{size} bytes, exceeding the ConfigMap budget "
+                        f"({_HOST_PATH_CONFIGMAP_BUDGET_BYTES} bytes "
+                        f"after base64/overhead).\n\n"
+                        "Embed the file in the container image at build "
+                        "time, or split into multiple smaller files."
+                    )
+                continue
+            if abs_src.is_dir():
+                entries = list(abs_src.iterdir())
+                if any(p.is_dir() for p in entries):
+                    raise DeployerException(
+                        f"Directory host-path bind '{volume_str}' in "
+                        f"{pod_name}/{service_name} contains "
+                        "subdirectories, which cannot be represented "
+                        "in a k8s ConfigMap.\n\n"
+                        "Restructure the stack to either:\n"
+                        "  - embed the directory in the container "
+                        "image at build time,\n"
+                        "  - split into multiple ConfigMap entries "
+                        "(one per subdir),\n"
+                        "  - or use an initContainer to populate the "
+                        "content at runtime.\n\n"
+                        "See docs/deployment_patterns.md."
+                    )
+                total = sum(
+                    p.stat().st_size for p in entries if p.is_file()
+                )
+                if total > _HOST_PATH_CONFIGMAP_BUDGET_BYTES:
+                    raise DeployerException(
+                        f"Directory host-path bind '{volume_str}' in "
+                        f"{pod_name}/{service_name} totals {total} "
+                        f"bytes, exceeding the ConfigMap budget "
+                        f"({_HOST_PATH_CONFIGMAP_BUDGET_BYTES} bytes "
+                        f"after base64/overhead).\n\n"
+                        "Embed the content in the container image at "
+                        "build time, or split into smaller ConfigMaps. "
+                        "See docs/deployment_patterns.md."
+                    )
+
+
+# _find_extra_config_dirs: Find config dirs referenced in the pod files
 # other than the one associated with the pod
 def _find_extra_config_dirs(parsed_pod_file, pod):
     config_dirs = set()
@@ -1058,6 +1167,12 @@ def _write_deployment_files(
         if pod_file_path is None:
             continue
         parsed_pod_file = yaml.load(open(pod_file_path, "r"))
+        # Reject host-path compose volumes whose shape can't land as a
+        # ConfigMap (dir-with-subdirs, oversize, writable). File-level
+        # and flat-dir host-path binds are accepted — they auto-convert
+        # to ConfigMaps at deploy start via cluster_info.get_configmaps.
+        if parsed_spec.is_kubernetes_deployment():
+            _validate_host_path_mounts(parsed_pod_file, pod, pod_file_path)
         extra_config_dirs = _find_extra_config_dirs(parsed_pod_file, pod)
         destination_pod_dir = destination_pods_dir.joinpath(pod)
         os.makedirs(destination_pod_dir, exist_ok=True)
@@ -1138,6 +1253,10 @@ def _write_deployment_files(
             job_file_path = get_job_file_path(stack_name, parsed_stack, job)
             if job_file_path and job_file_path.exists():
                 parsed_job_file = yaml.load(open(job_file_path, "r"))
+                if parsed_spec.is_kubernetes_deployment():
+                    _validate_host_path_mounts(
+                        parsed_job_file, job, job_file_path
+                    )
                 _fixup_pod_file(parsed_job_file, parsed_spec, destination_compose_dir)
                 with open(
                     destination_compose_jobs_dir.joinpath(

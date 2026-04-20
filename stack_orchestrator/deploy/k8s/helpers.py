@@ -607,7 +607,7 @@ def get_kind_pv_bind_mount_path(
     return f"/mnt/{volume_name}"
 
 
-def volume_mounts_for_service(parsed_pod_files, service):
+def volume_mounts_for_service(parsed_pod_files, service, deployment_dir=None):
     result = []
     # Find the service
     for pod in parsed_pod_files:
@@ -631,11 +631,24 @@ def volume_mounts_for_service(parsed_pod_files, service):
                             mount_options = (
                                 mount_split[2] if len(mount_split) == 3 else None
                             )
-                            # For host path mounts, use sanitized name
+                            sub_path = None
+                            # For host path mounts, use sanitized name.
+                            # When the source resolves to a single file,
+                            # the auto-generated ConfigMap has one key
+                            # (the file basename). Set subPath so the
+                            # mount lands at the compose target as a
+                            # single file, not as a directory with the
+                            # key as a child entry.
                             if is_host_path_mount(volume_name):
                                 k8s_volume_name = sanitize_host_path_to_volume_name(
                                     volume_name
                                 )
+                                if deployment_dir is not None:
+                                    abs_src = resolve_host_path_for_kind(
+                                        volume_name, deployment_dir
+                                    )
+                                    if abs_src.is_file():
+                                        sub_path = abs_src.name
                             else:
                                 k8s_volume_name = volume_name
                             if opts.o.debug:
@@ -643,10 +656,12 @@ def volume_mounts_for_service(parsed_pod_files, service):
                                 print(f"k8s_volume_name: {k8s_volume_name}")
                                 print(f"mount path: {mount_path}")
                                 print(f"mount options: {mount_options}")
+                                print(f"sub_path: {sub_path}")
                             volume_device = client.V1VolumeMount(
                                 mount_path=mount_path,
                                 name=k8s_volume_name,
                                 read_only="ro" == mount_options,
+                                sub_path=sub_path,
                             )
                             result.append(volume_device)
     return result
@@ -679,7 +694,11 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
                     )
                     result.append(volume)
 
-        # Handle host path mounts from service volumes
+        # File-level and flat-dir host-path compose volumes flow through
+        # auto-generated ConfigMaps. Emit a ConfigMap-backed V1Volume so
+        # the pod reads from the namespace-scoped ConfigMap rather than
+        # a kind-node hostPath (which would alias across deployments
+        # sharing a cluster and not work on real k8s at all).
         if "services" in parsed_pod_file:
             services = parsed_pod_file["services"]
             for service_name in services:
@@ -694,19 +713,19 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
                             )
                             if sanitized_name not in seen_host_path_volumes:
                                 seen_host_path_volumes.add(sanitized_name)
-                                # Create hostPath volume for mount inside kind node
-                                kind_mount_path = get_kind_host_path_mount_path(
-                                    sanitized_name
-                                )
-                                host_path_source = client.V1HostPathVolumeSource(
-                                    path=kind_mount_path, type="FileOrCreate"
+                                config_map = client.V1ConfigMapVolumeSource(
+                                    name=f"{app_name}-{sanitized_name}",
+                                    default_mode=0o755,
                                 )
                                 volume = client.V1Volume(
-                                    name=sanitized_name, host_path=host_path_source
+                                    name=sanitized_name, config_map=config_map
                                 )
                                 result.append(volume)
                                 if opts.o.debug:
-                                    print(f"Created hostPath volume: {sanitized_name}")
+                                    print(
+                                        f"Created configmap-backed host-path "
+                                        f"volume: {sanitized_name}"
+                                    )
     return result
 
 
@@ -725,7 +744,6 @@ def _make_absolute_host_path(data_mount_path: Path, deployment_dir: Path) -> Pat
 def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_definitions = []
     volume_host_path_map = _get_host_paths_for_volumes(deployment_context)
-    seen_host_path_mounts = set()  # Track to avoid duplicate mounts
     kind_mount_root = deployment_context.spec.get_kind_mount_root()
 
     # When kind-mount-root is set, emit a single extraMount for the root.
@@ -762,26 +780,12 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                         mount_path = mount_split[1]
 
                         if is_host_path_mount(volume_name):
-                            # Host path mount - add extraMount for kind
-                            sanitized_name = sanitize_host_path_to_volume_name(
-                                volume_name
-                            )
-                            if sanitized_name not in seen_host_path_mounts:
-                                seen_host_path_mounts.add(sanitized_name)
-                                # Resolve path relative to compose directory
-                                host_path = resolve_host_path_for_kind(
-                                    volume_name, deployment_dir
-                                )
-                                container_path = get_kind_host_path_mount_path(
-                                    sanitized_name
-                                )
-                                volume_definitions.append(
-                                    f"  - hostPath: {host_path}\n"
-                                    f"    containerPath: {container_path}\n"
-                                    f"    propagation: HostToContainer\n"
-                                )
-                                if opts.o.debug:
-                                    print(f"Added host path mount: {host_path}")
+                            # File-level host-path binds (e.g. compose
+                            # `../config/foo.sh:/opt/foo.sh`) flow
+                            # through an auto-generated k8s ConfigMap at
+                            # deploy start — no extraMount needed. See
+                            # cluster_info.get_configmaps().
+                            continue
                         else:
                             # Named volume
                             if opts.o.debug:

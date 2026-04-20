@@ -231,7 +231,10 @@ class K8sDeployer(Deployer):
                 "\nFix: add an explicit `namespace:` override to this "
                 "deployment's spec.yml so it lands in its own "
                 "namespace. For example:\n"
-                f"  namespace: {self.k8s_namespace}-<suffix>"
+                f"  namespace: {self.k8s_namespace}-<suffix>\n"
+                "\n(k8s namespace names must be lowercase alphanumeric "
+                "plus '-', start and end with an alphanumeric character, "
+                "≤63 chars.)"
             )
         if not owner:
             # Legacy namespace (pre-dates this check) or user-created.

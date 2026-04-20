@@ -299,9 +299,18 @@ def check_mounts_compatible(cluster_name: str, config_file: str) -> None:
             file=sys.stderr,
         )
         return
+    # File-level host-path binds (e.g. `./config/x.sh` from compose volumes)
+    # are emitted per-deployment with containerPath `/mnt/host-path-*` and
+    # source paths under each deployment's own directory. Two deployments
+    # of the same stack will always clash here — a pre-existing SO aliasing
+    # misfeature that's orthogonal to umbrella compatibility. Skip them so
+    # this check stays focused on the umbrella and named-volume data mounts
+    # it was designed for.
     mismatches = []
     for m in required:
         dest = m["containerPath"]
+        if dest.startswith("/mnt/host-path-"):
+            continue
         want = m["hostPath"]
         have = live.get(dest)
         if have != want:

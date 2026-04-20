@@ -181,28 +181,71 @@ class K8sDeployer(Deployer):
         self.custom_obj_api = client.CustomObjectsApi()
 
     def _ensure_namespace(self):
-        """Create the deployment namespace if it doesn't exist."""
+        """Create the deployment namespace if it doesn't exist.
+
+        Stamps the namespace with a `laconic.com/deployment-dir`
+        annotation so that a subsequent `deployment start` from a
+        different deployment dir — which would otherwise silently
+        patch this deployment's k8s resources in place — fails with
+        a clear error directing at the `namespace:` spec override.
+        """
         if opts.o.dry_run:
             print(f"Dry run: would create namespace {self.k8s_namespace}")
             return
+        owner_key = "laconic.com/deployment-dir"
+        my_dir = str(Path(self.deployment_dir).resolve())
         try:
-            self.core_api.read_namespace(name=self.k8s_namespace)
-            if opts.o.debug:
-                print(f"Namespace {self.k8s_namespace} already exists")
+            existing = self.core_api.read_namespace(name=self.k8s_namespace)
         except ApiException as e:
-            if e.status == 404:
-                # Create the namespace
-                ns = client.V1Namespace(
-                    metadata=client.V1ObjectMeta(
-                        name=self.k8s_namespace,
-                        labels=self.cluster_info._stack_labels(),
-                    )
-                )
-                self.core_api.create_namespace(body=ns)
-                if opts.o.debug:
-                    print(f"Created namespace {self.k8s_namespace}")
-            else:
+            if e.status != 404:
                 raise
+            existing = None
+
+        if existing is None:
+            ns = client.V1Namespace(
+                metadata=client.V1ObjectMeta(
+                    name=self.k8s_namespace,
+                    labels=self.cluster_info._stack_labels(),
+                    annotations={owner_key: my_dir},
+                )
+            )
+            self.core_api.create_namespace(body=ns)
+            if opts.o.debug:
+                print(
+                    f"Created namespace {self.k8s_namespace} "
+                    f"owned by {my_dir}"
+                )
+            return
+
+        annotations = (existing.metadata.annotations or {}) if existing.metadata else {}
+        owner = annotations.get(owner_key)
+        if owner and owner != my_dir:
+            raise DeployerException(
+                f"Namespace '{self.k8s_namespace}' is already owned by "
+                f"another deployment at:\n  {owner}\n"
+                f"\nThis deployment is at:\n  {my_dir}\n"
+                "\nTwo deployments of the same stack sharing a cluster "
+                "cannot share a namespace — every namespace-scoped "
+                "resource (Deployment, ConfigMaps, Services, PVCs) "
+                "would collide and silently patch each other.\n"
+                "\nFix: add an explicit `namespace:` override to this "
+                "deployment's spec.yml so it lands in its own "
+                "namespace. For example:\n"
+                f"  namespace: {self.k8s_namespace}-<suffix>"
+            )
+        if not owner:
+            # Legacy namespace (pre-dates this check) or user-created.
+            # Adopt it by stamping the ownership annotation so
+            # subsequent conflicting deployments fail loudly.
+            patch = {"metadata": {"annotations": {owner_key: my_dir}}}
+            self.core_api.patch_namespace(name=self.k8s_namespace, body=patch)
+            if opts.o.debug:
+                print(
+                    f"Adopted existing namespace {self.k8s_namespace} "
+                    f"as owned by {my_dir}"
+                )
+        elif opts.o.debug:
+            print(f"Namespace {self.k8s_namespace} already owned by {my_dir}")
 
     def _delete_namespace(self):
         """Delete the deployment namespace and all resources within it."""

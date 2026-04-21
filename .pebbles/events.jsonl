@@ -50,3 +50,5 @@
 {"type":"status_update","timestamp":"2026-04-20T13:14:26.833816262Z","issue_id":"so-7fc","payload":{"status":"closed"}}
 {"type":"comment","timestamp":"2026-04-21T05:57:12.476299839Z","issue_id":"so-n1n","payload":{"body":"Already merged: 929bdab8 is an ancestor of origin/main; all four extraMount emit sites in helpers.py carry `propagation: HostToContainer` (umbrella, per-volume named, per-volume host-path, high-memlock spec)."}}
 {"type":"status_update","timestamp":"2026-04-21T05:57:12.928842469Z","issue_id":"so-n1n","payload":{"status":"closed"}}
+{"type":"comment","timestamp":"2026-04-21T06:08:13.933886638Z","issue_id":"so-ad7","payload":{"body":"Fixed in PR #744 (cf8b7533). get_services() now includes the maintenance pod in the container-ports map so its per-pod Service is built and available for the Ingress swap."}}
+{"type":"status_update","timestamp":"2026-04-21T06:08:14.457815115Z","issue_id":"so-ad7","payload":{"status":"closed"}}

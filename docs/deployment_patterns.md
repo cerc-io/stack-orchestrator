@@ -167,6 +167,41 @@ laconic-so deployment --dir my-deployment stop --skip-cluster-management
 Stacks sharing a cluster must agree on mount topology. See
 [Volume Persistence in k8s-kind](#volume-persistence-in-k8s-kind).
 
+### cluster-id vs deployment-id
+
+Each deployment's `deployment.yml` carries two identifiers with
+different roles:
+
+- **`cluster-id`** — which kind cluster this deployment attaches to.
+  Used for the kube-config context name (`kind-{cluster-id}`) and for
+  kind lifecycle ops. Inherited from the running cluster at
+  `deploy create` time when one exists; freshly generated otherwise.
+  Shared across every deployment that joins the same cluster.
+- **`deployment-id`** — this particular deployment's identity.
+  Generated fresh on every `deploy create` and never inherited. Flows
+  into `app_name`, the prefix on every k8s resource name this
+  deployment creates (PVs, ConfigMaps, Deployments, PVCs, …). Distinct
+  per deployment even when the cluster is shared.
+
+The split prevents silent resource-name collisions between
+deployments sharing a cluster: two deployments of the same stack,
+or any two deployments that happen to declare a volume with the same
+name, still produce distinct `{deployment-id}-{vol}` PV names.
+
+**Backward compatibility**: `deployment.yml` files written before the
+`deployment-id` field existed fall back to using `cluster-id` as the
+deployment-id. Existing resource names stay stable across this
+upgrade — no PV renames, no re-bind, no data orphaning. The next
+`deploy create` writes both fields going forward.
+
+**Namespace ownership**: on top of distinct resource names, SO stamps
+the k8s namespace with a `laconic.com/deployment-dir` annotation on
+first creation. A subsequent `deployment start` from a different
+deployment directory that would land in the same namespace fails
+with a `DeployerException` pointing at the `namespace:` spec
+override. Catches operator-error cases where the same deployment dir
+is effectively registered twice.
+
 ## Volume Persistence in k8s-kind
 
 k8s-kind has 3 storage layers:

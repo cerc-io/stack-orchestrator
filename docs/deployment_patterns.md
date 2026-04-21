@@ -202,6 +202,32 @@ with a `DeployerException` pointing at the `namespace:` spec
 override. Catches operator-error cases where the same deployment dir
 is effectively registered twice.
 
+### Caddy ingress image lifecycle
+
+The Caddy ingress controller lives in the cluster-scoped
+`caddy-system` namespace and is installed on first `deployment start`.
+Its image is configurable per deployment:
+
+```yaml
+# spec.yml
+caddy-ingress-image: ghcr.io/laconicnetwork/caddy-ingress:v1.2.3
+```
+
+Defaults to `ghcr.io/laconicnetwork/caddy-ingress:latest` when not set.
+
+On subsequent `deployment start`, if the running Caddy image differs
+from the spec value, laconic-so patches the Caddy Deployment to the
+new image. The Deployment uses `strategy: Recreate` (the hostPort
+80/443 binding blocks a rolling update from ever completing), so
+expect ~10–30s of ingress downtime while the old pod terminates and
+the new one starts.
+
+**Cluster-scoped caveat**: `caddy-system` is shared by every
+deployment on the cluster. Setting `caddy-ingress-image` in any one
+deployment's spec rolls the controller for all of them — last
+`deployment start` wins. Treat it as a cluster-level knob; keep the
+value consistent across the deployments sharing a cluster.
+
 ## Volume Persistence in k8s-kind
 
 k8s-kind has 3 storage layers:

@@ -34,6 +34,7 @@ from stack_orchestrator.deploy.k8s.helpers import (
 )
 from stack_orchestrator.deploy.k8s.helpers import (
     install_ingress_for_kind,
+    update_caddy_ingress_image,
     wait_for_ingress_in_kind,
     is_ingress_running,
 )
@@ -881,12 +882,23 @@ class K8sDeployer(Deployer):
         self.connect_api()
         self._ensure_namespace()
         if self.is_kind() and not self.skip_cluster_management:
+            caddy_image = self.cluster_info.spec.get_caddy_ingress_image()
             if not is_ingress_running():
                 install_ingress_for_kind(
                     self.cluster_info.spec.get_acme_email(),
                     self.cluster_info.spec.get_kind_mount_root(),
+                    caddy_image=caddy_image,
                 )
                 wait_for_ingress_in_kind()
+            else:
+                # Ingress is already up from a prior start — reconcile
+                # the running image against this deployment's spec.
+                # Patches only if they differ. Note: caddy-system is
+                # cluster-scoped, so every deployment sharing the
+                # cluster effectively votes on the image; last start
+                # wins. Documented in deployment_patterns.md.
+                if update_caddy_ingress_image(caddy_image):
+                    wait_for_ingress_in_kind()
             if self.cluster_info.spec.get_unlimited_memlock():
                 _create_runtime_class(
                     constants.high_memlock_runtime,

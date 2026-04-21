@@ -466,7 +466,9 @@ def wait_for_ingress_in_kind():
 
 
 def install_ingress_for_kind(
-    acme_email: str = "", kind_mount_root: Optional[str] = None
+    acme_email: str = "",
+    kind_mount_root: Optional[str] = None,
+    caddy_image: Optional[str] = None,
 ):
     api_client = client.ApiClient()
     ingress_install = os.path.abspath(
@@ -477,7 +479,7 @@ def install_ingress_for_kind(
     if opts.o.debug:
         print("Installing Caddy ingress controller in kind cluster")
 
-    # Template the YAML with email before applying
+    # Template the YAML with email and image before applying
     with open(ingress_install) as f:
         yaml_content = f.read()
 
@@ -485,6 +487,13 @@ def install_ingress_for_kind(
         yaml_content = yaml_content.replace('email: ""', f'email: "{acme_email}"')
         if opts.o.debug:
             print(f"Configured Caddy with ACME email: {acme_email}")
+
+    if caddy_image and caddy_image != constants.default_caddy_ingress_image:
+        yaml_content = yaml_content.replace(
+            constants.default_caddy_ingress_image, caddy_image
+        )
+        if opts.o.debug:
+            print(f"Configured Caddy image: {caddy_image}")
 
     yaml_objects = list(yaml.safe_load_all(yaml_content))
 
@@ -528,6 +537,67 @@ def install_ingress_for_kind(
     # Install the backup CronJob last — it targets the same namespace and
     # depends on nothing in the Caddy Deployment.
     _install_caddy_cert_backup(api_client, kind_mount_root)
+
+
+def update_caddy_ingress_image(caddy_image: str) -> bool:
+    """Patch the running Caddy ingress Deployment to a new image.
+
+    No-op if the live Deployment already runs the requested image.
+    Returns True if a patch was applied, False otherwise.
+
+    Caddy lives in the cluster-scoped `caddy-system` namespace, so
+    this affects every deployment sharing the cluster. The
+    `strategy: Recreate` in the Deployment manifest handles the
+    hostPort-80/443 handoff; expect ~10-30s of ingress downtime while
+    the old pod terminates and the new one starts.
+    """
+    apps_api = client.AppsV1Api()
+    try:
+        dep = apps_api.read_namespaced_deployment(
+            name="caddy-ingress-controller", namespace="caddy-system"
+        )
+    except ApiException as e:
+        if e.status == 404:
+            if opts.o.debug:
+                print(
+                    "Caddy ingress Deployment not found; nothing to "
+                    "update (install path handles fresh clusters)"
+                )
+            return False
+        raise
+
+    containers = dep.spec.template.spec.containers or []
+    current = containers[0].image if containers else None
+    if current == caddy_image:
+        if opts.o.debug:
+            print(f"Caddy image already at {caddy_image}; no update needed")
+        return False
+
+    print(
+        f"Updating Caddy ingress image: {current} -> {caddy_image} "
+        "(expect brief ingress downtime)"
+    )
+    patch = {
+        "spec": {
+            "template": {
+                "spec": {
+                    "containers": [
+                        {
+                            "name": "caddy-ingress-controller",
+                            "image": caddy_image,
+                            "imagePullPolicy": "Always",
+                        }
+                    ]
+                }
+            }
+        }
+    }
+    apps_api.patch_namespaced_deployment(
+        name="caddy-ingress-controller",
+        namespace="caddy-system",
+        body=patch,
+    )
+    return True
 
 
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):

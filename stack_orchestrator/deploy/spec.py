@@ -304,6 +304,19 @@ class Spec:
         """
         return self.obj.get(constants.kind_mount_root_key)
 
+    def get_caddy_ingress_image(self) -> str:
+        """Return the Caddy ingress controller image to deploy/patch.
+
+        Defaults to the upstream tag when not set in spec. Cluster-
+        scoped: the Caddy ingress lives in the shared `caddy-system`
+        namespace, so setting this key in any deployment's spec will
+        roll the controller for every deployment using the cluster.
+        """
+        return self.obj.get(
+            constants.caddy_ingress_image_key,
+            constants.default_caddy_ingress_image,
+        )
+
     def get_maintenance_service(self) -> typing.Optional[str]:
         """Return maintenance-service value (e.g. 'dumpster-maintenance:8000') or None.
 

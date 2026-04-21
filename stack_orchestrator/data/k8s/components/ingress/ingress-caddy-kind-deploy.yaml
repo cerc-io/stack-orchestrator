@@ -160,6 +160,11 @@ metadata:
     app.kubernetes.io/component: controller
 spec:
   replicas: 1
+  # Recreate is required: the pod binds hostPort 80/443, which a
+  # RollingUpdate would try to double-claim during cutover (new pod
+  # pending until old pod exits — never exits, rollout deadlocks).
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: caddy-ingress-controller

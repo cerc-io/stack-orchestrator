@@ -488,16 +488,28 @@ def install_ingress_for_kind(
         if opts.o.debug:
             print(f"Configured Caddy with ACME email: {acme_email}")
 
-    # Substitute image only when an override is requested; otherwise
-    # leave the hardcoded default in the manifest.
-    if caddy_image and caddy_image != constants.default_caddy_ingress_image:
-        yaml_content = yaml_content.replace(
-            constants.default_caddy_ingress_image, caddy_image
-        )
-        if opts.o.debug:
-            print(f"Configured Caddy image: {caddy_image}")
-
     yaml_objects = list(yaml.safe_load_all(yaml_content))
+
+    # Override the Caddy container's image when a spec value is set.
+    # Works regardless of what's hardcoded in the manifest — we locate
+    # the container by name and overwrite its image field, rather than
+    # relying on a string match of the default.
+    if caddy_image:
+        for obj in yaml_objects:
+            if not obj:
+                continue
+            if (
+                obj.get("kind") == "Deployment"
+                and obj.get("metadata", {}).get("name")
+                == "caddy-ingress-controller"
+            ):
+                for c in (
+                    obj["spec"]["template"]["spec"].get("containers") or []
+                ):
+                    if c.get("name") == "caddy-ingress-controller":
+                        c["image"] = caddy_image
+                        if opts.o.debug:
+                            print(f"Configured Caddy image: {caddy_image}")
 
     # Split: apply everything except the Caddy controller Deployment first,
     # so the namespace + secrets exist before the pod can start and read its

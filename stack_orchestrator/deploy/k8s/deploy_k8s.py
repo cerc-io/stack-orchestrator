@@ -34,6 +34,7 @@ from stack_orchestrator.deploy.k8s.helpers import (
 )
 from stack_orchestrator.deploy.k8s.helpers import (
     install_ingress_for_kind,
+    update_caddy_ingress_image,
     wait_for_ingress_in_kind,
     is_ingress_running,
 )
@@ -880,11 +881,16 @@ class K8sDeployer(Deployer):
             check_mounts_compatible(existing, kind_config)
         self.connect_api()
         self._ensure_namespace()
+        caddy_image = self.cluster_info.spec.get_caddy_ingress_image()
+        # Fresh-install path: gated on cluster lifecycle ownership
+        # because install_ingress_for_kind also seeds caddy-system
+        # (namespace, secrets restore, cert-backup CronJob).
         if self.is_kind() and not self.skip_cluster_management:
             if not is_ingress_running():
                 install_ingress_for_kind(
                     self.cluster_info.spec.get_acme_email(),
                     self.cluster_info.spec.get_kind_mount_root(),
+                    caddy_image=caddy_image,
                 )
                 wait_for_ingress_in_kind()
             if self.cluster_info.spec.get_unlimited_memlock():
@@ -892,6 +898,18 @@ class K8sDeployer(Deployer):
                     constants.high_memlock_runtime,
                     constants.high_memlock_runtime,
                 )
+        # Reconcile Caddy image whenever the operator explicitly set
+        # it in spec, regardless of cluster lifecycle ownership —
+        # --skip-cluster-management (the default) shouldn't prevent
+        # a routine k8s-API-level patch of a running Deployment.
+        # Spec absent => don't touch: the operator may have set the
+        # image out-of-band (ansible playbook, prior explicit spec on
+        # a different deployment) and a silent revert would be worse
+        # than doing nothing. caddy-system is cluster-scoped, so
+        # whichever deployment's spec sets the image last wins.
+        if self.is_kind() and caddy_image is not None and is_ingress_running():
+            if update_caddy_ingress_image(caddy_image):
+                wait_for_ingress_in_kind()
 
     def _create_ingress(self):
         """Create or update Ingress with TLS certificate lookup."""

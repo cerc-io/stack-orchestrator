@@ -887,7 +887,15 @@ def _create_deployment_file(deployment_dir: Path, stack_source: Optional[Path] =
     # Reuse existing Kind cluster if one exists, otherwise generate a timestamp-based ID
     existing = _get_existing_kind_cluster()
     cluster = existing if existing else generate_id("laconic")
-    deployment_content = {constants.cluster_id_key: cluster}
+    # deployment-id is always fresh per `deploy create`, even when
+    # cluster-id is inherited from a running cluster. Keeps each
+    # deployment's k8s resource names (PVs, ConfigMaps, Deployment)
+    # distinct even when multiple deployments share a cluster.
+    deployment_id = generate_id("laconic")
+    deployment_content = {
+        constants.cluster_id_key: cluster,
+        constants.deployment_id_key: deployment_id,
+    }
     if stack_source:
         deployment_content["stack-source"] = str(stack_source)
     with open(deployment_file_path, "w") as output_file:

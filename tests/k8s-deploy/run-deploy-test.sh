@@ -147,7 +147,13 @@ deployment_spec_file=${test_deployment_dir}/spec.yml
 sed -i 's/^secrets: {}$/secrets:\n  test-secret:\n    - TEST_SECRET_KEY/' ${deployment_spec_file}
 
 # Get the deployment ID and namespace for kubectl queries
-deployment_id=$(cat ${test_deployment_dir}/deployment.yml | cut -d ' ' -f 2)
+# deployment-id is what flows into app_name → resource name prefix.
+# Fall back to cluster-id for deployment.yml files written before the
+# deployment-id field existed (pre-decouple compatibility).
+deployment_id=$(awk '/^deployment-id:/ {print $2; exit}' ${test_deployment_dir}/deployment.yml)
+if [ -z "$deployment_id" ]; then
+    deployment_id=$(awk '/^cluster-id:/ {print $2; exit}' ${test_deployment_dir}/deployment.yml)
+fi
 # Namespace is derived from stack name: laconic-{stack_name}
 deployment_ns="laconic-test"
 

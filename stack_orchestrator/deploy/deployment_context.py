@@ -26,6 +26,7 @@ from stack_orchestrator.deploy.spec import Spec
 class DeploymentContext:
     deployment_dir: Path
     id: str
+    deployment_id: str
     spec: Spec
     stack: Stack
 
@@ -48,7 +49,26 @@ class DeploymentContext:
         return self.get_compose_dir() / f"docker-compose-{name}.yml"
 
     def get_cluster_id(self):
+        """Identifier of the kind cluster this deployment attaches to.
+
+        Shared across deployments that join the same kind cluster. Used
+        for the kube-config context name (`kind-{cluster-id}`) and for
+        kind cluster lifecycle ops.
+        """
         return self.id
+
+    def get_deployment_id(self):
+        """Identifier of this particular deployment's k8s resources.
+
+        Distinct per deployment even when multiple deployments share a
+        cluster. Used as compose_project_name → app_name → prefix for
+        all k8s resource names (PVs, ConfigMaps, Deployments, …).
+
+        Backward compat: for deployment.yml files written before this
+        field existed, falls back to cluster-id so existing on-disk
+        resource names remain stable (no PV renames, no re-bind).
+        """
+        return self.deployment_id
 
     def init(self, dir: Path):
         self.deployment_dir = dir.absolute()
@@ -60,6 +80,12 @@ class DeploymentContext:
         if deployment_file_path.exists():
             obj = get_yaml().load(open(deployment_file_path, "r"))
             self.id = obj[constants.cluster_id_key]
+            # Fallback to cluster-id for deployments created before the
+            # deployment-id field was introduced. Keeps existing resource
+            # names stable across this upgrade.
+            self.deployment_id = obj.get(
+                constants.deployment_id_key, self.id
+            )
         # Handle the case of a legacy deployment with no file
         # Code below is intended to match the output from _make_default_cluster_name()
         # TODO: remove when we no longer need to support legacy deployments
@@ -68,6 +94,7 @@ class DeploymentContext:
             unique_cluster_descriptor = f"{path},{self.get_stack_file()},None,None"
             hash = hashlib.md5(unique_cluster_descriptor.encode()).hexdigest()[:16]
             self.id = f"{constants.cluster_name_prefix}{hash}"
+            self.deployment_id = self.id
 
     def modify_yaml(self, file_path: Path, modifier_func):
         """Load a YAML, apply a modification function, and write it back."""

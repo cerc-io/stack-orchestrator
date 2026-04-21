@@ -129,27 +129,34 @@ class K8sDeployer(Deployer):
             return
         self.deployment_dir = deployment_context.deployment_dir
         self.deployment_context = deployment_context
+        # kind cluster name comes from cluster-id — which kind cluster this
+        # deployment attaches to. Shared across deployments that join the
+        # same cluster. compose_project_name is kept as a parameter for
+        # interface compatibility with the compose deployer path.
+        cluster_id = deployment_context.get_cluster_id()
+        deployment_id = deployment_context.get_deployment_id()
         self.kind_cluster_name = (
-            deployment_context.spec.get_kind_cluster_name() or compose_project_name
-        )
-        # Use spec namespace if provided, otherwise derive from cluster-id
-        self.k8s_namespace = (
-            deployment_context.spec.get_namespace() or f"laconic-{compose_project_name}"
+            deployment_context.spec.get_kind_cluster_name() or cluster_id
         )
         self.cluster_info = ClusterInfo()
         # stack.name may be an absolute path (from spec "stack:" key after
         # path resolution). Extract just the directory basename for labels.
         raw_name = deployment_context.stack.name if deployment_context else ""
         stack_name = Path(raw_name).name if raw_name else ""
-        # Use spec namespace if provided, otherwise derive from stack name
+        # Namespace: spec override wins; else derive from stack name; else
+        # fall back to deployment-id. (On older deployment.yml files without
+        # deployment-id, get_deployment_id() returns cluster-id — same as
+        # the pre-decouple behavior.)
         self.k8s_namespace = deployment_context.spec.get_namespace() or (
-            f"laconic-{stack_name}" if stack_name else f"laconic-{compose_project_name}"
+            f"laconic-{stack_name}" if stack_name else f"laconic-{deployment_id}"
         )
         self.cluster_info = ClusterInfo()
+        # app_name comes from deployment-id so each deployment owns its own
+        # k8s resource names, even when multiple deployments share a cluster.
         self.cluster_info.int(
             compose_files,
             compose_env_file,
-            compose_project_name,
+            deployment_id,
             deployment_context.spec,
             stack_name=stack_name,
         )

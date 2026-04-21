@@ -488,6 +488,8 @@ def install_ingress_for_kind(
         if opts.o.debug:
             print(f"Configured Caddy with ACME email: {acme_email}")
 
+    # Substitute image only when an override is requested; otherwise
+    # leave the hardcoded default in the manifest.
     if caddy_image and caddy_image != constants.default_caddy_ingress_image:
         yaml_content = yaml_content.replace(
             constants.default_caddy_ingress_image, caddy_image

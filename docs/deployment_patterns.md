@@ -213,14 +213,23 @@ Its image is configurable per deployment:
 caddy-ingress-image: ghcr.io/laconicnetwork/caddy-ingress:v1.2.3
 ```
 
-Defaults to `ghcr.io/laconicnetwork/caddy-ingress:latest` when not set.
+Two cases, intentionally different:
 
-On subsequent `deployment start`, if the running Caddy image differs
-from the spec value, laconic-so patches the Caddy Deployment to the
-new image. The Deployment uses `strategy: Recreate` (the hostPort
-80/443 binding blocks a rolling update from ever completing), so
-expect ~10–30s of ingress downtime while the old pod terminates and
-the new one starts.
+- **Spec key set**: on first install the manifest is templated with
+  this image. On subsequent `deployment start`, if the running Caddy
+  Deployment's image differs, laconic-so patches it and waits for the
+  rollout. The Deployment uses `strategy: Recreate` (hostPort 80/443
+  blocks rolling updates from ever completing), so expect ~10–30s of
+  ingress downtime while the old pod terminates and the new one
+  starts.
+- **Spec key absent**: on first install the manifest's hardcoded
+  default (`ghcr.io/laconicnetwork/caddy-ingress:latest`) is used.
+  On subsequent `deployment start`, laconic-so does **not** touch the
+  running Caddy Deployment. This matters when the image was set
+  out-of-band (via an ansible playbook, or by another deployment's
+  spec that's since been removed) — a silent revert to the default
+  would be worse than doing nothing. If you want to go back to the
+  default image, set `caddy-ingress-image` to it explicitly.
 
 **Cluster-scoped caveat**: `caddy-system` is shared by every
 deployment on the cluster. Setting `caddy-ingress-image` in any one

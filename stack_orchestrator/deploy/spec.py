@@ -304,18 +304,23 @@ class Spec:
         """
         return self.obj.get(constants.kind_mount_root_key)
 
-    def get_caddy_ingress_image(self) -> str:
-        """Return the Caddy ingress controller image to deploy/patch.
+    def get_caddy_ingress_image(self) -> typing.Optional[str]:
+        """Return the Caddy ingress controller image override, or None.
 
-        Defaults to the upstream tag when not set in spec. Cluster-
-        scoped: the Caddy ingress lives in the shared `caddy-system`
-        namespace, so setting this key in any deployment's spec will
-        roll the controller for every deployment using the cluster.
+        Returns None (not the default image) when the spec key is
+        absent. That distinction matters: the install path falls back
+        to the hardcoded default so there's always *some* image to
+        deploy, while the update-on-reuse path treats None as "operator
+        didn't ask to touch Caddy" and skips the patch — avoiding
+        silent reverts of an image set out-of-band (e.g. via an
+        ansible playbook or a prior deployment's spec).
+
+        Cluster-scoped: the Caddy ingress lives in the shared
+        `caddy-system` namespace, so setting this key in any
+        deployment's spec rolls the controller for every deployment
+        using the cluster.
         """
-        return self.obj.get(
-            constants.caddy_ingress_image_key,
-            constants.default_caddy_ingress_image,
-        )
+        return self.obj.get(constants.caddy_ingress_image_key)
 
     def get_maintenance_service(self) -> typing.Optional[str]:
         """Return maintenance-service value (e.g. 'dumpster-maintenance:8000') or None.

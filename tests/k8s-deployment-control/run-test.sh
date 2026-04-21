@@ -185,8 +185,15 @@ node-tolerations:
     value: c
 EOF
 
-# Get the deployment ID so we can generate low level kubectl commands later
-deployment_id=$(cat ${test_deployment_dir}/deployment.yml | cut -d ' ' -f 2)
+# cluster-id names the kind cluster (and its worker node names).
+# deployment-id is what flows into app_name / resource name prefixes.
+# Fall back to cluster-id for deployment.yml files written before the
+# deployment-id field existed.
+cluster_id=$(awk '/^cluster-id:/ {print $2; exit}' ${test_deployment_dir}/deployment.yml)
+deployment_id=$(awk '/^deployment-id:/ {print $2; exit}' ${test_deployment_dir}/deployment.yml)
+if [ -z "$deployment_id" ]; then
+    deployment_id=$cluster_id
+fi
 
 # Try to start the deployment
 $TEST_TARGET_SO deployment --dir $test_deployment_dir start --perform-cluster-management
@@ -208,7 +215,7 @@ fi
 # Get get the node onto which the stack pod has been deployed
 # Namespace is now derived from stack name, not cluster-id
 deployment_node=$(kubectl get pods -n laconic-test -l app=${deployment_id} -o=jsonpath='{.items..spec.nodeName}')
-expected_node=${deployment_id}-worker3
+expected_node=${cluster_id}-worker3
 echo "Stack pod deployed to node: ${deployment_node}"
 if [[ ${deployment_node} == ${expected_node} ]]; then
     echo "deployment of pod test: passed"

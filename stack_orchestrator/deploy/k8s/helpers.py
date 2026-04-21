@@ -15,11 +15,13 @@
 
 from kubernetes import client, utils, watch
 from kubernetes.client.exceptions import ApiException
+import json
 import os
 from pathlib import Path
 import subprocess
 import re
-from typing import Set, Mapping, List, Optional, cast
+import sys
+from typing import Dict, Set, Mapping, List, Optional, cast
 import yaml
 
 from stack_orchestrator.util import get_k8s_dir, error_exit
@@ -216,6 +218,174 @@ def _install_caddy_cert_backup(
         print("Installed caddy cert backup CronJob")
 
 
+def _parse_kind_extra_mounts(config_file: str) -> List[Dict[str, str]]:
+    """Return the list of extraMounts declared in a kind config file."""
+    try:
+        with open(config_file) as f:
+            config = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError) as e:
+        if opts.o.debug:
+            print(f"Could not parse kind config {config_file}: {e}")
+        return []
+    mounts = []
+    for node in config.get("nodes", []) or []:
+        for m in node.get("extraMounts", []) or []:
+            host_path = m.get("hostPath")
+            container_path = m.get("containerPath")
+            if host_path and container_path:
+                mounts.append(
+                    {"hostPath": host_path, "containerPath": container_path}
+                )
+    return mounts
+
+
+def _get_control_plane_node(cluster_name: str) -> Optional[str]:
+    """Return the kind control-plane node container name for a cluster."""
+    result = subprocess.run(
+        ["kind", "get", "nodes", "--name", cluster_name],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.endswith("control-plane"):
+            return line
+    return None
+
+
+def _get_running_cluster_mounts(cluster_name: str) -> Dict[str, str]:
+    """Return {containerPath: hostPath} for bind mounts on the control-plane."""
+    node = _get_control_plane_node(cluster_name)
+    if not node:
+        return {}
+    result = subprocess.run(
+        ["docker", "inspect", node, "--format", "{{json .Mounts}}"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return {}
+    try:
+        mounts = json.loads(result.stdout or "[]")
+    except json.JSONDecodeError:
+        return {}
+    return {
+        m["Destination"]: m["Source"]
+        for m in mounts
+        if m.get("Type") == "bind" and m.get("Destination") and m.get("Source")
+    }
+
+
+def check_mounts_compatible(cluster_name: str, config_file: str) -> None:
+    """Fail if the new deployment's extraMounts aren't active on the cluster.
+
+    Kind applies extraMounts only at cluster creation. When a deployment
+    joins an existing cluster, any extraMount its kind-config declares that
+    isn't already active on the running node will silently fall through to
+    the node's overlay filesystem — data looks persisted but is lost on
+    cluster destroy. Catch this up front.
+    """
+    required = _parse_kind_extra_mounts(config_file)
+    if not required:
+        return
+    live = _get_running_cluster_mounts(cluster_name)
+    if not live:
+        # Could not inspect — don't block deployment, but warn.
+        print(
+            f"WARNING: could not inspect mounts on cluster '{cluster_name}'; "
+            "skipping extraMount compatibility check",
+            file=sys.stderr,
+        )
+        return
+    # File-level host-path binds (e.g. `./config/x.sh` from compose volumes)
+    # are emitted per-deployment with containerPath `/mnt/host-path-*` and
+    # source paths under each deployment's own directory. Two deployments
+    # of the same stack will always clash here — a pre-existing SO aliasing
+    # misfeature that's orthogonal to umbrella compatibility. Skip them so
+    # this check stays focused on the umbrella and named-volume data mounts
+    # it was designed for.
+    mismatches = []
+    for m in required:
+        dest = m["containerPath"]
+        if dest.startswith("/mnt/host-path-"):
+            continue
+        want = m["hostPath"]
+        have = live.get(dest)
+        if have != want:
+            mismatches.append((dest, want, have))
+    if not mismatches:
+        return
+    lines = [
+        f"This deployment declares extraMounts incompatible with the "
+        f"running cluster '{cluster_name}':",
+    ]
+    for dest, want, have in mismatches:
+        lines.append(
+            f"  - {dest}: expected host path '{want}', "
+            f"actual '{have or 'NOT MOUNTED'}'"
+        )
+    lines.append("")
+
+    cluster_umbrella = live.get("/mnt")
+    if cluster_umbrella:
+        lines.extend(
+            [
+                f"The running cluster has an umbrella mount: "
+                f"'{cluster_umbrella}' -> /mnt.",
+                "",
+                f"Fix: set 'kind-mount-root: {cluster_umbrella}' in this "
+                "deployment's spec and place host paths for its volumes "
+                f"under '{cluster_umbrella}/'. Kind applies extraMounts "
+                "only at cluster creation, so new bind mounts cannot be "
+                "added to the running cluster without a recreate — but "
+                "the existing umbrella already covers any subdirectory "
+                "you create on the host.",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "The running cluster has no umbrella mount "
+                "(no extraMount with containerPath=/mnt).",
+                "",
+                "Kind applies extraMounts only at cluster creation — "
+                "neither kind nor Docker supports adding bind mounts to "
+                "a running container. Without a recreate, any PV backed "
+                "by one of the missing mounts will silently fall through "
+                "to the node's overlay filesystem and lose data on "
+                "cluster destroy.",
+                "",
+                "Fix: destroy and recreate the cluster with a kind-config "
+                "that sets 'kind-mount-root' so future stacks can share "
+                "an umbrella without recreating.",
+            ]
+        )
+    lines.append("")
+    lines.append("See docs/deployment_patterns.md.")
+    raise DeployerException("\n".join(lines))
+
+
+def _warn_if_no_umbrella(config_file: str) -> None:
+    """Warn if creating a cluster without a '/mnt' umbrella mount.
+
+    Without an umbrella, future stacks joining this cluster that need new
+    host-path mounts will fail the compatibility check and require a full
+    cluster recreate to add them.
+    """
+    mounts = _parse_kind_extra_mounts(config_file)
+    if any(m.get("containerPath") == "/mnt" for m in mounts):
+        return
+    print(
+        "WARNING: creating kind cluster without an umbrella mount "
+        "('kind-mount-root' not set). Future stacks added to this cluster "
+        "that require new host-path mounts will not be able to without a "
+        "full cluster recreate. See docs/deployment_patterns.md.",
+        file=sys.stderr,
+    )
+
+
 def create_cluster(name: str, config_file: str):
     """Create or reuse the single kind cluster for this host.
 
@@ -232,8 +402,10 @@ def create_cluster(name: str, config_file: str):
     existing = get_kind_cluster()
     if existing:
         print(f"Using existing cluster: {existing}")
+        check_mounts_compatible(existing, config_file)
         return existing
 
+    _warn_if_no_umbrella(config_file)
     print(f"Creating new cluster: {name}")
     result = _run_command(f"kind create cluster --name {name} --config {config_file}")
     if result.returncode != 0:
@@ -435,7 +607,7 @@ def get_kind_pv_bind_mount_path(
     return f"/mnt/{volume_name}"
 
 
-def volume_mounts_for_service(parsed_pod_files, service):
+def volume_mounts_for_service(parsed_pod_files, service, deployment_dir=None):
     result = []
     # Find the service
     for pod in parsed_pod_files:
@@ -459,11 +631,24 @@ def volume_mounts_for_service(parsed_pod_files, service):
                             mount_options = (
                                 mount_split[2] if len(mount_split) == 3 else None
                             )
-                            # For host path mounts, use sanitized name
+                            sub_path = None
+                            # For host path mounts, use sanitized name.
+                            # When the source resolves to a single file,
+                            # the auto-generated ConfigMap has one key
+                            # (the file basename). Set subPath so the
+                            # mount lands at the compose target as a
+                            # single file, not as a directory with the
+                            # key as a child entry.
                             if is_host_path_mount(volume_name):
                                 k8s_volume_name = sanitize_host_path_to_volume_name(
                                     volume_name
                                 )
+                                if deployment_dir is not None:
+                                    abs_src = resolve_host_path_for_kind(
+                                        volume_name, deployment_dir
+                                    )
+                                    if abs_src.is_file():
+                                        sub_path = abs_src.name
                             else:
                                 k8s_volume_name = volume_name
                             if opts.o.debug:
@@ -471,10 +656,12 @@ def volume_mounts_for_service(parsed_pod_files, service):
                                 print(f"k8s_volume_name: {k8s_volume_name}")
                                 print(f"mount path: {mount_path}")
                                 print(f"mount options: {mount_options}")
+                                print(f"sub_path: {sub_path}")
                             volume_device = client.V1VolumeMount(
                                 mount_path=mount_path,
                                 name=k8s_volume_name,
                                 read_only="ro" == mount_options,
+                                sub_path=sub_path,
                             )
                             result.append(volume_device)
     return result
@@ -507,7 +694,11 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
                     )
                     result.append(volume)
 
-        # Handle host path mounts from service volumes
+        # File-level and flat-dir host-path compose volumes flow through
+        # auto-generated ConfigMaps. Emit a ConfigMap-backed V1Volume so
+        # the pod reads from the namespace-scoped ConfigMap rather than
+        # a kind-node hostPath (which would alias across deployments
+        # sharing a cluster and not work on real k8s at all).
         if "services" in parsed_pod_file:
             services = parsed_pod_file["services"]
             for service_name in services:
@@ -522,19 +713,19 @@ def volumes_for_pod_files(parsed_pod_files, spec, app_name):
                             )
                             if sanitized_name not in seen_host_path_volumes:
                                 seen_host_path_volumes.add(sanitized_name)
-                                # Create hostPath volume for mount inside kind node
-                                kind_mount_path = get_kind_host_path_mount_path(
-                                    sanitized_name
-                                )
-                                host_path_source = client.V1HostPathVolumeSource(
-                                    path=kind_mount_path, type="FileOrCreate"
+                                config_map = client.V1ConfigMapVolumeSource(
+                                    name=f"{app_name}-{sanitized_name}",
+                                    default_mode=0o755,
                                 )
                                 volume = client.V1Volume(
-                                    name=sanitized_name, host_path=host_path_source
+                                    name=sanitized_name, config_map=config_map
                                 )
                                 result.append(volume)
                                 if opts.o.debug:
-                                    print(f"Created hostPath volume: {sanitized_name}")
+                                    print(
+                                        f"Created configmap-backed host-path "
+                                        f"volume: {sanitized_name}"
+                                    )
     return result
 
 
@@ -553,7 +744,6 @@ def _make_absolute_host_path(data_mount_path: Path, deployment_dir: Path) -> Pat
 def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
     volume_definitions = []
     volume_host_path_map = _get_host_paths_for_volumes(deployment_context)
-    seen_host_path_mounts = set()  # Track to avoid duplicate mounts
     kind_mount_root = deployment_context.spec.get_kind_mount_root()
 
     # When kind-mount-root is set, emit a single extraMount for the root.
@@ -590,26 +780,12 @@ def _generate_kind_mounts(parsed_pod_files, deployment_dir, deployment_context):
                         mount_path = mount_split[1]
 
                         if is_host_path_mount(volume_name):
-                            # Host path mount - add extraMount for kind
-                            sanitized_name = sanitize_host_path_to_volume_name(
-                                volume_name
-                            )
-                            if sanitized_name not in seen_host_path_mounts:
-                                seen_host_path_mounts.add(sanitized_name)
-                                # Resolve path relative to compose directory
-                                host_path = resolve_host_path_for_kind(
-                                    volume_name, deployment_dir
-                                )
-                                container_path = get_kind_host_path_mount_path(
-                                    sanitized_name
-                                )
-                                volume_definitions.append(
-                                    f"  - hostPath: {host_path}\n"
-                                    f"    containerPath: {container_path}\n"
-                                    f"    propagation: HostToContainer\n"
-                                )
-                                if opts.o.debug:
-                                    print(f"Added host path mount: {host_path}")
+                            # File-level host-path binds (e.g. compose
+                            # `../config/foo.sh:/opt/foo.sh`) flow
+                            # through an auto-generated k8s ConfigMap at
+                            # deploy start — no extraMount needed. See
+                            # cluster_info.get_configmaps().
+                            continue
                         else:
                             # Named volume
                             if opts.o.debug:

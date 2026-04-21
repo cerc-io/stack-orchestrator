@@ -147,7 +147,13 @@ deployment_spec_file=${test_deployment_dir}/spec.yml
 sed -i 's/^secrets: {}$/secrets:\n  test-secret:\n    - TEST_SECRET_KEY/' ${deployment_spec_file}
 
 # Get the deployment ID and namespace for kubectl queries
-deployment_id=$(cat ${test_deployment_dir}/deployment.yml | cut -d ' ' -f 2)
+# deployment-id is what flows into app_name → resource name prefix.
+# Fall back to cluster-id for deployment.yml files written before the
+# deployment-id field existed (pre-decouple compatibility).
+deployment_id=$(awk '/^deployment-id:/ {print $2; exit}' ${test_deployment_dir}/deployment.yml)
+if [ -z "$deployment_id" ]; then
+    deployment_id=$(awk '/^cluster-id:/ {print $2; exit}' ${test_deployment_dir}/deployment.yml)
+fi
 # Namespace is derived from stack name: laconic-{stack_name}
 deployment_ns="laconic-test"
 
@@ -165,6 +171,41 @@ for kind in serviceaccount role rolebinding cronjob; do
     fi
 done
 echo "caddy-cert-backup install test: passed"
+
+# Host-path compose volumes (../config/test/script.sh, ../config/test/settings.env)
+# should flow through auto-generated per-namespace ConfigMaps — no kind
+# extraMount, no compose/spec rewriting. The pod mount lands via
+# ConfigMap + subPath.
+for cm_name in \
+        "${deployment_id}-host-path-config-test-script-sh" \
+        "${deployment_id}-host-path-config-test-settings-env"; do
+    if ! kubectl get configmap "$cm_name" -n "$deployment_ns" >/dev/null 2>&1; then
+        echo "host-path configmap test: ConfigMap $cm_name not found"
+        cleanup_and_exit
+    fi
+done
+echo "host-path configmap test: passed"
+
+# Deployment dir should be untouched — compose file still has the
+# original host-path volume entries and no synthetic configmap dirs.
+if ! grep -q '\.\./config/test/script\.sh:/opt/run\.sh' \
+     "$test_deployment_dir/compose/docker-compose-test.yml"; then
+    echo "compose unchanged test: host-path volume entry missing"
+    cleanup_and_exit
+fi
+if [ -d "$test_deployment_dir/configmaps/host-path-config-test-script-sh" ]; then
+    echo "compose unchanged test: unexpected configmaps/host-path-* dir present"
+    cleanup_and_exit
+fi
+echo "compose unchanged test: passed"
+
+# kind-config.yml should NOT contain /mnt/host-path-* extraMounts —
+# they are replaced by the ConfigMap mechanism.
+if grep -q 'containerPath: /mnt/host-path-' "$test_deployment_dir/kind-config.yml"; then
+    echo "no-host-path-extramount test: FAILED"
+    cleanup_and_exit
+fi
+echo "no-host-path-extramount test: passed"
 
 # Check logs command works
 wait_for_log_output

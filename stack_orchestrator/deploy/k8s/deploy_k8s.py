@@ -20,10 +20,16 @@ from kubernetes.client.exceptions import ApiException
 from typing import Any, Dict, List, Optional, cast
 
 from stack_orchestrator import constants
-from stack_orchestrator.deploy.deployer import Deployer, DeployerConfigGenerator
+from stack_orchestrator.deploy.deployer import (
+    Deployer,
+    DeployerConfigGenerator,
+    DeployerException,
+)
 from stack_orchestrator.deploy.k8s.helpers import (
+    check_mounts_compatible,
     create_cluster,
     destroy_cluster,
+    get_kind_cluster,
     load_images_into_kind,
 )
 from stack_orchestrator.deploy.k8s.helpers import (
@@ -123,27 +129,34 @@ class K8sDeployer(Deployer):
             return
         self.deployment_dir = deployment_context.deployment_dir
         self.deployment_context = deployment_context
+        # kind cluster name comes from cluster-id — which kind cluster this
+        # deployment attaches to. Shared across deployments that join the
+        # same cluster. compose_project_name is kept as a parameter for
+        # interface compatibility with the compose deployer path.
+        cluster_id = deployment_context.get_cluster_id()
+        deployment_id = deployment_context.get_deployment_id()
         self.kind_cluster_name = (
-            deployment_context.spec.get_kind_cluster_name() or compose_project_name
-        )
-        # Use spec namespace if provided, otherwise derive from cluster-id
-        self.k8s_namespace = (
-            deployment_context.spec.get_namespace() or f"laconic-{compose_project_name}"
+            deployment_context.spec.get_kind_cluster_name() or cluster_id
         )
         self.cluster_info = ClusterInfo()
         # stack.name may be an absolute path (from spec "stack:" key after
         # path resolution). Extract just the directory basename for labels.
         raw_name = deployment_context.stack.name if deployment_context else ""
         stack_name = Path(raw_name).name if raw_name else ""
-        # Use spec namespace if provided, otherwise derive from stack name
+        # Namespace: spec override wins; else derive from stack name; else
+        # fall back to deployment-id. (On older deployment.yml files without
+        # deployment-id, get_deployment_id() returns cluster-id — same as
+        # the pre-decouple behavior.)
         self.k8s_namespace = deployment_context.spec.get_namespace() or (
-            f"laconic-{stack_name}" if stack_name else f"laconic-{compose_project_name}"
+            f"laconic-{stack_name}" if stack_name else f"laconic-{deployment_id}"
         )
         self.cluster_info = ClusterInfo()
+        # app_name comes from deployment-id so each deployment owns its own
+        # k8s resource names, even when multiple deployments share a cluster.
         self.cluster_info.int(
             compose_files,
             compose_env_file,
-            compose_project_name,
+            deployment_id,
             deployment_context.spec,
             stack_name=stack_name,
         )
@@ -175,28 +188,74 @@ class K8sDeployer(Deployer):
         self.custom_obj_api = client.CustomObjectsApi()
 
     def _ensure_namespace(self):
-        """Create the deployment namespace if it doesn't exist."""
+        """Create the deployment namespace if it doesn't exist.
+
+        Stamps the namespace with a `laconic.com/deployment-dir`
+        annotation so that a subsequent `deployment start` from a
+        different deployment dir — which would otherwise silently
+        patch this deployment's k8s resources in place — fails with
+        a clear error directing at the `namespace:` spec override.
+        """
         if opts.o.dry_run:
             print(f"Dry run: would create namespace {self.k8s_namespace}")
             return
+        owner_key = "laconic.com/deployment-dir"
+        my_dir = str(Path(self.deployment_dir).resolve())
         try:
-            self.core_api.read_namespace(name=self.k8s_namespace)
-            if opts.o.debug:
-                print(f"Namespace {self.k8s_namespace} already exists")
+            existing = self.core_api.read_namespace(name=self.k8s_namespace)
         except ApiException as e:
-            if e.status == 404:
-                # Create the namespace
-                ns = client.V1Namespace(
-                    metadata=client.V1ObjectMeta(
-                        name=self.k8s_namespace,
-                        labels=self.cluster_info._stack_labels(),
-                    )
-                )
-                self.core_api.create_namespace(body=ns)
-                if opts.o.debug:
-                    print(f"Created namespace {self.k8s_namespace}")
-            else:
+            if e.status != 404:
                 raise
+            existing = None
+
+        if existing is None:
+            ns = client.V1Namespace(
+                metadata=client.V1ObjectMeta(
+                    name=self.k8s_namespace,
+                    labels=self.cluster_info._stack_labels(),
+                    annotations={owner_key: my_dir},
+                )
+            )
+            self.core_api.create_namespace(body=ns)
+            if opts.o.debug:
+                print(
+                    f"Created namespace {self.k8s_namespace} "
+                    f"owned by {my_dir}"
+                )
+            return
+
+        annotations = (existing.metadata.annotations or {}) if existing.metadata else {}
+        owner = annotations.get(owner_key)
+        if owner and owner != my_dir:
+            raise DeployerException(
+                f"Namespace '{self.k8s_namespace}' is already owned by "
+                f"another deployment at:\n  {owner}\n"
+                f"\nThis deployment is at:\n  {my_dir}\n"
+                "\nTwo deployments of the same stack sharing a cluster "
+                "cannot share a namespace — every namespace-scoped "
+                "resource (Deployment, ConfigMaps, Services, PVCs) "
+                "would collide and silently patch each other.\n"
+                "\nFix: add an explicit `namespace:` override to this "
+                "deployment's spec.yml so it lands in its own "
+                "namespace. For example:\n"
+                f"  namespace: {self.k8s_namespace}-<suffix>\n"
+                "\n(k8s namespace names must be lowercase alphanumeric "
+                "plus '-', start and end with an alphanumeric character, "
+                "≤63 chars.)"
+            )
+        if not owner:
+            # Legacy namespace (pre-dates this check) or user-created.
+            # Adopt it by stamping the ownership annotation so
+            # subsequent conflicting deployments fail loudly.
+            patch = {"metadata": {"annotations": {owner_key: my_dir}}}
+            self.core_api.patch_namespace(name=self.k8s_namespace, body=patch)
+            if opts.o.debug:
+                print(
+                    f"Adopted existing namespace {self.k8s_namespace} "
+                    f"as owned by {my_dir}"
+                )
+        elif opts.o.debug:
+            print(f"Namespace {self.k8s_namespace} already owned by {my_dir}")
 
     def _delete_namespace(self):
         """Delete the deployment namespace and all resources within it."""
@@ -786,6 +845,39 @@ class K8sDeployer(Deployer):
                 }
                 if local_images:
                     load_images_into_kind(self.kind_cluster_name, local_images)
+        elif self.is_kind():
+            # --skip-cluster-management (default): cluster must already exist.
+            # Without this check, connect_api() below raises a cryptic
+            # kubernetes.config.ConfigException when the context is missing.
+            existing = get_kind_cluster()
+            if existing is None:
+                raise DeployerException(
+                    f"No kind cluster is running. This deployment expects "
+                    f"cluster '{self.kind_cluster_name}' to exist.\n"
+                    "\n"
+                    "--skip-cluster-management is the default; pass "
+                    "--perform-cluster-management to have laconic-so "
+                    "create the cluster, or start it manually first."
+                )
+            if existing != self.kind_cluster_name:
+                raise DeployerException(
+                    f"Running kind cluster '{existing}' does not match the "
+                    f"cluster-id '{self.kind_cluster_name}' in "
+                    f"{self.deployment_dir}/deployment.yml.\n"
+                    "\n"
+                    "Fix by either:\n"
+                    "  - editing deployment.yml to set "
+                    f"cluster-id: {existing}, or\n"
+                    "  - passing --perform-cluster-management to create a "
+                    "fresh cluster (note: destroys the existing one if "
+                    "names collide)."
+                )
+            # Mount topology applies regardless of who owns cluster
+            # lifecycle — validate here too.
+            kind_config = str(
+                self.deployment_dir.joinpath(constants.kind_config_filename)
+            )
+            check_mounts_compatible(existing, kind_config)
         self.connect_api()
         self._ensure_namespace()
         if self.is_kind() and not self.skip_cluster_management:

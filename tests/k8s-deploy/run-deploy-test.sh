@@ -413,14 +413,16 @@ if [ "$restored_value" != "$fake_cert_value" ]; then
 fi
 echo "caddy cert restore test: passed"
 
-# Final teardown: --delete-namespace nukes the namespace after labeled cleanup.
-# Verify the namespace is actually gone.
+# Final teardown: --delete-namespace nukes the namespace, and
+# --perform-cluster-management tears down the Kind cluster so the next test
+# step in this CI workflow (e.g. run-restart-test.sh) starts from a clean
+# host.
 $TEST_TARGET_SO deployment --dir $test_deployment_dir \
-    stop --delete-volumes --delete-namespace --skip-cluster-management
-if kubectl get namespace ${deployment_ns} >/dev/null 2>&1; then
-    echo "delete-namespace test: FAILED (namespace still present)"
+    stop --delete-volumes --delete-namespace --perform-cluster-management
+if kind get clusters 2>/dev/null | grep -q .; then
+    echo "cluster teardown test: FAILED (kind cluster still present)"
     exit 1
 fi
-echo "delete-namespace test: passed"
+echo "cluster teardown test: passed"
 
 echo "Test passed"

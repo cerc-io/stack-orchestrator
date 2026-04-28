@@ -6,7 +6,7 @@
 import secrets
 import socket
 import time
-from typing import Optional
+from typing import List, Optional
 import requests
 from kubernetes import client
 
@@ -18,7 +18,7 @@ def get_server_egress_ip() -> str:
     return response.text.strip()
 
 
-def resolve_hostname(hostname: str) -> list[str]:
+def resolve_hostname(hostname: str) -> List[str]:
     """Resolve hostname to list of IP addresses."""
     try:
         _, _, ips = socket.gethostbyname_ex(hostname)

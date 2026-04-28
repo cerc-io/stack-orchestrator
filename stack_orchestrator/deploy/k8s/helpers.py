@@ -207,9 +207,7 @@ def _install_caddy_cert_backup(
             print("No kind-mount-root configured; caddy cert backup disabled")
         return
     manifest = os.path.abspath(
-        get_k8s_dir().joinpath(
-            "components", "ingress", "caddy-cert-backup.yaml"
-        )
+        get_k8s_dir().joinpath("components", "ingress", "caddy-cert-backup.yaml")
     )
     with open(manifest) as f:
         objects = list(yaml.safe_load_all(f))
@@ -233,9 +231,7 @@ def _parse_kind_extra_mounts(config_file: str) -> List[Dict[str, str]]:
             host_path = m.get("hostPath")
             container_path = m.get("containerPath")
             if host_path and container_path:
-                mounts.append(
-                    {"hostPath": host_path, "containerPath": container_path}
-                )
+                mounts.append({"hostPath": host_path, "containerPath": container_path})
     return mounts
 
 
@@ -500,12 +496,9 @@ def install_ingress_for_kind(
                 continue
             if (
                 obj.get("kind") == "Deployment"
-                and obj.get("metadata", {}).get("name")
-                == "caddy-ingress-controller"
+                and obj.get("metadata", {}).get("name") == "caddy-ingress-controller"
             ):
-                for c in (
-                    obj["spec"]["template"]["spec"].get("containers") or []
-                ):
+                for c in obj["spec"]["template"]["spec"].get("containers") or []:
                     if c.get("name") == "caddy-ingress-controller":
                         c["image"] = caddy_image
                         if opts.o.debug:

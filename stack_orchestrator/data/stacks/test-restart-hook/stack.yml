@@ -1,0 +1,5 @@
+version: "1.0"
+name: test-restart-hook
+description: "E2E test stack: verifies hooks/commands.py is re-copied and re-loaded on deployment restart"
+pods:
+  - test-restart-hook

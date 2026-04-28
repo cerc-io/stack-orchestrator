@@ -1,0 +1,5 @@
+services:
+  test-restart-hook:
+    image: busybox:1.36
+    command: ["sh", "-c", "echo started && sleep infinity"]
+    restart: always

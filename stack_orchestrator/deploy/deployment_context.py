@@ -83,9 +83,7 @@ class DeploymentContext:
             # Fallback to cluster-id for deployments created before the
             # deployment-id field was introduced. Keeps existing resource
             # names stable across this upgrade.
-            self.deployment_id = obj.get(
-                constants.deployment_id_key, self.id
-            )
+            self.deployment_id = obj.get(constants.deployment_id_key, self.id)
         # Handle the case of a legacy deployment with no file
         # Code below is intended to match the output from _make_default_cluster_name()
         # TODO: remove when we no longer need to support legacy deployments

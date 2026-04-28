@@ -479,9 +479,7 @@ class ClusterInfo:
                         if sanitized in seen:
                             continue
                         seen.add(sanitized)
-                        abs_src = resolve_host_path_for_kind(
-                            src, deployment_dir
-                        )
+                        abs_src = resolve_host_path_for_kind(src, deployment_dir)
                         data = self._read_host_path_source(abs_src, mount_string)
                         cm = client.V1ConfigMap(
                             metadata=client.V1ObjectMeta(
@@ -495,9 +493,7 @@ class ClusterInfo:
                         result.append(cm)
         return result
 
-    def _read_host_path_source(
-        self, abs_src: Path, mount_string: str
-    ) -> dict:
+    def _read_host_path_source(self, abs_src: Path, mount_string: str) -> dict:
         """Read file or flat-directory content for a host-path ConfigMap.
 
         Validates shape at read time as a defensive second check — the
@@ -517,9 +513,7 @@ class ClusterInfo:
             for entry in abs_src.iterdir():
                 if entry.is_file():
                     with open(entry, "rb") as f:
-                        data[entry.name] = base64.b64encode(f.read()).decode(
-                            "ASCII"
-                        )
+                        data[entry.name] = base64.b64encode(f.read()).decode("ASCII")
         return data
 
     def get_pvs(self):
@@ -711,9 +705,7 @@ class ClusterInfo:
                 volume_mounts = volume_mounts_for_service(
                     parsed_yaml_map,
                     service_name,
-                    Path(self.spec.file_path).parent
-                    if self.spec.file_path
-                    else None,
+                    Path(self.spec.file_path).parent if self.spec.file_path else None,
                 )
                 # Handle command/entrypoint from compose file
                 # In docker-compose: entrypoint -> k8s command, command -> k8s args
@@ -1021,9 +1013,7 @@ class ClusterInfo:
                 metadata=client.V1ObjectMeta(
                     name=deployment_name,
                     labels=self._stack_labels(
-                        {"app.kubernetes.io/component": pod_name}
-                        if multi_pod
-                        else None
+                        {"app.kubernetes.io/component": pod_name} if multi_pod else None
                     ),
                 ),
                 spec=spec,
@@ -1071,9 +1061,7 @@ class ClusterInfo:
                     container_ports[container].add(port)
         if maintenance_svc and ":" in maintenance_svc:
             maint_container, maint_port_str = maintenance_svc.split(":", 1)
-            container_ports.setdefault(maint_container, set()).add(
-                int(maint_port_str)
-            )
+            container_ports.setdefault(maint_container, set()).add(int(maint_port_str))
 
         # Build map: pod_file -> set of service names in that pod
         pod_services_map: dict = {}

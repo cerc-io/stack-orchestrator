@@ -219,10 +219,7 @@ class K8sDeployer(Deployer):
             )
             self.core_api.create_namespace(body=ns)
             if opts.o.debug:
-                print(
-                    f"Created namespace {self.k8s_namespace} "
-                    f"owned by {my_dir}"
-                )
+                print(f"Created namespace {self.k8s_namespace} " f"owned by {my_dir}")
             return
 
         annotations = (existing.metadata.annotations or {}) if existing.metadata else {}
@@ -1025,9 +1022,7 @@ class K8sDeployer(Deployer):
 
             call_stack_deploy_start(self.deployment_context)
 
-    def down(
-        self, timeout, volumes, skip_cluster_management, delete_namespace=False
-    ):
+    def down(self, timeout, volumes, skip_cluster_management, delete_namespace=False):
         """Tear down stack-labeled resources. Phases:
 
         1. Delete namespaced resources (if namespace still exists).
@@ -1221,34 +1216,68 @@ class K8sDeployer(Deployer):
         listers = []
         if namespace_present:
             listers += [
-                ("deployment", lambda: self.apps_api.list_namespaced_deployment(
-                    namespace=namespace, label_selector=selector)),
-                ("ingress", lambda: self.networking_api.list_namespaced_ingress(
-                    namespace=namespace, label_selector=selector)),
-                ("job", lambda: self.batch_api.list_namespaced_job(
-                    namespace=namespace, label_selector=selector)),
-                ("service", lambda: self.core_api.list_namespaced_service(
-                    namespace=namespace, label_selector=selector)),
-                ("configmap", lambda: self.core_api.list_namespaced_config_map(
-                    namespace=namespace, label_selector=selector)),
-                ("secret", lambda: self.core_api.list_namespaced_secret(
-                    namespace=namespace, label_selector=selector)),
-                ("pod", lambda: self.core_api.list_namespaced_pod(
-                    namespace=namespace, label_selector=selector)),
+                (
+                    "deployment",
+                    lambda: self.apps_api.list_namespaced_deployment(
+                        namespace=namespace, label_selector=selector
+                    ),
+                ),
+                (
+                    "ingress",
+                    lambda: self.networking_api.list_namespaced_ingress(
+                        namespace=namespace, label_selector=selector
+                    ),
+                ),
+                (
+                    "job",
+                    lambda: self.batch_api.list_namespaced_job(
+                        namespace=namespace, label_selector=selector
+                    ),
+                ),
+                (
+                    "service",
+                    lambda: self.core_api.list_namespaced_service(
+                        namespace=namespace, label_selector=selector
+                    ),
+                ),
+                (
+                    "configmap",
+                    lambda: self.core_api.list_namespaced_config_map(
+                        namespace=namespace, label_selector=selector
+                    ),
+                ),
+                (
+                    "secret",
+                    lambda: self.core_api.list_namespaced_secret(
+                        namespace=namespace, label_selector=selector
+                    ),
+                ),
+                (
+                    "pod",
+                    lambda: self.core_api.list_namespaced_pod(
+                        namespace=namespace, label_selector=selector
+                    ),
+                ),
             ]
             if delete_volumes:
                 listers.append(
-                    ("persistentvolumeclaim",
-                     lambda: self.core_api.list_namespaced_persistent_volume_claim(
-                         namespace=namespace, label_selector=selector))
+                    (
+                        "persistentvolumeclaim",
+                        lambda: self.core_api.list_namespaced_persistent_volume_claim(
+                            namespace=namespace, label_selector=selector
+                        ),
+                    )
                 )
         # PVs are cluster-scoped — wait for them even when the namespace
         # is already gone (orphaned from a prior --delete-namespace).
         if delete_volumes:
             listers.append(
-                ("persistentvolume",
-                 lambda: self.core_api.list_persistent_volume(
-                     label_selector=selector))
+                (
+                    "persistentvolume",
+                    lambda: self.core_api.list_persistent_volume(
+                        label_selector=selector
+                    ),
+                )
             )
 
         def remaining():
@@ -1276,8 +1305,7 @@ class K8sDeployer(Deployer):
         left = remaining()
         if left:
             print(
-                f"Warning: resources still present after {timeout_seconds}s: "
-                f"{left}"
+                f"Warning: resources still present after {timeout_seconds}s: " f"{left}"
             )
 
     def status(self):

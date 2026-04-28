@@ -28,5 +28,5 @@ def start(deployment_context: DeploymentContext):
     # literal below from "v1" to "v2" in the stack-source working tree
     # before running 'deployment restart' to verify the updated hook is
     # copied into deployment_dir/hooks/ and re-executed.
-    marker = deployment_context.deployment_dir / "start-hook-marker"
+    marker = deployment_context.deployment_dir / "marker"
     marker.write_text("v1")

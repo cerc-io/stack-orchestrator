@@ -72,7 +72,7 @@ configure_git_identity () {
 TEST_TARGET_SO=$( ls -t1 ./package/laconic-so* | head -1 )
 echo "Testing this package: $TEST_TARGET_SO"
 
-WORK_DIR=~/stack-orchestrator-test/restart-hook
+WORK_DIR=~/stack-orchestrator-test/restart
 # Multi-repo pod working clones land here; resolved by get_plugin_code_paths.
 export CERC_REPO_BASE_DIR=$WORK_DIR/repo-base
 rm -rf $WORK_DIR
@@ -100,14 +100,14 @@ configure_git_identity $CLONE1
 
 # External-stack layout: <repo>/stack-orchestrator/{stacks,compose}/...
 mkdir -p $CLONE1/stack-orchestrator/stacks $CLONE1/stack-orchestrator/compose
-cp -r $DATA_DIR/stacks/test-restart-hook $CLONE1/stack-orchestrator/stacks/
-cp $DATA_DIR/compose/docker-compose-test-restart-hook.yml $CLONE1/stack-orchestrator/compose/
+cp -r $DATA_DIR/stacks/test-restart $CLONE1/stack-orchestrator/stacks/
+cp $DATA_DIR/compose/docker-compose-test-restart.yml $CLONE1/stack-orchestrator/compose/
 
 git -C $CLONE1 add .
-git -C $CLONE1 commit -m "test-restart-hook v1"
+git -C $CLONE1 commit -m "test-restart v1"
 git -C $CLONE1 push -u origin main
 
-STACK_PATH_SINGLE=$CLONE1/stack-orchestrator/stacks/test-restart-hook
+STACK_PATH_SINGLE=$CLONE1/stack-orchestrator/stacks/test-restart
 SPEC1=$WORK_DIR/spec-single.yml
 DEP1=$WORK_DIR/dep-single
 
@@ -129,16 +129,16 @@ wait_for_pods_started $DEP1
 
 # call_stack_deploy_start runs synchronously inside the start command
 # (deploy_k8s.py:1026), so the marker is on disk before 'start' returns.
-if [ ! -f "$DEP1/start-hook-marker" ]; then
-    echo "single-repo start hook v1 test: FAILED (marker file missing)"
+if [ ! -f "$DEP1/marker" ]; then
+    echo "single-repo start v1 test: FAILED (marker file missing)"
     cleanup_and_exit
 fi
-marker_v1=$(cat $DEP1/start-hook-marker)
+marker_v1=$(cat $DEP1/marker)
 if [ "$marker_v1" != "v1" ]; then
-    echo "single-repo start hook v1 test: FAILED (got: $marker_v1)"
+    echo "single-repo start v1 test: FAILED (got: $marker_v1)"
     cleanup_and_exit
 fi
-echo "single-repo start hook v1 test: passed"
+echo "single-repo start v1 test: passed"
 
 # Mutate the stack-source working tree v1 -> v2. No commit needed: 'deployment
 # restart' runs 'git pull' against the bare which is a no-op, and _copy_hooks
@@ -148,17 +148,17 @@ sed -i 's/"v1"/"v2"/' $STACK_PATH_SINGLE/deploy/commands.py
 $TEST_TARGET_SO deployment --dir $DEP1 restart --stack-path $STACK_PATH_SINGLE
 
 if ! grep -q '"v2"' "$DEP1/hooks/commands.py"; then
-    echo "single-repo restart hook re-copy test: FAILED (hooks/commands.py still v1)"
+    echo "single-repo restart re-copy test: FAILED (hooks/commands.py still v1)"
     cleanup_and_exit
 fi
-echo "single-repo restart hook re-copy test: passed"
+echo "single-repo restart re-copy test: passed"
 
-marker_v2=$(cat $DEP1/start-hook-marker)
+marker_v2=$(cat $DEP1/marker)
 if [ "$marker_v2" != "v2" ]; then
-    echo "single-repo restart hook re-execute test: FAILED (got: $marker_v2)"
+    echo "single-repo restart re-execute test: FAILED (got: $marker_v2)"
     cleanup_and_exit
 fi
-echo "single-repo restart hook re-execute test: passed"
+echo "single-repo restart re-execute test: passed"
 
 # Stop phase 1 deployment but keep the cluster for phase 2.
 $TEST_TARGET_SO deployment --dir $DEP1 \
@@ -171,12 +171,12 @@ $TEST_TARGET_SO deployment --dir $DEP1 \
 # ============================================================================
 echo "=== Phase 2: multi-repo create + start ==="
 
-# Pod repos: stack.yml's pods[].repository = 'cerc-io/test-restart-hook-pod-X'
+# Pod repos: stack.yml's pods[].repository = 'cerc-io/test-restart-pod-X'
 # resolves (via get_plugin_code_paths) to
-# $CERC_REPO_BASE_DIR/test-restart-hook-pod-X/<pod_path>/stack/...
+# $CERC_REPO_BASE_DIR/test-restart-pod-X/<pod_path>/stack/...
 for label in a b; do
     POD_BARE=$WORK_DIR/pod-$label.git
-    POD_CLONE=$CERC_REPO_BASE_DIR/test-restart-hook-pod-$label
+    POD_CLONE=$CERC_REPO_BASE_DIR/test-restart-pod-$label
     git init -b main --bare $POD_BARE
     git clone $POD_BARE $POD_CLONE
     configure_git_identity $POD_CLONE
@@ -187,7 +187,7 @@ for label in a b; do
     # commands.py lives at <pod_repo>/<pod_path>/stack/deploy/commands.py.
     cat > $POD_CLONE/docker-compose.yml <<EOF
 services:
-  test-restart-hook-multi-$label:
+  test-restart-multi-$label:
     image: busybox:1.36
     command: ["sh", "-c", "sleep infinity"]
     restart: always
@@ -199,7 +199,7 @@ from stack_orchestrator.deploy.deployment_context import DeploymentContext
 
 
 def start(deployment_context: DeploymentContext):
-    marker = deployment_context.deployment_dir / "start-hook-marker-$label"
+    marker = deployment_context.deployment_dir / "marker-$label"
     marker.write_text("v1")
 EOF
     git -C $POD_CLONE add .
@@ -217,13 +217,13 @@ configure_git_identity $CLONE2
 # For multi-repo (dict-form pods), the stack repo only owns stack.yml — pod
 # compose files and hooks live in the per-pod repos under CERC_REPO_BASE_DIR.
 mkdir -p $CLONE2/stack-orchestrator/stacks
-cp -r $DATA_DIR/stacks/test-restart-hook-multi $CLONE2/stack-orchestrator/stacks/
+cp -r $DATA_DIR/stacks/test-restart-multi $CLONE2/stack-orchestrator/stacks/
 
 git -C $CLONE2 add .
-git -C $CLONE2 commit -m "test-restart-hook-multi v1"
+git -C $CLONE2 commit -m "test-restart-multi v1"
 git -C $CLONE2 push -u origin main
 
-STACK_PATH_MULTI=$CLONE2/stack-orchestrator/stacks/test-restart-hook-multi
+STACK_PATH_MULTI=$CLONE2/stack-orchestrator/stacks/test-restart-multi
 SPEC2=$WORK_DIR/spec-multi.yml
 DEP2=$WORK_DIR/dep-multi
 
@@ -241,20 +241,20 @@ fi
 echo "multi-repo deploy create test: passed"
 
 $TEST_TARGET_SO deployment --dir $DEP2 start --skip-cluster-management
-wait_for_k8s_pods_ready laconic-test-restart-hook-multi
+wait_for_k8s_pods_ready laconic-test-restart-multi
 
 for label in a b; do
-    if [ ! -f "$DEP2/start-hook-marker-$label" ]; then
-        echo "multi-repo start hook test: FAILED (start-hook-marker-$label missing)"
+    if [ ! -f "$DEP2/marker-$label" ]; then
+        echo "multi-repo start test: FAILED (marker-$label missing)"
         cleanup_and_exit
     fi
-    val=$(cat $DEP2/start-hook-marker-$label)
+    val=$(cat $DEP2/marker-$label)
     if [ "$val" != "v1" ]; then
-        echo "multi-repo start hook test: FAILED (start-hook-marker-$label content: $val)"
+        echo "multi-repo start test: FAILED (marker-$label content: $val)"
         cleanup_and_exit
     fi
 done
-echo "multi-repo start hook test: passed"
+echo "multi-repo start test: passed"
 
 # Final teardown — destroy the cluster for the next CI run.
 $TEST_TARGET_SO deployment --dir $DEP2 \

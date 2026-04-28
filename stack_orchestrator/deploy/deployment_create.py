@@ -276,16 +276,17 @@ def call_stack_deploy_start(deployment_context):
     create additional k8s resources (Services, etc.) in the deployment namespace.
     The namespace can be derived as f"laconic-{deployment_context.id}".
     """
-    python_file_paths = _commands_plugin_paths(deployment_context.stack.name)
-    for python_file_path in python_file_paths:
-        if python_file_path.exists():
-            spec = util.spec_from_file_location("commands", python_file_path)
-            if spec is None or spec.loader is None:
-                continue
-            imported_stack = util.module_from_spec(spec)
-            spec.loader.exec_module(imported_stack)
-            if _has_method(imported_stack, "start"):
-                imported_stack.start(deployment_context)
+    hooks_dir = deployment_context.deployment_dir / "hooks"
+    if not hooks_dir.exists():
+        return
+    for python_file_path in sorted(hooks_dir.glob("commands*.py")):
+        spec = util.spec_from_file_location("commands", python_file_path)
+        if spec is None or spec.loader is None:
+            continue
+        imported_stack = util.module_from_spec(spec)
+        spec.loader.exec_module(imported_stack)
+        if _has_method(imported_stack, "start"):
+            imported_stack.start(deployment_context)
 
 
 # Inspect the pod yaml to find config files referenced in subdirectories
@@ -379,9 +380,7 @@ def _validate_host_path_mounts(parsed_pod_file, pod_name, pod_file_path):
                         "content at runtime.\n\n"
                         "See docs/deployment_patterns.md."
                     )
-                total = sum(
-                    p.stat().st_size for p in entries if p.is_file()
-                )
+                total = sum(p.stat().st_size for p in entries if p.is_file())
                 if total > _HOST_PATH_CONFIGMAP_BUDGET_BYTES:
                     raise DeployerException(
                         f"Directory host-path bind '{volume_str}' in "
@@ -1111,6 +1110,37 @@ def _safe_copy_tree(src: Path, dst: Path, exclude_patterns: Optional[List[str]] 
             safe_copy_file(src_path, dst_path)
 
 
+def _copy_hooks(stack_name: str, target_dir: Path):
+    """Copy commands.py hooks into deployment_dir/hooks/ for self-sufficiency.
+
+    Single repo: hooks/commands.py
+    Multi-repo: hooks/commands_0.py, hooks/commands_1.py, ... — indexed by
+    plugin path order.
+
+    Note: the whole commands.py file is copied (init/setup/create/start), but
+    at runtime only call_stack_deploy_start loads from this copied location.
+    call_stack_deploy_init, call_stack_deploy_setup, and call_stack_deploy_create
+    still resolve commands.py from the live stack source via
+    get_plugin_code_paths — they only run at deploy create time when the source
+    is guaranteed to be present, so they don't need to be self-sufficient.
+    """
+    plugin_paths = get_plugin_code_paths(stack_name)
+    sources = [
+        p.joinpath("deploy", "commands.py")
+        for p in plugin_paths
+        if p.joinpath("deploy", "commands.py").exists()
+    ]
+    if not sources:
+        return
+    hooks_dir = target_dir / "hooks"
+    hooks_dir.mkdir(exist_ok=True)
+    if len(sources) == 1:
+        copyfile(sources[0], hooks_dir / "commands.py")
+    else:
+        for i, src in enumerate(sources):
+            copyfile(src, hooks_dir / f"commands_{i}.py")
+
+
 def _write_deployment_files(
     target_dir: Path,
     spec_file: Path,
@@ -1137,6 +1167,8 @@ def _write_deployment_files(
     # Copy spec file and the stack file into the target dir
     copyfile(spec_file, target_dir.joinpath(constants.spec_file_name))
     copyfile(stack_file, target_dir.joinpath(constants.stack_file_name))
+
+    _copy_hooks(stack_name, target_dir)
 
     # Create deployment file if requested
     if include_deployment_file:
@@ -1249,7 +1281,9 @@ def _write_deployment_files(
             else:
                 source_config_dir = resolve_config_dir(stack_name, configmap_name)
             if os.path.exists(source_config_dir):
-                destination_config_dir = target_dir.joinpath("configmaps", configmap_name)
+                destination_config_dir = target_dir.joinpath(
+                    "configmaps", configmap_name
+                )
                 copytree(source_config_dir, destination_config_dir, dirs_exist_ok=True)
 
     # Copy the job files into the target dir
@@ -1262,9 +1296,7 @@ def _write_deployment_files(
             if job_file_path and job_file_path.exists():
                 parsed_job_file = yaml.load(open(job_file_path, "r"))
                 if parsed_spec.is_kubernetes_deployment():
-                    _validate_host_path_mounts(
-                        parsed_job_file, job, job_file_path
-                    )
+                    _validate_host_path_mounts(parsed_job_file, job, job_file_path)
                 _fixup_pod_file(parsed_job_file, parsed_spec, destination_compose_dir)
                 with open(
                     destination_compose_jobs_dir.joinpath(

@@ -1,0 +1,10 @@
+version: "1.0"
+name: test-restart-multi
+description: "E2E test stack for the deployment restart command (multi-repo case)"
+pods:
+  - name: test-restart-multi-a
+    repository: test-restart-pod-a
+    path: .
+  - name: test-restart-multi-b
+    repository: test-restart-pod-b
+    path: .

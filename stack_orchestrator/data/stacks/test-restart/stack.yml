@@ -1,0 +1,5 @@
+version: "1.0"
+name: test-restart
+description: "E2E test stack for the deployment restart command"
+pods:
+  - test-restart

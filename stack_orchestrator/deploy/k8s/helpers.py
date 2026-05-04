@@ -607,6 +607,14 @@ def update_caddy_ingress_image(caddy_image: str) -> bool:
     return True
 
 
+def is_image_available_locally(image: str) -> bool:
+    result = subprocess.run(
+        ["docker", "image", "inspect", image],
+        capture_output=True,
+    )
+    return result.returncode == 0
+
+
 def load_images_into_kind(kind_cluster_name: str, image_set: Set[str]):
     for image in image_set:
         result = _run_command(

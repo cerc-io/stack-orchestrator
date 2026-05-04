@@ -30,6 +30,7 @@ from stack_orchestrator.deploy.k8s.helpers import (
     create_cluster,
     destroy_cluster,
     get_kind_cluster,
+    is_image_available_locally,
     load_images_into_kind,
 )
 from stack_orchestrator.deploy.k8s.helpers import (
@@ -833,9 +834,15 @@ class K8sDeployer(Deployer):
             actual_cluster = create_cluster(self.kind_cluster_name, kind_config)
             if actual_cluster != self.kind_cluster_name:
                 self.kind_cluster_name = actual_cluster
-            # Pre-load images into kind so pods can use them with
-            # imagePullPolicy: IfNotPresent before the registry is consulted.
-            images_to_preload = set((self.image_overrides or {}).values())
+            local_containers = self.deployment_context.stack.obj.get("containers", [])
+            images_to_preload = set((self.image_overrides or {}).values()) | {
+                img
+                for img in self.cluster_info.image_set
+                if any(c in img for c in local_containers)
+            }
+            images_to_preload = {
+                img for img in images_to_preload if is_image_available_locally(img)
+            }
             if images_to_preload:
                 load_images_into_kind(self.kind_cluster_name, images_to_preload)
         elif self.is_kind():

@@ -20,7 +20,14 @@ from typing import Optional
 
 class Deployer(ABC):
     @abstractmethod
-    def up(self, detach, skip_cluster_management, services, image_overrides=None):
+    def up(
+        self,
+        detach,
+        skip_cluster_management,
+        services,
+        image_overrides=None,
+        force_recreate=False,
+    ):
         pass
 
     @abstractmethod

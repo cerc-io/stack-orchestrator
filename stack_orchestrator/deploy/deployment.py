@@ -471,12 +471,18 @@ def restart(ctx, stack_path, spec_file, config_file, force, expected_ip, image):
             ctx, deployment_context, maintenance_svc, image_overrides
         )
     else:
+        # force_recreate=True so source-file edits (alert rules, dashboards,
+        # entrypoint scripts, etc. mounted via bind volumes) are picked up.
+        # docker compose up -d alone is a no-op when the service definition
+        # itself is unchanged, leaving the running container with stale
+        # in-memory state.
         up_operation(
             ctx,
             services_list=None,
             stay_attached=False,
             skip_cluster_management=True,
             image_overrides=image_overrides or None,
+            force_recreate=True,
         )
 
     # Restore cwd after both create_operation and up_operation have run.
@@ -514,12 +520,15 @@ def _restart_with_maintenance(
 
     # Step 1: Apply the full deployment (creates/updates all pods + services)
     # This ensures maintenance pod exists before we swap Ingress to it.
+    # force_recreate intent matches the non-maintenance restart path; the
+    # k8s deployer currently ignores the flag (TODO in deploy_k8s.up).
     up_operation(
         ctx,
         services_list=None,
         stay_attached=False,
         skip_cluster_management=True,
         image_overrides=image_overrides or None,
+        force_recreate=True,
     )
 
     # Parse maintenance service spec: "container-name:port"

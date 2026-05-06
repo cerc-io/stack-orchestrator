@@ -142,6 +142,7 @@ def up_operation(
     stay_attached=False,
     skip_cluster_management=False,
     image_overrides=None,
+    force_recreate=False,
 ):
     global_context = ctx.parent.parent.obj
     deploy_context = ctx.obj
@@ -161,6 +162,7 @@ def up_operation(
         skip_cluster_management=skip_cluster_management,
         services=services_list,
         image_overrides=image_overrides,
+        force_recreate=force_recreate,
     )
     for post_start_command in cluster_context.post_start_commands:
         _run_command(global_context, cluster_context.cluster, post_start_command)

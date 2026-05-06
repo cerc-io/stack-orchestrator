@@ -987,7 +987,19 @@ class K8sDeployer(Deployer):
                     else:
                         raise
 
-    def up(self, detach, skip_cluster_management, services, image_overrides=None):
+    def up(
+        self,
+        detach,
+        skip_cluster_management,
+        services,
+        image_overrides=None,
+        force_recreate=False,
+    ):
+        # TODO: honor force_recreate by stamping the
+        # kubectl.kubernetes.io/restartedAt annotation on managed
+        # Deployments so a rollout occurs even when the manifest is
+        # unchanged. Today this method is a no-op for that flag.
+        # Tracked separately from the compose-side fix.
         # Merge spec-level image overrides with CLI overrides
         spec_overrides = self.cluster_info.spec.get("image-overrides", {})
         if spec_overrides:

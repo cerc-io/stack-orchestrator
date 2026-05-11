@@ -1,7 +1,7 @@
 version: '3.2'
 
 services:
-  telegraf:
+  host-telegraf:
     image: telegraf:1.36
     restart: unless-stopped
     network_mode: host

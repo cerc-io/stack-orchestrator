@@ -74,7 +74,7 @@ already knows its stack).
 ### Verify
 
 ```bash
-laconic-so deployment --dir ./deployment-host-metrics logs telegraf | head
+laconic-so deployment --dir ./deployment-host-metrics logs host-telegraf | head
 ```
 
 Expected: telegraf prints its startup banner and `Loaded inputs: ...`. No
@@ -114,7 +114,7 @@ the toggle off on non-ZFS machines.
 | Symptom | Likely cause |
 |---------|-------------|
 | Container fails to start with `FATAL: INFLUXDB_URL is required but empty` | Missing required env. Check spec.yml + credentials file. |
-| Container starts, no rows appear in InfluxDB | Writer credentials wrong, or InfluxDB unreachable from this host's network. Check `docker logs <telegraf>` for `Post ... 401` / `connection refused`. |
+| Container starts, no rows appear in InfluxDB | Writer credentials wrong, or InfluxDB unreachable from this host's network. Check `docker logs <host-telegraf>` for `Post ... 401` / `connection refused`. |
 | Two hosts overwriting each other's series | Both use the same kernel hostname. Set distinct `HOST_TAG` values. |
 | `inputs.processes` reports only 1 process | `pid: host` missing from compose. Re-deploy. |
 

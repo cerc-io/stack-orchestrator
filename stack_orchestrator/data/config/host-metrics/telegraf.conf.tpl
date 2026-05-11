@@ -42,10 +42,13 @@
 [[inputs.processes]]
 
 [[inputs.disk]]
+  # gopsutil with HOST_MOUNT_PREFIX=/hostfs strips the /hostfs prefix
+  # from /proc/mounts entries, so the mountpoints telegraf sees are
+  # the host's real paths (/, /boot, /home, ...). No mount_points
+  # filter; let ignore_fs do the noise reduction.
   ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay",
                "aufs", "squashfs", "nsfs", "tracefs", "proc", "sysfs",
                "cgroup", "cgroup2", "fuse.lxcfs"]
-  mount_points = ["/hostfs"]
 
 [[inputs.diskio]]
   device_tags = ["DEVNAME"]
@@ -53,7 +56,11 @@
   name_templates = ["$DEVNAME"]
 
 [[inputs.net]]
+  # Allowlist covers physical ethernet (eth*, en*), wireless (wl*),
+  # cellular (wwan*), and bonded/teamed interfaces (bond*). Excludes
+  # docker bridges, veth pairs, tun/tap, and lo. Adjust per host if
+  # you need a more specific scope.
   ignore_protocol_stats = true
-  interfaces = ["eth*", "en*", "ens*", "eno*", "enp*", "wlan*"]
+  interfaces = ["eth*", "en*", "wl*", "wwan*", "bond*"]
 
 @@ZFS_BLOCK@@

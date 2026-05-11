@@ -28,14 +28,13 @@ All rows are tagged with `host` (kernel hostname, or `HOST_TAG` override).
 ### Create a spec
 
 ```bash
-laconic-so --stack <path>/stack_orchestrator/data/stacks/host-metrics \
-    deploy init --output spec-host-metrics.yml
+laconic-so --stack host-metrics deploy init --output spec-host-metrics.yml
 ```
 
 Edit `spec-host-metrics.yml` to look like:
 
 ```yaml
-stack: <path>/stack_orchestrator/data/stacks/host-metrics
+stack: host-metrics
 deploy-to: compose
 credentials-files:
   - ~/.credentials/host-metrics.env
@@ -68,7 +67,7 @@ laconic-so deployment --dir ./deployment-host-metrics start
 ### Verify
 
 ```bash
-docker logs $(docker ps -qf name=host-metrics) | head
+laconic-so deployment --dir ./deployment-host-metrics logs telegraf | head
 ```
 
 Expected: telegraf prints its startup banner and `Loaded inputs: ...`. No

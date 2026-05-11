@@ -1,9 +1,8 @@
 # host-metrics telegraf template.
-# Rendered at container start by telegraf-entrypoint.sh:
-#   - @@HOST_TAG_BLOCK@@ -> [global_tags] host = "<HOST_TAG>" if HOST_TAG set,
-#                          empty if unset (telegraf auto-tags with kernel hostname).
-#   - @@ZFS_BLOCK@@      -> [[inputs.zfs]] block if COLLECT_ZFS=true, else empty.
-# All ${...} variables are resolved by telegraf's native env substitution at
+# Rendered at container start by telegraf-entrypoint.sh. The entrypoint
+# replaces two single-line markers in this file with TOML block fragments;
+# see telegraf-entrypoint.sh for the substitution details. All ${...}
+# variables are resolved by telegraf's native env substitution at
 # config-load time.
 
 @@HOST_TAG_BLOCK@@

@@ -21,3 +21,8 @@ services:
       - /proc:/hostfs/proc:ro
       - /sys:/hostfs/sys:ro
       - /:/hostfs:ro
+      # /dev is needed by inputs.diskio: it enumerates devices from
+      # /proc/diskstats and then opens /dev/<name> for udev/uevent lookups.
+      # Without this mount telegraf logs an "error reading /dev/<name>" warning
+      # per device per collection cycle.
+      - /dev:/dev:ro

@@ -60,9 +60,16 @@ metrics.
 ### Create and start
 
 ```bash
-laconic-so deployment create --spec-file spec-host-metrics.yml --deployment-dir ./deployment-host-metrics
+laconic-so --stack host-metrics deploy create \
+    --spec-file spec-host-metrics.yml \
+    --deployment-dir ./deployment-host-metrics
 laconic-so deployment --dir ./deployment-host-metrics start
 ```
+
+`deploy create` builds the deployment dir from the spec; `deployment start`
+brings the containers up. The `--stack` option is required for `deploy`
+subcommands but rejected on `deployment` subcommands (the deployment dir
+already knows its stack).
 
 ### Verify
 

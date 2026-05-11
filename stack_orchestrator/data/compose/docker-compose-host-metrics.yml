@@ -26,3 +26,8 @@ services:
       # Without this mount telegraf logs an "error reading /dev/<name>" warning
       # per device per collection cycle.
       - /dev:/dev:ro
+      # /run/udev is where modern systemd stores the udev database that
+      # gopsutil consults for per-device tags. Without it telegraf falls
+      # back to the legacy /dev/.udev/db/... path which doesn't exist on
+      # systemd hosts, producing "stat /dev/.udev/db/block:..." warnings.
+      - /run/udev:/run/udev:ro

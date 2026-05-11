@@ -1,0 +1,33 @@
+version: '3.2'
+
+services:
+  telegraf:
+    image: telegraf:1.36
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    entrypoint: ["/scripts/telegraf-entrypoint.sh"]
+    environment:
+      INFLUXDB_URL: ${INFLUXDB_URL}
+      INFLUXDB_DB: ${INFLUXDB_DB:-host_metrics}
+      INFLUXDB_USER: ${INFLUXDB_WRITE_USER}
+      INFLUXDB_PASSWORD: ${INFLUXDB_WRITE_PASSWORD}
+      COLLECT_INTERVAL: ${COLLECT_INTERVAL:-10s}
+      HOST_TAG: ${HOST_TAG:-}
+      COLLECT_ZFS: ${COLLECT_ZFS:-false}
+    volumes:
+      - ../config/host-metrics/telegraf.conf.tpl:/etc/telegraf/telegraf.conf.tpl:ro
+      - ../config/host-metrics/scripts/telegraf-entrypoint.sh:/scripts/telegraf-entrypoint.sh:ro
+      - /proc:/hostfs/proc:ro
+      - /sys:/hostfs/sys:ro
+      - /:/hostfs:ro
+      # /dev is needed by inputs.diskio: it enumerates devices from
+      # /proc/diskstats and then opens /dev/<name> for udev/uevent lookups.
+      # Without this mount telegraf logs an "error reading /dev/<name>" warning
+      # per device per collection cycle.
+      - /dev:/dev:ro
+      # /run/udev is where modern systemd stores the udev database that
+      # gopsutil consults for per-device tags. Without it telegraf falls
+      # back to the legacy /dev/.udev/db/... path which doesn't exist on
+      # systemd hosts, producing "stat /dev/.udev/db/block:..." warnings.
+      - /run/udev:/run/udev:ro

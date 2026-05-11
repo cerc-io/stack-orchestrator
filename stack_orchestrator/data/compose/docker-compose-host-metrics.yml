@@ -1,0 +1,21 @@
+services:
+  telegraf:
+    image: telegraf:1.36
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    entrypoint: ["/scripts/telegraf-entrypoint.sh"]
+    environment:
+      INFLUXDB_URL: ${INFLUXDB_URL}
+      INFLUXDB_DB: ${INFLUXDB_DB:-host_metrics}
+      INFLUXDB_USER: ${INFLUXDB_WRITE_USER}
+      INFLUXDB_PASSWORD: ${INFLUXDB_WRITE_PASSWORD}
+      COLLECT_INTERVAL: ${COLLECT_INTERVAL:-10s}
+      HOST_TAG: ${HOST_TAG:-}
+      COLLECT_ZFS: ${COLLECT_ZFS:-false}
+    volumes:
+      - ../config/host-metrics/telegraf.conf.tpl:/etc/telegraf/telegraf.conf.tpl:ro
+      - ../config/host-metrics/scripts/telegraf-entrypoint.sh:/scripts/telegraf-entrypoint.sh:ro
+      - /proc:/hostfs/proc:ro
+      - /sys:/hostfs/sys:ro
+      - /:/hostfs:ro

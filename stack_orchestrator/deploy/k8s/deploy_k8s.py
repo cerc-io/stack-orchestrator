@@ -12,6 +12,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import base64
+import os
 from datetime import datetime, timezone
 
 from pathlib import Path
@@ -651,6 +653,89 @@ class K8sDeployer(Deployer):
             else:
                 raise
 
+    def _create_user_secrets(self):
+        """Create k8s Secrets declared with sources in spec.secrets.
+
+        Spec form (legacy list form is ignored — operator owns those):
+            secrets:
+              my-secret:
+                keys:
+                  KEY1: { env: ENV_VAR_NAME }
+                  KEY2: { file: /path/to/file }
+
+        Reads values from os.environ or files, creates one V1Secret per entry
+        in the deployer's namespace. 409 -> replace, matching the existing
+        image-pull-secret / generated-secrets idempotency pattern.
+        """
+        if opts.o and opts.o.dry_run:
+            print("Dry run: would create user secrets")
+            return
+
+        secrets_spec = self.cluster_info.spec.get_secrets()
+        for secret_name, entry in secrets_spec.items():
+            if not isinstance(entry, dict):
+                continue  # legacy list form: reference-only, operator-managed
+            keys = entry.get("keys") or {}
+            if not keys:
+                continue
+
+            data = {}
+            for key_name, source in keys.items():
+                if not isinstance(source, dict):
+                    raise DeployerException(
+                        f"secrets.{secret_name}.keys.{key_name}: expected mapping "
+                        f"with 'env' or 'file', got {type(source).__name__}"
+                    )
+                if "env" in source:
+                    env_var = source["env"]
+                    value = os.environ.get(env_var)
+                    if value is None or value == "":
+                        raise DeployerException(
+                            f"secrets.{secret_name}.keys.{key_name}: "
+                            f"environment variable '{env_var}' is unset or empty"
+                        )
+                elif "file" in source:
+                    path = Path(source["file"]).expanduser()
+                    if not path.is_file():
+                        raise DeployerException(
+                            f"secrets.{secret_name}.keys.{key_name}: "
+                            f"file '{source['file']}' does not exist"
+                        )
+                    try:
+                        value = path.read_text()
+                    except OSError as e:
+                        raise DeployerException(
+                            f"secrets.{secret_name}.keys.{key_name}: "
+                            f"cannot read '{source['file']}': {e}"
+                        )
+                else:
+                    raise DeployerException(
+                        f"secrets.{secret_name}.keys.{key_name}: source must "
+                        f"declare 'env' or 'file'"
+                    )
+                data[key_name] = base64.b64encode(value.encode()).decode()
+
+            body = client.V1Secret(
+                metadata=client.V1ObjectMeta(name=secret_name),
+                type="Opaque",
+                data=data,
+            )
+            try:
+                self.core_api.create_namespaced_secret(
+                    namespace=self.k8s_namespace, body=body
+                )
+                print(f"Created user Secret '{secret_name}' in {self.k8s_namespace}")
+            except ApiException as e:
+                if e.status == 409:
+                    self.core_api.replace_namespaced_secret(
+                        name=secret_name,
+                        namespace=self.k8s_namespace,
+                        body=body,
+                    )
+                    print(f"Updated user Secret '{secret_name}' in {self.k8s_namespace}")
+                else:
+                    raise
+
     def _create_deployment(self):
         """Create the k8s Deployment resource (which starts pods)."""
         # Skip if there are no pods to deploy (e.g. jobs-only stacks)
@@ -1012,6 +1097,8 @@ class K8sDeployer(Deployer):
             self._setup_cluster()
         else:
             print("Dry run mode enabled, skipping k8s API connect")
+
+        self._create_user_secrets()
 
         # Create registry secret if configured
         from stack_orchestrator.deploy.deployment_create import create_registry_secret

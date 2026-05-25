@@ -2,7 +2,10 @@ version: '3.2'
 
 services:
   host-telegraf:
-    image: telegraf:1.36
+    # Pin to 1.36.4: 1.36.3 added useNativeTypes for ZFS (PR #17617) but
+    # introduced a panic in processProcFile (issue #17952). 1.36.4 fixes
+    # the panic via PR #17953. See telegraf-entrypoint.sh ZFS_BLOCK.
+    image: telegraf:1.36.4
     restart: unless-stopped
     network_mode: host
     pid: host

@@ -4,7 +4,13 @@
 #
 # Substitutions performed here (by awk):
 #   @@HOST_TAG_BLOCK@@ -> "[global_tags]\n  host = \"$HOST_TAG\"" if set, else empty.
-#   @@ZFS_BLOCK@@      -> "[[inputs.zfs]]\n  poolMetrics = true"  if COLLECT_ZFS=true, else empty.
+#   @@ZFS_BLOCK@@      -> "[[inputs.zfs]]\n  poolMetrics = true\n  useNativeTypes = true"
+#                         if COLLECT_ZFS=true, else empty. useNativeTypes emits
+#                         uint64-typed fields per ZFS's native definition so that
+#                         counters near 2^64 (e.g. fm.erpt-*, dmu_tx_*) do not
+#                         overflow int64 and crash the input. Requires telegraf
+#                         >= 1.36.4 (1.36.3 added the option but had a regression
+#                         panic in processProcFile, fixed in 1.36.4 via PR #17953).
 #
 # Variables of the form ${VAR} in the template (INFLUXDB_URL, INFLUXDB_DB,
 # INFLUXDB_USER, INFLUXDB_PASSWORD, COLLECT_INTERVAL) are resolved by
@@ -45,7 +51,7 @@ else
 fi
 
 if [ "$COLLECT_ZFS" = "true" ]; then
-    ZFS_BLOCK=$(printf '[[inputs.zfs]]\n  poolMetrics = true')
+    ZFS_BLOCK=$(printf '[[inputs.zfs]]\n  poolMetrics = true\n  useNativeTypes = true')
 else
     ZFS_BLOCK=""
 fi

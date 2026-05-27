@@ -1111,11 +1111,17 @@ def _safe_copy_tree(src: Path, dst: Path, exclude_patterns: Optional[List[str]] 
 
 
 def _copy_hooks(stack_name: str, target_dir: Path):
-    """Copy commands.py hooks into deployment_dir/hooks/ for self-sufficiency.
+    """Copy the deploy/ directory into deployment_dir/hooks/ for self-sufficiency.
 
-    Single repo: hooks/commands.py
-    Multi-repo: hooks/commands_0.py, hooks/commands_1.py, ... — indexed by
-    plugin path order.
+    All files from each plugin's deploy/ directory are copied. commands.py is
+    the well-known entry point loaded at start() time; any sibling files
+    (e.g. shell scripts) are copied alongside it so they remain accessible via
+    Path(__file__).parent at runtime.
+
+    Single repo: hooks/commands.py (+ siblings)
+    Multi-repo: hooks/commands_0.py, hooks/commands_1.py, ... — only
+    commands.py is indexed; other files from later plugins overwrite earlier
+    ones (last writer wins).
 
     Note: the whole commands.py file is copied (init/setup/create/start), but
     at runtime only call_stack_deploy_start loads from this copied location.
@@ -1125,20 +1131,18 @@ def _copy_hooks(stack_name: str, target_dir: Path):
     is guaranteed to be present, so they don't need to be self-sufficient.
     """
     plugin_paths = get_plugin_code_paths(stack_name)
-    sources = [
-        p.joinpath("deploy", "commands.py")
-        for p in plugin_paths
-        if p.joinpath("deploy", "commands.py").exists()
-    ]
-    if not sources:
+    deploy_dirs = [p / "deploy" for p in plugin_paths if (p / "deploy").is_dir()]
+    if not deploy_dirs:
         return
     hooks_dir = target_dir / "hooks"
     hooks_dir.mkdir(exist_ok=True)
-    if len(sources) == 1:
-        copyfile(sources[0], hooks_dir / "commands.py")
-    else:
-        for i, src in enumerate(sources):
-            copyfile(src, hooks_dir / f"commands_{i}.py")
+    multi = len(deploy_dirs) > 1
+    for i, deploy_dir in enumerate(deploy_dirs):
+        for src in sorted(deploy_dir.iterdir()):
+            if not src.is_file():
+                continue
+            dst_name = f"commands_{i}.py" if (src.name == "commands.py" and multi) else src.name
+            copyfile(src, hooks_dir / dst_name)
 
 
 def _write_deployment_files(

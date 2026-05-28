@@ -504,3 +504,34 @@ class TestDockerRunJobKwargs(unittest.TestCase):
             opts_mock.o.dry_run = True
             with self.assertRaises(DeployerException):
                 d.run_job("foo", timeout_seconds=30)
+
+
+class TestParseEnvFlags(unittest.TestCase):
+    def test_valid_pairs(self):
+        from stack_orchestrator.deploy.deploy import _parse_env_flags
+
+        out = _parse_env_flags(("FOO=bar", "BAZ=quux"))
+        self.assertEqual(out, {"FOO": "bar", "BAZ": "quux"})
+
+    def test_empty(self):
+        from stack_orchestrator.deploy.deploy import _parse_env_flags
+
+        self.assertEqual(_parse_env_flags(()), {})
+
+    def test_value_with_equals_signs_preserved(self):
+        from stack_orchestrator.deploy.deploy import _parse_env_flags
+
+        out = _parse_env_flags(("URL=https://x.y?a=1&b=2",))
+        self.assertEqual(out, {"URL": "https://x.y?a=1&b=2"})
+
+    def test_missing_equals_raises(self):
+        from stack_orchestrator.deploy.deploy import _parse_env_flags
+
+        with self.assertRaises(ValueError):
+            _parse_env_flags(("FOO",))
+
+    def test_empty_key_raises(self):
+        from stack_orchestrator.deploy.deploy import _parse_env_flags
+
+        with self.assertRaises(ValueError):
+            _parse_env_flags(("=bar",))

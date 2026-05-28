@@ -1626,6 +1626,71 @@ class K8sDeployer(Deployer):
         # We need to figure out how to do this -- check why we're being called first
         pass
 
+    def _wait_and_stream(self, job_name: str, timeout_seconds: int) -> int:
+        """Block until the Job's pod terminates, streaming logs to stdout.
+
+        Returns 0 if the Job succeeded, non-zero otherwise.
+
+        timeout_seconds=0 means no client-side timeout.
+        """
+        import sys
+        import time
+
+        deadline = (
+            time.monotonic() + timeout_seconds
+            if timeout_seconds > 0
+            else None
+        )
+        selector = f"job-name={job_name}"
+
+        # Step 1: wait for the pod to appear and leave Pending.
+        pod_name = None
+        while True:
+            if deadline is not None and time.monotonic() > deadline:
+                print(
+                    f"Timed out waiting for pod of {job_name} to start",
+                    file=sys.stderr,
+                )
+                return 1
+            pods = self.core_api.list_namespaced_pod(
+                namespace=self.k8s_namespace, label_selector=selector
+            )
+            if pods.items:
+                p = pods.items[0]
+                phase = p.status.phase if p.status else None
+                if phase and phase != "Pending":
+                    pod_name = p.metadata.name
+                    break
+            time.sleep(1)
+
+        # Step 2: stream logs to stdout (blocking until the pod terminates).
+        resp = self.core_api.read_namespaced_pod_log(
+            name=pod_name,
+            namespace=self.k8s_namespace,
+            follow=True,
+            _preload_content=False,
+        )
+        try:
+            for chunk in resp.stream(decode_content=True):
+                if isinstance(chunk, bytes):
+                    sys.stdout.buffer.write(chunk)
+                    sys.stdout.buffer.flush()
+                else:
+                    sys.stdout.write(str(chunk))
+                    sys.stdout.flush()
+        finally:
+            try:
+                resp.release_conn()
+            except Exception:
+                pass
+
+        # Step 3: read final Job status.
+        job = self.batch_api.read_namespaced_job_status(
+            name=job_name, namespace=self.k8s_namespace
+        )
+        succeeded = (job.status.succeeded or 0) if job.status else 0
+        return 0 if succeeded >= 1 else 1
+
     def run_job(self, job_name: str, helm_release: Optional[str] = None):
         if not opts.o.dry_run:
             # Check if this is a helm-based deployment

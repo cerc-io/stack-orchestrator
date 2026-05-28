@@ -249,3 +249,68 @@ class TestCreateJobsSkipsSuspended(unittest.TestCase):
             opts_mock.o.dry_run = False
             d._create_jobs()
         d.batch_api.create_namespaced_job.assert_not_called()
+
+
+class FakeLogResponse:
+    """Mimics urllib3 HTTPResponse used by kubernetes client log streaming."""
+
+    def __init__(self, chunks):
+        self._chunks = chunks
+
+    def stream(self, amt=None, decode_content=True):
+        for c in self._chunks:
+            yield c
+
+    def release_conn(self):
+        pass
+
+
+class TestWaitAndStream(unittest.TestCase):
+    def _deployer(self):
+        d = K8sDeployer.__new__(K8sDeployer)
+        d.k8s_namespace = "test-ns"
+        d.batch_api = MagicMock()
+        d.core_api = MagicMock()
+        return d
+
+    def _pod(self, phase, name="pod-1"):
+        return k8s_client.V1Pod(
+            metadata=k8s_client.V1ObjectMeta(name=name),
+            status=k8s_client.V1PodStatus(phase=phase),
+        )
+
+    def _watch_events(self, *pods):
+        for p in pods:
+            yield {"type": "MODIFIED", "object": p}
+
+    def test_returns_zero_on_success(self):
+        d = self._deployer()
+        d.core_api.list_namespaced_pod.return_value = (
+            k8s_client.V1PodList(items=[self._pod("Running")])
+        )
+        d.core_api.read_namespaced_pod_log.return_value = FakeLogResponse(
+            [b"hello\n", b"world\n"]
+        )
+        d.batch_api.read_namespaced_job_status.return_value = (
+            k8s_client.V1Job(
+                status=k8s_client.V1JobStatus(succeeded=1, failed=0)
+            )
+        )
+        rc = d._wait_and_stream(job_name="j-1", timeout_seconds=0)
+        self.assertEqual(rc, 0)
+
+    def test_returns_nonzero_on_failure(self):
+        d = self._deployer()
+        d.core_api.list_namespaced_pod.return_value = (
+            k8s_client.V1PodList(items=[self._pod("Running")])
+        )
+        d.core_api.read_namespaced_pod_log.return_value = FakeLogResponse(
+            [b"boom\n"]
+        )
+        d.batch_api.read_namespaced_job_status.return_value = (
+            k8s_client.V1Job(
+                status=k8s_client.V1JobStatus(succeeded=0, failed=1)
+            )
+        )
+        rc = d._wait_and_stream(job_name="j-2", timeout_seconds=0)
+        self.assertNotEqual(rc, 0)

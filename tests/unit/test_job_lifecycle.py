@@ -333,7 +333,7 @@ class TestRunJob(unittest.TestCase):
         return d
 
     def test_uses_timestamp_suffix(self):
-        suspended = _job("test-app-job-ism-update", suspended=True)
+        suspended = _job("test-app-job-ism-update-1700000000", suspended=True)
         d = self._deployer([suspended])
         with patch(
             "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
@@ -353,7 +353,7 @@ class TestRunJob(unittest.TestCase):
         self.assertEqual(kwargs.get("name_suffix"), "1700000000")
 
     def test_forwards_extra_env(self):
-        suspended = _job("test-app-job-ism-update", suspended=True)
+        suspended = _job("test-app-job-ism-update-1700000000", suspended=True)
         d = self._deployer([suspended])
         with patch(
             "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
@@ -373,7 +373,7 @@ class TestRunJob(unittest.TestCase):
         self.assertEqual(kwargs.get("extra_env"), {"CHAIN": "gorchain"})
 
     def test_warns_for_non_suspended(self):
-        not_suspended = _job("test-app-job-warp-deployer", suspended=False)
+        not_suspended = _job("test-app-job-warp-deployer-1700000000", suspended=False)
         d = self._deployer([not_suspended])
         with patch(
             "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
@@ -396,7 +396,7 @@ class TestRunJob(unittest.TestCase):
         self.assertIn("warp-deployer", written)
 
     def test_does_not_warn_for_suspended(self):
-        suspended = _job("test-app-job-ism-update", suspended=True)
+        suspended = _job("test-app-job-ism-update-1700000000", suspended=True)
         d = self._deployer([suspended])
         with patch(
             "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
@@ -418,7 +418,7 @@ class TestRunJob(unittest.TestCase):
         self.assertNotIn("WARNING", written)
 
     def test_calls_wait_and_stream_unless_no_wait(self):
-        suspended = _job("test-app-job-ism-update", suspended=True)
+        suspended = _job("test-app-job-ism-update-1700000000", suspended=True)
         d = self._deployer([suspended])
         with patch(
             "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
@@ -437,7 +437,7 @@ class TestRunJob(unittest.TestCase):
         d._wait_and_stream.assert_called_once()
 
     def test_no_wait_skips_wait_and_stream(self):
-        suspended = _job("test-app-job-ism-update", suspended=True)
+        suspended = _job("test-app-job-ism-update-1700000000", suspended=True)
         d = self._deployer([suspended])
         with patch(
             "stack_orchestrator.deploy.k8s.deploy_k8s.opts"

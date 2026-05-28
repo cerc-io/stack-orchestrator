@@ -1735,7 +1735,7 @@ class K8sDeployer(Deployer):
         target_name = f"{base_name}-{suffix}"
         matched_job = None
         for job in jobs:
-            if job.metadata and job.metadata.name in (target_name, base_name):
+            if job.metadata and job.metadata.name == target_name:
                 matched_job = job
                 break
         if matched_job is None:

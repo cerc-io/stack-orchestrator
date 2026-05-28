@@ -74,6 +74,20 @@ def to_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequi
     )
 
 
+def _is_suspended(service: dict) -> bool:
+    """Return True if the compose service has label laconic.suspend == 'true'."""
+    labels = service.get("labels") or {}
+    if isinstance(labels, list):
+        parsed = {}
+        for item in labels:
+            if not isinstance(item, str):
+                continue
+            key, _, value = item.partition("=")
+            parsed[key] = value
+        labels = parsed
+    return str(labels.get("laconic.suspend", "")).lower() == "true"
+
+
 class ClusterInfo:
     parsed_pod_yaml_map: Any
     parsed_job_yaml_map: Any

@@ -456,3 +456,51 @@ class TestRunJob(unittest.TestCase):
                 timeout_seconds=0,
             )
         d._wait_and_stream.assert_not_called()
+
+
+class TestDockerRunJobKwargs(unittest.TestCase):
+    def _docker_deployer(self):
+        from stack_orchestrator.deploy.compose.deploy_docker import (
+            DockerDeployer,
+        )
+
+        d = DockerDeployer.__new__(DockerDeployer)
+        d.compose_files = ["/fake/compose/docker-compose.yml"]
+        d.compose_project_name = "test"
+        d.compose_env_file = None
+        return d
+
+    def test_extra_env_warns_but_proceeds(self):
+        d = self._docker_deployer()
+        with patch(
+            "stack_orchestrator.deploy.compose.deploy_docker.opts"
+        ) as opts_mock, patch("sys.stderr") as stderr_mock:
+            opts_mock.o.dry_run = True
+            opts_mock.o.verbose = False
+            d.run_job("foo", extra_env={"X": "1"})
+        written = "".join(
+            c.args[0] for c in stderr_mock.write.call_args_list
+        )
+        self.assertIn("WARNING", written)
+
+    def test_no_wait_raises(self):
+        d = self._docker_deployer()
+        from stack_orchestrator.deploy.deployer import DeployerException
+
+        with patch(
+            "stack_orchestrator.deploy.compose.deploy_docker.opts"
+        ) as opts_mock:
+            opts_mock.o.dry_run = True
+            with self.assertRaises(DeployerException):
+                d.run_job("foo", no_wait=True)
+
+    def test_timeout_raises(self):
+        d = self._docker_deployer()
+        from stack_orchestrator.deploy.deployer import DeployerException
+
+        with patch(
+            "stack_orchestrator.deploy.compose.deploy_docker.opts"
+        ) as opts_mock:
+            opts_mock.o.dry_run = True
+            with self.assertRaises(DeployerException):
+                d.run_job("foo", timeout_seconds=30)

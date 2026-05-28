@@ -1708,6 +1708,14 @@ class K8sDeployer(Deployer):
                 raise DeployerException(
                     "--env is not supported on helm-based deployments in v1"
                 )
+            if no_wait:
+                raise DeployerException(
+                    "--no-wait is not supported on helm-based deployments in v1"
+                )
+            if timeout_seconds:
+                raise DeployerException(
+                    "--timeout is not supported on helm-based deployments in v1"
+                )
             from stack_orchestrator.deploy.k8s.helm.job_runner import (
                 run_helm_job,
             )

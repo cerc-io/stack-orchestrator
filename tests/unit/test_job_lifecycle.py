@@ -434,7 +434,9 @@ class TestRunJob(unittest.TestCase):
                 extra_env={},
                 timeout_seconds=0,
             )
-        d._wait_and_stream.assert_called_once()
+        d._wait_and_stream.assert_called_once_with(
+            job_name="test-app-job-ism-update-1700000000", timeout_seconds=0
+        )
 
     def test_no_wait_skips_wait_and_stream(self):
         suspended = _job("test-app-job-ism-update-1700000000", suspended=True)

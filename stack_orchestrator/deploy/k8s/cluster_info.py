@@ -1148,6 +1148,8 @@ class ClusterInfo:
                 single_job_map, image_pull_policy
             )
 
+            # extra_env is applied to main containers only, not init_containers
+            # (v1 scope: atomic ops don't use init containers).
             if extra_env:
                 for container in containers:
                     existing = list(container.env or [])

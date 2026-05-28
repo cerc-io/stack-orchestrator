@@ -3,8 +3,11 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from kubernetes import client as k8s_client
+
 from stack_orchestrator.command_types import CommandOptions
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo, _is_suspended
+from stack_orchestrator.deploy.k8s.deploy_k8s import K8sDeployer
 import stack_orchestrator.opts as _opts_module
 
 
@@ -180,11 +183,6 @@ class TestGetJobsExtraEnv(unittest.TestCase):
         jobs = ci.get_jobs()
         env = self._env_dict(jobs[0].spec.template.spec.containers[0])
         self.assertEqual(env.get("FOO"), "x")
-
-
-from kubernetes import client as k8s_client
-
-from stack_orchestrator.deploy.k8s.deploy_k8s import K8sDeployer
 
 
 def _make_k8s_deployer(jobs):

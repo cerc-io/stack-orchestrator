@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import sys
 from pathlib import Path
 from typing import Dict, Optional
 from python_on_whales import DockerClient, DockerException
@@ -167,9 +168,7 @@ class DockerDeployer(Deployer):
                 "--timeout is not supported on docker-compose deployments"
             )
         if extra_env:
-            import sys as _sys
-
-            _sys.stderr.write(
+            sys.stderr.write(
                 "WARNING: --env is not supported on docker-compose "
                 "deployments; ignoring per-invocation env vars.\n"
             )
@@ -206,7 +205,7 @@ class DockerDeployer(Deployer):
                 )
 
                 # Run the job with --rm flag to remove container after completion
-                return job_docker.compose.run(service=job_name, remove=True, tty=True)
+                job_docker.compose.run(service=job_name, remove=True, tty=True)
 
             except DockerException as e:
                 raise DeployerException(e)

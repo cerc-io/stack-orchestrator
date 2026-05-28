@@ -279,10 +279,6 @@ class TestWaitAndStream(unittest.TestCase):
             status=k8s_client.V1PodStatus(phase=phase),
         )
 
-    def _watch_events(self, *pods):
-        for p in pods:
-            yield {"type": "MODIFIED", "object": p}
-
     def test_returns_zero_on_success(self):
         d = self._deployer()
         d.core_api.list_namespaced_pod.return_value = (

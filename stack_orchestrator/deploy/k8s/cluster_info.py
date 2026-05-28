@@ -1154,6 +1154,10 @@ class ClusterInfo:
             elif job_name.endswith(".yaml"):
                 job_name = job_name[: -len(".yaml")]
 
+            # Detect suspend label on the compose service for this job file.
+            services = self.parsed_job_yaml_map[job_file].get("services") or {}
+            suspended = any(_is_suspended(svc) for svc in services.values())
+
             # Use a distinct app label for job pods so they don't get
             # picked up by pods_in_deployment() which queries app={app_name}.
             # Use a distinct app label for job pods (see comment above) so we
@@ -1174,6 +1178,8 @@ class ClusterInfo:
                 backoff_limit=0,
             )
             job_labels = self._stack_labels()
+            if suspended:
+                job_labels["laconic.suspend"] = "true"
             job = client.V1Job(
                 api_version="batch/v1",
                 kind="Job",

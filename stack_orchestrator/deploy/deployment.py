@@ -261,13 +261,47 @@ def update_envs(ctx):
     "--helm-release",
     help="Helm release name (for k8s helm chart deployments, defaults to chart name)",
 )
+@click.option(
+    "--env",
+    "envs",
+    multiple=True,
+    metavar="KEY=VAL",
+    help="Per-invocation env var; repeatable, e.g. --env FOO=bar.",
+)
+@click.option(
+    "--no-wait",
+    is_flag=True,
+    default=False,
+    help="Return after Job creation; do not stream logs or wait.",
+)
+@click.option(
+    "--timeout",
+    "timeout_seconds",
+    type=int,
+    default=0,
+    help="Seconds to wait before giving up (0 = no timeout). "
+         "Ignored with --no-wait.",
+)
 @click.pass_context
-def run_job(ctx, job_name, helm_release):
-    """run a one-time job from the stack"""
+def run_job(ctx, job_name, helm_release, envs, no_wait, timeout_seconds):
+    """Run a one-time job from the stack.
+
+    Each invocation creates a fresh timestamp-suffixed Job. Use --env
+    to layer per-invocation env vars on top of the compose/spec env.
+    By default, blocks streaming the pod's logs to stdout; pass
+    --no-wait to return immediately.
+    """
     from stack_orchestrator.deploy.deploy import run_job_operation
 
     ctx.obj = make_deploy_context(ctx)
-    run_job_operation(ctx, job_name, helm_release)
+    run_job_operation(
+        ctx,
+        job_name,
+        helm_release,
+        env_args=envs,
+        no_wait=no_wait,
+        timeout_seconds=timeout_seconds,
+    )
 
 
 @command.command()

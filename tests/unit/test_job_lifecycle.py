@@ -1,7 +1,7 @@
 # tests/unit/test_job_lifecycle.py
 """Unit tests for the job-suspend + enhanced run-job feature."""
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from stack_orchestrator.command_types import CommandOptions
 from stack_orchestrator.deploy.k8s.cluster_info import ClusterInfo, _is_suspended
@@ -180,3 +180,72 @@ class TestGetJobsExtraEnv(unittest.TestCase):
         jobs = ci.get_jobs()
         env = self._env_dict(jobs[0].spec.template.spec.containers[0])
         self.assertEqual(env.get("FOO"), "x")
+
+
+from kubernetes import client as k8s_client
+
+from stack_orchestrator.deploy.k8s.deploy_k8s import K8sDeployer
+
+
+def _make_k8s_deployer(jobs):
+    d = K8sDeployer.__new__(K8sDeployer)
+    d.k8s_namespace = "test-ns"
+    d.batch_api = MagicMock()
+    d.cluster_info = MagicMock()
+    d.cluster_info.get_jobs.return_value = jobs
+    d.type = "k8s-kind"
+    return d
+
+
+def _job(name, suspended=False):
+    labels = {"app": "x"}
+    if suspended:
+        labels["laconic.suspend"] = "true"
+    return k8s_client.V1Job(
+        api_version="batch/v1",
+        kind="Job",
+        metadata=k8s_client.V1ObjectMeta(name=name, labels=labels),
+        spec=k8s_client.V1JobSpec(
+            template=k8s_client.V1PodTemplateSpec(),
+            backoff_limit=0,
+        ),
+    )
+
+
+class TestCreateJobsSkipsSuspended(unittest.TestCase):
+    def test_skips_suspended(self):
+        jobs = [_job("a"), _job("b", suspended=True), _job("c")]
+        d = _make_k8s_deployer(jobs)
+        with patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
+        ) as opts_mock:
+            opts_mock.o.debug = False
+            opts_mock.o.dry_run = False
+            d._create_jobs()
+        names = [
+            call.kwargs.get("body").metadata.name
+            for call in d.batch_api.create_namespaced_job.call_args_list
+        ]
+        self.assertEqual(names, ["a", "c"])
+
+    def test_creates_all_when_none_suspended(self):
+        jobs = [_job("a"), _job("b")]
+        d = _make_k8s_deployer(jobs)
+        with patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
+        ) as opts_mock:
+            opts_mock.o.debug = False
+            opts_mock.o.dry_run = False
+            d._create_jobs()
+        self.assertEqual(d.batch_api.create_namespaced_job.call_count, 2)
+
+    def test_creates_none_when_all_suspended(self):
+        jobs = [_job("a", suspended=True), _job("b", suspended=True)]
+        d = _make_k8s_deployer(jobs)
+        with patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
+        ) as opts_mock:
+            opts_mock.o.debug = False
+            opts_mock.o.dry_run = False
+            d._create_jobs()
+        d.batch_api.create_namespaced_job.assert_not_called()

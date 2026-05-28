@@ -845,10 +845,20 @@ class K8sDeployer(Deployer):
                     print(f"  {service_resp}")
 
     def _create_jobs(self):
-        # Process job compose files into k8s Jobs
+        # Process job compose files into k8s Jobs.
+        # Jobs whose source compose service has label laconic.suspend=true
+        # are skipped here; they're triggered on demand via `run-job`.
         job_pull_policy = "IfNotPresent" if self.is_kind() else "Always"
         jobs = self.cluster_info.get_jobs(image_pull_policy=job_pull_policy)
         for job in jobs:
+            labels = (job.metadata.labels or {}) if job.metadata else {}
+            if labels.get("laconic.suspend") == "true":
+                if opts.o.debug:
+                    print(
+                        f"Skipping suspended job {job.metadata.name} "
+                        f"(triggered manually via run-job)"
+                    )
+                continue
             if opts.o.debug:
                 print(f"Sending this job: {job}")
             if not opts.o.dry_run:
@@ -866,10 +876,6 @@ class K8sDeployer(Deployer):
                             )
                 except ApiException as e:
                     if e.status == 409:
-                        # Job already exists from a prior run. Jobs are one-
-                        # shot — don't recreate on restart. Delete the Job
-                        # explicitly to re-run (stop --delete-volumes also
-                        # clears them via label-based cleanup).
                         print(f"Job {job_name} already exists, skipping")
                     else:
                         raise

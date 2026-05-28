@@ -140,3 +140,43 @@ class TestGetJobsNameSuffix(unittest.TestCase):
         ci = _make_cluster_info(self._job_map())
         jobs = ci.get_jobs(name_suffix=None)
         self.assertEqual(jobs[0].metadata.name, "test-app-job-foo")
+
+
+class TestGetJobsExtraEnv(unittest.TestCase):
+    def _job_map(self, env=None):
+        svc = {"image": "nginx:latest"}
+        if env is not None:
+            svc["environment"] = env
+        return {
+            "/abs/path/compose-jobs/docker-compose-foo.yml": {
+                "services": {"foo": svc},
+            }
+        }
+
+    def _env_dict(self, container):
+        # V1EnvVar list -> {name: value}
+        return {e.name: e.value for e in (container.env or [])}
+
+    def test_extra_env_appended(self):
+        ci = _make_cluster_info(self._job_map())
+        jobs = ci.get_jobs(extra_env={"FOO": "bar"})
+        container = jobs[0].spec.template.spec.containers[0]
+        self.assertEqual(self._env_dict(container).get("FOO"), "bar")
+
+    def test_extra_env_overrides_compose_env(self):
+        ci = _make_cluster_info(
+            self._job_map(env={"FOO": "from-compose"})
+        )
+        jobs = ci.get_jobs(extra_env={"FOO": "from-extra"})
+        container = jobs[0].spec.template.spec.containers[0]
+        env = self._env_dict(container)
+        # FOO should appear exactly once with the override value.
+        names = [e.name for e in container.env]
+        self.assertEqual(names.count("FOO"), 1)
+        self.assertEqual(env["FOO"], "from-extra")
+
+    def test_no_extra_env_no_change(self):
+        ci = _make_cluster_info(self._job_map(env={"FOO": "x"}))
+        jobs = ci.get_jobs()
+        env = self._env_dict(jobs[0].spec.template.spec.containers[0])
+        self.assertEqual(env.get("FOO"), "x")

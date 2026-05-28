@@ -18,7 +18,7 @@ import base64
 from pathlib import Path
 
 from kubernetes import client
-from typing import Any, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import env_var_map_from_file
@@ -1121,6 +1121,7 @@ class ClusterInfo:
         self,
         image_pull_policy: Optional[str] = None,
         name_suffix: Optional[str] = None,
+        extra_env: Optional[Dict[str, str]] = None,
     ) -> List[client.V1Job]:
         """Build k8s Job objects from parsed job compose files.
 
@@ -1146,6 +1147,19 @@ class ClusterInfo:
             containers, init_containers, _services, volumes = self._build_containers(
                 single_job_map, image_pull_policy
             )
+
+            if extra_env:
+                for container in containers:
+                    existing = list(container.env or [])
+                    # Keep all existing entries whose name is NOT being overridden.
+                    keep = [
+                        e for e in existing if e.name not in extra_env
+                    ]
+                    overrides = [
+                        client.V1EnvVar(name=k, value=str(v))
+                        for k, v in extra_env.items()
+                    ]
+                    container.env = keep + overrides
 
             # Derive job name from file path: docker-compose-<name>.yml -> <name>
             base = os.path.basename(job_file)

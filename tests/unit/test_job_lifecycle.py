@@ -310,3 +310,147 @@ class TestWaitAndStream(unittest.TestCase):
         )
         rc = d._wait_and_stream(job_name="j-2", timeout_seconds=0)
         self.assertNotEqual(rc, 0)
+
+
+class TestRunJob(unittest.TestCase):
+    def _deployer(self, jobs):
+        d = K8sDeployer.__new__(K8sDeployer)
+        d.k8s_namespace = "test-ns"
+        d.batch_api = MagicMock()
+        d.core_api = MagicMock()
+        d.deployment_dir = MagicMock()
+        # chart_dir must not exist so we take the non-helm path
+        chart_dir = MagicMock()
+        chart_dir.exists.return_value = False
+        d.deployment_dir.__truediv__.return_value = chart_dir
+        d.cluster_info = MagicMock()
+        d.cluster_info.app_name = "test-app"
+        d.cluster_info.get_jobs.return_value = jobs
+        d.type = "k8s-kind"
+        # connect_api is called by run_job; stub it out.
+        d.connect_api = MagicMock()
+        d._wait_and_stream = MagicMock(return_value=0)
+        return d
+
+    def test_uses_timestamp_suffix(self):
+        suspended = _job("test-app-job-ism-update", suspended=True)
+        d = self._deployer([suspended])
+        with patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
+        ) as opts_mock, patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.time"
+        ) as time_mock:
+            opts_mock.o.debug = False
+            opts_mock.o.dry_run = False
+            time_mock.time.return_value = 1700000000.0
+            d.run_job(
+                "ism-update",
+                no_wait=True,
+                extra_env={},
+                timeout_seconds=0,
+            )
+        kwargs = d.cluster_info.get_jobs.call_args.kwargs
+        self.assertEqual(kwargs.get("name_suffix"), "1700000000")
+
+    def test_forwards_extra_env(self):
+        suspended = _job("test-app-job-ism-update", suspended=True)
+        d = self._deployer([suspended])
+        with patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
+        ) as opts_mock, patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.time"
+        ) as time_mock:
+            opts_mock.o.debug = False
+            opts_mock.o.dry_run = False
+            time_mock.time.return_value = 1700000000.0
+            d.run_job(
+                "ism-update",
+                no_wait=True,
+                extra_env={"CHAIN": "gorchain"},
+                timeout_seconds=0,
+            )
+        kwargs = d.cluster_info.get_jobs.call_args.kwargs
+        self.assertEqual(kwargs.get("extra_env"), {"CHAIN": "gorchain"})
+
+    def test_warns_for_non_suspended(self):
+        not_suspended = _job("test-app-job-warp-deployer", suspended=False)
+        d = self._deployer([not_suspended])
+        with patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
+        ) as opts_mock, patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.time"
+        ) as time_mock, patch("sys.stderr") as stderr_mock:
+            opts_mock.o.debug = False
+            opts_mock.o.dry_run = False
+            time_mock.time.return_value = 1700000000.0
+            d.run_job(
+                "warp-deployer",
+                no_wait=True,
+                extra_env={},
+                timeout_seconds=0,
+            )
+        written = "".join(
+            c.args[0] for c in stderr_mock.write.call_args_list
+        )
+        self.assertIn("WARNING", written)
+        self.assertIn("warp-deployer", written)
+
+    def test_does_not_warn_for_suspended(self):
+        suspended = _job("test-app-job-ism-update", suspended=True)
+        d = self._deployer([suspended])
+        with patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
+        ) as opts_mock, patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.time"
+        ) as time_mock, patch("sys.stderr") as stderr_mock:
+            opts_mock.o.debug = False
+            opts_mock.o.dry_run = False
+            time_mock.time.return_value = 1700000000.0
+            d.run_job(
+                "ism-update",
+                no_wait=True,
+                extra_env={},
+                timeout_seconds=0,
+            )
+        written = "".join(
+            c.args[0] for c in stderr_mock.write.call_args_list
+        )
+        self.assertNotIn("WARNING", written)
+
+    def test_calls_wait_and_stream_unless_no_wait(self):
+        suspended = _job("test-app-job-ism-update", suspended=True)
+        d = self._deployer([suspended])
+        with patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
+        ) as opts_mock, patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.time"
+        ) as time_mock:
+            opts_mock.o.debug = False
+            opts_mock.o.dry_run = False
+            time_mock.time.return_value = 1700000000.0
+            d.run_job(
+                "ism-update",
+                no_wait=False,
+                extra_env={},
+                timeout_seconds=0,
+            )
+        d._wait_and_stream.assert_called_once()
+
+    def test_no_wait_skips_wait_and_stream(self):
+        suspended = _job("test-app-job-ism-update", suspended=True)
+        d = self._deployer([suspended])
+        with patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.opts"
+        ) as opts_mock, patch(
+            "stack_orchestrator.deploy.k8s.deploy_k8s.time"
+        ) as time_mock:
+            opts_mock.o.debug = False
+            opts_mock.o.dry_run = False
+            time_mock.time.return_value = 1700000000.0
+            d.run_job(
+                "ism-update",
+                no_wait=True,
+                extra_env={},
+                timeout_seconds=0,
+            )
+        d._wait_and_stream.assert_not_called()

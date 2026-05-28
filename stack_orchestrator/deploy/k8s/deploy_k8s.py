@@ -14,6 +14,8 @@
 
 import base64
 import os
+import sys
+import time
 from datetime import datetime, timezone
 
 from pathlib import Path
@@ -1633,9 +1635,6 @@ class K8sDeployer(Deployer):
 
         timeout_seconds=0 means no client-side timeout.
         """
-        import sys
-        import time
-
         deadline = (
             time.monotonic() + timeout_seconds
             if timeout_seconds > 0
@@ -1691,44 +1690,82 @@ class K8sDeployer(Deployer):
         succeeded = (job.status.succeeded or 0) if job.status else 0
         return 0 if succeeded >= 1 else 1
 
-    def run_job(self, job_name: str, helm_release: Optional[str] = None):
-        if not opts.o.dry_run:
-            # Check if this is a helm-based deployment
-            chart_dir = self.deployment_dir / "chart"
-            if chart_dir.exists():
-                from stack_orchestrator.deploy.k8s.helm.job_runner import run_helm_job
+    def run_job(
+        self,
+        job_name: str,
+        release_name: Optional[str] = None,
+        extra_env: Optional[Dict[str, str]] = None,
+        no_wait: bool = False,
+        timeout_seconds: int = 0,
+    ) -> int:
+        if opts.o.dry_run:
+            return 0
 
-                # Run the job using the helm job runner
-                run_helm_job(
-                    chart_dir=chart_dir,
-                    job_name=job_name,
-                    release=helm_release,
-                    namespace=self.k8s_namespace,
-                    timeout=600,
-                    verbose=opts.o.verbose,
+        # Check if this is a helm-based deployment.
+        chart_dir = self.deployment_dir / "chart"
+        if chart_dir.exists():
+            if extra_env:
+                raise DeployerException(
+                    "--env is not supported on helm-based deployments in v1"
                 )
-            else:
-                # Non-Helm path: create job from ClusterInfo
-                self.connect_api()
-                job_pull_policy = "IfNotPresent" if self.is_kind() else "Always"
-                jobs = self.cluster_info.get_jobs(image_pull_policy=job_pull_policy)
-                # Find the matching job by name
-                target_name = f"{self.cluster_info.app_name}-job-{job_name}"
-                matched_job = None
-                for job in jobs:
-                    if job.metadata and job.metadata.name == target_name:
-                        matched_job = job
-                        break
-                if matched_job is None:
-                    raise Exception(
-                        f"Job '{job_name}' not found. Available jobs: "
-                        f"{[j.metadata.name for j in jobs if j.metadata]}"
-                    )
-                if opts.o.debug:
-                    print(f"Creating job: {target_name}")
-                self.batch_api.create_namespaced_job(
-                    body=matched_job, namespace=self.k8s_namespace
-                )
+            from stack_orchestrator.deploy.k8s.helm.job_runner import (
+                run_helm_job,
+            )
+
+            run_helm_job(
+                chart_dir=chart_dir,
+                job_name=job_name,
+                release=release_name,
+                namespace=self.k8s_namespace,
+                timeout=600,
+                verbose=opts.o.verbose,
+            )
+            return 0
+
+        # Non-Helm path: build a fresh timestamp-suffixed Job.
+        self.connect_api()
+        suffix = str(int(time.time()))
+        job_pull_policy = "IfNotPresent" if self.is_kind() else "Always"
+        jobs = self.cluster_info.get_jobs(
+            image_pull_policy=job_pull_policy,
+            name_suffix=suffix,
+            extra_env=extra_env or {},
+        )
+        base_name = f"{self.cluster_info.app_name}-job-{job_name}"
+        target_name = f"{base_name}-{suffix}"
+        matched_job = None
+        for job in jobs:
+            if job.metadata and job.metadata.name in (target_name, base_name):
+                matched_job = job
+                break
+        if matched_job is None:
+            raise DeployerException(
+                f"Job '{job_name}' not found. Available base names: "
+                f"{[j.metadata.name.rsplit('-', 1)[0] for j in jobs if j.metadata]}"
+            )
+
+        labels = (matched_job.metadata.labels or {})
+        if labels.get("laconic.suspend") != "true":
+            sys.stderr.write(
+                f"WARNING: service '{job_name}' is not marked "
+                f"laconic.suspend=true. Manually running it may race "
+                f"with 'deployment start' auto-creation if the "
+                f"deployment has not already started.\n"
+            )
+
+        if opts.o.debug:
+            print(f"Creating job: {target_name}")
+        self.batch_api.create_namespaced_job(
+            body=matched_job, namespace=self.k8s_namespace
+        )
+
+        if no_wait:
+            print(target_name)
+            return 0
+
+        return self._wait_and_stream(
+            job_name=target_name, timeout_seconds=timeout_seconds
+        )
 
     def is_kind(self):
         return self.type == "k8s-kind"

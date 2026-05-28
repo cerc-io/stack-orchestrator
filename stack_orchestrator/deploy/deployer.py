@@ -15,7 +15,7 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 
 class Deployer(ABC):
@@ -73,7 +73,14 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def run_job(self, job_name: str, release_name: Optional[str] = None):
+    def run_job(
+        self,
+        job_name: str,
+        release_name: Optional[str] = None,
+        extra_env: Optional[Dict[str, str]] = None,
+        no_wait: bool = False,
+        timeout_seconds: int = 0,
+    ):
         pass
 
     def prepare(self, skip_cluster_management):

@@ -114,3 +114,29 @@ class TestGetJobsSuspendLabel(unittest.TestCase):
         ci = _make_cluster_info(self._job_map(None))
         jobs = ci.get_jobs()
         self.assertNotIn("laconic.suspend", jobs[0].metadata.labels)
+
+
+class TestGetJobsNameSuffix(unittest.TestCase):
+    def _job_map(self):
+        return {
+            "/abs/path/compose-jobs/docker-compose-foo.yml": {
+                "services": {"foo": {"image": "nginx:latest"}},
+            }
+        }
+
+    def test_default_no_suffix(self):
+        ci = _make_cluster_info(self._job_map())
+        jobs = ci.get_jobs()
+        self.assertEqual(jobs[0].metadata.name, "test-app-job-foo")
+
+    def test_explicit_suffix(self):
+        ci = _make_cluster_info(self._job_map())
+        jobs = ci.get_jobs(name_suffix="1700000000")
+        self.assertEqual(
+            jobs[0].metadata.name, "test-app-job-foo-1700000000"
+        )
+
+    def test_none_suffix_same_as_default(self):
+        ci = _make_cluster_info(self._job_map())
+        jobs = ci.get_jobs(name_suffix=None)
+        self.assertEqual(jobs[0].metadata.name, "test-app-job-foo")

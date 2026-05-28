@@ -1117,7 +1117,11 @@ class ClusterInfo:
             services.append(service)
         return services
 
-    def get_jobs(self, image_pull_policy: Optional[str] = None) -> List[client.V1Job]:
+    def get_jobs(
+        self,
+        image_pull_policy: Optional[str] = None,
+        name_suffix: Optional[str] = None,
+    ) -> List[client.V1Job]:
         """Build k8s Job objects from parsed job compose files.
 
         Each job compose file produces a V1Job with:
@@ -1180,11 +1184,14 @@ class ClusterInfo:
             job_labels = self._stack_labels()
             if suspended:
                 job_labels["laconic.suspend"] = "true"
+            full_name = f"{self.app_name}-job-{job_name}"
+            if name_suffix:
+                full_name = f"{full_name}-{name_suffix}"
             job = client.V1Job(
                 api_version="batch/v1",
                 kind="Job",
                 metadata=client.V1ObjectMeta(
-                    name=f"{self.app_name}-job-{job_name}",
+                    name=full_name,
                     labels=job_labels,
                 ),
                 spec=job_spec,

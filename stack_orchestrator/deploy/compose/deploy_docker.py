@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http:#www.gnu.org/licenses/>.
 
+import sys
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 from python_on_whales import DockerClient, DockerException
 from stack_orchestrator.deploy.deployer import (
     Deployer,
@@ -150,7 +151,27 @@ class DockerDeployer(Deployer):
             except DockerException as e:
                 raise DeployerException(e)
 
-    def run_job(self, job_name: str, release_name: Optional[str] = None):
+    def run_job(
+        self,
+        job_name: str,
+        release_name: Optional[str] = None,
+        extra_env: Optional[Dict[str, str]] = None,
+        no_wait: bool = False,
+        timeout_seconds: int = 0,
+    ):
+        if no_wait:
+            raise DeployerException(
+                "--no-wait is not supported on docker-compose deployments"
+            )
+        if timeout_seconds:
+            raise DeployerException(
+                "--timeout is not supported on docker-compose deployments"
+            )
+        if extra_env:
+            sys.stderr.write(
+                "WARNING: --env is not supported on docker-compose "
+                "deployments; ignoring per-invocation env vars.\n"
+            )
         # release_name is ignored for Docker deployments (only used for K8s/Helm)
         if not opts.o.dry_run:
             try:
@@ -184,7 +205,7 @@ class DockerDeployer(Deployer):
                 )
 
                 # Run the job with --rm flag to remove container after completion
-                return job_docker.compose.run(service=job_name, remove=True, tty=True)
+                job_docker.compose.run(service=job_name, remove=True, tty=True)
 
             except DockerException as e:
                 raise DeployerException(e)

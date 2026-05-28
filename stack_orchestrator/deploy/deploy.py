@@ -280,15 +280,57 @@ def logs_operation(ctx, tail: int, follow: bool, extra_args: str):
         print(stream_content.decode("utf-8"), end="")
 
 
-def run_job_operation(ctx, job_name: str, helm_release: Optional[str] = None):
+def _parse_env_flags(env_args):
+    """Parse repeated --env KEY=VAL flag values into a dict.
+
+    Splits on the first '=' only, so values may contain '='.
+    Raises ValueError on malformed input.
+    """
+    parsed = {}
+    for item in env_args:
+        if "=" not in item:
+            raise ValueError(
+                f"--env value must be KEY=VAL, got: {item!r}"
+            )
+        key, value = item.split("=", 1)
+        if not key:
+            raise ValueError(
+                f"--env value has empty key, got: {item!r}"
+            )
+        parsed[key] = value
+    return parsed
+
+
+def run_job_operation(
+    ctx,
+    job_name: str,
+    helm_release: Optional[str] = None,
+    env_args=(),
+    no_wait: bool = False,
+    timeout_seconds: int = 0,
+):
     global_context = ctx.parent.parent.obj
-    if not global_context.dry_run:
-        print(f"Running job: {job_name}")
-        try:
-            ctx.obj.deployer.run_job(job_name, helm_release)
-        except Exception as e:
-            print(f"Error running job {job_name}: {e}")
-            sys.exit(1)
+    if global_context.dry_run:
+        return
+    try:
+        extra_env = _parse_env_flags(env_args)
+    except ValueError as e:
+        print(f"Error parsing --env: {e}")
+        sys.exit(2)
+    print(f"Running job: {job_name}")
+    try:
+        rc = ctx.obj.deployer.run_job(
+            job_name,
+            helm_release,
+            extra_env=extra_env,
+            no_wait=no_wait,
+            timeout_seconds=timeout_seconds,
+        )
+        if rc:
+            sys.exit(rc)
+    except Exception as e:
+        print(f"Error running job {job_name}: {e}")
+        sys.exit(1)
 
 
 @command.command()

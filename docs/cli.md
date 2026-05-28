@@ -183,9 +183,55 @@ Push deployment images to a registry:
 $ laconic-so deployment --dir <deployment-dir> push-images
 ```
 
-### deployment run-job
+### `laconic-so deployment run-job`
 
-Run a one-time job in the deployment:
+Run a one-time job from a deployed stack. Each invocation creates a
+fresh Kubernetes Job whose name is suffixed with a unix timestamp
+(`{app}-job-{name}-{ts}`), so repeated calls do not collide.
+
 ```
-$ laconic-so deployment --dir <deployment-dir> run-job <job-name>
+laconic-so deployment --dir <deploy-dir> run-job <job-name> \
+    [--env KEY=VAL ...] \
+    [--no-wait] \
+    [--timeout SECONDS]
 ```
+
+**Flags:**
+
+- `--env KEY=VAL` (repeatable) — layer per-invocation env vars on the
+  job's container, overriding any same-named entries from compose
+  `environment:` or spec `config:`.
+- `--no-wait` — return immediately after the Job object is accepted;
+  do not stream logs or wait for completion.
+- `--timeout SECONDS` — give up waiting after this many seconds
+  (default `0` = no timeout). Ignored with `--no-wait`. Note: in v1
+  this only bounds the pod-startup phase; once log streaming begins
+  the command blocks until the pod terminates.
+
+**Default behavior:** the command blocks until the Job's pod
+terminates, streaming the pod's logs to stdout. Exit code is `0` if
+the Job succeeded, non-zero otherwise.
+
+#### Suspending jobs at `deployment start`
+
+A job whose compose service is labeled `laconic.suspend: "true"` is
+skipped by `deployment start` — it is only triggered via `run-job`.
+
+```yaml
+# compose-jobs/docker-compose-ism-update.yml
+services:
+  ism-update:
+    image: ghcr.io/example/ops:latest
+    labels:
+      laconic.suspend: "true"
+    # …
+```
+
+Calling `run-job <name>` on a non-suspended job prints a warning to
+stderr (it may race with the auto-create path) but still proceeds.
+
+**Limitations:**
+- Helm-based deployments don't support `--env`, `--no-wait`, or
+  `--timeout`.
+- Docker-compose deployments don't support `--no-wait` or `--timeout`;
+  `--env` is ignored with a warning.

@@ -18,7 +18,7 @@ import base64
 from pathlib import Path
 
 from kubernetes import client
-from typing import Any, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import env_var_map_from_file
@@ -72,6 +72,20 @@ def to_k8s_resource_requirements(resources: Resources) -> client.V1ResourceRequi
     return client.V1ResourceRequirements(
         requests=to_dict(resources.reservations), limits=to_dict(resources.limits)
     )
+
+
+def _is_suspended(service: dict) -> bool:
+    """Return True if the compose service has label laconic.suspend == 'true'."""
+    labels = service.get("labels") or {}
+    if isinstance(labels, list):
+        parsed = {}
+        for item in labels:
+            if not isinstance(item, str):
+                continue
+            key, _, value = item.partition("=")
+            parsed[key] = value
+        labels = parsed
+    return str(labels.get("laconic.suspend", "")).lower() == "true"
 
 
 class ClusterInfo:
@@ -1103,7 +1117,12 @@ class ClusterInfo:
             services.append(service)
         return services
 
-    def get_jobs(self, image_pull_policy: Optional[str] = None) -> List[client.V1Job]:
+    def get_jobs(
+        self,
+        image_pull_policy: Optional[str] = None,
+        name_suffix: Optional[str] = None,
+        extra_env: Optional[Dict[str, str]] = None,
+    ) -> List[client.V1Job]:
         """Build k8s Job objects from parsed job compose files.
 
         Each job compose file produces a V1Job with:
@@ -1129,6 +1148,21 @@ class ClusterInfo:
                 single_job_map, image_pull_policy
             )
 
+            # extra_env is applied to main containers only, not init_containers
+            # (v1 scope: atomic ops don't use init containers).
+            if extra_env:
+                for container in containers:
+                    existing = list(container.env or [])
+                    # Keep all existing entries whose name is NOT being overridden.
+                    keep = [
+                        e for e in existing if e.name not in extra_env
+                    ]
+                    overrides = [
+                        client.V1EnvVar(name=k, value=str(v))
+                        for k, v in extra_env.items()
+                    ]
+                    container.env = keep + overrides
+
             # Derive job name from file path: docker-compose-<name>.yml -> <name>
             base = os.path.basename(job_file)
             # Strip docker-compose- prefix and .yml suffix
@@ -1139,6 +1173,10 @@ class ClusterInfo:
                 job_name = job_name[: -len(".yml")]
             elif job_name.endswith(".yaml"):
                 job_name = job_name[: -len(".yaml")]
+
+            # Detect suspend label on the compose service for this job file.
+            services = self.parsed_job_yaml_map[job_file].get("services") or {}
+            suspended = any(_is_suspended(svc) for svc in services.values())
 
             # Use a distinct app label for job pods so they don't get
             # picked up by pods_in_deployment() which queries app={app_name}.
@@ -1160,11 +1198,16 @@ class ClusterInfo:
                 backoff_limit=0,
             )
             job_labels = self._stack_labels()
+            if suspended:
+                job_labels["laconic.suspend"] = "true"
+            full_name = f"{self.app_name}-job-{job_name}"
+            if name_suffix:
+                full_name = f"{full_name}-{name_suffix}"
             job = client.V1Job(
                 api_version="batch/v1",
                 kind="Job",
                 metadata=client.V1ObjectMeta(
-                    name=f"{self.app_name}-job-{job_name}",
+                    name=full_name,
                     labels=job_labels,
                 ),
                 spec=job_spec,

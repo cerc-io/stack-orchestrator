@@ -1160,12 +1160,26 @@ class ClusterInfo:
                 backoff_limit=0,
             )
             job_labels = self._stack_labels()
+            recreate = False
+            for svc in (_services or {}).values():
+                svc_labels = svc.get("labels", {})
+                if isinstance(svc_labels, list):
+                    svc_labels = dict(item.split("=", 1) for item in svc_labels)
+                if str(svc_labels.get("laconic.recreate-job", "")).lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                ):
+                    recreate = True
+                    break
+            job_annotations = {"laconic.recreate-job": "true"} if recreate else None
             job = client.V1Job(
                 api_version="batch/v1",
                 kind="Job",
                 metadata=client.V1ObjectMeta(
                     name=f"{self.app_name}-job-{job_name}",
                     labels=job_labels,
+                    annotations=job_annotations,
                 ),
                 spec=job_spec,
             )

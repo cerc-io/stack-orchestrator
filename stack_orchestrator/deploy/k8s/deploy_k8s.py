@@ -732,7 +732,9 @@ class K8sDeployer(Deployer):
                         namespace=self.k8s_namespace,
                         body=body,
                     )
-                    print(f"Updated user Secret '{secret_name}' in {self.k8s_namespace}")
+                    print(
+                        f"Updated user Secret '{secret_name}' in {self.k8s_namespace}"
+                    )
                 else:
                     raise
 
@@ -844,6 +846,37 @@ class K8sDeployer(Deployer):
                 if opts.o.debug:
                     print(f"  {service_resp}")
 
+    def _delete_job_and_wait(self, job_name, timeout=120):
+        """Delete a Job (cascading to its pods) and block until it's gone.
+
+        Jobs are one-shot/immutable; to re-run one we must delete then recreate.
+        """
+        import time
+
+        try:
+            self.batch_api.delete_namespaced_job(
+                name=job_name,
+                namespace=self.k8s_namespace,
+                body=client.V1DeleteOptions(propagation_policy="Background"),
+            )
+            print(f"Deleting Job {job_name} for recreate")
+        except ApiException as e:
+            if e.status == 404:
+                return
+            raise
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            try:
+                self.batch_api.read_namespaced_job(
+                    name=job_name, namespace=self.k8s_namespace
+                )
+            except ApiException as e:
+                if e.status == 404:
+                    return
+                raise
+            time.sleep(2)
+        raise TimeoutError(f"Job {job_name} not deleted within {timeout}s")
+
     def _create_jobs(self):
         # Process job compose files into k8s Jobs
         job_pull_policy = "IfNotPresent" if self.is_kind() else "Always"
@@ -853,6 +886,14 @@ class K8sDeployer(Deployer):
                 print(f"Sending this job: {job}")
             if not opts.o.dry_run:
                 job_name = job.metadata.name
+                anns = job.metadata.annotations or {}
+                recreate = str(anns.get("laconic.recreate-job", "")).lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                )
+                if recreate:
+                    self._delete_job_and_wait(job_name)
                 try:
                     job_resp = self.batch_api.create_namespaced_job(
                         body=job, namespace=self.k8s_namespace

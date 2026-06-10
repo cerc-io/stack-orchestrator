@@ -295,3 +295,32 @@ class TestCreateWsMux(unittest.TestCase):
         )
         with self.assertRaises(ApiException):
             self.deployer._create_ws_mux()
+
+
+class TestCreateValidationHook(unittest.TestCase):
+    def test_create_operation_rejects_duplicate_routes(self):
+        """create_operation must call the route validator before any
+        filesystem work. We test the helper it delegates to."""
+        from stack_orchestrator.deploy.deployment_create import (
+            _check_http_proxy_routes,
+        )
+
+        spec = MagicMock()
+        spec.get_http_proxy.return_value = [_proxy("a.example.com", [
+            {"path": "/", "proxy-to": "app:8899"},
+            {"path": "/", "proxy-to": "other:9000"},
+        ])]
+        with self.assertRaises(SystemExit):
+            _check_http_proxy_routes(spec)
+
+    def test_valid_routes_pass(self):
+        from stack_orchestrator.deploy.deployment_create import (
+            _check_http_proxy_routes,
+        )
+
+        spec = MagicMock()
+        spec.get_http_proxy.return_value = [_proxy("a.example.com", [
+            {"path": "/", "proxy-to": "app:8899"},
+            {"path": "/", "proxy-to": "app:8900", "websocket": True},
+        ])]
+        _check_http_proxy_routes(spec)

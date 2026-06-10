@@ -55,6 +55,7 @@ from stack_orchestrator.deploy.deployer import DeployerException
 from stack_orchestrator.deploy.deployer_factory import getDeployerConfigGenerator
 from stack_orchestrator.deploy.deployment_context import DeploymentContext
 from stack_orchestrator.deploy.k8s.helpers import is_host_path_mount
+from stack_orchestrator.deploy.k8s.ws_mux import validate_http_proxy_routes
 
 
 def _make_default_deployment_dir():
@@ -916,6 +917,13 @@ def _check_volume_definitions(spec):
                         )
 
 
+def _check_http_proxy_routes(parsed_spec):
+    try:
+        validate_http_proxy_routes(parsed_spec.get_http_proxy())
+    except ValueError as e:
+        error_exit(str(e))
+
+
 @click.command()
 @click.option(
     "--spec-file", required=True, help="Spec file to use to create this deployment"
@@ -977,6 +985,7 @@ def create_operation(
         os.path.abspath(spec_file), get_parsed_deployment_spec(spec_file)
     )
     _check_volume_definitions(parsed_spec)
+    _check_http_proxy_routes(parsed_spec)
     stack_name = parsed_spec["stack"]
     deployment_type = parsed_spec[constants.deploy_to_key]
 

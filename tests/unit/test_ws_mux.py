@@ -111,7 +111,7 @@ class TestRenderMuxCaddyfile(unittest.TestCase):
         self.assertIn("auto_https off", out)
         self.assertIn(":8080 {", out)
         self.assertIn("host a.example.com", out)
-        self.assertIn("header Upgrade websocket", out)
+        self.assertIn("header_regexp Upgrade (?i)^websocket$", out)
         self.assertIn("reverse_proxy app-svc:8900", out)
         self.assertIn("reverse_proxy app-svc:8899", out)
         # ws backend must appear before the http fallback
@@ -122,7 +122,7 @@ class TestRenderMuxCaddyfile(unittest.TestCase):
             "host": "a.example.com", "path": "/",
             "ws_backend": "app-svc:8900", "http_backend": None,
         }])
-        self.assertNotIn("header Upgrade", out)
+        self.assertNotIn("header_regexp", out)
         self.assertIn("reverse_proxy app-svc:8900", out)
 
     def test_multi_host_and_subpath_ordering(self):
@@ -360,3 +360,17 @@ class TestIngressSslRedirectAnnotation(unittest.TestCase):
             "caddy.ingress.kubernetes.io/disable-ssl-redirect",
             ingress.metadata.annotations,
         )
+
+
+class TestMuxRolloutAnnotation(unittest.TestCase):
+    def test_pod_template_carries_caddyfile_hash(self):
+        ci = _make_cluster_info(PAIRED)
+        res = ci.get_ws_mux_resources()
+        annotations = res["deployment"].spec.template.metadata.annotations
+        digest = annotations["stack-orchestrator/caddyfile-sha256"]
+        import hashlib
+
+        expected = hashlib.sha256(
+            res["configmap"].data["Caddyfile"].encode()
+        ).hexdigest()
+        self.assertEqual(digest, expected)

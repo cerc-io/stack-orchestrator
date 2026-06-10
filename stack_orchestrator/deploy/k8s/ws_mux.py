@@ -121,9 +121,13 @@ def render_mux_caddyfile(entries):
                 indent += "\t"
             if entry["http_backend"]:
                 ws_name = f"@ws{h_idx}_{p_idx}"
+                # Caddy's plain header matcher is case-sensitive but the
+                # Upgrade token is case-insensitive per RFC 6455 (Node's
+                # native WebSocket client sends lowercase)
                 lines.append(f"{indent}{ws_name} {{")
-                lines.append(f"{indent}\theader Connection *Upgrade*")
-                lines.append(f"{indent}\theader Upgrade websocket")
+                lines.append(
+                    f"{indent}\theader_regexp Upgrade (?i)^websocket$"
+                )
                 lines.append(f"{indent}}}")
                 lines.append(f"{indent}handle {ws_name} {{")
                 lines.append(

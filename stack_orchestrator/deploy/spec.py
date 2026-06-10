@@ -322,6 +322,10 @@ class Spec:
         """
         return self.obj.get(constants.caddy_ingress_image_key)
 
+    def get_ws_mux_image(self) -> typing.Optional[str]:
+        """Optional override for the websocket mux Caddy image."""
+        return self.obj.get(constants.ws_mux_image_key)
+
     def get_maintenance_service(self) -> typing.Optional[str]:
         """Return maintenance-service value (e.g. 'dumpster-maintenance:8000') or None.
 

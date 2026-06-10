@@ -1036,6 +1036,54 @@ class K8sDeployer(Deployer):
             if update_caddy_ingress_image(caddy_image):
                 wait_for_ingress_in_kind()
 
+    def _create_ws_mux(self):
+        """Create or update the websocket mux objects (spec websocket: true).
+
+        Must run before _create_ingress so the mux Service exists when the
+        Ingress references it.
+        """
+        resources = self.cluster_info.get_ws_mux_resources()
+        if not resources:
+            return
+        if opts.o and opts.o.dry_run:
+            print("Dry run: would create ws-mux resources")
+            return
+        ns = self.k8s_namespace
+
+        def _create_or_replace(create_fn, replace_fn, read_fn, body, is_service=False):
+            try:
+                create_fn(namespace=ns, body=body)
+            except ApiException as e:
+                if e.status == 409:
+                    existing = read_fn(name=body.metadata.name, namespace=ns)
+                    body.metadata.resource_version = existing.metadata.resource_version
+                    if is_service:
+                        body.spec.cluster_ip = existing.spec.cluster_ip
+                    replace_fn(name=body.metadata.name, namespace=ns, body=body)
+                else:
+                    raise
+
+        _create_or_replace(
+            self.core_api.create_namespaced_config_map,
+            self.core_api.replace_namespaced_config_map,
+            self.core_api.read_namespaced_config_map,
+            resources["configmap"],
+        )
+        _create_or_replace(
+            self.apps_api.create_namespaced_deployment,
+            self.apps_api.replace_namespaced_deployment,
+            self.apps_api.read_namespaced_deployment,
+            resources["deployment"],
+        )
+        _create_or_replace(
+            self.core_api.create_namespaced_service,
+            self.core_api.replace_namespaced_service,
+            self.core_api.read_namespaced_service,
+            resources["service"],
+            is_service=True,
+        )
+        print("Created ws-mux resources")
+
     def _create_ingress(self):
         """Create or update Ingress with TLS certificate lookup."""
         http_proxy_info = self.cluster_info.spec.get_http_proxy()
@@ -1153,6 +1201,7 @@ class K8sDeployer(Deployer):
         self._create_ca_certificates()
         self._create_deployment()
         self._create_jobs()
+        self._create_ws_mux()
         self._create_ingress()
         self._create_nodeports()
 

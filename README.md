@@ -124,6 +124,38 @@ volumes:
   volume-name:
 ```
 
+### WebSocket routes
+
+A route may set `websocket: true` to direct WebSocket upgrade traffic at a
+different backend port than plain HTTP on the same host+path (the Solana
+RPC convention — wss:// at the same URL as https://):
+
+```yaml
+network:
+  http-proxy:
+    - host-name: rpc.example.com
+      routes:
+        - path: /
+          proxy-to: node:8899
+        - path: /
+          proxy-to: node:8900
+          websocket: true
+```
+
+Because the k8s Ingress API cannot express header-based routing, SO
+generates a small Caddy mux (`{deployment}-ws-mux`) that splits on the
+Upgrade header; the Ingress routes the host+path to the mux. The mux image
+defaults to `caddy:2-alpine` and can be overridden with a top-level
+`ws-mux-image:` spec key. At most one plain and one websocket route may
+share a host+path — violations fail `deploy create` with an error. A
+websocket route without a plain twin sends all traffic at that path to the
+websocket backend.
+
+On kind deployments with no `acme-email` configured (no certificates can
+exist), SO sets `caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"`
+on the generated Ingress so HTTP routes work. When `acme-email` is set or
+TLS is otherwise active, the normal HTTPS redirect applies.
+
 ## Contributing
 
 See the [CONTRIBUTING.md](/docs/CONTRIBUTING.md) for developer mode install.

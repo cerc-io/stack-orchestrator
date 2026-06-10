@@ -15,13 +15,16 @@
 
 import os
 import base64
+import hashlib
 from pathlib import Path
 
 from kubernetes import client
 from typing import Any, List, Optional, Set
 
+from stack_orchestrator import constants
 from stack_orchestrator.opts import opts
 from stack_orchestrator.util import env_var_map_from_file
+from stack_orchestrator.deploy.k8s import ws_mux
 from stack_orchestrator.deploy.k8s.helpers import (
     is_host_path_mount,
     named_volumes_from_pod_files,
@@ -239,18 +242,33 @@ class ClusterInfo:
                         )
                     )
 
+                mux_entries = ws_mux.collect_mux_entries(
+                    [http_proxy_info], self._resolve_service_name_for_container
+                )
+                mux_paths = {e["path"] for e in mux_entries}
                 paths = []
+                emitted_mux_paths = set()
                 for route in http_proxy_info["routes"]:
                     path = route["path"]
-                    proxy_to = route["proxy-to"]
-                    if opts.o.debug:
-                        print(f"proxy config: {path} -> {proxy_to}")
-                    # proxy_to has the form <service>:<port>
-                    container_name = proxy_to.split(":")[0]
-                    proxy_to_port = int(proxy_to.split(":")[1])
-                    service_name = self._resolve_service_name_for_container(
-                        container_name
-                    )
+                    if path in mux_paths:
+                        # (host, path) has a websocket route: route the whole
+                        # path to this deployment's ws-mux (single backend —
+                        # the Ingress API cannot express the header split).
+                        if path in emitted_mux_paths:
+                            continue
+                        emitted_mux_paths.add(path)
+                        service_name = f"{self.app_name}-ws-mux"
+                        proxy_to_port = ws_mux.MUX_PORT
+                    else:
+                        proxy_to = route["proxy-to"]
+                        if opts.o.debug:
+                            print(f"proxy config: {path} -> {proxy_to}")
+                        # proxy_to has the form <service>:<port>
+                        container_name = proxy_to.split(":")[0]
+                        proxy_to_port = int(proxy_to.split(":")[1])
+                        service_name = self._resolve_service_name_for_container(
+                            container_name
+                        )
                     paths.append(
                         client.V1HTTPIngressPath(
                             path_type="Prefix",
@@ -277,6 +295,14 @@ class ClusterInfo:
             ingress_annotations = {
                 "kubernetes.io/ingress.class": "caddy",
             }
+            if not use_tls and not self.spec.get_acme_email():
+                # kind without ACME: no cert can exist, so redirecting HTTP
+                # to HTTPS would 308 every route into a TLS failure. With
+                # acme-email set, Caddy obtains real certs even on kind and
+                # the redirect is load-bearing — keep it.
+                ingress_annotations[
+                    "caddy.ingress.kubernetes.io/disable-ssl-redirect"
+                ] = "true"
             if not certificates:
                 ingress_annotations["cert-manager.io/cluster-issuer"] = cluster_issuer
 
@@ -289,6 +315,108 @@ class ClusterInfo:
                 spec=spec,
             )
         return ingress
+
+    def get_ws_mux_resources(self):
+        """Build the websocket mux objects (ConfigMap, Deployment, Service)
+        for this deployment, or None when the spec has no websocket routes.
+
+        The mux performs the Upgrade-header split the Ingress API cannot
+        express. Resource metadata carries the standard stack labels so the
+        down sweep finds them; the pod template uses a distinct app label so
+        the main app Services never select mux pods.
+        """
+        entries = ws_mux.collect_mux_entries(
+            self.spec.get_http_proxy(),
+            self._resolve_service_name_for_container,
+        )
+        if not entries:
+            return None
+
+        mux_name = f"{self.app_name}-ws-mux"
+        caddyfile = ws_mux.render_mux_caddyfile(entries)
+        image = self.spec.get_ws_mux_image() or constants.default_ws_mux_image
+        pod_labels = self._stack_labels(extra={"app": mux_name})
+
+        configmap = client.V1ConfigMap(
+            metadata=client.V1ObjectMeta(
+                name=f"{mux_name}-config", labels=self._stack_labels()
+            ),
+            data={"Caddyfile": caddyfile},
+        )
+        container = client.V1Container(
+            name="ws-mux",
+            image=image,
+            ports=[client.V1ContainerPort(container_port=ws_mux.MUX_PORT)],
+            volume_mounts=[
+                client.V1VolumeMount(
+                    name="caddyfile",
+                    mount_path="/etc/caddy",
+                    read_only=True,
+                )
+            ],
+            readiness_probe=client.V1Probe(
+                tcp_socket=client.V1TCPSocketAction(port=ws_mux.MUX_PORT),
+                initial_delay_seconds=1,
+                period_seconds=5,
+            ),
+            resources=client.V1ResourceRequirements(
+                requests={"memory": "16Mi", "cpu": "10m"},
+                limits={"memory": "64Mi", "cpu": "100m"},
+            ),
+        )
+        deployment = client.V1Deployment(
+            metadata=client.V1ObjectMeta(
+                name=mux_name, labels=self._stack_labels()
+            ),
+            spec=client.V1DeploymentSpec(
+                replicas=1,
+                selector=client.V1LabelSelector(
+                    match_labels={"app": mux_name}
+                ),
+                template=client.V1PodTemplateSpec(
+                    metadata=client.V1ObjectMeta(
+                        labels=pod_labels,
+                        # config-change rollout: caddy doesn't re-read the
+                        # Caddyfile, so a content hash here forces a new
+                        # ReplicaSet when the rendered config changes
+                        annotations={
+                            "stack-orchestrator/caddyfile-sha256": (
+                                hashlib.sha256(caddyfile.encode()).hexdigest()
+                            )
+                        },
+                    ),
+                    spec=client.V1PodSpec(
+                        containers=[container],
+                        volumes=[
+                            client.V1Volume(
+                                name="caddyfile",
+                                config_map=client.V1ConfigMapVolumeSource(
+                                    name=f"{mux_name}-config"
+                                ),
+                            )
+                        ],
+                    ),
+                ),
+            ),
+        )
+        service = client.V1Service(
+            metadata=client.V1ObjectMeta(
+                name=mux_name, labels=self._stack_labels()
+            ),
+            spec=client.V1ServiceSpec(
+                ports=[
+                    client.V1ServicePort(
+                        port=ws_mux.MUX_PORT, target_port=ws_mux.MUX_PORT
+                    )
+                ],
+                selector={"app": mux_name},
+            ),
+        )
+        return {
+            "configmap": configmap,
+            "deployment": deployment,
+            "service": service,
+        }
 
     def _get_readiness_probe_ports(self) -> dict:
         """Map container names to TCP readiness probe ports.

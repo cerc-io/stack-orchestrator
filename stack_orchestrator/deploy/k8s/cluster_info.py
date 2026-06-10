@@ -294,6 +294,12 @@ class ClusterInfo:
             ingress_annotations = {
                 "kubernetes.io/ingress.class": "caddy",
             }
+            if not use_tls:
+                # No TLS (kind): redirecting HTTP to a cert-less HTTPS
+                # endpoint would 308 every route into a TLS failure.
+                ingress_annotations[
+                    "caddy.ingress.kubernetes.io/disable-ssl-redirect"
+                ] = "true"
             if not certificates:
                 ingress_annotations["cert-manager.io/cluster-issuer"] = cluster_issuer
 

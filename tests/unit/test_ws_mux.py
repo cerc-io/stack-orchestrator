@@ -324,3 +324,39 @@ class TestCreateValidationHook(unittest.TestCase):
             {"path": "/", "proxy-to": "app:8900", "websocket": True},
         ])]
         _check_http_proxy_routes(spec)
+
+
+class TestIngressSslRedirectAnnotation(unittest.TestCase):
+    def setUp(self):
+        from stack_orchestrator.command_types import CommandOptions
+        from stack_orchestrator.opts import opts as so_opts
+
+        self._saved_o = so_opts.o
+        so_opts.o = CommandOptions(stack="")
+
+    def tearDown(self):
+        from stack_orchestrator.opts import opts as so_opts
+
+        so_opts.o = self._saved_o
+
+    def test_no_tls_disables_ssl_redirect(self):
+        ci = _make_cluster_info(
+            [_proxy("a.example.com", [{"path": "/", "proxy-to": "app:8899"}])]
+        )
+        ingress = ci.get_ingress(use_tls=False)
+        self.assertEqual(
+            ingress.metadata.annotations[
+                "caddy.ingress.kubernetes.io/disable-ssl-redirect"
+            ],
+            "true",
+        )
+
+    def test_tls_keeps_ssl_redirect(self):
+        ci = _make_cluster_info(
+            [_proxy("a.example.com", [{"path": "/", "proxy-to": "app:8899"}])]
+        )
+        ingress = ci.get_ingress(use_tls=True)
+        self.assertNotIn(
+            "caddy.ingress.kubernetes.io/disable-ssl-redirect",
+            ingress.metadata.annotations,
+        )

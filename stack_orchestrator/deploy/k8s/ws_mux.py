@@ -52,3 +52,95 @@ def validate_http_proxy_routes(http_proxy_info_list):
                         f"and one websocket route"
                     )
                 plain_seen.add(path)
+
+
+def collect_mux_entries(http_proxy_info_list, resolve_service):
+    """Collect websocket mux entries: one per (host, path) with a ws route.
+
+    resolve_service: callable(container_name) -> k8s service name.
+    Returns a list of dicts:
+      {host, path, ws_backend: "svc:port", http_backend: "svc:port" | None}
+    """
+    entries = []
+    for proxy in http_proxy_info_list or []:
+        host = proxy["host-name"]
+        plain = {}
+        ws = {}
+        for route in proxy.get("routes", []):
+            container, port = route["proxy-to"].split(":")
+            backend = f"{resolve_service(container)}:{int(port)}"
+            if route.get("websocket"):
+                ws[route["path"]] = backend
+            else:
+                plain[route["path"]] = backend
+        for path, ws_backend in ws.items():
+            entries.append({
+                "host": host,
+                "path": path,
+                "ws_backend": ws_backend,
+                "http_backend": plain.get(path),
+            })
+    return entries
+
+
+def _path_matcher(path):
+    # Prefix semantics to match Ingress path_type=Prefix
+    return None if path == "/" else f"{path.rstrip('/')}*"
+
+
+def render_mux_caddyfile(entries):
+    """Render the ws-mux Caddyfile for the given entries.
+
+    One handle block per host; within it, longest path first so subpaths
+    are not shadowed; per path, an Upgrade-header matcher routes to the ws
+    backend with fallthrough to the paired HTTP backend (or a direct proxy
+    when there is no pair).
+    """
+    lines = [
+        "{",
+        "\tadmin off",
+        "\tauto_https off",
+        "}",
+        "",
+        f":{MUX_PORT} {{",
+    ]
+    hosts = sorted({e["host"] for e in entries})
+    for h_idx, host in enumerate(hosts):
+        host_entries = sorted(
+            (e for e in entries if e["host"] == host),
+            key=lambda e: len(e["path"]),
+            reverse=True,
+        )
+        lines.append(f"\t@host{h_idx} host {host}")
+        lines.append(f"\thandle @host{h_idx} {{")
+        for p_idx, entry in enumerate(host_entries):
+            matcher = _path_matcher(entry["path"])
+            indent = "\t\t"
+            if matcher:
+                lines.append(f"{indent}handle {matcher} {{")
+                indent += "\t"
+            if entry["http_backend"]:
+                ws_name = f"@ws{h_idx}_{p_idx}"
+                lines.append(f"{indent}{ws_name} {{")
+                lines.append(f"{indent}\theader Connection *Upgrade*")
+                lines.append(f"{indent}\theader Upgrade websocket")
+                lines.append(f"{indent}}}")
+                lines.append(f"{indent}handle {ws_name} {{")
+                lines.append(
+                    f"{indent}\treverse_proxy {entry['ws_backend']}"
+                )
+                lines.append(f"{indent}}}")
+                lines.append(f"{indent}handle {{")
+                lines.append(
+                    f"{indent}\treverse_proxy {entry['http_backend']}"
+                )
+                lines.append(f"{indent}}}")
+            else:
+                lines.append(
+                    f"{indent}reverse_proxy {entry['ws_backend']}"
+                )
+            if matcher:
+                lines.append("\t\t}")
+        lines.append("\t}")
+    lines.append("}")
+    return "\n".join(lines) + "\n"

@@ -3,6 +3,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from kubernetes.client.exceptions import ApiException
+
 from stack_orchestrator import constants
 from stack_orchestrator.command_types import CommandOptions
 from stack_orchestrator.deploy.k8s.ws_mux import (
@@ -225,3 +227,71 @@ class TestGetWsMuxResources(unittest.TestCase):
             res["deployment"].spec.template.spec.containers[0].image,
             "caddy:2.8-alpine",
         )
+
+
+class TestCreateWsMux(unittest.TestCase):
+    def setUp(self):
+        from stack_orchestrator.deploy.k8s.deploy_k8s import K8sDeployer
+
+        self.deployer = K8sDeployer.__new__(K8sDeployer)
+        self.deployer.k8s_namespace = "test-ns"
+        self.deployer.core_api = MagicMock()
+        self.deployer.apps_api = MagicMock()
+        self.deployer.cluster_info = MagicMock()
+
+    def test_noop_when_no_mux(self):
+        self.deployer.cluster_info.get_ws_mux_resources.return_value = None
+        self.deployer._create_ws_mux()
+        self.deployer.core_api.create_namespaced_config_map.assert_not_called()
+
+    def test_creates_all_objects(self):
+        cm, dep, svc = MagicMock(), MagicMock(), MagicMock()
+        self.deployer.cluster_info.get_ws_mux_resources.return_value = {
+            "configmap": cm, "deployment": dep, "service": svc,
+        }
+        self.deployer._create_ws_mux()
+        self.deployer.core_api.create_namespaced_config_map.assert_called_once_with(
+            namespace="test-ns", body=cm
+        )
+        self.deployer.apps_api.create_namespaced_deployment.assert_called_once_with(
+            namespace="test-ns", body=dep
+        )
+        self.deployer.core_api.create_namespaced_service.assert_called_once_with(
+            namespace="test-ns", body=svc
+        )
+
+    def test_409_replaces(self):
+        cm, dep, svc = MagicMock(), MagicMock(), MagicMock()
+        self.deployer.cluster_info.get_ws_mux_resources.return_value = {
+            "configmap": cm, "deployment": dep, "service": svc,
+        }
+        conflict = ApiException(status=409)
+        self.deployer.core_api.create_namespaced_config_map.side_effect = conflict
+        self.deployer.apps_api.create_namespaced_deployment.side_effect = conflict
+        self.deployer.core_api.create_namespaced_service.side_effect = conflict
+        self.deployer._create_ws_mux()
+        self.deployer.core_api.replace_namespaced_config_map.assert_called_once()
+        self.deployer.apps_api.replace_namespaced_deployment.assert_called_once()
+        self.deployer.core_api.replace_namespaced_service.assert_called_once()
+        # replace requires the live object's resource_version; the service
+        # additionally needs its cluster_ip carried over (_create_nodeports
+        # precedent), so the existing service must be read back first
+        self.deployer.core_api.read_namespaced_service.assert_called_once_with(
+            name=svc.metadata.name, namespace="test-ns"
+        )
+        existing_svc = self.deployer.core_api.read_namespaced_service.return_value
+        self.assertEqual(
+            svc.metadata.resource_version, existing_svc.metadata.resource_version
+        )
+        self.assertEqual(svc.spec.cluster_ip, existing_svc.spec.cluster_ip)
+
+    def test_non_409_raises(self):
+        cm, dep, svc = MagicMock(), MagicMock(), MagicMock()
+        self.deployer.cluster_info.get_ws_mux_resources.return_value = {
+            "configmap": cm, "deployment": dep, "service": svc,
+        }
+        self.deployer.core_api.create_namespaced_config_map.side_effect = (
+            ApiException(status=500)
+        )
+        with self.assertRaises(ApiException):
+            self.deployer._create_ws_mux()

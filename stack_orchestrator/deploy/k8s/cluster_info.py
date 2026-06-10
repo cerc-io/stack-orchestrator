@@ -15,6 +15,7 @@
 
 import os
 import base64
+import hashlib
 from pathlib import Path
 
 from kubernetes import client
@@ -371,7 +372,17 @@ class ClusterInfo:
                     match_labels={"app": mux_name}
                 ),
                 template=client.V1PodTemplateSpec(
-                    metadata=client.V1ObjectMeta(labels=pod_labels),
+                    metadata=client.V1ObjectMeta(
+                        labels=pod_labels,
+                        # config-change rollout: caddy doesn't re-read the
+                        # Caddyfile, so a content hash here forces a new
+                        # ReplicaSet when the rendered config changes
+                        annotations={
+                            "stack-orchestrator/caddyfile-sha256": (
+                                hashlib.sha256(caddyfile.encode()).hexdigest()
+                            )
+                        },
+                    ),
                     spec=client.V1PodSpec(
                         containers=[container],
                         volumes=[

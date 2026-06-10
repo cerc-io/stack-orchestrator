@@ -151,9 +151,10 @@ share a host+path — violations fail `deploy create` with an error. A
 websocket route without a plain twin sends all traffic at that path to the
 websocket backend.
 
-On deployments without TLS (kind), SO sets
-`caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"` on the generated
-Ingress so HTTP routes work; with TLS the normal HTTPS redirect applies.
+On kind deployments with no `acme-email` configured (no certificates can
+exist), SO sets `caddy.ingress.kubernetes.io/disable-ssl-redirect: "true"`
+on the generated Ingress so HTTP routes work. When `acme-email` is set or
+TLS is otherwise active, the normal HTTPS redirect applies.
 
 ## Contributing
 

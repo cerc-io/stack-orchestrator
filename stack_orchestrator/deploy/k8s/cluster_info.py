@@ -295,9 +295,11 @@ class ClusterInfo:
             ingress_annotations = {
                 "kubernetes.io/ingress.class": "caddy",
             }
-            if not use_tls:
-                # No TLS (kind): redirecting HTTP to a cert-less HTTPS
-                # endpoint would 308 every route into a TLS failure.
+            if not use_tls and not self.spec.get_acme_email():
+                # kind without ACME: no cert can exist, so redirecting HTTP
+                # to HTTPS would 308 every route into a TLS failure. With
+                # acme-email set, Caddy obtains real certs even on kind and
+                # the redirect is load-bearing — keep it.
                 ingress_annotations[
                     "caddy.ingress.kubernetes.io/disable-ssl-redirect"
                 ] = "true"

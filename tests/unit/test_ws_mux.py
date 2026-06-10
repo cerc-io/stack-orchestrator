@@ -150,6 +150,7 @@ def _make_cluster_info(http_proxy):
     ci.spec = MagicMock()
     ci.spec.get_http_proxy.return_value = http_proxy
     ci.spec.get_ws_mux_image.return_value = None
+    ci.spec.get_acme_email.return_value = ""
     return ci
 
 
@@ -349,6 +350,19 @@ class TestIngressSslRedirectAnnotation(unittest.TestCase):
                 "caddy.ingress.kubernetes.io/disable-ssl-redirect"
             ],
             "true",
+        )
+
+    def test_no_tls_with_acme_email_keeps_ssl_redirect(self):
+        # kind cluster serving real TLS via Caddy ACME (acme-email set):
+        # the redirect is load-bearing and must survive
+        ci = _make_cluster_info(
+            [_proxy("a.example.com", [{"path": "/", "proxy-to": "app:8899"}])]
+        )
+        ci.spec.get_acme_email.return_value = "admin@example.com"
+        ingress = ci.get_ingress(use_tls=False)
+        self.assertNotIn(
+            "caddy.ingress.kubernetes.io/disable-ssl-redirect",
+            ingress.metadata.annotations,
         )
 
     def test_tls_keeps_ssl_redirect(self):

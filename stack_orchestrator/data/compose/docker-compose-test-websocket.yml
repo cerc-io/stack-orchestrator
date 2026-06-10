@@ -1,0 +1,11 @@
+services:
+  backend:
+    image: caddy:2-alpine
+    command: ["caddy", "respond", "--listen", ":8899", "http-backend-ok"]
+    ports:
+      - "8899"
+  wsecho:
+    image: solsson/websocat
+    command: ["-t", "ws-l:0.0.0.0:8900", "mirror:"]
+    ports:
+      - "8900"

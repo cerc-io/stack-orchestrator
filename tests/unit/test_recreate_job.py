@@ -16,6 +16,7 @@ class TestCreateJobsRecreate(unittest.TestCase):
         self.deployer.k8s_namespace = "test-ns"
         self.deployer.batch_api = MagicMock()
         self.deployer.cluster_info = MagicMock()
+        self.deployer.image_overrides = None
         self._opts_patch = patch(
             "stack_orchestrator.deploy.k8s.deploy_k8s.opts.o",
             CommandOptions(stack=""),

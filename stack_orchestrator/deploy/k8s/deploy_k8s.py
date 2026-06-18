@@ -900,6 +900,16 @@ class K8sDeployer(Deployer):
         job_pull_policy = "IfNotPresent" if self.is_kind() else "Always"
         jobs = self.cluster_info.get_jobs(image_pull_policy=job_pull_policy)
         for job in jobs:
+            # Apply image overrides if provided (mirrors _create_deployments)
+            if self.image_overrides:
+                for container in job.spec.template.spec.containers:
+                    if container.name in self.image_overrides:
+                        container.image = self.image_overrides[container.name]
+                        if opts.o.debug:
+                            print(
+                                f"Overriding image for {container.name}:"
+                                f" {container.image}"
+                            )
             if opts.o.debug:
                 print(f"Sending this job: {job}")
             if not opts.o.dry_run:

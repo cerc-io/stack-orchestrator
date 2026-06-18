@@ -662,10 +662,17 @@ class K8sDeployer(Deployer):
                 keys:
                   KEY1: { env: ENV_VAR_NAME }
                   KEY2: { file: /path/to/file }
+                  KEY3: { env: MAYBE_UNSET, optional: true }
 
         Reads values from os.environ or files, creates one V1Secret per entry
         in the deployer's namespace. 409 -> replace, matching the existing
         image-pull-secret / generated-secrets idempotency pattern.
+
+        A key marked `optional: true` whose env var is unset/empty (or whose
+        file is missing) is skipped rather than erroring; the pod mounts each
+        secret with envFrom optional=True, so the var is simply absent in the
+        container. A secret whose keys are all optional-and-absent is not
+        created at all.
         """
         if opts.o and opts.o.dry_run:
             print("Dry run: would create user secrets")
@@ -686,10 +693,13 @@ class K8sDeployer(Deployer):
                         f"secrets.{secret_name}.keys.{key_name}: expected mapping "
                         f"with 'env' or 'file', got {type(source).__name__}"
                     )
+                optional = bool(source.get("optional", False))
                 if "env" in source:
                     env_var = source["env"]
                     value = os.environ.get(env_var)
                     if value is None or value == "":
+                        if optional:
+                            continue
                         raise DeployerException(
                             f"secrets.{secret_name}.keys.{key_name}: "
                             f"environment variable '{env_var}' is unset or empty"
@@ -697,6 +707,8 @@ class K8sDeployer(Deployer):
                 elif "file" in source:
                     path = Path(source["file"]).expanduser()
                     if not path.is_file():
+                        if optional:
+                            continue
                         raise DeployerException(
                             f"secrets.{secret_name}.keys.{key_name}: "
                             f"file '{source['file']}' does not exist"
@@ -714,6 +726,12 @@ class K8sDeployer(Deployer):
                         f"declare 'env' or 'file'"
                     )
                 data[key_name] = base64.b64encode(value.encode()).decode()
+
+            if not data:
+                print(
+                    f"Skipping user Secret '{secret_name}': all keys optional and unset"
+                )
+                continue
 
             body = client.V1Secret(
                 metadata=client.V1ObjectMeta(name=secret_name),

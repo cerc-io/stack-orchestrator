@@ -71,6 +71,39 @@ class TestCreateUserSecrets(unittest.TestCase):
             self.deployer._create_user_secrets()
         self.assertIn("/nonexistent/path/xyz", str(ctx.exception))
 
+    def test_optional_env_unset_skips_secret(self):
+        self._set_spec_secrets({
+            "app-secrets": {"keys": {"HOOK": {"env": "UNSET_VAR_XYZ", "optional": True}}},
+        })
+        with patch.dict(os.environ, {}, clear=True):
+            self.deployer._create_user_secrets()
+        self.deployer.core_api.create_namespaced_secret.assert_not_called()
+
+    def test_optional_unset_keeps_required_keys(self):
+        self._set_spec_secrets({
+            "app-secrets": {"keys": {
+                "REQUIRED": {"env": "MY_REQUIRED"},
+                "HOOK": {"env": "UNSET_VAR_XYZ", "optional": True},
+            }},
+        })
+        with patch.dict(os.environ, {"MY_REQUIRED": "v"}, clear=True):
+            self.deployer._create_user_secrets()
+        body = self._last_create_body()
+        self.assertEqual(base64.b64decode(body.data["REQUIRED"]).decode(), "v")
+        self.assertNotIn("HOOK", body.data)
+
+    def test_optional_file_missing_skips_key(self):
+        self._set_spec_secrets({
+            "app-secrets": {"keys": {
+                "REQUIRED": {"env": "MY_REQUIRED"},
+                "K": {"file": "/nonexistent/path/xyz", "optional": True},
+            }},
+        })
+        with patch.dict(os.environ, {"MY_REQUIRED": "v"}, clear=True):
+            self.deployer._create_user_secrets()
+        body = self._last_create_body()
+        self.assertNotIn("K", body.data)
+
     def test_legacy_list_form_skipped(self):
         self._set_spec_secrets({"app-secrets": ["KEY1", "KEY2"]})
         self.deployer._create_user_secrets()

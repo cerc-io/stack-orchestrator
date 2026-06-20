@@ -1,0 +1,48 @@
+name: Fixturenet-Payments-Test
+
+on:
+  push:
+    branches: '*'
+    paths:
+      - '!**'
+      - '.gitea/workflows/triggers/fixturenet-payments-test'
+
+# Needed until we can incorporate docker startup into the executor container
+env:
+  DOCKER_HOST: unix:///var/run/dind.sock
+
+
+jobs:
+  test:
+    name: "Run a payments fixturenet test"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Clone project repository"
+        uses: actions/checkout@v3
+      # At present the stock setup-python action fails on Linux/aarch64
+      # Conditional steps below workaroud this by using deadsnakes for that case only
+      - name: "Install Python for ARM on Linux"
+        if: ${{ runner.arch == 'arm64' && runner.os == 'Linux' }}
+        uses: deadsnakes/action@v3.0.1
+        with:
+          python-version: '3.8'
+      - name: "Install Python cases other than ARM on Linux"
+        if: ${{ ! (runner.arch == 'arm64' && runner.os == 'Linux') }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+      - name: "Print Python version"
+        run: python3 --version
+      - name: "Install shiv"
+        run: pip install shiv
+      - name: "Generate build version file"
+        run: ./scripts/create_build_tag_file.sh
+      - name: "Build local shiv package"
+        run: ./scripts/build_shiv_package.sh
+      - name: Start dockerd # Also needed until we can incorporate into the executor
+        run: |
+          dockerd -H $DOCKER_HOST --userland-proxy=false &
+          sleep 5
+      - name: "Run fixturenet-payments tests"
+        run: ./tests/fixturenet-payments/run-test.sh
+

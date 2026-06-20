@@ -1,0 +1,13 @@
+version: "1.0"
+name: keycloak
+description: "Keycloak"
+repos:
+  - git.vdb.to/cerc-io/keycloak-reg-api
+  - git.vdb.to/cerc-io/keycloak-reg-ui
+containers:
+  - cerc/keycloak
+  - cerc/keycloak-reg-api
+  - cerc/keycloak-reg-ui
+  - cerc/webapp-base
+pods:
+  - keycloak
